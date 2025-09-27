@@ -102,6 +102,48 @@ use std::time::SystemTime; // Only std::time::Instant for performance measuring
 - **Workspace dependencies**: Use `[workspace.dependencies]` for version management
 - **Layer-based organization**: AirsSys crates first, then core runtime, then external
 
+#### §6.1 YAGNI Principles (MANDATORY)
+- **Build only what's needed**: Implement features only when explicitly required
+- **Avoid speculative generalization**: Don't build for imaginary future requirements
+- **Simple solutions first**: Prefer direct solutions over elaborate architectures
+- **Remove unused complexity**: Eliminate capabilities() methods and abstractions until proven necessary
+
+#### §6.2 Avoid `dyn` Patterns (MANDATORY)
+- **Prefer static dispatch**: Use generic constraints instead of trait objects
+- **Type safety first**: Compile-time type checking over runtime dispatch
+- **Hierarchy**: Concrete types > Generics > `dyn` traits (last resort)
+```rust
+// ✅ CORRECT - Use generic constraints
+pub trait MyTrait<T: Operation> {
+    fn process(&self, operation: T) -> Result<(), MyError>;
+}
+
+// ❌ FORBIDDEN - Avoid dyn trait objects  
+pub fn process(handler: Box<dyn MyTrait>) -> Result<(), MyError>;
+```
+
+#### §6.3 Microsoft Rust Guidelines Integration (MANDATORY)
+**Follow Complete Microsoft Rust Guidelines for production-quality Rust development.**
+
+**ALL AirsSys components MUST comply with the comprehensive technical standards documented in:**
+📋 **`.copilot/memory_bank/workspace/microsoft_rust_guidelines.md`** (Complete Guidelines)
+
+**Key Mandatory Patterns:**
+- **M-DESIGN-FOR-AI**: AI-optimized development with idiomatic APIs, thorough docs, strong types
+- **M-DI-HIERARCHY**: Concrete types > generics > dyn traits (strict hierarchy)
+- **M-AVOID-WRAPPERS**: No smart pointers in public APIs
+- **M-SIMPLE-ABSTRACTIONS**: Prevent cognitive nesting, limit to 1 level deep
+- **M-ERRORS-CANONICAL-STRUCTS**: Structured errors with `Backtrace` and helper methods
+- **M-SERVICES-CLONE**: Services implement cheap `Clone` via `Arc<Inner>` pattern
+- **M-ESSENTIAL-FN-INHERENT**: Core functionality in inherent methods
+- **M-MOCKABLE-SYSCALLS**: All I/O and system calls must be mockable
+- **M-UNSAFE/M-UNSOUND**: Strict safety requirements - no exceptions
+
+**Reference Documents:**
+- **Complete Standards**: `.copilot/memory_bank/workspace/microsoft_rust_guidelines.md` 
+- **Original Source**: [Microsoft Rust Guidelines](https://microsoft.github.io/rust-guidelines/)
+- **AI Agent Text**: [Complete Guidelines](https://microsoft.github.io/rust-guidelines/agents/all.txt)
+
 ### Code Quality Requirements
 - **Zero warnings**: All code must compile without warnings
 - **Comprehensive testing**: >90% test coverage required

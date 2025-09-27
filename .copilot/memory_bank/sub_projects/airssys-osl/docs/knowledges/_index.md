@@ -2,15 +2,16 @@
 
 **Sub-Project:** airssys-osl  
 **Last Updated:** 2025-09-27  
-**Total Knowledge Docs:** 0  
-**Active Knowledge Docs:** 0  
+**Total Knowledge Docs:** 2  
+**Active Knowledge Docs:** 2  
 
 ## Knowledge Summary
 
 ### By Category
 | Category | Count | Maturity | Last Updated |
 |----------|-------|----------|--------------|
-| Architecture | 0 | N/A | N/A |
+| Architecture | 1 | Draft | 2025-09-27 |
+| Standards | 1 | Draft | 2025-09-27 |
 | Patterns | 0 | N/A | N/A |
 | Performance | 0 | N/A | N/A |
 | Integration | 0 | N/A | N/A |
@@ -20,9 +21,47 @@
 ### By Maturity
 | Maturity | Count | Description |
 |----------|-------|-------------|
-| Draft | 0 | Under development, may change significantly |
+| Draft | 2 | Under development, may change significantly |
 | Stable | 0 | Proven patterns, ready for use |
 | Deprecated | 0 | No longer recommended, kept for reference |
+
+## Active Knowledge Documentation
+
+### Architecture Category
+
+#### 001-core-architecture-foundations.md *(Draft)*
+**Purpose:** Core architectural decisions and patterns for airssys-osl implementation  
+**Last Updated:** 2025-09-27  
+**Key Topics:**
+- Generic-first design pattern following Microsoft Rust Guidelines  
+- Core-first module architecture with priority-based implementation
+- Security-consolidated architecture in middleware/security/
+- Simplified error handling with structured error types
+- YAGNI principles application and technical standards compliance
+
+**Cross-References:**
+- Microsoft Rust Guidelines: M-DI-HIERARCHY, M-AVOID-WRAPPERS, M-SIMPLE-ABSTRACTIONS
+- Workspace Standards: §2.1, §3.2, §4.3, §5.1, §6.1, §6.2, §6.3
+- Project Brief: airssys-osl foundation requirements
+
+### Standards Category
+
+#### 002-microsoft-rust-guidelines-integration.md *(Draft)*
+**Purpose:** Comprehensive integration of Microsoft Rust Guidelines for production-quality Rust development  
+**Last Updated:** 2025-09-27  
+**Key Topics:**
+- M-DESIGN-FOR-AI: AI-optimized development patterns and practices
+- M-ERRORS-CANONICAL-STRUCTS: Structured error handling with Backtrace
+- M-SERVICES-CLONE: Shared service patterns with Arc<Inner>
+- M-MOCKABLE-SYSCALLS: Testable I/O operations and system calls
+- M-ESSENTIAL-FN-INHERENT: Core functionality in inherent methods
+- Complete quality gates and compliance checklist
+
+**Cross-References:**
+- Microsoft Rust Guidelines: [microsoft.github.io/rust-guidelines](https://microsoft.github.io/rust-guidelines/)
+- Complete AI Guidelines: [agents/all.txt](https://microsoft.github.io/rust-guidelines/agents/all.txt)
+- Workspace Standards: §6.3 Microsoft Rust Guidelines Integration
+- Core Architecture: 001-core-architecture-foundations.md
 
 ## Planned Knowledge Documentation
 
