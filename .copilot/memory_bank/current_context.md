@@ -2,12 +2,13 @@
 
 **Active Sub-Project:** airssys-osl  
 **Last Updated:** 2025-09-27  
-**Context Switch Reason:** Initial setup complete, ready for core implementation
+**Context Switch Reason:** Updated project structure - removed crates/ directory
 
 ## Quick Context Summary
 - **Workspace**: AirsSys system programming components for AirsStack ecosystem
 - **Active Focus**: Core architecture implementation for airssys-osl foundation
 - **Next Steps**: Begin OSL-TASK-001 (Core Module Foundation) implementation
+- **Structure Update**: Project structure corrected - crates are now directly in root
 
 ## Recent Progress
 - ✅ Memory bank setup and documentation framework completed
@@ -15,6 +16,7 @@
 - ✅ Core architecture knowledge documented (001-core-architecture-foundations.md)
 - ✅ Initial task framework created (4 critical path tasks)
 - ✅ AGENTS.md updated with complete technical standards reference
+- ✅ Project structure corrected (removed crates/ directory references)
 
 ## Available Sub-Projects
 1. **airssys-osl** (Active) - OS Layer Framework for low-level system programming

@@ -55,13 +55,9 @@ airssys/
 ├── .copilot/
 │   ├── memory_bank/           # Multi-project memory bank system
 │   └── instructions/          # AI agent instructions
-├── crates/                    # Future: Rust workspace crates
-│   ├── airssys-osl/          # OS Layer Framework  
-│   ├── airssys-rt/           # Runtime system
-│   └── airssys-wasm/         # WASM pluggable system
-├── docs/                     # Project documentation
-├── examples/                 # Usage examples
-└── tools/                    # Development tools
+├── airssys-osl/              # OS Layer Framework  
+├── airssys-rt/               # Runtime system
+└── airssys-wasm/             # WASM pluggable system
 ```
 
 ## Code Style and Standards (MANDATORY)
@@ -184,17 +180,17 @@ cargo tarpaulin --workspace --out html
 ```toml
 [workspace]
 members = [
-    "crates/airssys-osl",
-    "crates/airssys-rt", 
-    "crates/airssys-wasm"
+    "airssys-osl",
+    "airssys-rt", 
+    "airssys-wasm"
 ]
 resolver = "2"
 
 [workspace.dependencies]
 # AirsSys Foundation Crates (MUST be at top)
-airssys-osl = { path = "crates/airssys-osl" }
-airssys-rt = { path = "crates/airssys-rt" }
-airssys-wasm = { path = "crates/airssys-wasm" }
+airssys-osl = { path = "airssys-osl" }
+airssys-rt = { path = "airssys-rt" }
+airssys-wasm = { path = "airssys-wasm" }
 
 # Core Runtime Dependencies  
 tokio = { version = "1.47", features = ["full"] }

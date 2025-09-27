@@ -51,9 +51,9 @@ pub use context::{SystemContext, ActivityLog};
 ```toml
 [workspace.dependencies]
 # Layer 1: AirsSys Foundation Crates (MUST be at top)
-airssys-osl = { path = "crates/airssys-osl" }
-airssys-rt = { path = "crates/airssys-rt" }
-airssys-wasm = { path = "crates/airssys-wasm" }
+airssys-osl = { path = "airssys-osl" }
+airssys-rt = { path = "airssys-rt" }
+airssys-wasm = { path = "airssys-wasm" }
 
 # Layer 2: Core Runtime Dependencies
 tokio = { version = "1.47", features = ["full"] }

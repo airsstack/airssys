@@ -4,14 +4,9 @@
 
 ```
 airssys/
-├── crates/
-│   ├── airssys-osl/          # OS Layer Framework
-│   ├── airssys-rt/           # Runtime (Erlang-Actor Model)
-│   └── airssys-wasm/         # WASM Pluggable System
-├── docs/                     # Workspace documentation
-├── tests/                    # Integration tests
-├── examples/                 # Usage examples
-└── tools/                    # Development tools
+├── airssys-osl/              # OS Layer Framework
+├── airssys-rt/               # Runtime (Erlang-Actor Model)
+└── airssys-wasm/             # WASM Pluggable System
 ```
 
 ## Component Relationships
