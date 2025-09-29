@@ -16,11 +16,20 @@ thiserror = { workspace = true }
 
 # Async runtime
 tokio = { workspace = true }
-async-trait = { version = "0.1" }
+async-trait = { workspace = true }
 
 # Serialization
 serde = { workspace = true }
 uuid = { workspace = true }
+
+[dev-dependencies]
+# Property-based testing
+proptest = { workspace = true }
+
+# Example configurations
+[[example]]
+name = "basic_usage"
+path = "examples/basic_usage.rs"
 
 [lints]
 workspace = true

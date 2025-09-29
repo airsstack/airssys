@@ -1,33 +1,79 @@
-//! AirsSys OS Layer Framework
+//! AirssysOSL - Operating System Layer for Airssys
 //!
-//! `airssys-osl` provides a comprehensive, security-first abstraction layer
-//! for operating system interactions. It offers cross-platform OS operations
-//! with robust security policies, comprehensive activity logging, and
-//! middleware-based extensibility.
+//! This crate provides the core operating system abstraction layer for the Airssys platform.
+//! It defines essential types, traits, and functionality for secure, cross-platform
+//! operating system interactions.
 //!
-//! # Core Components
+//! # Architecture
 //!
-//! * **Core Abstractions** - Foundational traits and types in the [`core`] module
-//! * **Security Framework** - Policy-based security with audit trails
-//! * **Activity Logging** - Comprehensive operation logging and monitoring
-//! * **Cross-Platform Support** - Unified API across Linux, macOS, and Windows
+//! The OSL is built around several core concepts:
 //!
-//! # Example Usage
+//! - **Operations**: Abstract representations of OS-level operations
+//! - **Executors**: Components that can execute specific types of operations  
+//! - **Middleware**: Cross-cutting concerns like logging, security, and validation
+//! - **Context**: Execution context including security and metadata
+//! - **Results**: Standardized result types with comprehensive error handling
 //!
-//! ```rust,no_run
-//! use airssys_osl::core::{ExecutionContext, SecurityContext};
+//! # Quick Start
 //!
-//! // Create a security context for the current principal
-//! let security_context = SecurityContext::new("user@example.com".to_string());
+//! ```rust
+//! use airssys_osl::core::context::{SecurityContext, ExecutionContext};
+//! use airssys_osl::core::operation::OperationType;
+//!
+//! let security_context = SecurityContext::new("user123".to_string());
 //! let execution_context = ExecutionContext::new(security_context);
 //!
-//! // Operations and executors use these contexts for security and audit trails
+//! assert_eq!(execution_context.principal(), "user123");
 //! ```
+//!
+//! # Complete Examples
+//!
+//! For comprehensive usage examples, see the executable examples in the
+//! `examples/` directory. Run them with:
+//!
+//! ```bash
+//! cargo run --example basic_usage
+//! cargo run --example filesystem_pipeline
+//! ```
+//!
+//! # Core Modules
+//!
+//! ## [`core`] - Foundational Framework Abstractions
+//! **Primary Module**: Contains all essential traits, types, and abstractions for the OSL framework
+//!
+//! - **[`core::context`]** - Execution and security context management
+//!   - Manages security boundaries and execution metadata
+//!   - Provides audit trail and permission enforcement
+//!
+//! - **[`core::executor`]** - Operation executor framework
+//!   - Defines contracts for OS operation execution
+//!   - Handles standardized result processing
+//!
+//! - **[`core::middleware`]** - Cross-cutting concerns pipeline
+//!   - Interceptor patterns for logging, validation, monitoring
+//!   - Composable request/response processing
+//!
+//! - **[`core::operation`]** - Operation modeling and permissions
+//!   - Abstract representations of system operations
+//!   - Type-safe permission and capability system
+//!
+//! - **[`core::result`]** - Comprehensive error handling
+//!   - Structured error types with context
+//!   - Consistent result propagation patterns
+//!
+//! ## Module Integration Philosophy
+//!
+//! This library uses **explicit module imports** instead of crate-level re-exports
+//! to maintain clear architectural boundaries. Import specific types from their modules:
+//!
+//! ```rust
+//! use airssys_osl::core::context::ExecutionContext;
+//! use airssys_osl::core::operation::OperationType;
+//! ```
+//!
+//! This approach provides:
+//! - **Clear dependency tracking**: Easy to understand what each component uses
+//! - **Better IDE support**: Precise navigation and completion
+//! - **Maintainable architecture**: Explicit module boundaries prevent coupling
 
 pub mod core;
-
-// Re-export core types for convenient access
-pub use core::{
-    ExecutionContext, ExecutionResult, OSError, OSExecutor, OSResult, Operation, OperationType,
-    Permission, SecurityContext,
-};

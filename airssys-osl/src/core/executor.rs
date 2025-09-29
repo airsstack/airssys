@@ -5,18 +5,41 @@
 
 use std::collections::HashMap;
 use std::fmt::Debug;
+use std::string::FromUtf8Error;
 use std::time::Duration;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 
 use crate::core::context::ExecutionContext;
-use crate::core::operation::Operation;
-use crate::core::result::OSResult;
+use crate::core::operation::{Operation, OperationType};
+use crate::core::result::{OSError, OSResult};
 
 /// Result of executing an operation.
 ///
 /// Contains the output and metadata from a successful operation execution.
+/// This type provides a comprehensive view of what happened during operation
+/// execution, including timing information, output data, and custom metadata.
+///
+/// # Example Usage
+///
+/// ```rust
+/// use airssys_osl::core::executor::ExecutionResult;
+/// use std::time::Duration;
+///
+/// // Create a successful result
+/// let result = ExecutionResult::success(b"Hello, World!".to_vec())
+///     .with_metadata("operation_type".to_string(), "greeting".to_string())
+///     .with_metadata("user_id".to_string(), "12345".to_string());
+///
+/// assert!(result.is_success());
+/// assert_eq!(result.output_as_string().unwrap(), "Hello, World!");
+/// assert_eq!(result.get_metadata("operation_type"), Some("greeting"));
+/// ```
+///
+/// # Thread Safety
+///
+/// ExecutionResult is thread-safe and can be shared across threads.
 #[derive(Debug, Clone)]
 pub struct ExecutionResult {
     /// The output data from the operation execution
@@ -131,7 +154,7 @@ impl ExecutionResult {
     }
 
     /// Returns the output as a UTF-8 string if possible.
-    pub fn output_as_string(&self) -> Result<String, std::string::FromUtf8Error> {
+    pub fn output_as_string(&self) -> Result<String, FromUtf8Error> {
         String::from_utf8(self.output.clone())
     }
 
@@ -153,8 +176,88 @@ impl ExecutionResult {
 
 /// Core trait for executing operations within the OS Layer Framework.
 ///
-/// Implementors of this trait handle the actual execution of operations
-/// while maintaining security boundaries and proper error handling.
+/// Executors are the core components responsible for actually performing
+/// operations within the OSL framework. Each executor specializes in handling
+/// specific types of operations and provides comprehensive lifecycle management.
+///
+/// # Key Responsibilities
+///
+/// - **Validation**: Verify operations can be safely executed
+/// - **Execution**: Perform the actual operation with proper error handling  
+/// - **Resource Management**: Clean up resources after execution
+/// - **Security**: Enforce security constraints and permissions
+///
+/// # Implementation Guidelines
+///
+/// - Executors should be stateless where possible for thread safety
+/// - All operations should be validated before execution
+/// - Cleanup should be called after each execution, even on failure
+/// - Error messages should be descriptive and actionable
+///
+/// # Example Implementation
+///
+/// ```rust
+/// use async_trait::async_trait;
+/// use airssys_osl::core::{
+///     context::ExecutionContext,
+///     executor::{ExecutionResult, OSExecutor},
+///     operation::{Operation, OperationType},
+///     result::{OSResult, OSError},
+/// };
+///
+/// #[derive(Debug)]
+/// struct ExampleExecutor {
+///     name: String,
+/// }
+///
+/// #[async_trait]
+/// impl<T: Operation> OSExecutor<T> for ExampleExecutor {
+///     fn name(&self) -> &str {
+///         &self.name
+///     }
+///
+///     fn supported_operation_types(&self) -> Vec<OperationType> {
+///         vec![OperationType::Process]
+///     }
+///
+///     async fn execute(
+///         &self,
+///         operation: T,
+///         _context: &ExecutionContext,
+///     ) -> OSResult<ExecutionResult> {
+///         let output = format!("Executed: {}", operation.operation_id());
+///         Ok(ExecutionResult::success(output.into_bytes()))
+///     }
+///
+///     async fn validate_operation(
+///         &self,
+///         operation: &T,
+///         context: &ExecutionContext,
+///     ) -> OSResult<()> {
+///         if !self.can_execute(operation, context).await? {
+///             return Err(OSError::execution_failed(
+///                 format!("Cannot execute operation: {}", operation.operation_id())
+///             ));
+///         }
+///         Ok(())
+///     }
+///
+///     async fn cleanup(&self, _context: &ExecutionContext) -> OSResult<()> {
+///         Ok(())
+///     }
+/// }
+/// ```
+///
+/// # Thread Safety
+///
+/// Implementations must be thread-safe (Send + Sync) as they may be called
+/// concurrently from multiple execution contexts.
+///
+/// # Error Handling
+///
+/// All methods should use the OSResult type for consistent error handling.
+/// Validation errors should be descriptive and include context about why
+/// the operation failed validation.
 ///
 /// # Generic Parameters
 ///
@@ -173,7 +276,7 @@ where
     fn name(&self) -> &str;
 
     /// Returns the operation types that this executor can handle.
-    fn supported_operation_types(&self) -> Vec<crate::core::operation::OperationType>;
+    fn supported_operation_types(&self) -> Vec<OperationType>;
 
     /// Validates whether this executor can handle the given operation.
     ///
@@ -223,7 +326,7 @@ where
         // Default implementation uses tokio::time::timeout
         match tokio::time::timeout(timeout, self.execute(operation, context)).await {
             Ok(result) => result,
-            Err(_) => Err(crate::core::result::OSError::execution_failed(format!(
+            Err(_) => Err(OSError::execution_failed(format!(
                 "Operation timed out after {timeout:?}"
             ))),
         }
@@ -236,7 +339,7 @@ where
     async fn validate_operation(&self, operation: &O, context: &ExecutionContext) -> OSResult<()> {
         // Check if executor can handle this operation
         if !self.can_execute(operation, context).await? {
-            return Err(crate::core::result::OSError::execution_failed(format!(
+            return Err(OSError::execution_failed(format!(
                 "Executor '{}' cannot handle operation type '{}'",
                 self.name(),
                 operation.operation_type().as_str()
