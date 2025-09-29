@@ -8,6 +8,19 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+# Time handling (§3.2 workspace standard)
+chrono = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+# Async runtime
+tokio = { workspace = true }
+async-trait = { version = "0.1" }
+
+# Serialization
+serde = { workspace = true }
+uuid = { workspace = true }
 
 [lints]
 workspace = true
