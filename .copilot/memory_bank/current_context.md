@@ -2,32 +2,29 @@
 
 **Active Sub-Project:** airssys-osl  
 **Last Updated:** 2025-09-29  
-**Context Switch Reason:** OSL-TASK-001 Phase 3 completed successfully
+**Context Switch Reason:** OSL-TASK-001 completed with code quality improvements, shifting to API ergonomics development
 
 ## Quick Context Summary
 - **Workspace**: AirsSys system programming components for AirsStack ecosystem
-- **Active Focus**: Core foundation implementation - completed Phases 1, 2, and 3
-- **Next Steps**: Begin OSL-TASK-001 Phase 4 (Testing and Documentation)
-- **Recent Achievement**: Complete core trait definitions with comprehensive middleware system (28 tests passing)
+- **Active Focus**: Hybrid development strategy - concrete middleware → ergonomic framework → advanced features
+- **Recent Achievement**: Complete core foundation with explicit imports, clean API design, 41 tests passing
+- **Next Priority**: OSL-TASK-002 Logger Middleware - provides immediate value + framework development support
+- **Strategy**: Concrete functionality first, then ergonomic APIs, then advanced security features
+- **Key Decision**: Prioritize user value and development efficiency through strategic sequencing
 
 ## Recent Progress
 - ✅ Memory bank setup and documentation framework completed
-- ✅ Technical standards updated with YAGNI, avoid-dyn, Microsoft Guidelines integration
+- ✅ Technical standards updated with YAGNI, avoid-dyn, Microsoft Guidelines integration  
 - ✅ Core architecture knowledge documented (001-core-architecture-foundations.md)
-- ✅ Initial task framework created (4 critical path tasks)
-- ✅ AGENTS.md updated with complete technical standards reference
-- ✅ Project structure corrected (removed crates/ directory references)
-- ✅ Detailed implementation plan created for OSL-TASK-001
-- ✅ mdBook documentation standards integrated into workspace
-- ✅ mdBook documentation corrected to accurately reflect memory bank specifications
-- ✅ Documentation quality standards added (§7.2) - professional, factual, assumption-free requirements
-- ✅ OSL-TASK-001 Phase 1 COMPLETED - Core module foundation with all traits
-- ✅ OSL-TASK-001 Phase 2 COMPLETED - Enhanced core types and comprehensive error handling
-- ✅ OSL-TASK-001 Phase 3 COMPLETED - Production-ready core trait definitions
-- ✅ **NEW**: Complete OSExecutor trait with 7 lifecycle methods and timing support
-- ✅ **NEW**: Comprehensive Middleware trait with 10 methods and sophisticated error handling
-- ✅ **NEW**: Enhanced error system with 6 MiddlewareError and 6 ErrorAction variants
-- ✅ **NEW**: 28 comprehensive unit tests + 1 doctest, 100% pass rate, zero warnings
+- ✅ OSL-TASK-001 COMPLETED - Complete core foundation with production-ready quality
+- ✅ **NEW**: Clean API design with explicit imports (no convenience re-exports)
+- ✅ **NEW**: Import consistency across all modules (no FQN patterns)
+- ✅ **NEW**: Comprehensive documentation with clear module responsibilities
+- ✅ **NEW**: 41 passing tests (28 unit + 9 integration + 4 doc tests)
+- ✅ **NEW**: Full workspace standards compliance (§2.1-§6.3)
+- ✅ **NEW**: API ergonomics analysis completed (004-api-ergonomics-architecture.md)
+- ✅ **NEW**: Optimal task prioritization strategy established (002 → 005 → 006 → 003)
+- ✅ **NEW**: Strategic rationale: concrete value → foundation → framework → advanced features
 
 ## Available Sub-Projects
 1. **airssys-osl** (Active) - OS Layer Framework for low-level system programming
@@ -36,17 +33,38 @@
 
 ## Current Implementation Status
 
-### Priority 1: Core Foundation (Phases 1-3 COMPLETED ✅)
-- **OSL-TASK-001**: Core Module Foundation (Critical, 2-3 days)
-  - Status: **Phases 1-3 COMPLETED** ✅ - Project Setup, Core Types, and Trait Definitions
-  - Achieved: Production-ready core foundation with comprehensive trait system
-  - Achieved: 28 comprehensive unit tests with 100% pass rate, zero warnings
-  - Next Action: Begin Phase 4 (Testing and Documentation) - 2-3 hours remaining
+### COMPLETED: Core Foundation ✅
+- **OSL-TASK-001**: Core Module Foundation (FULLY COMPLETED - Production Ready)
+  - Status: **All 4 Phases Complete + Code Quality Improvements** ✅
+  - Achievement: Production-ready foundation with 41 passing tests (28 unit + 9 integration + 4 doc tests)
+  - Quality: Zero warnings, comprehensive documentation, clean explicit API design
+  - Architecture: Generic-based traits, sophisticated error handling, complete lifecycle management
+  - Standards: Full compliance with workspace standards (§2.1-§6.3) and Microsoft Guidelines
 
-### Priority 2: Middleware Implementation (Ready to Unblock)
-- **OSL-TASK-002**: Logger Middleware Module (High, 1-2 days)
-- **OSL-TASK-003**: Security Middleware Module (High, 2-3 days)  
-- **OSL-TASK-004**: Middleware Pipeline Framework (High, 1-2 days)
+### NEW PRIORITY: Hybrid Development Strategy (Concrete → Foundation → Advanced)
+- **OSL-TASK-002**: Logger Middleware Module (Critical, 1-2 days) - NEXT TASK
+  - Immediate value: Comprehensive activity logging for all operations
+  - Development support: Critical debugging/monitoring for framework development  
+  - Architecture validation: Tests middleware trait design with real implementation
+  - Foundation: Provides concrete middleware for framework integration
+
+- **OSL-TASK-005**: API Ergonomics Foundation (High, 4-6 hours) - AFTER 002
+  - Quick foundation setup maintaining development momentum
+  - Framework design informed by logger middleware implementation
+  - Infrastructure for builder patterns and ergonomic APIs
+  - Integration showcase using logger middleware
+
+- **OSL-TASK-006**: Core Builder Implementation (High, 8-10 hours) - AFTER 005  
+  - Complete OSLFramework builder with working logger middleware
+  - Major UX improvement: ergonomic APIs with functional middleware
+  - Comprehensive testing platform for future middleware
+  - Full developer experience with both explicit and builder APIs
+
+- **OSL-TASK-003**: Security Middleware Module (High, 2-3 days) - AFTER 006
+  - Complex implementation benefits from mature framework platform
+  - Can use logger + framework infrastructure for development/testing
+  - Complete integration into established patterns and APIs
+  - Enterprise-ready security on proven foundation
 
 ## Technical Standards Compliance
 
