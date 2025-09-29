@@ -193,3 +193,98 @@ pub fn process(handler: Box<dyn MyTrait>) -> Result<(), MyError>;
 - **Comprehensive Tests**: >90% code coverage with unit and integration tests
 - **Security Logging**: All operations must generate audit trails
 - **Resource Management**: Proper cleanup and lifecycle management
+
+### §7.1 mdBook Documentation Standards (MANDATORY)
+**All sub-projects MUST maintain comprehensive mdBook documentation:**
+
+#### Directory Structure Standard
+```
+{sub-project}/
+├── docs/
+│   ├── book.toml           # mdBook configuration
+│   ├── src/
+│   │   ├── SUMMARY.md      # Book navigation structure
+│   │   ├── introduction.md # Project overview and getting started
+│   │   ├── architecture/   # System architecture documentation
+│   │   ├── api/           # API reference documentation
+│   │   ├── guides/        # User guides and tutorials
+│   │   └── reference/     # Technical reference materials
+│   └── book/              # Generated output (git-ignored)
+```
+
+#### Configuration Standards
+```toml
+# book.toml template
+[book]
+authors = ["AirsStack Team"]
+language = "en"
+src = "src"
+title = "{Sub-Project Name}"
+description = "{Brief description}"
+
+[build]
+build-dir = "book"
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "navy"
+git-repository-url = "https://github.com/airsstack/airssys"
+edit-url-template = "https://github.com/airsstack/airssys/edit/main/{path}"
+
+[output.html.search]
+enable = true
+```
+
+#### Content Standards
+- **Introduction**: Clear project overview, installation, and quick start
+- **Architecture**: Comprehensive system design documentation
+- **API Reference**: Complete API documentation with examples
+- **User Guides**: Step-by-step tutorials for common use cases
+- **Reference**: Technical specifications and detailed reference materials
+
+#### Build Integration
+```bash
+# Development workflow commands
+mdbook build docs           # Build documentation
+mdbook serve docs           # Serve locally for development
+mdbook test docs            # Test code examples in documentation
+```
+
+#### CI/CD Integration
+- Documentation builds must be validated in CI pipeline
+- Generated docs should be deployable to GitHub Pages or similar
+- Code examples in documentation must be tested automatically
+- Documentation updates required for all public API changes
+
+### §7.2 Documentation Quality Standards (MANDATORY)
+**All documentation MUST maintain professional software engineering standards:**
+
+#### Accuracy and Truthfulness
+- **No assumptions**: Document only what is actually implemented or officially planned
+- **No fictional content**: All examples, APIs, and features must be real or explicitly marked as planned/pending
+- **Source all claims**: Reference memory bank, code, or official specifications for all technical statements
+- **Current status clarity**: Clearly indicate implementation status (completed, in-progress, planned, pending)
+
+#### Professional Tone and Language
+- **No excessive emoticons**: Professional technical documentation avoids casual emoji usage
+- **No hyperbole**: Avoid exaggerated claims like "blazingly fast", "revolutionary", "game-changing"
+- **No self-promotional language**: Avoid subjective claims like "best-in-class", "cutting-edge", "industry-leading"
+- **Objective terminology**: Use precise, measurable, and factual language
+
+#### Content Standards
+```markdown
+// ✅ CORRECT - Factual, sourced, professional
+AirsSys OSL provides cross-platform OS abstraction following documented 
+architecture specifications. Current implementation status: foundation setup phase.
+Performance targets: <1ms file operations (documented in tech_context.md).
+
+// ❌ FORBIDDEN - Assumptions, hyperbole, unsourced claims
+AirsSys OSL is the most advanced 🚀 cross-platform framework that will 
+revolutionize system programming! Lightning-fast performance guaranteed! ⚡
+```
+
+#### Documentation Verification Requirements
+- **Memory bank alignment**: All technical content must align with memory bank specifications
+- **Implementation verification**: API examples must reflect actual or documented planned implementations
+- **Status accuracy**: Current phase and capability descriptions must be factually accurate
+- **No speculative features**: Do not document features without official planning documentation

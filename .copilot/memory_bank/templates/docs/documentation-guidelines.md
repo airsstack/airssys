@@ -3,6 +3,23 @@
 ## Documentation Strategy
 This document provides guidelines for when and how to create technical documentation within the AirsSys workspace using the standardized template system.
 
+## MANDATORY Documentation Quality Standards (§7.2)
+**ALL documentation MUST adhere to professional software engineering standards:**
+
+### Critical Requirements
+- ✅ **No assumptions**: Document only implemented or officially planned features
+- ✅ **No fictional content**: All examples must be real or explicitly marked as planned
+- ✅ **Source all claims**: Reference memory bank, code, or specifications
+- ✅ **Professional tone**: No excessive emoticons, hyperbole, or self-promotional language
+- ✅ **Status accuracy**: Clearly indicate implementation status at all times
+
+### Forbidden Patterns
+- ❌ Unsourced performance claims ("blazingly fast", "lightning speed")
+- ❌ Marketing language ("best-in-class", "revolutionary", "cutting-edge")
+- ❌ Excessive emoji usage in technical documentation
+- ❌ Speculative features without official planning documentation
+- ❌ Assumptions about implementation without memory bank verification
+
 ## Documentation Types and Triggers
 
 ### Technical Debt Records

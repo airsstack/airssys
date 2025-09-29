@@ -18,6 +18,9 @@
 - ✅ AGENTS.md updated with complete technical standards reference
 - ✅ Project structure corrected (removed crates/ directory references)
 - ✅ **NEW**: Detailed implementation plan created for OSL-TASK-001
+- ✅ **NEW**: mdBook documentation standards integrated into workspace
+- ✅ **NEW**: mdBook documentation corrected to accurately reflect memory bank specifications
+- ✅ **NEW**: Documentation quality standards added (§7.2) - professional, factual, assumption-free requirements
 
 ## Available Sub-Projects
 1. **airssys-osl** (Active) - OS Layer Framework for low-level system programming
@@ -46,6 +49,8 @@
 - ✅ §6.1: YAGNI Principles - build only what's needed
 - ✅ §6.2: Avoid dyn patterns - prefer generic constraints
 - ✅ §6.3: Microsoft Rust Guidelines - production-quality standards
+- ✅ §7.1: mdBook Documentation Standards - comprehensive technical documentation
+- ✅ §7.2: Documentation Quality Standards - professional, factual, assumption-free documentation
 - ✅ AGENTS.md updated with complete standards reference
 
 ### Architecture Decisions (Completed)

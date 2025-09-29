@@ -41,12 +41,20 @@ This project uses a **Multi-Project Memory Bank** system for context management 
 # Initialize cargo workspace (if not exists)
 cargo init --lib
 
+# Install mdBook for documentation (one-time setup)
+cargo install mdbook
+
 # Check code quality
 cargo check --workspace
 cargo clippy --workspace --all-targets --all-features
 
 # Run tests
 cargo test --workspace
+
+# Documentation development
+mdbook serve docs           # Serve documentation locally
+mdbook build docs           # Build documentation  
+mdbook test docs            # Test code examples
 ```
 
 ### Project Structure
@@ -55,9 +63,12 @@ airssys/
 ├── .copilot/
 │   ├── memory_bank/           # Multi-project memory bank system
 │   └── instructions/          # AI agent instructions
-├── airssys-osl/              # OS Layer Framework  
+├── airssys-osl/              # OS Layer Framework
+│   └── docs/                 # mdBook documentation
 ├── airssys-rt/               # Runtime system
+│   └── docs/                 # mdBook documentation (future)
 └── airssys-wasm/             # WASM pluggable system
+    └── docs/                 # mdBook documentation (future)
 ```
 
 ## Code Style and Standards (MANDATORY)
@@ -139,6 +150,87 @@ pub fn process(handler: Box<dyn MyTrait>) -> Result<(), MyError>;
 - **Complete Standards**: `.copilot/memory_bank/workspace/microsoft_rust_guidelines.md` 
 - **Original Source**: [Microsoft Rust Guidelines](https://microsoft.github.io/rust-guidelines/)
 - **AI Agent Text**: [Complete Guidelines](https://microsoft.github.io/rust-guidelines/agents/all.txt)
+
+#### §7.1 mdBook Documentation Standards (MANDATORY)
+**All sub-projects MUST maintain comprehensive mdBook documentation for detailed technical documentation:**
+
+**mdBook Features:**
+- **Modern book format**: Create professional online documentation from Markdown files
+- **Search functionality**: Built-in search across all documentation content
+- **Responsive design**: Mobile-friendly documentation that works on all devices
+- **Live reload**: Real-time preview during documentation development
+- **Code highlighting**: Syntax highlighting for multiple programming languages
+- **Mathematical expressions**: Support for LaTeX-style math rendering
+- **Customizable themes**: Light and dark themes with customization options
+- **Git integration**: Links to source repository and edit functionality
+
+**Directory Structure Standard:**
+```
+{sub-project}/
+├── docs/
+│   ├── book.toml           # mdBook configuration
+│   ├── src/
+│   │   ├── SUMMARY.md      # Book navigation structure  
+│   │   ├── introduction.md # Project overview and getting started
+│   │   ├── architecture/   # System architecture documentation
+│   │   ├── api/           # API reference documentation
+│   │   ├── guides/        # User guides and tutorials
+│   │   └── reference/     # Technical reference materials
+│   └── book/              # Generated output (git-ignored)
+```
+
+**Development Commands:**
+```bash
+# Install mdBook (one-time setup)
+cargo install mdbook
+
+# Initialize new documentation (done for airssys-osl)
+mdbook init docs
+
+# Development workflow
+mdbook build docs           # Build documentation
+mdbook serve docs           # Serve locally for development  
+mdbook test docs            # Test code examples in documentation
+```
+
+**Integration Requirements:**
+- Documentation builds validated in CI pipeline
+- Generated docs deployable to GitHub Pages
+- Code examples in documentation automatically tested
+- Documentation updates required for all public API changes
+
+#### §7.2 Documentation Quality Standards (MANDATORY)
+**All documentation MUST maintain professional software engineering standards:**
+
+**Accuracy and Truthfulness:**
+- **No assumptions**: Document only what is actually implemented or officially planned
+- **No fictional content**: All examples, APIs, and features must be real or explicitly marked as planned/pending  
+- **Source all claims**: Reference memory bank, code, or official specifications for all technical statements
+- **Current status clarity**: Clearly indicate implementation status (completed, in-progress, planned, pending)
+
+**Professional Tone and Language:**
+- **No excessive emoticons**: Professional technical documentation avoids casual emoji usage
+- **No hyperbole**: Avoid exaggerated claims like "blazingly fast", "revolutionary", "game-changing"
+- **No self-promotional language**: Avoid subjective claims like "best-in-class", "cutting-edge", "industry-leading"
+- **Objective terminology**: Use precise, measurable, and factual language
+
+**Content Standards:**
+```markdown
+// ✅ CORRECT - Factual, sourced, professional
+AirsSys OSL provides cross-platform OS abstraction following documented 
+architecture specifications. Current implementation status: foundation setup phase.
+Performance targets: <1ms file operations (documented in tech_context.md).
+
+// ❌ FORBIDDEN - Assumptions, hyperbole, unsourced claims  
+AirsSys OSL is the most advanced 🚀 cross-platform framework that will
+revolutionize system programming! Lightning-fast performance guaranteed! ⚡
+```
+
+**Documentation Verification Requirements:**
+- **Memory bank alignment**: All technical content must align with memory bank specifications
+- **Implementation verification**: API examples must reflect actual or documented planned implementations
+- **Status accuracy**: Current phase and capability descriptions must be factually accurate
+- **No speculative features**: Do not document features without official planning documentation
 
 ### Code Quality Requirements
 - **Zero warnings**: All code must compile without warnings
