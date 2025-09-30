@@ -1,53 +1,71 @@
 # Current Context
 
-**Active Sub-Project:** airssys-rt  
+**Active Sub-Project:** airssys-wasm  
 **Last Updated:** 2025-09-30  
-**Context Switch Reason:** User request to focus on airssys-rt project for analysis and implementation planning
+**Context Switch Reason:** User request to switch focus to airssys-wasm project
 
 ## Quick Context Summary
 - **Workspace**: AirsSys system programming components for AirsStack ecosystem
-- **Active Focus**: Hybrid development strategy - concrete middleware → ergonomic framework → advanced features
-- **Recent Achievement**: Complete core foundation with explicit imports, clean API design, 41 tests passing
-- **Next Priority**: OSL-TASK-002 Logger Middleware - provides immediate value + framework development support
-- **Strategy**: Concrete functionality first, then ergonomic APIs, then advanced security features
-- **Key Decision**: Prioritize user value and development efficiency through strategic sequencing
+- **Active Focus**: WebAssembly Component Model and secure sandbox implementation research
+- **Current Status**: Future planning phase - requires airssys-osl and airssys-rt foundation
+- **Project Priority**: Medium - Advanced component for ecosystem completion
+- **Technology Stack**: wasmtime, WebAssembly Component Model, WASI Preview 2
+- **Security Model**: Deny-by-default security with capability-based access control
+- **Phase**: Future Planning and Research (Q3 2026+ timeline)
 
 ## Recent Progress
 - ✅ Memory bank setup and documentation framework completed
-- ✅ Technical standards updated with YAGNI, avoid-dyn, Microsoft Guidelines integration  
-- ✅ Core architecture knowledge documented (001-core-architecture-foundations.md)
-- ✅ OSL-TASK-001 COMPLETED - Complete core foundation with production-ready quality
-- ✅ **NEW**: Clean API design with explicit imports (no convenience re-exports)
-- ✅ **NEW**: Import consistency across all modules (no FQN patterns)
-- ✅ **NEW**: Comprehensive documentation with clear module responsibilities
-- ✅ **NEW**: 41 passing tests (28 unit + 9 integration + 4 doc tests)
-- ✅ **NEW**: Full workspace standards compliance (§2.1-§6.3)
-- ✅ **NEW**: API ergonomics analysis completed (004-api-ergonomics-architecture.md)
-- ✅ **NEW**: Optimal task prioritization strategy established (002 → 005 → 006 → 003)
-- ✅ **NEW**: Strategic rationale: concrete value → foundation → framework → advanced features
-- ✅ **NEW**: Complete OSL-TASK-002 development plan with revised architecture
-- ✅ **NEW**: Generic design over dyn patterns, tracing compatibility, proper Rust testing conventions
-- ✅ **NEW**: Primary reference saved: OSL-TASK-002-logger-middleware.md (complete implementation plan)
+- ✅ WASM technology research completed (WebAssembly Component Model focus)
+- ✅ Security architecture designed (capability-based, deny-by-default)
+- ✅ Integration strategy planned with airssys-osl and airssys-rt
+- ✅ Performance targets established (<10ms instantiation, <512KB memory)
+- ✅ Component Model implementation strategy documented
+- ✅ WASI Preview 2 integration plan completed
 
 ## Available Sub-Projects
-1. **airssys-osl** (Active) - OS Layer Framework for low-level system programming
+1. **airssys-osl** - OS Layer Framework for low-level system programming 
 2. **airssys-rt** - Erlang-Actor model runtime system
-3. **airssys-wasm** - WebAssembly pluggable system for secure component execution
+3. **airssys-wasm** (Active) - WebAssembly pluggable system for secure component execution
 
 ## Current Implementation Status
 
-### COMPLETED: Core Foundation ✅
-- **OSL-TASK-001**: Core Module Foundation (FULLY COMPLETED - Production Ready)
-  - Status: **All 4 Phases Complete + Code Quality Improvements** ✅
-  - Achievement: Production-ready foundation with 41 passing tests (28 unit + 9 integration + 4 doc tests)
-  - Quality: Zero warnings, comprehensive documentation, clean explicit API design
-  - Architecture: Generic-based traits, sophisticated error handling, complete lifecycle management
-  - Standards: Full compliance with workspace standards (§2.1-§6.3) and Microsoft Guidelines
+### FOUNDATION REQUIREMENTS: airssys-osl and airssys-rt ⏳
+- **airssys-osl**: OS Layer Framework (In active development)
+  - Status: Core foundation complete, middleware development in progress
+  - Required: Mature OS abstraction for secure WASM-host communication
+  
+- **airssys-rt**: Runtime System (Planned Q1 2026)  
+  - Status: Planning phase
+  - Required: Actor system foundation for component hosting
 
-### NEW PRIORITY: Hybrid Development Strategy (Concrete → Foundation → Advanced)
-- **OSL-TASK-002**: Logger Middleware Module (Critical, 1-2 days) - NEXT TASK
-  - Immediate value: Comprehensive activity logging for all operations
-  - Development support: Critical debugging/monitoring for framework development  
+### CURRENT PHASE: Research and Planning ⏳
+- **Architecture Research**: WASM runtime selection and component model analysis
+- **Security Design**: Capability-based security and sandboxing architecture
+- **Integration Planning**: Deep integration patterns with AirsSys components
+- **Technology Evaluation**: WebAssembly Component Model tooling assessment
+
+### PLANNED WORK (When Dependencies Ready - Q3 2026+)
+
+#### Phase 1: Core WASM Runtime Foundation
+- **WASM-TASK-001**: WASM Runtime Core (Priority 1, 2-3 weeks)
+  - Basic WASM component loading and execution
+  - WebAssembly Component Model implementation
+  - Security sandbox with capability-based access control
+  - WASI Preview 2 integration
+
+#### Phase 2: AirsSys Ecosystem Integration  
+- **WASM-TASK-002**: Host Integration Layer (Priority 2, 2-3 weeks)
+  - airssys-osl bridge for secure system access
+  - airssys-rt integration for actor-based hosting
+  - Custom host functions for AirsSys ecosystem
+  - Resource management and monitoring
+
+#### Phase 3: Component Management System
+- **WASM-TASK-003**: Component Registry (Priority 3, 1-2 weeks)
+  - Component discovery and lifecycle management
+  - Inter-component communication framework
+  - Performance optimization and monitoring
+  - Hot-reloading and dynamic updates  
   - Architecture validation: Tests middleware trait design with real implementation
   - Foundation: Provides concrete middleware for framework integration
 
