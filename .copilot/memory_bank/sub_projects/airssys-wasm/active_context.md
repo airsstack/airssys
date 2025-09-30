@@ -1,52 +1,63 @@
 # airssys-wasm Active Context
 
 ## Current Focus
-**Phase:** Future Planning and Research  
-**Status:** Pending - Requires airssys-osl and airssys-rt foundation  
-**Priority:** Medium - Advanced component for ecosystem completion
+**Phase:** Architecture Design & Strategic Planning  
+**Status:** Revolutionary framework architecture complete - ready for implementation  
+**Priority:** High - Infrastructure-level innovation that could define industry standards
 
-## Recent Changes
-### 2025-09-27
-- **Memory Bank Established**: Complete project documentation structure
-- **WASM Research**: WebAssembly Component Model and WASI analysis
-- **Security Model Research**: Capability-based security and sandboxing approaches
-- **Integration Strategy**: Planned integration with airssys-osl and airssys-rt
+## Strategic Vision (Updated 2025-09-30)
+**airssys-wasm** is positioned as a **Universal Hot-Deployable WASM Component Framework** - the "CosmWasm for everything." This represents infrastructure-level innovation that creates a completely new category of software architecture.
+
+## Recent Major Developments
+### 2025-09-30 - Strategic Architecture Breakthrough
+- **Vision Refinement**: Evolved from simple WASM runtime to universal component framework
+- **Hot Deployment Discovery**: Smart contract-style deployment without restart identified as killer feature
+- **Architecture Completion**: Complete framework architecture designed and documented
+- **Memory Bank Integration**: Full implementation plan saved with comprehensive documentation
+
+### Key Strategic Insights
+- **Universal Framework**: Not limited to AI/MCP - works for any domain (web, IoT, gaming, etc.)
+- **Smart Contract Paradigm**: Hot deployment, versioning, rollback like blockchain systems
+- **Infrastructure Platform**: Building the foundation others use vs. solving specific problems
+- **Competitive Differentiation**: No existing solution combines WASM + hot deployment + composition
 
 ## Current Work Items
-1. **Architecture Research**: WASM runtime selection and component model implementation
-2. **Security Design**: Capability-based security and sandboxing architecture
-3. **Integration Planning**: Deep integration patterns with other AirsSys components
-4. **Component Model**: WebAssembly Component Model implementation strategy
+1. **Documentation Expansion**: Update README and mdBook docs with new strategic vision
+2. **Architecture Validation**: Review and refine framework design patterns
+3. **Integration Planning**: Detailed AirsSys ecosystem integration strategy
+4. **Example Development**: Reference implementations across multiple domains
 
 ## Next Steps (When Prerequisites Ready)
-1. **Technology Selection**: Choose WASM runtime (wasmtime vs wasmer vs custom)
-2. **Security Framework**: Design capability-based security system
-3. **Component Model Implementation**: Implement WebAssembly Component Model support
-4. **WASI Implementation**: Implement WASI preview 2 for system interface
+1. **Core Runtime Implementation**: Wasmtime integration with Component Model
+2. **Hot Deployment Engine**: Zero-downtime deployment system
+3. **Capability Security**: Fine-grained permission and access control
+4. **Developer SDK**: Rich tooling for component development
 
-## Decisions Made
-- **Component Model Focus**: WebAssembly Component Model as primary architecture
-- **Security First**: Deny-by-default security with capability-based access
-- **AirsSys Integration**: Deep integration with airssys-osl and airssys-rt
-- **Polyglot Support**: Support for all WASM-compatible languages
+## Architectural Decisions Made
+- **Framework Approach**: Universal component framework vs. domain-specific solution
+- **Hot Deployment**: Smart contract-style deployment as core differentiator  
+- **Technology Stack**: Wasmtime, Component Model, WIT, WASI Preview 2
+- **Project Structure**: Simplified workspace integration (core/, sdk/, runtime/)
+- **Security Model**: Capability-based access control with deny-by-default
 
-## Pending Decisions
-- **WASM Runtime Selection**: wasmtime vs wasmer vs other runtime engines
-- **Component Registry**: Component discovery and management approach
-- **Host Functions**: Custom host function design for AirsSys integration
-- **Performance Optimization**: Specific performance optimization strategies
+## Revolutionary Aspects
+1. **Industry First**: No existing universal hot-deployable component framework
+2. **Paradigm Shift**: Smart contract deployment model for general computing
+3. **Category Creation**: Defining new software architecture category
+4. **Ecosystem Platform**: Foundation for next-generation software development
 
-## Dependencies
-- **airssys-osl Completion**: Requires mature OS layer for secure system access
+## Dependencies & Timeline
+- **airssys-osl Foundation**: Requires mature OS layer for secure system access
 - **airssys-rt Foundation**: Requires actor system for component hosting
-- **WASM Ecosystem**: Stable WebAssembly Component Model tooling
-- **Security Framework**: Comprehensive security policy and enforcement system
+- **Implementation Start**: 2026 Q1 when dependencies are ready
+- **Framework Completion**: 2026 Q3-Q4 with full ecosystem features
 
 ## Context for Future Sessions
-- WASM technology research complete with clear direction
-- Security model designed around capability-based access control
-- Integration architecture planned with other AirsSys components
-- Ready for technology selection and initial implementation when dependencies are available
+- Complete architectural framework designed and documented
+- Strategic positioning as infrastructure platform established
+- Revolutionary vision validated and scoped for maximum impact
+- Ready for implementation when foundational dependencies are available
+- Documentation expansion needed to communicate strategic vision
 
 ## Research Insights
 - WebAssembly Component Model provides excellent composition primitives
