@@ -6,7 +6,7 @@
 //!
 //! # Design Principles
 //!
-//! - **Generic-first design**: Uses `LoggerMiddleware<L: ActivityLogger>` 
+//! - **Generic-first design**: Uses `LoggerMiddleware<L: ActivityLogger>`
 //!   instead of dynamic dispatch for zero-cost abstractions
 //! - **Separated concerns**: Pure logging trait with specific implementations
 //! - **User-controlled composition**: Library doesn't impose usage patterns
@@ -37,19 +37,20 @@
 // Layer 1: Standard library imports
 // (imports will be added in Phase 2)
 
-// Layer 2: Third-party crate imports  
+// Layer 2: Third-party crate imports
 // (imports will be added in Phase 2)
 
 // Layer 3: Internal module imports
 // (imports will be added in Phase 2)
 
-// Public API exports (will be uncommented in Phase 2)
-// pub use activity::{ActivityLog, ActivityLogger};
-// pub use config::{LogFormat, LogLevel, LoggerConfig};
-// pub use error::LogError;
-// pub use middleware::LoggerMiddleware;
+// Public API exports
+pub use activity::{ActivityLog, ActivityLogger};
+pub use config::{LogFormat, LogLevel, LoggerConfig};
+pub use error::LogError;
+pub use formatter::LogFormatter;
+pub use middleware::LoggerMiddleware;
 
-// Concrete logger implementations (will be uncommented in Phase 2)
+// Concrete logger implementations (will be uncommented in Phase 4)
 // pub use loggers::{ConsoleActivityLogger, FileActivityLogger, TracingActivityLogger};
 
 // Internal modules (following §4.3 - mod.rs only has declarations and re-exports)
@@ -57,5 +58,5 @@ mod activity;
 mod config;
 mod error;
 mod formatter;
-mod middleware;
 pub mod loggers;
+mod middleware;
