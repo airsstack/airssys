@@ -23,6 +23,9 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 uuid = { workspace = true }
 
+# Logging integration
+tracing = { workspace = true }
+
 [dev-dependencies]
 # Property-based testing
 proptest = { workspace = true }

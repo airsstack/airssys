@@ -50,8 +50,8 @@ pub use error::LogError;
 pub use formatter::LogFormatter;
 pub use middleware::LoggerMiddleware;
 
-// Concrete logger implementations (will be uncommented in Phase 4)
-// pub use loggers::{ConsoleActivityLogger, FileActivityLogger, TracingActivityLogger};
+// Concrete logger implementations
+pub use loggers::{ConsoleActivityLogger, FileActivityLogger, TracingActivityLogger};
 
 // Internal modules (following §4.3 - mod.rs only has declarations and re-exports)
 mod activity;
