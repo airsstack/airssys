@@ -30,6 +30,9 @@ tracing = { workspace = true }
 # Property-based testing
 proptest = { workspace = true }
 
+# Testing utilities
+tempfile = "3.8"
+
 # Example configurations
 [[example]]
 name = "basic_usage"
