@@ -77,3 +77,4 @@
 //! - **Maintainable architecture**: Explicit module boundaries prevent coupling
 
 pub mod core;
+pub mod middleware;
