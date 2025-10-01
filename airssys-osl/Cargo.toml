@@ -33,10 +33,21 @@ proptest = { workspace = true }
 # Testing utilities
 tempfile = "3.8"
 
+# Tracing subscriber for examples
+tracing-subscriber = "0.3"
+
 # Example configurations
 [[example]]
 name = "basic_usage"
 path = "examples/basic_usage.rs"
+
+[[example]]
+name = "logger_comprehensive"
+path = "examples/logger_comprehensive.rs"
+
+[[example]]
+name = "middleware_pipeline"
+path = "examples/middleware_pipeline.rs"
 
 [lints]
 workspace = true

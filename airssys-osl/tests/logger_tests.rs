@@ -23,7 +23,10 @@ fn create_test_log() -> ActivityLog {
         150,
     )
     .mark_security_relevant()
-    .with_metadata("file_size".to_string(), serde_json::Value::Number(1024.into()))
+    .with_metadata(
+        "file_size".to_string(),
+        serde_json::Value::Number(1024.into()),
+    )
 }
 
 /// Helper function to create an error ActivityLog
@@ -45,7 +48,7 @@ mod console_logger_tests {
     #[tokio::test]
     async fn test_console_logger_creation() {
         let logger = ConsoleActivityLogger::new();
-        
+
         // Test that creation succeeds and logger works
         let test_log = create_test_log();
         let result = logger.log_activity(test_log).await;
@@ -168,7 +171,7 @@ mod file_logger_tests {
             .with_format(LogFormat::Json);
 
         let test_log = create_test_log();
-        
+
         // Write log entry
         let write_result = logger.log_activity(test_log).await;
         assert!(write_result.is_ok());
@@ -178,7 +181,9 @@ mod file_logger_tests {
         assert!(flush_result.is_ok());
 
         // Verify file exists and has content
-        let content = fs::read_to_string(&log_path).await.expect("Failed to read log file");
+        let content = fs::read_to_string(&log_path)
+            .await
+            .expect("Failed to read log file");
         assert!(!content.is_empty());
         assert!(content.contains("test_op_123"));
         assert!(content.contains("file_read"));
@@ -187,7 +192,7 @@ mod file_logger_tests {
     #[tokio::test]
     async fn test_file_logger_multiple_formats() {
         let temp_dir = TempDir::new().expect("Failed to create temp dir");
-        
+
         // Test JSON format
         let json_path = temp_dir.path().join("json.log");
         let json_logger = FileActivityLogger::new(&json_path)
@@ -213,8 +218,12 @@ mod file_logger_tests {
         assert!(compact_logger.flush().await.is_ok());
 
         // Verify different formats
-        let json_content = fs::read_to_string(&json_path).await.expect("Failed to read JSON log");
-        let compact_content = fs::read_to_string(&compact_path).await.expect("Failed to read compact log");
+        let json_content = fs::read_to_string(&json_path)
+            .await
+            .expect("Failed to read JSON log");
+        let compact_content = fs::read_to_string(&compact_path)
+            .await
+            .expect("Failed to read compact log");
 
         assert!(json_content.contains("\"operation_id\":\"test_op_123\""));
         assert!(compact_content.contains("|test_op_123|"));
@@ -228,7 +237,7 @@ mod file_logger_tests {
         let logger = Arc::new(
             FileActivityLogger::new(&log_path)
                 .await
-                .expect("Failed to create file logger")
+                .expect("Failed to create file logger"),
         );
 
         // Spawn multiple concurrent write tasks
@@ -256,8 +265,10 @@ mod file_logger_tests {
 
         // Flush and verify all entries were written
         assert!(logger.flush().await.is_ok());
-        let content = fs::read_to_string(&log_path).await.expect("Failed to read log file");
-        
+        let content = fs::read_to_string(&log_path)
+            .await
+            .expect("Failed to read log file");
+
         // Should have 10 entries
         assert_eq!(content.lines().count(), 10);
     }
@@ -288,7 +299,7 @@ mod file_logger_tests {
             let logger1 = FileActivityLogger::new(&log_path)
                 .await
                 .expect("Failed to create first logger");
-            
+
             let log1 = create_test_log();
             assert!(logger1.log_activity(log1).await.is_ok());
             assert!(logger1.flush().await.is_ok());
@@ -299,14 +310,16 @@ mod file_logger_tests {
             let logger2 = FileActivityLogger::new(&log_path)
                 .await
                 .expect("Failed to create second logger");
-            
+
             let log2 = create_error_log();
             assert!(logger2.log_activity(log2).await.is_ok());
             assert!(logger2.flush().await.is_ok());
         }
 
         // Verify both entries are in the file
-        let content = fs::read_to_string(&log_path).await.expect("Failed to read log file");
+        let content = fs::read_to_string(&log_path)
+            .await
+            .expect("Failed to read log file");
         assert!(content.contains("test_op_123"));
         assert!(content.contains("test_op_456"));
         assert_eq!(content.lines().count(), 2);
@@ -320,7 +333,7 @@ mod tracing_logger_tests {
     #[tokio::test]
     async fn test_tracing_logger_creation() {
         let logger = TracingActivityLogger::new();
-        
+
         // Should create successfully
         let test_log = create_test_log();
         let result = logger.log_activity(test_log).await;
@@ -330,7 +343,7 @@ mod tracing_logger_tests {
     #[tokio::test]
     async fn test_tracing_logger_default() {
         let logger = TracingActivityLogger::default();
-        
+
         // Default should work the same as new()
         let test_log = create_test_log();
         let result = logger.log_activity(test_log).await;
@@ -398,13 +411,22 @@ mod tracing_logger_tests {
     #[tokio::test]
     async fn test_tracing_logger_structured_fields() {
         let logger = TracingActivityLogger::new();
-        
+
         // Create log with rich metadata
         let mut complex_log = create_test_log();
         complex_log = complex_log
-            .with_metadata("request_id".to_string(), serde_json::Value::String("req_123".to_string()))
-            .with_metadata("response_time".to_string(), serde_json::Value::Number(250.into()))
-            .with_metadata("user_agent".to_string(), serde_json::Value::String("test-client/1.0".to_string()));
+            .with_metadata(
+                "request_id".to_string(),
+                serde_json::Value::String("req_123".to_string()),
+            )
+            .with_metadata(
+                "response_time".to_string(),
+                serde_json::Value::Number(250.into()),
+            )
+            .with_metadata(
+                "user_agent".to_string(),
+                serde_json::Value::String("test-client/1.0".to_string()),
+            );
 
         // Should handle complex structured data
         let result = logger.log_activity(complex_log).await;

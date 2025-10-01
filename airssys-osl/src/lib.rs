@@ -26,6 +26,78 @@
 //! assert_eq!(execution_context.principal(), "user123");
 //! ```
 //!
+//! # Logger Middleware Examples
+//!
+//! ## Console Logging
+//!
+//! ```rust
+//! use airssys_osl::middleware::logger::{ActivityLog, ConsoleActivityLogger, ActivityLogger, LogFormat};
+//!
+//! # #[tokio::main]
+//! # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! // Create a console logger with JSON format
+//! let logger = ConsoleActivityLogger::new()
+//!     .with_format(LogFormat::Json);
+//!
+//! // Create an activity log
+//! let activity = ActivityLog::new(
+//!     "op_123".to_string(),
+//!     "file_read".to_string(),
+//!     Some("user123".to_string()),
+//!     "Success".to_string(),
+//!     150,
+//! );
+//!
+//! // Log the activity
+//! logger.log_activity(activity).await?;
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! ## File Logging
+//!
+//! ```rust,no_run
+//! use airssys_osl::middleware::logger::{ActivityLog, FileActivityLogger, ActivityLogger, LogFormat};
+//! use std::path::Path;
+//!
+//! # #[tokio::main]
+//! # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! // Create a file logger
+//! let logger = FileActivityLogger::new(Path::new("audit.log"))
+//!     .await?
+//!     .with_format(LogFormat::Pretty);
+//!
+//! // Create and log activity
+//! let activity = ActivityLog::new(
+//!     "op_456".to_string(),
+//!     "database_query".to_string(),
+//!     Some("admin".to_string()),
+//!     "Success".to_string(),
+//!     300,
+//! ).with_metadata("query".to_string(), serde_json::Value::String("SELECT * FROM users".to_string()));
+//!
+//! logger.log_activity(activity).await?;
+//! logger.flush().await?;
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! ## Middleware Integration
+//!
+//! ```rust
+//! use airssys_osl::middleware::logger::{LoggerMiddleware, ConsoleActivityLogger, LoggerConfig};
+//!
+//! # fn main() {
+//! // Create logger middleware for pipeline integration
+//! let logger = ConsoleActivityLogger::new();
+//! let config = LoggerConfig::default();
+//! let middleware = LoggerMiddleware::new(logger, config);
+//!
+//! // Access the underlying logger for direct usage
+//! let logger_ref = middleware.logger();
+//! # }
+//! ```
+//!
 //! # Complete Examples
 //!
 //! For comprehensive usage examples, see the executable examples in the
@@ -33,7 +105,7 @@
 //!
 //! ```bash
 //! cargo run --example basic_usage
-//! cargo run --example filesystem_pipeline
+//! cargo run --example middleware_pipeline
 //! ```
 //!
 //! # Core Modules
@@ -61,6 +133,14 @@
 //!   - Structured error types with context
 //!   - Consistent result propagation patterns
 //!
+//! ## [`middleware`] - Concrete Middleware Implementations
+//!
+//! - **[`middleware::logger`]** - Activity logging and audit trail middleware
+//!   - Multiple output formats (JSON, Pretty, Compact)
+//!   - Console, file, and tracing ecosystem integration
+//!   - Thread-safe concurrent logging support
+//!   - Comprehensive metadata and error handling
+//!
 //! ## Module Integration Philosophy
 //!
 //! This library uses **explicit module imports** instead of crate-level re-exports
@@ -69,6 +149,7 @@
 //! ```rust
 //! use airssys_osl::core::context::ExecutionContext;
 //! use airssys_osl::core::operation::OperationType;
+//! use airssys_osl::middleware::logger::{ActivityLog, ConsoleActivityLogger};
 //! ```
 //!
 //! This approach provides:
