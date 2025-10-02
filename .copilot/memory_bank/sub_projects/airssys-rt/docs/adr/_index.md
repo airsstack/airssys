@@ -1,15 +1,26 @@
 # airssys-rt Architecture Decision Records Index
 
 **Sub-Project:** airssys-rt  
-**Last Updated:** 2025-09-27  
-**Total ADRs:** 0  
-**Active ADRs:** 0  
+**Last Updated:** 2025-10-02  
+**Total ADRs:** 2  
+**Active ADRs:** 2  
+
+## Active Architecture Decision Records
+
+### Core Architecture Decisions
+- **[ADR-RT-001](adr_rt_001_actor_model_strategy.md)**: Actor Model Implementation Strategy
+  - *Status*: Accepted | *Date*: 2025-10-02
+  - *Decision*: Zero-cost abstractions with generic constraints over trait objects
+  - *Impact*: Foundation for entire runtime performance and type safety
+
+- **[ADR-RT-002](adr_rt_002_message_passing_architecture.md)**: Message Passing Architecture  
+  - *Status*: Accepted | *Date*: 2025-10-02
+  - *Decision*: Hybrid message passing with zero-copy local delivery and configurable guarantees
+  - *Impact*: Core communication mechanism design and performance characteristics
 
 ## Planned ADR Categories
 
-### Actor System Architecture
-- **ADR-001: Actor Model Implementation Strategy** - Lightweight vs BEAM-compatible approach
-- **ADR-002: Message Passing Architecture** - Channel types, serialization, and routing
+### Actor System Architecture (Remaining)
 - **ADR-003: Actor State Management** - State storage and access patterns
 - **ADR-004: Supervisor Tree Design** - Supervision strategies and implementation
 
@@ -27,17 +38,31 @@
 
 ## Decision Priority
 
+### Completed (Foundation)
+1. ✅ **ADR-RT-001**: Actor Model Implementation Strategy (Zero-cost abstractions)
+2. ✅ **ADR-RT-002**: Message Passing Architecture (Hybrid routing with type safety)
+
 ### Critical Path (Required Before Implementation)
-1. **ADR-001**: Actor Model Implementation Strategy
-2. **ADR-002**: Message Passing Architecture  
-3. **ADR-005**: Async Runtime Selection
-4. **ADR-004**: Supervisor Tree Design
+1. **ADR-RT-005**: Async Runtime Selection
+2. **ADR-RT-004**: Supervisor Tree Design
 
 ### Implementation Phase
-1. **ADR-003**: Actor State Management
-2. **ADR-006**: Message Serialization Strategy
-3. **ADR-009**: airssys-osl Integration
-4. **ADR-011**: Testing Strategy
+1. **ADR-RT-003**: Actor State Management
+2. **ADR-RT-006**: Message Serialization Strategy
+3. **ADR-RT-009**: airssys-osl Integration
+4. **ADR-RT-011**: Testing Strategy
+
+## Decision Cross-References
+
+### Knowledge Documentation
+- **KNOWLEDGE-RT-001**: Zero-Cost Actor Model Architecture
+- **KNOWLEDGE-RT-002**: Message Broker Zero-Copy Patterns  
+- **KNOWLEDGE-RT-003**: Supervisor Tree Implementation Strategies
+
+### Task Dependencies
+- **RT-TASK-001**: Foundation Setup - implements ADR-RT-001
+- **RT-TASK-002**: Message System - implements ADR-RT-002
+- **RT-TASK-007**: Supervisor Framework - will implement ADR-RT-004
 
 ---
-**Note:** ADRs will be created as architectural decisions are needed.
+**Note:** Additional ADRs will be created as architectural decisions are needed during implementation.

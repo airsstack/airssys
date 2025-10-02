@@ -22,6 +22,7 @@ This project uses a **Multi-Project Memory Bank** system for context management 
 2. **Read workspace files**: Review all files in `.copilot/memory_bank/workspace/`
 3. **Read sub-project files**: Review all core files for the active sub-project
 4. **Check workspace standards**: Follow patterns in `workspace/shared_patterns.md` (§2.1-§5.1)
+5. **⚠️ CRITICAL: Explore Knowledge Base**: ALWAYS review knowledge documentation before starting any task
 
 ### Active Sub-Projects
 - **airssys-osl**: `.copilot/memory_bank/sub_projects/airssys-osl/` (Currently active)
@@ -33,6 +34,7 @@ This project uses a **Multi-Project Memory Bank** system for context management 
 - `add_task [sub_project] [task_name]`: Create new task with proper tracking
 - `switch_context [sub_project]`: Change active sub-project context
 - `show_memory_bank_summary`: Display current memory bank state
+- `explore_knowledge_base [sub_project]`: Review all knowledge documentation before starting work
 
 ## Development Environment
 
@@ -402,9 +404,53 @@ The project uses a comprehensive technical documentation framework:
 
 ### Critical Workflow
 1. **Always start with memory bank context**: Read current context and active sub-project files
-2. **Follow workspace standards**: Strict adherence to §2.1-§5.1 patterns
-3. **Update documentation**: Memory bank files must be updated with any significant changes
-4. **Validate compliance**: Ensure zero warnings and standards compliance before completion
+2. **⚠️ MANDATORY: Knowledge Base Exploration**: Before any task implementation, MUST review all relevant knowledge documentation
+3. **Follow workspace standards**: Strict adherence to §2.1-§5.1 patterns
+4. **Update documentation**: Memory bank files must be updated with any significant changes
+5. **Validate compliance**: Ensure zero warnings and standards compliance before completion
+
+### Knowledge Base Exploration Protocol (MANDATORY)
+
+**For ANY task, MUST review these knowledge sources in order:**
+
+#### 1. Sub-Project Knowledge Documentation
+- **Read ALL knowledge docs**: `.copilot/memory_bank/sub_projects/{sub-project}/docs/knowledges/`
+- **Check knowledge index**: Review `_index.md` for complete knowledge catalog
+- **Identify relevant patterns**: Match task requirements to documented knowledge patterns
+- **Note implementation examples**: Extract concrete code examples and best practices
+
+#### 2. Architecture Decision Records (ADRs)
+- **Read ALL ADRs**: `.copilot/memory_bank/sub_projects/{sub-project}/docs/adr/`  
+- **Check ADR index**: Review `_index.md` for decision history and rationale
+- **Understand constraints**: Identify architectural constraints and requirements from decisions
+- **Follow established patterns**: Implement according to accepted architectural decisions
+
+#### 3. Technical Context and Patterns
+- **System patterns**: Review `system_patterns.md` for established technical patterns
+- **Tech context**: Check `tech_context.md` for performance targets and constraints  
+- **Progress context**: Review `progress.md` for current implementation status
+- **Shared patterns**: Follow workspace standards in `workspace/shared_patterns.md`
+
+#### 4. Task-Specific Research
+- **Task dependencies**: Review task files for dependencies and constraints
+- **Implementation guides**: Check for task-specific implementation guidance
+- **Testing requirements**: Understand testing patterns and coverage requirements
+- **Documentation requirements**: Identify documentation updates needed
+
+### Anti-Pattern: NO ASSUMPTIONS POLICY
+
+**🚫 FORBIDDEN PRACTICES:**
+- **Never assume architecture patterns** - Always reference documented decisions
+- **Never assume performance characteristics** - Always check documented targets  
+- **Never assume implementation approaches** - Always review knowledge documentation first
+- **Never assume error handling patterns** - Always follow documented error handling strategies
+- **Never assume integration patterns** - Always check documented integration approaches
+
+**✅ REQUIRED PRACTICES:**
+- **Evidence-based implementation**: All code must follow documented patterns from knowledge base
+- **Reference documented decisions**: Cite specific ADRs and knowledge docs in implementation
+- **Follow established examples**: Use code examples from knowledge documentation as templates
+- **Validate against constraints**: Ensure implementation meets documented performance and design constraints
 
 ### Common Patterns
 - **Error handling**: Use `thiserror` for structured errors with contextual information

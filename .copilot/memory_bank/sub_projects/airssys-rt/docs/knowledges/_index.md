@@ -1,22 +1,36 @@
 # airssys-rt Knowledge Documentation Index
 
 **Sub-Project:** airssys-rt  
-**Last Updated:** 2025-09-27  
-**Total Knowledge Docs:** 0  
-**Active Knowledge Docs:** 0  
+**Last Updated:** 2025-10-02  
+**Total Knowledge Docs:** 3  
+**Active Knowledge Docs:** 3  
+
+## Active Knowledge Documentation
+
+### Actor Model Category
+- **[KNOWLEDGE-RT-001](knowledge_rt_001_zero_cost_actor_architecture.md)**: Zero-Cost Actor Model Architecture
+  - *Status*: active | *Created*: 2025-10-02
+  - *Summary*: Comprehensive guide to zero-cost abstractions, generic constraints, and compile-time optimizations for actor model implementation
+  
+- **[KNOWLEDGE-RT-003](knowledge_rt_003_supervisor_tree_strategies.md)**: Supervisor Tree Implementation Strategies  
+  - *Status*: active | *Created*: 2025-10-02
+  - *Summary*: BEAM-inspired supervisor trees, fault tolerance patterns, restart strategies, and hierarchical supervision design
+
+### Performance Category
+- **[KNOWLEDGE-RT-002](knowledge_rt_002_message_broker_zero_copy.md)**: Message Broker Zero-Copy Patterns
+  - *Status*: active | *Created*: 2025-10-02
+  - *Summary*: High-performance message routing, zero-copy delivery, lock-free data structures, and memory pool optimization
 
 ## Planned Knowledge Documentation
 
-### Actor Model Category
+### Actor Model Category (Remaining)
 - **Actor Lifecycle Patterns**: Creation, execution, and termination patterns
-- **Message Passing Optimization**: Zero-copy and high-performance message patterns  
 - **State Management**: Actor state storage and access patterns
-- **Actor Supervision**: Supervisor tree implementation and management patterns
+- **Actor Pool Management**: Dynamic actor pool scaling and load balancing
 
-### Performance Category
+### Performance Category (Remaining)
 - **Concurrency Optimization**: High-performance actor scheduling and execution
 - **Memory Management**: Efficient memory usage with thousands of actors
-- **Message Throughput**: Optimizing message delivery performance
 - **Resource Pooling**: Actor and message pooling strategies
 
 ### Integration Category
@@ -25,5 +39,17 @@
 - **Monitoring Integration**: Metrics, tracing, and observability patterns
 - **Testing Patterns**: Actor system testing and fault injection strategies
 
+## Knowledge Cross-References
+
+### Architecture Decision Records
+- **ADR-RT-001**: Actor Model Implementation Strategy
+- **ADR-RT-002**: Message Passing Architecture
+- **ADR-RT-004**: Supervisor Tree Design (planned)
+
+### Task Dependencies
+- **RT-TASK-001**: Foundation Setup - implements KNOWLEDGE-RT-001 patterns
+- **RT-TASK-002**: Message System - implements KNOWLEDGE-RT-002 patterns
+- **RT-TASK-007**: Supervisor Framework - implements KNOWLEDGE-RT-003 patterns
+
 ---
-**Note:** Knowledge docs will be created during implementation phases.
+**Note:** Additional knowledge docs will be created during implementation phases to capture emerging patterns and optimizations.
