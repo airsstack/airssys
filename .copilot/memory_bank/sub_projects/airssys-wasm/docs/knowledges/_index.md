@@ -1,9 +1,19 @@
 # airssys-wasm Knowledge Documentation Index
 
 **Sub-Project:** airssys-wasm  
-**Last Updated:** 2025-09-27  
-**Total Knowledge Docs:** 0  
-**Active Knowledge Docs:** 0  
+**Last Updated:** 2025-10-02  
+**Total Knowledge Docs:** 1  
+**Active Knowledge Docs:** 1  
+
+## Current Knowledge Documentation
+
+### Architecture & Design Category ✅
+- **[Core Architecture Design](core_architecture_design.md)** ✅ **CRITICAL**
+  - **Purpose**: Foundational architecture for WASM component framework
+  - **Scope**: Complete architectural decisions and design principles
+  - **Key Content**: 4-layer architecture, component model, integration patterns
+  - **Status**: Complete foundational design
+  - **Impact**: Critical - defines entire framework foundation
 
 ## Planned Knowledge Documentation (Future)
 
