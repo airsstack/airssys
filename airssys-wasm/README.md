@@ -1,13 +1,13 @@
 # airssys-wasm: WebAssembly Component Framework
 
-## Framework Overview
+## Project Overview
 
-**airssys-wasm** is a WebAssembly component framework that provides hot deployment capabilities for modular applications. The framework enables component-based development with zero-downtime updates and capability-based security.
+**airssys-wasm** is a planned WebAssembly component framework designed to provide hot deployment capabilities for modular applications. The framework is designed to enable component-based development with zero-downtime updates and capability-based security.
 
-## Core Features
+## Planned Architecture
 
 ### Component Framework
-The framework supports various component types:
+The framework is designed to support various component types including:
 - AI agents and MCP tools
 - Microservices and web APIs
 - Data processing pipelines
@@ -16,22 +16,22 @@ The framework supports various component types:
 - Browser extensions
 - General-purpose application components
 
-### Hot Deployment
-Components can be deployed and updated without system restarts:
+### Hot Deployment System
+The planned hot deployment capabilities include:
 - Zero-downtime updates with Blue-Green and Canary deployment strategies
 - Version rollback capabilities
 - A/B testing with traffic splitting
 - Dynamic system scaling through component addition/removal
 
 ### Security Model
-Components operate within controlled security boundaries:
+Components will operate within controlled security boundaries:
 - Fine-grained permissions for file access, network, and system calls
 - Memory isolation between components
 - Audit logging of component activities
 - Configurable security policy enforcement
 
 ### Language Support
-Components can be written in various WASM-compatible languages:
+Components can be written in WASM-compatible languages:
 - Rust (primary development language)
 - C/C++ (native WASM support)
 - Go (TinyGo for WASM compilation)
@@ -40,15 +40,15 @@ Components can be written in various WASM-compatible languages:
 - Other languages that compile to WebAssembly
 
 ### Component Composition
-Complex systems are built through component orchestration:
+Complex systems are planned to be built through component orchestration:
 - Pipeline construction tools for component chaining
 - Dependency management with automatic resolution
 - Error handling with rollback and recovery capabilities
 - Performance optimization through parallel execution
 
-## 🏗️ **Strategic Architecture**
+## Strategic Architecture
 
-## Framework Architecture
+## Planned Framework Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -71,10 +71,10 @@ Complex systems are built through component orchestration:
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## Component Interface
+## Planned Component Interface
 
 ```rust
-// Component implementation example
+// Planned component implementation example
 use airssys_wasm_sdk::prelude::*;
 
 #[component]
@@ -97,34 +97,25 @@ impl MyComponent {
     
     #[component_capabilities]
     pub fn required_capabilities() -> Vec<Capability> {
-        vec![
-            Capability::FileRead("/data".into()),
-            Capability::NetworkOutbound("api.example.com".into()),
         ]
     }
 }
 ```
 
-## Deployment Operations
+## Planned Deployment Operations
 
-### Component Deployment
+### Component Deployment (Planned)
 ```bash
-# Deploy new component
+# Planned CLI operations for future implementation
 airssys-wasm deploy my-component.wasm --config config.json
-
-# Update existing component
 airssys-wasm update my-component@v2.0.0 --strategy blue-green
-
-# Rollback to previous version
 airssys-wasm rollback my-component --to-version v1.5.0
-
-# Monitor component status
 airssys-wasm monitor my-component --metrics
 ```
 
-### Component Composition
+### Component Composition (Planned)
 ```rust
-// Pipeline construction example
+// Planned pipeline construction API
 let pipeline = ComponentPipeline::builder()
     .add_component("input", data_source_component)
     .add_component("processor", ai_model_component)
@@ -140,14 +131,14 @@ pipeline.deploy().await?;
 
 ## Technology Foundation
 
-The framework builds on established technologies:
+The framework will build on established technologies:
 - **Wasmtime**: WebAssembly runtime with Component Model support
 - **WebAssembly Component Model**: Standard for component composition
 - **WIT (WebAssembly Interface Types)**: Language-agnostic interface definitions
 - **WASI Preview 2**: Standardized system interface for capabilities
 - **Capability-based Security**: Security model for controlled resource access
 
-## Use Cases
+## Planned Use Cases
 
 ### AI and Machine Learning
 - AI agent systems with secure component isolation
@@ -173,66 +164,66 @@ The framework builds on established technologies:
 - User-generated content execution
 - Real-time feature updates
 
-## Framework Comparison
+## Framework Comparison Analysis
 
 ### Compared to Container Systems
-- Faster deployment times (seconds vs minutes)
-- Lower resource overhead compared to containers
-- Capability-based security vs namespace isolation
-- Reduced operational complexity
+- Planned faster deployment times (target: seconds vs minutes)
+- Designed for lower resource overhead compared to containers
+- Capability-based security design vs namespace isolation
+- Intended reduced operational complexity
 
 ### Compared to Serverless Platforms
-- No cold start delays
-- Component state preservation capabilities
-- Open standard without vendor lock-in
-- Resource efficiency without per-invocation billing
+- Designed to eliminate cold start delays
+- Planned component state preservation capabilities
+- Built on open standards without vendor lock-in
+- Resource efficiency design without per-invocation billing
 
 ### Compared to Plugin Systems
-- Component updates without system restart
-- Memory safety through sandboxing
-- Multi-language support
-- Built-in version management
+- Planned component updates without system restart
+- Memory safety through WebAssembly sandboxing
+- Multi-language support via WASM compilation
+- Designed with built-in version management
 
-## Getting Started
+## Development Roadmap
 
-### Prerequisites
+### Prerequisites (Implementation Dependencies)
 - airssys-osl (for system access abstraction)
 - airssys-rt (for actor-based component hosting)
 
-### Development Workflow
+### Planned Development Workflow
 ```bash
-# Create new component
+# Planned CLI commands for future implementation
 airssys-wasm init my-first-component
-
-# Build component
 airssys-wasm build
-
-# Run tests
 airssys-wasm test
-
-# Deploy to runtime
 airssys-wasm deploy my-first-component.wasm
 ```
 
 ## Project Status
 
-### Current Phase
-The framework is currently in the planning and architecture design phase. Core implementation is scheduled for future development phases as part of the AirsSys ecosystem roadmap.
+**Current Phase**: Architecture and Planning (15% Complete)
+- **Architecture Design**: Complete architectural framework designed and documented
+- **Technology Stack**: Core technology decisions made (Wasmtime, Component Model, WIT)
+- **Implementation Status**: Ready for implementation when airssys-osl and airssys-rt dependencies are mature
+- **Next Phase**: Core Runtime Implementation (planned for 2026 Q1)
 
 ## Documentation
 
-- [Architecture Guide](docs/src/architecture/)
-- [Getting Started](docs/src/guides/getting-started.md)
-- [API Reference](docs/src/api/)
-- [Research Papers](docs/src/researches/)
+Comprehensive technical documentation is available in the `docs/` directory:
+
+- [Architecture Guide](docs/src/architecture/) - System architecture and design decisions
+- [Implementation Guide](docs/src/implementation/) - Component development and deployment
+- [API Reference](docs/src/api/) - Runtime API and interface specifications
+- [Research Documentation](docs/src/researches/) - Technical research and analysis
 
 ## Contributing
 
-Contributions to the airssys-wasm framework are welcome:
-- Feature suggestions and requirements analysis
-- Core framework and tooling development
-- Documentation improvements and examples
-- Component testing and feedback
+This project is part of the AirsSys ecosystem and follows workspace development standards:
+
+- **Memory Bank System**: All development must follow memory bank documentation and decision tracking
+- **Workspace Standards**: 3-layer import organization, Microsoft Rust Guidelines compliance
+- **Documentation Requirements**: Comprehensive documentation for all public APIs and architectural decisions
+- **Testing Standards**: UI tests, integration tests, and security validation
 
 ## License
 
@@ -240,15 +231,17 @@ Licensed under either of
 - Apache License, Version 2.0
 - MIT License
 
-## Acknowledgments
+## Related Projects
 
-### Research Foundation
-This project builds upon research into WebAssembly Component Model, capability-based security, and hot deployment systems. The approach applies established patterns from distributed systems to component-based application development.
+### AirsSys Ecosystem
+- **airssys-wasm-component** - Procedural macros for simplified WASM component development
+- **airssys-osl** - OS Layer Framework for system programming (foundation dependency)
+- **airssys-rt** - Erlang-Actor model runtime system (runtime dependency)
 
 ### Technology Foundation
-- **Bytecode Alliance** for Wasmtime and Component Model standards
-- **WebAssembly Community** for foundation technologies
-- **AirsSys Ecosystem** for integrated system programming components
+- **Bytecode Alliance** - Wasmtime and Component Model standards
+- **WebAssembly Community** - WASM and WASI specifications
+- **AirsStack Ecosystem** - Integrated system programming components
 
 ---
 

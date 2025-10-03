@@ -4,11 +4,12 @@
 
 `Airssys` is one of the `airsstack` projects, which is designed to manage the OS system programming, `Erlang Actor Model` runtime system, and pluggable system.
 
-This project will contains three important components:
+This project contains four important components:
 
 - `airssys-osl`
 - `airssys-rt`
 - `airssys-wasm`
+- `airssys-wasm-component`
 
 ## airssys-osl (OS Layer Framework)
 
@@ -35,6 +36,20 @@ Principles:
 - **Encapsulation:** An actor maintains its own private, internal state that cannot be directly accessed or modified by any other actor.
 - **Asynchronous Message Passing:** Actors communicate exclusively by sending and receiving immutable messages asynchronously. There is no shared memory, which eliminates the need for complex and error-prone synchronization mechanisms like locks, thereby preventing race conditions by design.
 - **Mailbox and Sequential Processing:** Each actor has a "mailbox" that queues incoming messages. The actor processes these messages one at a time, in a sequential manner, ensuring that its internal state is always consistent.
+
+## airssys-wasm-component (WASM Component Macros)
+
+This component provides procedural macros that simplify WASM component development by eliminating the need for manual `extern "C"` function definitions. Following the successful serde architecture pattern, this crate separates macro implementation from core types for optimal developer experience.
+
+Key features include:
+
+- **`#[component]` macro** - Transforms regular Rust structs into WASM-compatible components
+- **Derive macros** - Automatic trait implementations for ComponentOperation, ComponentResult, ComponentConfig
+- **Code generation** - Automatic WASM export generation, memory management, and serialization
+- **syn v2 compatibility** - Modern procedural macro implementation using latest Rust standards
+- **Zero boilerplate** - Developers focus on business logic while macros handle WASM complexity
+
+This component enables developers to write clean, idiomatic Rust code that automatically compiles to efficient WASM components suitable for the airssys-wasm runtime system.
 
 ## airssys-wasm (WASM Pluggable System)
 

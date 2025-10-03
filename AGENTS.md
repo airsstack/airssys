@@ -2,11 +2,12 @@
 
 ## Project Overview
 
-**AirsSys** is a collection of system programming components for the AirsStack ecosystem, consisting of three main sub-projects:
+**AirsSys** is a collection of system programming components for the AirsStack ecosystem, consisting of four main sub-projects:
 
 - **airssys-osl**: OS Layer Framework for low-level system programming with security and activity logging
 - **airssys-rt**: Lightweight Erlang-Actor model runtime system for high-concurrency applications  
 - **airssys-wasm**: WebAssembly pluggable system for secure component execution
+- **airssys-wasm-component**: Procedural macro crate for simplified WASM component development
 
 ## Memory Bank System (CRITICAL)
 
@@ -25,9 +26,10 @@ This project uses a **Multi-Project Memory Bank** system for context management 
 5. **⚠️ CRITICAL: Explore Knowledge Base**: ALWAYS review knowledge documentation before starting any task
 
 ### Active Sub-Projects
-- **airssys-osl**: `.copilot/memory_bank/sub_projects/airssys-osl/` (Currently active)
+- **airssys-wasm-component**: `.copilot/memory_bank/sub_projects/airssys-wasm-component/` (Currently active - 25% complete)
+- **airssys-osl**: `.copilot/memory_bank/sub_projects/airssys-osl/` (Foundation complete - 75% complete)
 - **airssys-rt**: `.copilot/memory_bank/sub_projects/airssys-rt/` (Planned for Q1 2026)  
-- **airssys-wasm**: `.copilot/memory_bank/sub_projects/airssys-wasm/` (Future - Q3 2026+)
+- **airssys-wasm**: `.copilot/memory_bank/sub_projects/airssys-wasm/` (Architecture complete - Q3 2026+)
 
 ### Memory Bank Commands
 - `update_memory_bank [sub_project]`: Review and update memory bank files
@@ -69,7 +71,9 @@ airssys/
 │   └── docs/                 # mdBook documentation
 ├── airssys-rt/               # Runtime system
 │   └── docs/                 # mdBook documentation (future)
-└── airssys-wasm/             # WASM pluggable system
+├── airssys-wasm/             # WASM pluggable system
+│   └── docs/                 # mdBook documentation (future)
+└── airssys-wasm-component/   # Procedural macro crate
     └── docs/                 # mdBook documentation (future)
 ```
 
@@ -276,7 +280,8 @@ cargo tarpaulin --workspace --out html
 members = [
     "airssys-osl",
     "airssys-rt", 
-    "airssys-wasm"
+    "airssys-wasm",
+    "airssys-wasm-component"
 ]
 resolver = "2"
 
@@ -285,6 +290,7 @@ resolver = "2"
 airssys-osl = { path = "airssys-osl" }
 airssys-rt = { path = "airssys-rt" }
 airssys-wasm = { path = "airssys-wasm" }
+airssys-wasm-component = { path = "airssys-wasm-component" }
 
 # Core Runtime Dependencies  
 tokio = { version = "1.47", features = ["full"] }
@@ -335,7 +341,13 @@ The project uses a comprehensive technical documentation framework:
 
 ## Sub-Project Specific Instructions
 
-### airssys-osl (OS Layer Framework) - CURRENTLY ACTIVE
+### airssys-wasm-component (Procedural Macro Crate) - CURRENTLY ACTIVE
+- **Phase**: Foundation complete, ready for macro implementation
+- **Priority**: High - core tooling for WASM component framework
+- **Focus**: Procedural macros for WASM component development, syn v2 compatibility
+- **Integration**: Provides macros for airssys-wasm components, serde pattern architecture
+
+### airssys-osl (OS Layer Framework) - FOUNDATION COMPLETE
 - **Phase**: Foundation setup and architecture design
 - **Priority**: Critical path - foundation for other components
 - **Focus**: Security framework, activity logging, cross-platform OS abstraction
