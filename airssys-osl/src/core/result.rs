@@ -26,6 +26,14 @@ pub enum OSError {
     #[error("Operation execution failed: {reason}")]
     ExecutionFailed { reason: String },
 
+    /// General execution error
+    #[error("Execution error: {reason}")]
+    Execution { reason: String },
+
+    /// Configuration error
+    #[error("Configuration error: {reason}")]
+    Configuration { reason: String },
+
     /// Filesystem operation error
     #[error("Filesystem operation failed: {operation} on '{path}': {reason}")]
     FilesystemError {
@@ -42,7 +50,7 @@ pub enum OSError {
     #[error("Network operation failed: {operation}: {reason}")]
     NetworkError { operation: String, reason: String },
 
-    /// Configuration error
+    /// Configuration error (legacy compatibility)
     #[error("Configuration error: {reason}")]
     ConfigurationError { reason: String },
 }
@@ -150,6 +158,8 @@ impl OSError {
             OSError::SecurityViolation { .. } => "security",
             OSError::MiddlewareFailed { .. } => "middleware",
             OSError::ExecutionFailed { .. } => "execution",
+            OSError::Execution { .. } => "execution",
+            OSError::Configuration { .. } => "configuration",
             OSError::FilesystemError { .. } => "filesystem",
             OSError::ProcessError { .. } => "process",
             OSError::NetworkError { .. } => "network",

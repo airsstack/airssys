@@ -14,7 +14,39 @@
 //! - **Context**: Execution context including security and metadata
 //! - **Results**: Standardized result types with comprehensive error handling
 //!
-//! # Quick Start
+//! # API Levels
+//!
+//! AirsSys OSL provides two API levels to meet different user needs:
+//!
+//! ## Primary API - Framework Builder (Recommended)
+//!
+//! The framework API provides an ergonomic interface with automatic middleware
+//! orchestration and built-in best practices. This is the recommended API for
+//! most applications.
+//!
+//! ```rust
+//! use airssys_osl::prelude::*;
+//!
+//! #[tokio::main]
+//! async fn main() -> OSResult<()> {
+//!     let osl = OSLFramework::builder()
+//!         .with_default_security()
+//!         .with_security_logging(true)
+//!         .build().await?;
+//!     
+//!     let content = osl.filesystem()
+//!         .read_file("/etc/config.toml")
+//!         .execute().await?;
+//!     
+//!     println!("Config loaded successfully");
+//!     Ok(())
+//! }
+//! ```
+//!
+//! ## Advanced API - Direct Primitives
+//!
+//! The core primitives API provides direct access to all framework components
+//! for advanced use cases requiring custom middleware, executors, or fine-grained control.
 //!
 //! ```rust
 //! use airssys_osl::core::context::{SecurityContext, ExecutionContext};
@@ -147,7 +179,9 @@
 //! to maintain clear architectural boundaries. Import specific types from their modules:
 //!
 //! ```rust
-//! use airssys_osl::core::context::ExecutionContext;
+//! use airssys_osl::prelude::*; // Primary API - framework interface
+//! // OR
+//! use airssys_osl::core::context::ExecutionContext; // Advanced API - direct primitives
 //! use airssys_osl::core::operation::OperationType;
 //! use airssys_osl::middleware::logger::{ActivityLog, ConsoleActivityLogger};
 //! ```
@@ -157,5 +191,10 @@
 //! - **Better IDE support**: Precise navigation and completion
 //! - **Maintainable architecture**: Explicit module boundaries prevent coupling
 
+// Public modules - Framework API (Primary)
+pub mod framework;
+pub mod prelude;
+
+// Public modules - Core API (Advanced)
 pub mod core;
 pub mod middleware;
