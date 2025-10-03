@@ -1,9 +1,9 @@
 # airssys-osl Architecture Decision Records Index
 
 **Sub-Project:** airssys-osl  
-**Last Updated:** 2025-09-27  
-**Total ADRs:** 0  
-**Active ADRs:** 0  
+**Last Updated:** 2025-10-03  
+**Total ADRs:** 3  
+**Active ADRs:** 3  
 
 ## ADR Summary
 
@@ -11,7 +11,7 @@
 | Status | Count | Description |
 |--------|-------|-------------|
 | Proposed | 0 | Decisions under consideration |
-| Accepted | 0 | Active architectural decisions |
+| Accepted | 3 | Active architectural decisions |
 | Deprecated | 0 | Decisions no longer applicable |
 | Superseded | 0 | Decisions replaced by newer ones |
 
@@ -19,11 +19,47 @@
 | Category | Count | Description |
 |----------|-------|-------------|
 | Technology Selection | 0 | Framework, library, and tool choices |
-| Architecture Patterns | 0 | System design and structural decisions |
+| Architecture Patterns | 3 | System design and structural decisions |
 | Security | 0 | Security model and implementation decisions |
 | Performance | 0 | Performance optimization and target decisions |
 | Integration | 0 | Integration approaches with other components |
 | Platform | 0 | Cross-platform strategy decisions |
+
+## Active Architecture Decision Records
+
+### Architecture Patterns Category
+
+#### ADR-025: Framework dyn Pattern Exception *(Accepted)*
+**Date**: 2025-10-03  
+**Status**: Accepted  
+**Summary**: Allows `dyn` patterns in OSLFramework layer while maintaining generic-first patterns in core primitives for developer ergonomics vs performance optimization.
+
+**Key Decisions**:
+- Framework layer uses `Vec<Box<dyn Middleware<dyn Operation>>>` for flexibility
+- Core primitives maintain `OSExecutor<O>` and `Middleware<O>` generic patterns
+- Clear architectural boundary between ergonomic and performance layers
+
+#### ADR-026: Framework as Primary API Strategy *(Accepted)*
+**Date**: 2025-10-03  
+**Status**: Accepted  
+**Summary**: Establishes OSLFramework builder as the primary recommended API with explicit primitives available for advanced use cases.
+
+**Key Decisions**:
+- Documentation leads with framework examples (80% of use cases)
+- Prelude module exports framework types primarily
+- Progressive disclosure: Framework → Custom Middleware → Direct Primitives
+- Advanced API clearly documented but not primary path
+
+#### ADR-027: Builder Pattern Architecture Implementation *(Accepted)*
+**Date**: 2025-10-03  
+**Status**: Accepted  
+**Summary**: Defines multi-level builder architecture with automatic middleware orchestration and progressive complexity support.
+
+**Key Decisions**:
+- OSLFramework + OSLFrameworkBuilder + Operation Builders pattern
+- MiddlewarePipeline handles automatic middleware execution
+- ExecutorRegistry provides automatic executor selection
+- Three complexity levels: Simple (80%) → Custom (15%) → Advanced (5%)
 
 ## Planned Architecture Decision Records
 
