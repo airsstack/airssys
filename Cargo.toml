@@ -3,6 +3,7 @@ members = [
     "airssys-osl", 
     "airssys-rt",
     "airssys-wasm",
+    "airssys-wasm-component",
 ]
 resolver = "2"
 
