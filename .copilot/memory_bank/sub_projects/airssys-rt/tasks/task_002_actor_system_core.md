@@ -45,7 +45,7 @@ This establishes the core programming model that developers will use to build ac
 
 ## Progress Tracking
 
-**Overall Status:** in_progress - 75%
+**Overall Status:** in_progress - 95%
 
 ### Subtasks
 | ID | Description | Status | Updated | Notes |
@@ -54,12 +54,22 @@ This establishes the core programming model that developers will use to build ac
 | 2.2 | ErrorAction enum for supervision | complete | 2025-10-04 | Stop, Resume, Restart, Escalate variants |
 | 2.3 | Lifecycle method definitions | complete | 2025-10-04 | pre_start, post_stop, on_error implemented |
 | 2.4 | ActorContext generic implementation | complete | 2025-10-04 | Full implementation with message tracking |
-| 2.5 | Message sending methods | not_started | 2025-10-04 | Depends on message broker (RT-TASK-004) |
+| 2.5 | Message sending methods | not_started | 2025-10-04 | Deferred to RT-TASK-004 (Message Broker) |
 | 2.6 | Actor lifecycle management | complete | 2025-10-04 | State machine with transitions |
-| 2.7 | Unit test coverage | in_progress | 2025-10-04 | 26 tests complete (traits + context + lifecycle) |
-| 2.8 | Module integration | in_progress | 2025-10-04 | Phase 4 next - examples and final integration |
+| 2.7 | Unit test coverage | complete | 2025-10-04 | 26 tests complete (traits + context + lifecycle) |
+| 2.8 | Module integration | complete | 2025-10-04 | Examples created and tested |
 
 ## Progress Log
+### 2025-10-04 (Phase 4)
+- **Phase 4 Complete**: Integration and examples
+- Created `examples/actor_basic.rs` (190 lines) - CounterActor example
+- Created `examples/actor_lifecycle.rs` (220 lines) - Lifecycle demonstration
+- Both examples run successfully with clear output
+- Auto-fixed clippy warnings in examples
+- Verified all 56 tests still passing
+- Zero warnings across all targets
+- **Ready for Phase 5**: Final QA and documentation review
+
 ### 2025-10-04 (Phase 3)
 - **Phase 3 Complete**: Actor lifecycle management implemented
 - Created `src/actor/lifecycle.rs` (300+ lines) with state machine
@@ -68,9 +78,6 @@ This establishes the core programming model that developers will use to build ac
 - Added helper methods: is_terminal(), is_running()
 - Added 10 comprehensive unit tests for lifecycle
 - 56/56 tests passing, zero warnings
-- **Ready for Phase 4**: Integration and examples
-
-### 2025-10-04 (Phase 2)
 - **Phase 2 Complete**: ActorContext fully implemented
 - Expanded `src/actor/context.rs` (170 lines) with full functionality
 - Added message_count and last_message_at tracking
