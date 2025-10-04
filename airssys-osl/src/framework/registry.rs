@@ -64,7 +64,8 @@ impl ExecutorRegistry {
         executor_name: &str,
     ) -> OSResult<()> {
         for op_type in operation_types {
-            self.registered_types.insert(op_type, executor_name.to_string());
+            self.registered_types
+                .insert(op_type, executor_name.to_string());
         }
         Ok(())
     }
@@ -90,7 +91,9 @@ impl ExecutorRegistry {
     ///
     /// Returns the executor name. Phase 3 will return actual executor references.
     pub fn get_executor_name(&self, operation_type: &OperationType) -> Option<&str> {
-        self.registered_types.get(operation_type).map(|s| s.as_str())
+        self.registered_types
+            .get(operation_type)
+            .map(|s| s.as_str())
     }
 }
 
@@ -153,9 +156,6 @@ mod tests {
             registry.get_executor_name(&OperationType::Network),
             Some("network-executor")
         );
-        assert_eq!(
-            registry.get_executor_name(&OperationType::Utility),
-            None
-        );
+        assert_eq!(registry.get_executor_name(&OperationType::Utility), None);
     }
 }
