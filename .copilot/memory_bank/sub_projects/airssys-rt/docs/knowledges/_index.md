@@ -1,9 +1,9 @@
 # airssys-rt Knowledge Documentation Index
 
 **Sub-Project:** airssys-rt  
-**Last Updated:** 2025-10-04  
-**Total Knowledge Docs:** 5  
-**Active Knowledge Docs:** 5  
+**Last Updated:** 2025-10-05  
+**Total Knowledge Docs:** 6  
+**Active Knowledge Docs:** 6  
 
 ## Active Knowledge Documentation
 
@@ -29,6 +29,10 @@
 - **[KNOWLEDGE-RT-005](knowledge_rt_005_actor_system_core_implementation_guide.md)**: Actor System Core Implementation Guide
   - *Status*: active | *Created*: 2025-10-04
   - *Summary*: Complete RT-TASK-002 implementation guide for Actor trait, ActorContext, and lifecycle management with zero-cost abstractions
+
+- **[KNOWLEDGE-RT-006](knowledge_rt_006_mailbox_system_implementation_guide.md)**: Mailbox System Implementation Guide
+  - *Status*: active | *Created*: 2025-10-05
+  - *Summary*: Complete RT-TASK-003 implementation guide for generic Mailbox trait, bounded/unbounded mailboxes, and backpressure strategies
 
 ## Planned Knowledge Documentation
 
@@ -57,7 +61,8 @@
 
 ### Task Dependencies
 - **RT-TASK-001**: Message System Implementation - implements KNOWLEDGE-RT-001 and KNOWLEDGE-RT-004 patterns
-- **RT-TASK-002**: Message System - implements KNOWLEDGE-RT-002 patterns
+- **RT-TASK-002**: Actor System Core - implements KNOWLEDGE-RT-001 and KNOWLEDGE-RT-005 patterns
+- **RT-TASK-003**: Mailbox System - implements KNOWLEDGE-RT-001 and KNOWLEDGE-RT-006 patterns
 - **RT-TASK-007**: Supervisor Framework - implements KNOWLEDGE-RT-003 patterns
 
 ---
