@@ -1,14 +1,14 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+//! # airssys-rt - Lightweight Erlang-Actor Model Runtime
+//!
+//! Zero-cost actor system with compile-time type safety and BEAM-inspired patterns.
+//!
+//! ## Features
+//! - **Zero-Cost Abstractions**: No runtime overhead from generic constraints
+//! - **Type Safety**: Compile-time message type verification
+//! - **BEAM-Inspired**: Supervision trees and fault tolerance patterns
+//! - **High Performance**: Designed for 10,000+ concurrent actors
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub mod message;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+// Re-export commonly used types
+pub use message::{Message, MessagePriority};
