@@ -23,6 +23,9 @@ serde = { workspace = true }
 # Error handling
 thiserror = { workspace = true }
 
+# Async trait support
+async-trait = { workspace = true }
+
 [dev-dependencies]
 tokio-test = { workspace = true }
 

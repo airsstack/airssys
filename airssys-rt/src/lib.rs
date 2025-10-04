@@ -8,9 +8,11 @@
 //! - **BEAM-Inspired**: Supervision trees and fault tolerance patterns
 //! - **High Performance**: Designed for 10,000+ concurrent actors
 
+pub mod actor;
 pub mod message;
 pub mod util;
 
 // Re-export commonly used types
+pub use actor::{Actor, ActorContext, ErrorAction};
 pub use message::{Message, MessageEnvelope, MessagePriority};
 pub use util::{ActorAddress, ActorId, MessageId};
