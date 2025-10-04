@@ -8,6 +8,23 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+# Core async runtime
+tokio = { workspace = true }
+
+# Time handling (MANDATORY §3.2 - chrono DateTime<Utc>)
+chrono = { workspace = true }
+
+# UUID generation for IDs
+uuid = { workspace = true }
+
+# Serialization support
+serde = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tokio-test = { workspace = true }
 
 [lints]
 workspace = true

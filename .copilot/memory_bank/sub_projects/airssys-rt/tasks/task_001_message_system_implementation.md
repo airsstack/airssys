@@ -1,8 +1,8 @@
 # [RT-TASK-001] - Message System Implementation
 
-**Status:** pending  
+**Status:** in_progress  
 **Added:** 2025-10-02  
-**Updated:** 2025-10-02
+**Updated:** 2025-10-04
 
 ## Original Request
 Implement the core message system with zero-cost abstractions, including Message trait, MessageEnvelope, MessagePriority, and utility types for ActorId and MessageId generation.
@@ -19,13 +19,19 @@ The message system is the foundation of the entire actor runtime. It must implem
 This forms the type-safe foundation that all other components depend on.
 
 ## Implementation Plan
-### Phase 1: Core Message Trait (Day 1)
+### Phase 1: Project Setup (COMPLETED ✅)
+- ✅ Update Cargo.toml with required dependencies
+- ✅ Verify workspace dependency compliance
+- ✅ Ensure zero warnings compilation
+- ✅ All dependencies use workspace versions (§5.1)
+
+### Phase 2: Core Message Trait (IN PROGRESS - Day 1)
 - Implement `src/message/traits.rs` with Message trait
 - Add MessagePriority enum with ordering
 - Create comprehensive unit tests
 - Ensure const MESSAGE_TYPE works correctly
 
-### Phase 2: Message Envelope (Day 2)
+### Phase 3: Message Envelope (Day 2)
 - Implement `src/message/envelope.rs` with generic MessageEnvelope<M>
 - Add builder pattern methods (with_sender, with_reply_to, etc.)
 - Implement TTL and expiration logic
@@ -45,13 +51,14 @@ This forms the type-safe foundation that all other components depend on.
 
 ## Progress Tracking
 
-**Overall Status:** not_started - 0%
+**Overall Status:** in_progress - 15%
 
 ### Subtasks
 | ID | Description | Status | Updated | Notes |
 |----|-------------|--------|---------|-------|
-| 1.1 | Message trait implementation | not_started | 2025-10-02 | Core Message trait with const MESSAGE_TYPE |
-| 1.2 | MessagePriority enum | not_started | 2025-10-02 | Priority ordering for message routing |
+| 0.1 | Project setup and dependencies | completed | 2025-10-04 | All workspace dependencies configured |
+| 1.1 | Message trait implementation | in_progress | 2025-10-04 | Core Message trait with const MESSAGE_TYPE |
+| 1.2 | MessagePriority enum | in_progress | 2025-10-04 | Priority ordering for message routing |
 | 1.3 | MessageEnvelope generic implementation | not_started | 2025-10-02 | Zero-cost generic envelope |
 | 1.4 | Builder pattern methods | not_started | 2025-10-02 | Fluent API for envelope construction |
 | 1.5 | ActorId and MessageId utilities | not_started | 2025-10-02 | UUID-based ID generation |
