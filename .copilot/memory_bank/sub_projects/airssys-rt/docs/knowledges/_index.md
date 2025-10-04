@@ -1,9 +1,9 @@
 # airssys-rt Knowledge Documentation Index
 
 **Sub-Project:** airssys-rt  
-**Last Updated:** 2025-10-02  
-**Total Knowledge Docs:** 3  
-**Active Knowledge Docs:** 3  
+**Last Updated:** 2025-10-04  
+**Total Knowledge Docs:** 4  
+**Active Knowledge Docs:** 4  
 
 ## Active Knowledge Documentation
 
@@ -20,6 +20,11 @@
 - **[KNOWLEDGE-RT-002](knowledge_rt_002_message_broker_zero_copy.md)**: Message Broker Zero-Copy Patterns
   - *Status*: active | *Created*: 2025-10-02
   - *Summary*: High-performance message routing, zero-copy delivery, lock-free data structures, and memory pool optimization
+
+### Patterns Category
+- **[KNOWLEDGE-RT-004](knowledge_rt_004_message_system_implementation_guide.md)**: Message System Implementation Guide
+  - *Status*: active | *Created*: 2025-10-04
+  - *Summary*: Complete RT-TASK-001 implementation guide with code examples, workspace standards compliance, and step-by-step instructions
 
 ## Planned Knowledge Documentation
 
@@ -47,7 +52,7 @@
 - **ADR-RT-004**: Supervisor Tree Design (planned)
 
 ### Task Dependencies
-- **RT-TASK-001**: Foundation Setup - implements KNOWLEDGE-RT-001 patterns
+- **RT-TASK-001**: Message System Implementation - implements KNOWLEDGE-RT-001 and KNOWLEDGE-RT-004 patterns
 - **RT-TASK-002**: Message System - implements KNOWLEDGE-RT-002 patterns
 - **RT-TASK-007**: Supervisor Framework - implements KNOWLEDGE-RT-003 patterns
 
