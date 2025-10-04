@@ -2,8 +2,8 @@
 
 **Sub-Project:** airssys-rt  
 **Last Updated:** 2025-10-04  
-**Total Knowledge Docs:** 4  
-**Active Knowledge Docs:** 4  
+**Total Knowledge Docs:** 5  
+**Active Knowledge Docs:** 5  
 
 ## Active Knowledge Documentation
 
@@ -25,6 +25,10 @@
 - **[KNOWLEDGE-RT-004](knowledge_rt_004_message_system_implementation_guide.md)**: Message System Implementation Guide
   - *Status*: active | *Created*: 2025-10-04
   - *Summary*: Complete RT-TASK-001 implementation guide with code examples, workspace standards compliance, and step-by-step instructions
+
+- **[KNOWLEDGE-RT-005](knowledge_rt_005_actor_system_core_implementation_guide.md)**: Actor System Core Implementation Guide
+  - *Status*: active | *Created*: 2025-10-04
+  - *Summary*: Complete RT-TASK-002 implementation guide for Actor trait, ActorContext, and lifecycle management with zero-cost abstractions
 
 ## Planned Knowledge Documentation
 
