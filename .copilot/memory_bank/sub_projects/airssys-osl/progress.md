@@ -1,7 +1,40 @@
 # airssys-osl Progress
 
 ## Current Status
-**Phase:** OSL-TASK-006 Phase 3 Complete - Operation Builders Implemented  
+**Phase:** OSL-TASK-006 Phase 3 Complete - Opera### Phase 1: Core Foundation (70% Complete - Q4 2025)
+#### ✅ COMPLETED
+- **Core Module Structure**: Complete module hierarchy and interfaces ✅
+- **Enhanced Error Handling Framework**: Structured error types and handling patterns ✅  
+- **Core Trait Definitions**: Production-ready OSExecutor and Middleware traits ✅
+- **API Ergonomics Foundation**: Complete framework foundation with builder patterns ✅
+- **OSL-TASK-006 Phases 1-3**: Framework API skeleton with builder patterns ✅
+
+#### ⏳ IN PROGRESS: Critical Path for Functional Framework
+**Next Tasks** (Critical - enables real operation execution):
+
+**OSL-TASK-007: Concrete Operation Types** ⏳ NEXT (High Priority, 2-3 days)
+- Implement Operation trait for filesystem, process, network operations
+- Store actual operation data (paths, commands, addresses)
+- Define required permissions for security validation
+- Update framework builders to create concrete operations
+- **Blocks**: OSL-TASK-008, real execution, middleware integration
+- **Resolves**: DEBT-002 (Framework-Core Integration Gap, partial)
+
+**OSL-TASK-008: Platform Executors** ⏳ AFTER 007 (Critical Priority, 3-4 days)
+- Implement OSExecutor trait with real tokio I/O
+- FilesystemExecutor, ProcessExecutor, NetworkExecutor
+- Update ExecutorRegistry to store actual executors
+- Real file operations, process spawning, network connections
+- **Depends on**: OSL-TASK-007
+- **Blocks**: Real operation execution, integration testing
+- **Resolves**: DEBT-002 (Framework-Core Integration Gap, complete)
+
+**OSL-TASK-006 Final Wiring** ⏳ AFTER 008 (High Priority, 2-3 hours)
+- Wire framework.execute() to use OSExecutor
+- Wire middleware pipeline execution
+- Comprehensive integration tests with real I/O
+- Performance validation (<1ms file ops, <10ms process spawning)
+- **Completes**: OSL-TASK-006 (100%)ers Implemented  
 **Overall Progress:** 92%  
 **Last Updated:** 2025-10-04
 
@@ -95,8 +128,10 @@
 - **Core Trait Definitions**: Production-ready OSExecutor and Middleware traits ✅
 - **API Ergonomics Foundation**: Complete framework foundation with builder patterns ✅
 
-#### ⏳ IN PROGRESS: OSL-TASK-006 - Core Framework Implementation (High Priority, ~12 hours total)
-**Status**: Phase 1 COMPLETED (2025-10-04) - 3 of 4 phases done
+#### 🔄 IN PROGRESS: OSL-TASK-006 - Core Framework Implementation (High Priority)
+**Overall Status**: 🔄 **IN PROGRESS** - 92% complete (Phases 1-3 ✅ DONE, Phase 4 🚫 BLOCKED)
+**Current State**: API skeleton complete, waiting for concrete types and executors
+**Blocking Dependencies**: Phase 4 blocked by OSL-TASK-007 (Concrete Operations) → OSL-TASK-008 (Platform Executors)
 
 **Phase 1: Core Framework** ✅ COMPLETED (3-4 hours, 2025-10-04)
 - **ExecutorRegistry**: Foundation structure with placeholder implementation
@@ -157,16 +192,35 @@
   - Returns `NetworkOperation` with async `execute()`
 - **Execute Methods**: Placeholder implementations returning success
 - **Quality**: 37 tests passing, 0 warnings, clean clippy
+- **Status**: API skeleton complete, ready for concrete implementation
 
-**Phase 4: Testing and Polish** ⏳ NEXT (2 hours)
-- Comprehensive test suite for all components
-- Error message improvements
-- Documentation updates
+**Phase 4: Integration & Real Implementation** 🚫 BLOCKED BY OSL-TASK-007 & OSL-TASK-008
+- **Status**: 🚫 **BLOCKED** - Cannot proceed until concrete operations and platform executors exist
+- **Blocking Dependencies**:
+  1. ❌ **OSL-TASK-007** (Concrete Operations) - Must complete FIRST
+     - Need concrete operation types implementing Operation trait
+     - Framework builders cannot be wired without FileReadOperation, FileWriteOperation, etc.
+     - Cannot store real operation data (paths, commands) without concrete types
+  2. ❌ **OSL-TASK-008** (Platform Executors) - Must complete SECOND (after 007)
+     - Need platform executors implementing OSExecutor<O> trait  
+     - ExecutorRegistry cannot register executors without FilesystemExecutor, ProcessExecutor, etc.
+     - Framework.execute() cannot call real executor.execute() without platform executors
+  3. ✅ **OSL-TASK-006 Phase 4** - Can complete AFTER 007 & 008
+     - Wire framework.execute() to use OSExecutor  
+     - Wire middleware pipeline execution
+     - Integration tests with real I/O operations
+     - Final quality gates and documentation
 
-#### ⏳ NEXT: Phase 5 - Final Validation (1-2 hours)
-- **Standards Audit**: Complete Microsoft Rust Guidelines compliance verification
-- **Quality Gates**: Final clippy, test coverage, and performance validation
-- **Future Integration Readiness**: Verification of airssys-rt and airssys-wasm integration points
+- **Decision (2025-10-04)**: Phase 4 implementation path restructured through dependencies
+- **Rationale**: Cannot complete integration without concrete operations and executors existing first
+- **Documentation**: 
+  - DEBT-002: Framework-Core Integration Gap (identified blocking issues)
+  - KNOW-004: Framework-Core Integration Pattern (5-layer architecture guide)
+  - KNOW-005: Framework OSExecutor Usage (answers "should framework use OSExecutor?")
+  - OSL-TASK-007: Concrete Operation Types (2-3 days, NEXT)
+  - OSL-TASK-008: Platform Executors (3-4 days, after 007)
+
+**OSL-TASK-006 Overall Status**: 🔄 **IN PROGRESS** - 92% complete (Phases 1-3 ✅), Phase 4 blocked by dependencies
 
 ### Phase 2: Middleware Implementation (Ready to Unblock after Phase 1)
 #### ✅ COMPLETED - PRODUCTION READY

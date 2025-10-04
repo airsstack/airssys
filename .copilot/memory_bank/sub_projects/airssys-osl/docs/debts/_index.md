@@ -1,34 +1,67 @@
 # airssys-osl Technical Debt Index
 
 **Sub-Project:** airssys-osl  
-**Last Updated:** 2025-09-27  
-**Total Debt Items:** 0  
-**Active Debt Items:** 0  
+**Last Updated:** 2025-10-04  
+**Total Debt Items:** 2  
+**Active Debt Items:** 1  
+**Resolved Debt Items:** 1  
 
 ## Debt Summary
 
 ### By Category
 | Category | Active | Resolved | Total | Priority Breakdown |
 |----------|--------|----------|-------|-------------------|
-| DEBT-ARCH | 0 | 0 | 0 | High: 0, Medium: 0, Low: 0 |
-| DEBT-QUALITY | 0 | 0 | 0 | High: 0, Medium: 0, Low: 0 |
-| DEBT-DOCS | 0 | 0 | 0 | High: 0, Medium: 0, Low: 0 |
-| DEBT-TEST | 0 | 0 | 0 | High: 0, Medium: 0, Low: 0 |
-| DEBT-PERF | 0 | 0 | 0 | High: 0, Medium: 0, Low: 0 |
+| DEBT-ARCH | 1 | 0 | 1 | High: 1 |
+| DEBT-QUALITY | 0 | 1 | 1 | Medium: 1 (resolved) |
+| DEBT-DOCS | 0 | 0 | 0 | - |
+| DEBT-TEST | 0 | 0 | 0 | - |
+| DEBT-PERF | 0 | 0 | 0 | - |
 
 ### By Priority
-| Priority | Count | Recommended Timeline |
-|----------|-------|---------------------|
-| Critical | 0 | Immediate (within 1 week) |
-| High | 0 | Next Sprint (2-4 weeks) |
-| Medium | 0 | Next Release (1-3 months) |
-| Low | 0 | Future Consideration (>3 months) |
+| Priority | Count | Status | Recommended Timeline |
+|----------|-------|--------|---------------------|
+| Critical | 0 | - | Immediate (within 1 week) |
+| High | 1 | Active | Next Sprint (2-4 weeks) |
+| Medium | 0 | - | Next Release (1-3 months) |
+| Low | 0 | - | Future Consideration (>3 months) |
 
 ## Active Debt Items
-*No technical debt items currently tracked*
+
+### DEBT-002: Framework-Core Integration Gap ⭐
+**Category:** DEBT-ARCH  
+**Priority:** High  
+**Created:** 2025-10-04  
+**Estimated Effort:** 3-4 days (split across OSL-TASK-007, 008)  
+
+**Summary:** Framework layer doesn't integrate with core abstractions. Operations bypass Operation trait, OSExecutor, and middleware pipeline.
+
+**Resolution Strategy:**
+- OSL-TASK-007: Concrete operation types (2-3 days)
+- OSL-TASK-008: Platform executors (3-4 days)  
+- OSL-TASK-006 Final Wiring: Framework integration (2-3 hours)
+
+**Related Documentation:**
+- KNOW-004: Framework-Core Integration Pattern
+- KNOW-005: Framework OSExecutor Usage
+- OSL-TASK-007, OSL-TASK-008
+
+**Timeline:** Resolution expected by end of Q4 2025
+
+---
 
 ## Recently Resolved
-*No resolved debt items yet*
+
+### DEBT-001: Generic Constraint Design Pattern
+**Category:** DEBT-QUALITY  
+**Priority:** Medium  
+**Created:** 2025-09-27  
+**Resolved:** 2025-09-29  
+
+**Original Issue:** Initial design used dyn trait objects, violating M-DI-HIERARCHY guideline.
+
+**Resolution:** Redesigned all core traits to use generic constraints instead of dyn patterns.
+
+**Related:** ADR-025, KNOW-002
 
 ## Debt Prevention Strategy
 

@@ -2,17 +2,17 @@
 
 **Sub-Project:** airssys-osl  
 **Last Updated:** 2025-10-04  
-**Total Knowledge Docs:** 3  
-**Active Knowledge Docs:** 3  
+**Total Knowledge Docs:** 5  
+**Active Knowledge Docs:** 5  
 
 ## Knowledge Summary
 
 ### By Category
 | Category | Count | Maturity | Last Updated |
 |----------|-------|----------|--------------|
-| Architecture | 1 | Draft | 2025-09-27 |
+| Architecture | 2 | Draft | 2025-10-04 |
 | Standards | 1 | Draft | 2025-09-27 |
-| Patterns | 1 | Draft | 2025-10-04 |
+| Patterns | 2 | Draft | 2025-10-04 |
 | Performance | 0 | N/A | N/A |
 | Integration | 0 | N/A | N/A |
 | Security | 0 | N/A | N/A |
@@ -21,7 +21,7 @@
 ### By Maturity
 | Maturity | Count | Description |
 |----------|-------|-------------|
-| Draft | 3 | Under development, may change significantly |
+| Draft | 5 | Under development, may change significantly |
 | Stable | 0 | Proven patterns, ready for use |
 | Deprecated | 0 | No longer recommended, kept for reference |
 
@@ -81,6 +81,42 @@
 - Microsoft Rust Guidelines: M-DI-HIERARCHY, M-AVOID-WRAPPERS, M-DESIGN-FOR-AI
 - Workspace Standards: §6.2 Avoid dyn Patterns
 - OSL-TASK-006: Core Builder Implementation
+
+#### 004-framework-core-integration-pattern.md *(Draft)*
+**Purpose:** 5-layer architecture pattern for integrating framework builders with core abstractions  
+**Last Updated:** 2025-10-04  
+**Key Topics:**
+- 5-layer integration architecture (API → Builder → Operation → Executor → System I/O)
+- Layer responsibilities and data flow patterns
+- OSExecutor trait integration patterns
+- ExecutionContext propagation through layers
+- Middleware pipeline integration points
+- Type safety and security validation placement
+
+**Cross-References:**
+- DEBT-002: Framework-Core Integration Gap (problem identification)
+- KNOW-005: Framework OSExecutor Usage (usage guidance)
+- OSL-TASK-007: Concrete Operations (implementation task)
+- OSL-TASK-008: Platform Executors (implementation task)
+- Core Abstractions: Operation, OSExecutor, Middleware traits
+
+#### 005-framework-osexecutor-usage.md *(Draft)*
+**Purpose:** Answers "Should framework use OSExecutor?" with concrete patterns and examples  
+**Last Updated:** 2025-10-04  
+**Key Topics:**
+- **YES, framework MUST use OSExecutor** for real I/O operations
+- Builder pattern integration with OSExecutor lifecycle
+- ExecutorRegistry design: Arc<dyn OSExecutor<O>> storage pattern
+- Operation type relationship with executor generics
+- Security validation and middleware integration flow
+- Example implementation patterns
+
+**Cross-References:**
+- DEBT-002: Framework-Core Integration Gap
+- KNOW-004: Framework-Core Integration Pattern
+- OSL-TASK-007: Concrete Operations
+- OSL-TASK-008: Platform Executors  
+- Core: core/executor.rs OSExecutor<O> trait definition
 
 ## Planned Knowledge Documentation
 
