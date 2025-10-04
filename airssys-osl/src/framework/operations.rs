@@ -15,7 +15,10 @@ pub struct FilesystemBuilder<'a> {
 
 impl<'a> FilesystemBuilder<'a> {
     pub(crate) fn new(framework: &'a OSLFramework) -> Self {
-        Self { framework, timeout: None }
+        Self {
+            framework,
+            timeout: None,
+        }
     }
 
     pub fn with_timeout(mut self, timeout: Duration) -> Self {
@@ -24,11 +27,17 @@ impl<'a> FilesystemBuilder<'a> {
     }
 
     pub fn read_file(self, _path: &str) -> FileOperation<'a> {
-        FileOperation { builder: self, operation: "read".to_string() }
+        FileOperation {
+            builder: self,
+            operation: "read".to_string(),
+        }
     }
 
     pub fn write_file(self, _path: &str) -> FileOperation<'a> {
-        FileOperation { builder: self, operation: "write".to_string() }
+        FileOperation {
+            builder: self,
+            operation: "write".to_string(),
+        }
     }
 }
 
@@ -41,7 +50,7 @@ pub struct FileOperation<'a> {
 impl<'a> FileOperation<'a> {
     pub async fn execute(self) -> OSResult<ExecutionResult> {
         Ok(ExecutionResult::success(
-            format!("Phase 3: {} operation placeholder", self.operation).into_bytes()
+            format!("Phase 3: {} operation placeholder", self.operation).into_bytes(),
         ))
     }
 }
@@ -56,7 +65,10 @@ pub struct ProcessBuilder<'a> {
 
 impl<'a> ProcessBuilder<'a> {
     pub(crate) fn new(framework: &'a OSLFramework) -> Self {
-        Self { framework, timeout: None }
+        Self {
+            framework,
+            timeout: None,
+        }
     }
 
     pub fn with_timeout(mut self, timeout: Duration) -> Self {
@@ -65,7 +77,10 @@ impl<'a> ProcessBuilder<'a> {
     }
 
     pub fn spawn(self, _command: &str) -> ProcessOperation<'a> {
-        ProcessOperation { builder: self, operation: "spawn".to_string() }
+        ProcessOperation {
+            builder: self,
+            operation: "spawn".to_string(),
+        }
     }
 }
 
@@ -78,7 +93,7 @@ pub struct ProcessOperation<'a> {
 impl<'a> ProcessOperation<'a> {
     pub async fn execute(self) -> OSResult<ExecutionResult> {
         Ok(ExecutionResult::success(
-            format!("Phase 3: {} operation placeholder", self.operation).into_bytes()
+            format!("Phase 3: {} operation placeholder", self.operation).into_bytes(),
         ))
     }
 }
@@ -93,7 +108,10 @@ pub struct NetworkBuilder<'a> {
 
 impl<'a> NetworkBuilder<'a> {
     pub(crate) fn new(framework: &'a OSLFramework) -> Self {
-        Self { framework, timeout: None }
+        Self {
+            framework,
+            timeout: None,
+        }
     }
 
     pub fn with_timeout(mut self, timeout: Duration) -> Self {
@@ -102,7 +120,10 @@ impl<'a> NetworkBuilder<'a> {
     }
 
     pub fn connect(self, _address: &str) -> NetworkOperation<'a> {
-        NetworkOperation { builder: self, operation: "connect".to_string() }
+        NetworkOperation {
+            builder: self,
+            operation: "connect".to_string(),
+        }
     }
 }
 
@@ -115,7 +136,7 @@ pub struct NetworkOperation<'a> {
 impl<'a> NetworkOperation<'a> {
     pub async fn execute(self) -> OSResult<ExecutionResult> {
         Ok(ExecutionResult::success(
-            format!("Phase 3: {} operation placeholder", self.operation).into_bytes()
+            format!("Phase 3: {} operation placeholder", self.operation).into_bytes(),
         ))
     }
 }
