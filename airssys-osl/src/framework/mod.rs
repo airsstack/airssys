@@ -57,6 +57,8 @@ mod builder;
 pub mod config;
 mod framework;
 mod operations;
+mod pipeline;
+mod registry;
 
 // Re-exports
 pub use builder::OSLFrameworkBuilder;

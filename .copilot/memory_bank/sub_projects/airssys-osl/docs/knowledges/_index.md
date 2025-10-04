@@ -1,9 +1,9 @@
 # airssys-osl Knowledge Documentation Index
 
 **Sub-Project:** airssys-osl  
-**Last Updated:** 2025-09-27  
-**Total Knowledge Docs:** 2  
-**Active Knowledge Docs:** 2  
+**Last Updated:** 2025-10-04  
+**Total Knowledge Docs:** 3  
+**Active Knowledge Docs:** 3  
 
 ## Knowledge Summary
 
@@ -12,7 +12,7 @@
 |----------|-------|----------|--------------|
 | Architecture | 1 | Draft | 2025-09-27 |
 | Standards | 1 | Draft | 2025-09-27 |
-| Patterns | 0 | N/A | N/A |
+| Patterns | 1 | Draft | 2025-10-04 |
 | Performance | 0 | N/A | N/A |
 | Integration | 0 | N/A | N/A |
 | Security | 0 | N/A | N/A |
@@ -21,7 +21,7 @@
 ### By Maturity
 | Maturity | Count | Description |
 |----------|-------|-------------|
-| Draft | 2 | Under development, may change significantly |
+| Draft | 3 | Under development, may change significantly |
 | Stable | 0 | Proven patterns, ready for use |
 | Deprecated | 0 | No longer recommended, kept for reference |
 
@@ -63,6 +63,25 @@
 - Workspace Standards: §6.3 Microsoft Rust Guidelines Integration
 - Core Architecture: 001-core-architecture-foundations.md
 
+### Patterns Category
+
+#### 003-operation-builder-lifetime-pattern.md *(Draft)*
+**Purpose:** Lifetime-parameterized builder pattern for framework access and operation execution  
+**Last Updated:** 2025-10-04  
+**Key Topics:**
+- Lifetime annotations for zero-cost framework borrowing
+- Operation builder architecture with framework reference
+- Middleware pipeline and executor registry access patterns
+- Safe vs unsafe usage patterns and constraints
+- Alternative designs analysis and selection rationale
+
+**Cross-References:**
+- ADR-026: Framework as Primary API Strategy
+- ADR-027: Builder Pattern Architecture Implementation
+- Microsoft Rust Guidelines: M-DI-HIERARCHY, M-AVOID-WRAPPERS, M-DESIGN-FOR-AI
+- Workspace Standards: §6.2 Avoid dyn Patterns
+- OSL-TASK-006: Core Builder Implementation
+
 ## Planned Knowledge Documentation
 
 ### Architecture Category
@@ -72,6 +91,7 @@
 - **Integration Architecture**: Patterns for integrating with airssys-rt and airssys-wasm
 
 ### Patterns Category
+- **Builder Pattern Variations**: Additional builder patterns for different operation types *(Note: 003 covers operation builders)*
 - **Security-First Patterns**: Implementation patterns for security-first design
 - **Async Operation Patterns**: Best practices for async system programming
 - **Cross-Platform Patterns**: Patterns for handling platform differences

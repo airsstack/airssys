@@ -3,21 +3,20 @@
 //! This module provides the `OSLFrameworkBuilder` for fluent configuration
 //! of framework instances with automatic component setup and validation.
 
-use crate::core::{
-    context::SecurityContext,
-    result::{OSResult},
-};
+use crate::core::{context::SecurityContext, result::OSResult};
 
 use super::{
-    OSLFramework,
     config::{OSLConfigBuilder, SecurityConfig},
+    pipeline::MiddlewarePipeline,
+    registry::ExecutorRegistry,
+    OSLFramework,
 };
 
 /// Builder for configuring and creating `OSLFramework` instances.
 ///
 /// `OSLFrameworkBuilder` provides a fluent interface for configuring the framework.
-/// This is the foundation implementation (OSL-TASK-005) with full middleware
-/// orchestration coming in OSL-TASK-006.
+/// Phase 1 implementation (OSL-TASK-006) provides complete builder functionality
+/// including middleware and executor registration.
 ///
 /// # Examples
 ///
@@ -32,16 +31,25 @@ use super::{
 /// # Ok(())
 /// # }
 /// ```
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct OSLFrameworkBuilder {
     security_config: Option<SecurityConfig>,
     config_builder: OSLConfigBuilder,
 }
 
+impl Default for OSLFrameworkBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl OSLFrameworkBuilder {
     /// Create a new framework builder with default settings.
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            security_config: None,
+            config_builder: OSLConfigBuilder::new(),
+        }
     }
 
     /// Configure the framework with default security settings.
@@ -145,13 +153,16 @@ impl OSLFrameworkBuilder {
     /// Returns `OSError` if:
     /// - Security policy configuration is invalid
     /// - System resources cannot be initialized
+    /// - Middleware initialization fails
+    /// - Executor registry creation fails
     ///
     /// # Note
     ///
-    /// This is the foundation implementation (OSL-TASK-005). Full middleware
-    /// orchestration and validation will be completed in OSL-TASK-006.
+    /// Phase 1 provides the foundation with empty pipeline and registry.
+    /// Phase 2 will implement full middleware orchestration.
+    /// Phase 3 will add default executors.
     pub async fn build(self) -> OSResult<OSLFramework> {
-        // Foundation implementation - full functionality in OSL-TASK-006
+        // Phase 1 implementation - foundation functionality
 
         // 1. Validate basic configuration
         self.validate_configuration()?;
@@ -162,7 +173,19 @@ impl OSLFrameworkBuilder {
         // 3. Build framework configuration
         let config = self.config_builder.build()?;
 
+        // 4. Create middleware pipeline (empty for Phase 1)
+        let middleware_pipeline = MiddlewarePipeline::new();
+
+        // Phase 2 will add: Initialize middleware from self.middlewares
+        // Phase 2 will call: middleware_pipeline.initialize_all().await?;
+
+        // 5. Create executor registry (empty for Phase 1)
+        // Phase 3 will add: Default executors for filesystem, process, network
+        let executors = ExecutorRegistry::new()?;
+
         Ok(OSLFramework {
+            middleware_pipeline,
+            executors,
             security_context,
             config,
         })
