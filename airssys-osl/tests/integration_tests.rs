@@ -4,6 +4,7 @@
 //! the overall system behaves as expected when components are integrated.
 
 #![allow(dead_code)] // Allow helper methods that may not be used in all tests
+#![allow(clippy::unwrap_used, clippy::expect_used)] // Allow in test code for clarity
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -289,7 +290,7 @@ async fn test_executor_timeout_handling() {
     if let Err(OSError::ExecutionFailed { reason }) = result {
         assert!(reason.contains("timed out"));
     } else {
-        panic!("Expected ExecutionFailed error");
+        unreachable!("Expected ExecutionFailed error");
     }
 }
 

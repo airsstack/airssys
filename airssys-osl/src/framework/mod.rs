@@ -50,6 +50,8 @@
 //! This is the foundation implementation (OSL-TASK-005). Full framework functionality
 //! including middleware orchestration and operation builders will be completed in OSL-TASK-006.
 
+#![allow(clippy::module_inception)] // framework module inside framework directory is intentional
+
 // Module declarations
 mod builder;
 pub mod config;

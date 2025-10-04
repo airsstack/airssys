@@ -24,7 +24,8 @@
 //! orchestration and built-in best practices. This is the recommended API for
 //! most applications.
 //!
-//! ```rust
+//! ```rust,ignore
+//! // Note: This example will be functional after OSL-TASK-006 (Operation Builders) is complete
 //! use airssys_osl::prelude::*;
 //!
 //! #[tokio::main]

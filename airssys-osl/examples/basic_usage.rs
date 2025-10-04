@@ -3,6 +3,8 @@
 //! This example demonstrates the basic usage patterns of the OSL framework.
 //! Run with: cargo run --example basic_usage
 
+#![allow(clippy::unwrap_used, clippy::expect_used)] // Allow in examples for clarity
+
 use airssys_osl::core::{
     context::{ExecutionContext, SecurityContext},
     operation::OperationType,
@@ -26,10 +28,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("Execution context metadata:");
     if let Some(example) = exec_context.get_metadata("example") {
-        println!("  - Example: {}", example);
+        println!("  - Example: {example}");
     }
     if let Some(version) = exec_context.get_metadata("version") {
-        println!("  - Version: {}", version);
+        println!("  - Version: {version}");
     }
 
     // Demonstrate operation types

@@ -3,6 +3,8 @@
 //! This example demonstrates how to integrate logger middleware into
 //! processing pipelines and basic logger usage patterns.
 
+#![allow(clippy::unwrap_used, clippy::expect_used)] // Allow in examples for clarity
+
 use airssys_osl::middleware::logger::{
     ActivityLog, ActivityLogger, ConsoleActivityLogger, FileActivityLogger, LogFormat,
     LoggerConfig, LoggerMiddleware, TracingActivityLogger,
@@ -169,8 +171,8 @@ async fn concurrent_logging_examples() -> Result<(), Box<dyn std::error::Error>>
         let handle = tokio::spawn(async move {
             for j in 0..3 {
                 let activity = create_sample_activity(
-                    &format!("Concurrent Task {}", i),
-                    &format!("operation_{}", j),
+                    &format!("Concurrent Task {i}"),
+                    &format!("operation_{j}"),
                 )
                 .unwrap();
                 logger.log_activity(activity).await.unwrap();
@@ -193,7 +195,7 @@ async fn concurrent_logging_examples() -> Result<(), Box<dyn std::error::Error>>
     let lines: Vec<&str> = content.lines().take(3).collect();
     println!("   → Sample logged entries (first 3):");
     for line in lines {
-        println!("     {}", line);
+        println!("     {line}");
     }
 
     println!("✅ Concurrent logging examples completed\n");

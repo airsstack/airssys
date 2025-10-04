@@ -273,6 +273,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::expect_used)] // Allow in test code for clarity
+
     use super::*;
     use crate::core::operation::{Operation, OperationType, Permission};
     use chrono::{DateTime, Utc};

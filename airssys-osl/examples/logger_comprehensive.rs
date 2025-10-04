@@ -3,6 +3,8 @@
 //! This example demonstrates all logger functionality including different
 //! formats, configurations, and usage patterns.
 
+#![allow(clippy::unwrap_used, clippy::expect_used)] // Allow in examples for clarity
+
 use airssys_osl::middleware::logger::{
     ActivityLog, ActivityLogger, ConsoleActivityLogger, FileActivityLogger, LogFormat,
     LoggerConfig, TracingActivityLogger,
@@ -47,7 +49,7 @@ async fn console_logger_examples() -> Result<(), Box<dyn std::error::Error>> {
     for (format, name) in formats {
         println!("{}. {} Format:", name.chars().next().unwrap(), name);
         let logger = ConsoleActivityLogger::new().with_format(format);
-        let activity = create_sample_activity(&format!("{} Example", name), "console_demo")?;
+        let activity = create_sample_activity(&format!("{name} Example"), "console_demo")?;
         logger.log_activity(activity).await?;
         println!();
     }
@@ -71,20 +73,20 @@ async fn file_logger_examples() -> Result<(), Box<dyn std::error::Error>> {
     ];
 
     for (format, name) in formats {
-        let file_path = temp_dir.path().join(format!("{}.log", name));
-        println!("1. File logging with {} format:", name);
+        let file_path = temp_dir.path().join(format!("{name}.log"));
+        println!("1. File logging with {name} format:");
 
         let file_logger = FileActivityLogger::new(file_path.clone())
             .await?
             .with_format(format);
 
-        let activity = create_sample_activity(&format!("File {} Example", name), "file_demo")?;
+        let activity = create_sample_activity(&format!("File {name} Example"), "file_demo")?;
         file_logger.log_activity(activity).await?;
         file_logger.flush().await?;
 
         // Read and display content
         let content = tokio::fs::read_to_string(&file_path).await?;
-        println!("   → Logged to: {:?}", file_path);
+        println!("   → Logged to: {file_path:?}");
         println!(
             "   → Content preview: {}",
             content.lines().next().unwrap_or("(empty)")

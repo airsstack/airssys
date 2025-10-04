@@ -363,6 +363,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::expect_used)] // Allow in test code for clarity
+
     use super::*;
     use std::collections::HashMap;
 

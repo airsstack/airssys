@@ -3,6 +3,8 @@
 //! These tests verify that all logger implementations work correctly
 //! and handle various scenarios including errors and edge cases.
 
+#![allow(clippy::unwrap_used, clippy::expect_used)]
+
 use std::sync::Arc;
 
 use tempfile::TempDir;
@@ -246,7 +248,7 @@ mod file_logger_tests {
             let logger_clone = Arc::clone(&logger);
             let handle = tokio::spawn(async move {
                 let log = ActivityLog::new(
-                    format!("op_{}", i),
+                    format!("op_{i}"),
                     "concurrent_test".to_string(),
                     Some("test_user".to_string()),
                     "Success".to_string(),

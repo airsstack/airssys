@@ -10,18 +10,12 @@ use crate::core::result::OSResult;
 /// `OSLConfig` contains runtime configuration for the framework, focusing
 /// on essential security policies and settings.
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub struct OSLConfig {
     /// Security configuration settings
     pub security: SecurityConfig,
 }
 
-impl Default for OSLConfig {
-    fn default() -> Self {
-        Self {
-            security: SecurityConfig::default(),
-        }
-    }
-}
 
 /// Builder for OSL framework configuration.
 ///
