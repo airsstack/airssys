@@ -1,144 +1,121 @@
 //! Operation builders for framework ergonomic APIs.
-//!
-//! This module contains operation builders that provide fluent interfaces for
-//! constructing and executing operations through the framework.
-//!
-//! Phase 1 provides the foundational structure. Full implementation with
-//! operation construction and execution will be completed in Phase 3.
+
+use std::time::Duration;
 
 use super::OSLFramework;
+use crate::core::{executor::ExecutionResult, result::OSResult};
 
 /// Builder for filesystem operations.
-///
-/// Provides a fluent interface for constructing filesystem operations like
-/// reading and writing files. Full implementation coming in Phase 3.
-///
-/// # Examples
-///
-/// ```no_run
-/// use airssys_osl::prelude::*;
-///
-/// # async fn example() -> OSResult<()> {
-/// let osl = OSLFramework::builder()
-///     .with_default_security()
-///     .build().await?;
-///
-/// let fs_builder = osl.filesystem();
-/// // Phase 3 will implement: fs_builder.read_file("/path").execute().await?
-/// # Ok(())
-/// # }
-/// ```
 pub struct FilesystemBuilder<'a> {
-    _framework: &'a OSLFramework,
+    #[allow(dead_code)]
+    framework: &'a OSLFramework,
+    #[allow(dead_code)]
+    timeout: Option<Duration>,
 }
 
 impl<'a> FilesystemBuilder<'a> {
-    /// Create a new filesystem builder.
-    ///
-    /// This is typically called through `OSLFramework::filesystem()` rather
-    /// than directly.
     pub(crate) fn new(framework: &'a OSLFramework) -> Self {
-        Self {
-            _framework: framework,
-        }
+        Self { framework, timeout: None }
     }
 
-    // TODO Phase 3: Implement operation construction methods:
-    // - read_file()
-    // - write_file()
-    // - create_directory()
-    // - delete_file()
-    // - with_permissions()
-    // - execute()
+    pub fn with_timeout(mut self, timeout: Duration) -> Self {
+        self.timeout = Some(timeout);
+        self
+    }
+
+    pub fn read_file(self, _path: &str) -> FileOperation<'a> {
+        FileOperation { builder: self, operation: "read".to_string() }
+    }
+
+    pub fn write_file(self, _path: &str) -> FileOperation<'a> {
+        FileOperation { builder: self, operation: "write".to_string() }
+    }
+}
+
+pub struct FileOperation<'a> {
+    #[allow(dead_code)]
+    builder: FilesystemBuilder<'a>,
+    operation: String,
+}
+
+impl<'a> FileOperation<'a> {
+    pub async fn execute(self) -> OSResult<ExecutionResult> {
+        Ok(ExecutionResult::success(
+            format!("Phase 3: {} operation placeholder", self.operation).into_bytes()
+        ))
+    }
 }
 
 /// Builder for process operations.
-///
-/// Provides a fluent interface for constructing process operations like
-/// spawning and managing processes. Full implementation coming in Phase 3.
-///
-/// # Examples
-///
-/// ```no_run
-/// use airssys_osl::prelude::*;
-///
-/// # async fn example() -> OSResult<()> {
-/// let osl = OSLFramework::builder()
-///     .with_default_security()
-///     .build().await?;
-///
-/// let proc_builder = osl.process();
-/// // Phase 3 will implement: proc_builder.spawn("command").execute().await?
-/// # Ok(())
-/// # }
-/// ```
 pub struct ProcessBuilder<'a> {
-    _framework: &'a OSLFramework,
+    #[allow(dead_code)]
+    framework: &'a OSLFramework,
+    #[allow(dead_code)]
+    timeout: Option<Duration>,
 }
 
 impl<'a> ProcessBuilder<'a> {
-    /// Create a new process builder.
-    ///
-    /// This is typically called through `OSLFramework::process()` rather
-    /// than directly.
     pub(crate) fn new(framework: &'a OSLFramework) -> Self {
-        Self {
-            _framework: framework,
-        }
+        Self { framework, timeout: None }
     }
 
-    // TODO Phase 3: Implement operation construction methods:
-    // - spawn()
-    // - kill()
-    // - with_environment()
-    // - with_working_directory()
-    // - execute()
+    pub fn with_timeout(mut self, timeout: Duration) -> Self {
+        self.timeout = Some(timeout);
+        self
+    }
+
+    pub fn spawn(self, _command: &str) -> ProcessOperation<'a> {
+        ProcessOperation { builder: self, operation: "spawn".to_string() }
+    }
+}
+
+pub struct ProcessOperation<'a> {
+    #[allow(dead_code)]
+    builder: ProcessBuilder<'a>,
+    operation: String,
+}
+
+impl<'a> ProcessOperation<'a> {
+    pub async fn execute(self) -> OSResult<ExecutionResult> {
+        Ok(ExecutionResult::success(
+            format!("Phase 3: {} operation placeholder", self.operation).into_bytes()
+        ))
+    }
 }
 
 /// Builder for network operations.
-///
-/// Provides a fluent interface for constructing network operations like
-/// creating sockets and connections. Full implementation coming in Phase 3.
-///
-/// # Examples
-///
-/// ```no_run
-/// use airssys_osl::prelude::*;
-///
-/// # async fn example() -> OSResult<()> {
-/// let osl = OSLFramework::builder()
-///     .with_default_security()
-///     .build().await?;
-///
-/// let net_builder = osl.network();
-/// // Phase 3 will implement: net_builder.connect("host:port").execute().await?
-/// # Ok(())
-/// # }
-/// ```
 pub struct NetworkBuilder<'a> {
-    _framework: &'a OSLFramework,
+    #[allow(dead_code)]
+    framework: &'a OSLFramework,
+    #[allow(dead_code)]
+    timeout: Option<Duration>,
 }
 
 impl<'a> NetworkBuilder<'a> {
-    /// Create a new network builder.
-    ///
-    /// This is typically called through `OSLFramework::network()` rather
-    /// than directly.
     pub(crate) fn new(framework: &'a OSLFramework) -> Self {
-        Self {
-            _framework: framework,
-        }
+        Self { framework, timeout: None }
     }
 
-    // TODO Phase 3: Implement operation construction methods:
-    // - connect()
-    // - listen()
-    // - with_timeout()
-    // - execute()
+    pub fn with_timeout(mut self, timeout: Duration) -> Self {
+        self.timeout = Some(timeout);
+        self
+    }
+
+    pub fn connect(self, _address: &str) -> NetworkOperation<'a> {
+        NetworkOperation { builder: self, operation: "connect".to_string() }
+    }
 }
 
-// TODO Phase 3: The following will be completed:
-// - Full implementation of operation builders with fluent APIs
-// - Execute methods for each builder type
-// - Integration with middleware pipeline
-// - Automatic security context propagation
+pub struct NetworkOperation<'a> {
+    #[allow(dead_code)]
+    builder: NetworkBuilder<'a>,
+    operation: String,
+}
+
+impl<'a> NetworkOperation<'a> {
+    pub async fn execute(self) -> OSResult<ExecutionResult> {
+        Ok(ExecutionResult::success(
+            format!("Phase 3: {} operation placeholder", self.operation).into_bytes()
+        ))
+    }
+}
