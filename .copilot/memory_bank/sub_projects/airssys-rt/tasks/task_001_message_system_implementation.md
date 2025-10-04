@@ -51,23 +51,32 @@ This forms the type-safe foundation that all other components depend on.
 
 ## Progress Tracking
 
-**Overall Status:** in_progress - 35%
+**Overall Status:** in_progress - 70%
 
 ### Subtasks
 | ID | Description | Status | Updated | Notes |
 |----|-------------|--------|---------|-------|
 | 0.1 | Project setup and dependencies | completed | 2025-10-04 | All workspace dependencies configured |
 | 1.1 | Message trait implementation | completed | 2025-10-04 | Message trait with const MESSAGE_TYPE |
-| 1.2 | MessagePriority enum | completed | 2025-10-04 | Priority ordering with 4 levels |
-| 1.3 | MessageEnvelope generic implementation | not_started | 2025-10-04 | Zero-cost generic envelope |
-| 1.4 | Builder pattern methods | not_started | 2025-10-04 | Fluent API for envelope construction |
-| 1.5 | ActorId and MessageId utilities | not_started | 2025-10-04 | UUID-based ID generation |
-| 1.6 | Serialization support | not_started | 2025-10-04 | Serde integration for IDs and envelopes |
-| 1.7 | Unit test coverage | in_progress | 2025-10-04 | 8 tests for Message trait (>95% coverage) |
-| 1.8 | Module integration | in_progress | 2025-10-04 | message module integrated into lib.rs |
+| 1.2 | MessagePriority enum | completed | 2025-10-04 | Priority ordering with Serialize/Deserialize |
+| 1.3 | MessageEnvelope generic implementation | completed | 2025-10-04 | Zero-cost generic envelope with TTL |
+| 1.4 | Builder pattern methods | completed | 2025-10-04 | Fluent API (sender, reply_to, correlation_id, ttl) |
+| 1.5 | ActorId and MessageId utilities | completed | 2025-10-04 | UUID-based ID generation with Display |
+| 1.6 | Serialization support | completed | 2025-10-04 | Full serde integration for all types |
+| 1.7 | Unit test coverage | completed | 2025-10-04 | 30 tests total (>95% coverage) |
+| 1.8 | Module integration | completed | 2025-10-04 | util and message modules fully integrated |
 
 ## Progress Log
 ### 2025-10-04
+- ✅ Phase 3 COMPLETED: Message Envelope and Utility Types
+  - Created src/message/envelope.rs (293 lines) with generic MessageEnvelope<M>
+  - Implemented builder pattern (with_sender, with_reply_to, with_correlation_id, with_ttl)
+  - TTL expiration logic using chrono DateTime<Utc> (§3.2 compliant)
+  - Created src/util/ids.rs (261 lines) with ActorId, MessageId, ActorAddress
+  - Added Serialize/Deserialize to MessagePriority for envelope serialization
+  - 30 total tests passing (13 envelope + 12 util + 8 traits + others)
+  - Zero warnings with cargo clippy
+  - Task status: 70% complete, ready for Phase 4
 - ✅ Phase 2 COMPLETED: Core Message trait implementation
   - Created src/message/traits.rs with Message trait (const MESSAGE_TYPE)
   - Implemented MessagePriority enum (Low, Normal, High, Critical)
@@ -76,9 +85,9 @@ This forms the type-safe foundation that all other components depend on.
   - Zero warnings verified with cargo clippy
   - All tests passing (8/8)
 - ✅ Phase 1 COMPLETED: Project setup with workspace dependencies
-- Added all required dependencies to Cargo.toml
-- Verified zero warnings with cargo clippy
-- Task status: 35% complete, ready for Phase 3
+  - Added all required dependencies to Cargo.toml
+  - Verified zero warnings with cargo clippy
+  - Task status: 10% complete
 
 ### 2025-10-02
 - Task created with detailed implementation plan
