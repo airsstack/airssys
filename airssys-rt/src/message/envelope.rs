@@ -17,7 +17,7 @@ use crate::util::ids::ActorAddress;
 /// type safety without runtime dispatch or type erasure.
 ///
 /// # Stack Allocation
-/// MessageEnvelope<M> is stack-allocated when M is stack-allocated,
+/// `MessageEnvelope<M>` is stack-allocated when M is stack-allocated,
 /// avoiding heap overhead for message passing.
 ///
 /// # Example
@@ -54,7 +54,7 @@ pub struct MessageEnvelope<M: Message> {
     /// Optional recipient for reply-to pattern
     pub reply_to: Option<ActorAddress>,
     
-    /// Message creation timestamp (§3.2 chrono DateTime<Utc>)
+    /// Message creation timestamp (§3.2 chrono `DateTime<Utc>`)
     pub timestamp: DateTime<Utc>,
     
     /// Optional correlation ID for request/response tracking
