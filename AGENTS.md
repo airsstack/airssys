@@ -26,8 +26,8 @@ This project uses a **Multi-Project Memory Bank** system for context management 
 5. **⚠️ CRITICAL: Explore Knowledge Base**: ALWAYS review knowledge documentation before starting any task
 
 ### Active Sub-Projects
-- **airssys-wasm-component**: `.copilot/memory_bank/sub_projects/airssys-wasm-component/` (Currently active - 25% complete)
-- **airssys-osl**: `.copilot/memory_bank/sub_projects/airssys-osl/` (Foundation complete - 75% complete)
+- **airssys-osl**: `.copilot/memory_bank/sub_projects/airssys-osl/` (Currently active - 85% complete)
+- **airssys-wasm-component**: `.copilot/memory_bank/sub_projects/airssys-wasm-component/` (Foundation complete - 25% complete)
 - **airssys-rt**: `.copilot/memory_bank/sub_projects/airssys-rt/` (Planned for Q1 2026)  
 - **airssys-wasm**: `.copilot/memory_bank/sub_projects/airssys-wasm/` (Architecture complete - Q3 2026+)
 
@@ -341,17 +341,19 @@ The project uses a comprehensive technical documentation framework:
 
 ## Sub-Project Specific Instructions
 
-### airssys-wasm-component (Procedural Macro Crate) - CURRENTLY ACTIVE
+### airssys-osl (OS Layer Framework) - CURRENTLY ACTIVE
+- **Phase**: API Ergonomics Foundation Complete - Framework Implementation Ready
+- **Priority**: Critical path - foundation for other components
+- **Focus**: Complete framework implementation with middleware pipeline and operation builders
+- **Integration**: Provides primitives for airssys-rt and airssys-wasm
+- **Status**: 85% complete - Ready for OSL-TASK-006 implementation
+
+### airssys-wasm-component (Procedural Macro Crate) - FOUNDATION COMPLETE
 - **Phase**: Foundation complete, ready for macro implementation
 - **Priority**: High - core tooling for WASM component framework
 - **Focus**: Procedural macros for WASM component development, syn v2 compatibility
 - **Integration**: Provides macros for airssys-wasm components, serde pattern architecture
-
-### airssys-osl (OS Layer Framework) - FOUNDATION COMPLETE
-- **Phase**: Foundation setup and architecture design
-- **Priority**: Critical path - foundation for other components
-- **Focus**: Security framework, activity logging, cross-platform OS abstraction
-- **Integration**: Provides primitives for airssys-rt and airssys-wasm
+- **Status**: 25% complete - Ready for Phase 2 macro logic implementation
 
 ### airssys-rt (Runtime System) - PLANNED Q1 2026
 - **Phase**: Planning and architecture design  

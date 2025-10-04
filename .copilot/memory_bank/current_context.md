@@ -1,103 +1,100 @@
 # Current Context
 
-**Active Sub-Project:** airssys-wasm-component  
-**Last Updated:** 2025-10-03  
-**Context Switch Reason:** Project setup completed, now focusing on macro implementation for WASM component development
+**Active Sub-Project:** airssys-osl  
+**Last Updated:** 2025-10-04  
+**Context Switch Reason:** Switching focus from airssys-wasm-component to complete framework implementation for OS Layer Foundation
 
 ## Quick Context Summary
 - **Workspace**: AirsSys system programming components for AirsStack ecosystem
-- **Active Focus**: Procedural Macro Crate for Universal WASM Component Development - "CosmWasm-style macros for universal computing"
-- **Current Status**: Foundation Complete & Ready for Implementation - 25% overall progress
-- **Project Priority**: High - Core tooling for WASM component framework
-- **Technology Stack**: Rust procedural macros, syn v2, quote, WebAssembly Component Model
-- **Architecture Model**: Serde-inspired crate separation with CosmWasm-style developer experience
-- **Phase**: Implementation Ready - Foundation complete, ready for actual macro logic
+- **Active Focus**: OS Layer Framework - Low-level system programming with security and activity logging
+- **Current Status**: API Ergonomics Foundation Complete - 85% overall progress
+- **Project Priority**: Critical path - foundation for other components (airssys-rt, airssys-wasm)
+- **Technology Stack**: Rust async/await, chrono DateTime<Utc>, thiserror, cross-platform OS abstractions
+- **Architecture Model**: Framework-first API (80/20) with builder patterns and security-first defaults
+- **Phase**: Framework Implementation Ready - Core traits complete, ready for middleware pipeline and operation builders
 
-## STRATEGIC VISION - October 3, 2025 🎯
-- 🎯 **Developer Experience Excellence**: CosmWasm-style macros eliminating `extern "C"` complexity
-- 🎯 **Universal Computing Macros**: Procedural macros for seamless WASM component development
-- 🎯 **Serde Pattern Implementation**: Proven architecture pattern for macro crate organization
-- 🎯 **Zero Boilerplate**: Developers focus on logic, macros handle WASM export generation
-- 🎯 **Type Safety**: Compile-time validation and code generation
-- 🎯 **syn v2 Modern Approach**: Latest procedural macro patterns and best practices
+## STRATEGIC VISION - October 4, 2025 🎯
+- 🎯 **Security-First Design**: Deny-by-default security policies with comprehensive audit trails
+- 🎯 **Cross-Platform Abstraction**: Safe, high-level interfaces for Linux, macOS, and Windows
+- 🎯 **Framework-First API**: Ergonomic builder patterns for 80% of use cases, primitives for advanced usage
+- 🎯 **Activity Transparency**: Comprehensive logging for all system operations
+- 🎯 **Performance Excellence**: <1ms file operations, <10ms process spawning targets
+- 🎯 **Zero Unsafe Code**: Minimize unsafe blocks with thorough justification required
 
-## CURRENT PROJECT STATUS - airssys-wasm-component
+## CURRENT PROJECT STATUS - airssys-osl
 
-### Completed Foundation & Setup ✅
-- ✅ **Project Structure**: Complete procedural macro crate structure created
-- ✅ **Compilation Success**: All code compiles cleanly without errors
-- ✅ **syn v2 Compatibility**: Modern procedural macro implementation foundation
-- ✅ **Memory Bank Integration**: Comprehensive documentation and progress tracking
-- ✅ **Serde Pattern**: Crate separation pattern successfully implemented
-- ✅ **Workspace Integration**: Properly integrated with main airssys workspace
-- ✅ **Lint Configuration**: Development warnings properly managed
-- ✅ **Memory Bank Integration**: Full implementation plan saved with comprehensive documentation
-- ✅ **Project Foundation**: Simplified workspace-compatible structure designed
+### Completed Foundation ✅ (85% Complete)
+- ✅ **Core Module Structure**: Complete module hierarchy with 6 core modules
+- ✅ **Enhanced Error System**: OSError with constructor methods and categorization
+- ✅ **Rich Context Types**: ExecutionContext and SecurityContext with metadata management
+- ✅ **Core Trait Definitions**: OSExecutor<O> and Middleware<O> with lifecycle management (7+10 methods)
+- ✅ **API Ergonomics Foundation**: OSLFramework and OSLFrameworkBuilder with security-focused configuration
+- ✅ **Architecture Decision Records**: 3 ADRs (ADR-025, ADR-026, ADR-027) formalizing framework design
+- ✅ **Logger Middleware Structure**: Complete src/middleware/logger/ module hierarchy
+- ✅ **Quality Gates**: Zero warnings, zero clippy errors, 28+ unit tests passing
 
-### Implementation Ready Phase: Procedural Macro Development Framework ✅ 25%
-- **Phase 1**: Foundation and Architecture Setup ✅ COMPLETED (October 3, 2025)
-  - Complete procedural macro crate structure implemented
-  - syn v2 compatible macro framework established  
-  - Serde pattern architecture successfully implemented
-  - CosmWasm-inspired developer experience framework created
-  - Memory bank integration and documentation completed
-  - Workspace integration and lint configuration finalized
+### Current Implementation Phase: Framework Completion (NEXT - High Priority) 🔄 85%
+- **Phase**: OSL-TASK-006 - Complete Framework Implementation
+  - Middleware Pipeline: Complete orchestration with automatic execution
+  - Operation Builders: FilesystemBuilder, ProcessBuilder, NetworkBuilder implementations
+  - Integration Testing: End-to-end framework usage validation
+  - Documentation: Comprehensive examples and API documentation
 
-### NEXT PHASES: Core Macro Implementation (Ready to Begin)
-- **Phase 2**: Actual Macro Logic Implementation (Next - Ready to start)
-  - Implement `#[component]` macro with real WASM export generation
-  - Complete derive macros for ComponentOperation, ComponentResult, ComponentConfig
-  - syn v2 attribute parsing implementation  
-  - Code generation functions for memory management and lifecycle
-  - UI testing framework with trybuild integration
+### NEXT PHASES: Core Functionality Expansion
+- **Phase 2**: Concrete Implementations (Planned)
+  - File system operations implementation
+  - Process management implementation  
+  - Network operations implementation
+  - Logger middleware concrete implementations (Console, File, Tracing)
+  
+- **Phase 3**: Security Framework (Planned)
+  - Security policy engine implementation
+  - Permission validation and enforcement
+  - Audit trail and compliance reporting
+  
+- **Phase 4**: Cross-Platform Support (Planned)
+  - Platform-specific implementations (Linux, macOS, Windows)
+  - Platform abstraction testing
+  - Performance benchmarking across platforms
 
 ## Available Sub-Projects
-1. **airssys-wasm-component** (Active) - Procedural macros for WASM component development (25% complete - Foundation ready)
-2. **airssys-wasm** - Universal Hot-Deployable WASM Component Framework (15% complete - Architecture & planning)
-3. **airssys-osl** - OS Layer Framework for low-level system programming (75% complete - Foundation complete)
+1. **airssys-osl** (Active) - OS Layer Framework for low-level system programming (85% complete - Framework implementation ready)
+2. **airssys-wasm-component** - Procedural macros for WASM component development (25% complete - Foundation ready)
+3. **airssys-wasm** - Universal Hot-Deployable WASM Component Framework (15% complete - Architecture & planning)
 4. **airssys-rt** - Erlang-Actor model runtime system (35% complete - Implementation ready)
 
 ## Current Implementation Status
 
-### IMPLEMENTATION READY: airssys-wasm-component Foundation ✅ 25%
-- **Phase 1**: Project Setup and Foundation Architecture ✅ COMPLETED
-  - Complete crate structure with modular organization
-  - All placeholder implementations compiling successfully
-  - Modern syn v2 procedural macro foundation established
-  - Code generation infrastructure framework implemented
-  - Testing foundation and memory bank integration completed
-  - Ready for actual macro logic implementation
+### READY FOR IMPLEMENTATION: airssys-osl Framework Completion 🔄 85%
+- **Phase 1**: Core Foundation ✅ COMPLETED (85% complete)
+  - Core module structure and trait definitions complete
+  - Enhanced error handling and context types implemented
+  - API ergonomics foundation with framework and builder patterns
+  - Architecture decision records formalizing design approaches
+  - Zero warnings, comprehensive testing, production-ready quality
 
-### NEXT PHASES: Core Functionality Implementation (Implementation Ready)
-- **Phase 2**: Macro Logic Implementation (Ready to begin)
-  - Real `#[component]` macro functionality with WASM export generation
-  - Complete derive macro implementations for trait generation
-  - syn v2 attribute parsing for macro configuration
-  - Memory management and component lifecycle code generation
-  - Memory Isolation and sandbox enforcement
-- **Phase 3**: Hot Deployment System (Planned 2026 Q2)
-  - Live Registry for runtime component management
-  - Deployment Strategies (Blue-Green, Canary, Rolling)
-  - Version Management with instant rollback
-- **Phase 4**: Security & Integration (Planned 2026 Q3-Q4)
-  - Capability Manager with fine-grained permissions
-  - Deep AirsSys ecosystem integration
-  - Developer SDK and tooling
-  - Zero compiler warnings, zero clippy warnings achieved
-  - Full workspace standards compliance (§2.1, §3.2, §6.1, §6.2)
-- **Phase 2**: Core Types and Error Handling ✅ COMPLETED  
-  - Enhanced OSError with constructor methods and categorization
-  - Rich ExecutionContext and SecurityContext with metadata management
-  - Complete Permission enum with elevation detection
-  - Comprehensive testing with 100% pass rate
-- **Phase 3**: Core Trait Definitions ✅ COMPLETED
-  - Enhanced OSExecutor trait with lifecycle management (7 methods)
-  - Comprehensive Middleware trait with pipeline support (10 methods)  
-  - Expanded error handling with MiddlewareError and ErrorAction enums
-- **Phase 4**: Logger Middleware Implementation ✅ COMPLETED
-  - Complete logger middleware module structure
-  - ActivityLog, ActivityLogger trait, LoggerConfig, LogLevel/LogFormat
-  - LogError with comprehensive error types and constructor methods
+### NEXT PHASE: OSL-TASK-006 - Framework Implementation (High Priority, 4-6 hours)
+- **Middleware Pipeline**: Complete orchestration system
+  - Implement middleware chain execution with before/during/after hooks
+  - Error handling and flow control in pipeline
+  - Automatic middleware initialization and cleanup
+  
+- **Operation Builders**: High-level operation construction
+  - FilesystemBuilder: File and directory operations with validation
+  - ProcessBuilder: Process spawning with security context
+  - NetworkBuilder: Network operations with policy enforcement
+  
+- **Integration & Testing**: End-to-end validation
+  - Framework usage examples and integration tests
+  - Performance validation against targets (<1ms file ops, <10ms process spawning)
+  - Comprehensive documentation with real-world usage patterns
+
+### UPCOMING PHASES: Core Implementations (Planned)
+- **Phase 2**: Concrete Executor Implementations (Post Framework Completion)
+  - Filesystem executor with cross-platform support
+  - Process executor with lifecycle management
+  - Network executor with security policies
+  - Logger middleware concrete implementations (Console, File, Tracing)
   - LogFormatter for JSON, Pretty, Compact formats
   - Console, File, and Tracing logger implementations
 - **Phase 5**: Comprehensive Testing ✅ COMPLETED
