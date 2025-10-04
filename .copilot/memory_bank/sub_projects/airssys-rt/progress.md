@@ -2,8 +2,13 @@
 
 ## Current Status
 **Phase:** Foundation Implementation In Progress  
-**Overall Progress:** 45%  
+**Overall Progress:** 55%  
 **Last Updated:** 2025-10-04
+
+**Recent Changes** (2025-10-04):
+- RT-TASK-008 scope revised: removed metrics collection and monitoring
+- Estimated duration reduced from 5-7 days to 3-5 days
+- Total remaining effort reduced by 2 days (61 days → 59 days estimated)
 
 ## What Works
 ### ✅ Completed Components - MAJOR MILESTONES ACHIEVED
@@ -137,8 +142,9 @@
 - **RT-TASK-008**: Performance Features
   - Message routing optimization
   - Actor pool load balancing
-  - Metrics and monitoring integration
-  - **Estimated**: 5-7 days
+  - Performance benchmarks
+  - **Estimated**: 3-5 days (revised 2025-10-04)
+  - **Note**: Metrics collection and monitoring deferred to post-v1.0
 
 ### Phase 3: airssys-osl Integration (Q2 2026)
 #### ⏳ Planned - OS Layer Integration (2 weeks)
