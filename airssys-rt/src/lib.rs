@@ -13,6 +13,6 @@ pub mod message;
 pub mod util;
 
 // Re-export commonly used types
-pub use actor::{Actor, ActorContext, ErrorAction};
+pub use actor::{Actor, ActorContext, ActorLifecycle, ActorState, ErrorAction};
 pub use message::{Message, MessageEnvelope, MessagePriority};
 pub use util::{ActorAddress, ActorId, MessageId};

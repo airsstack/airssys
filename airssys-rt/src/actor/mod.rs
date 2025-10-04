@@ -3,6 +3,7 @@
 //! This module provides the foundational actor system components:
 //! - `Actor` trait with generic constraints
 //! - `ActorContext` for actor metadata
+//! - `ActorLifecycle` for state management
 //! - `ErrorAction` for supervision decisions
 //!
 //! # Design Philosophy
@@ -17,7 +18,9 @@
 //! Implementation code is in individual module files.
 
 pub mod context;
+pub mod lifecycle;
 pub mod traits;
 
 pub use context::ActorContext;
+pub use lifecycle::{ActorLifecycle, ActorState};
 pub use traits::{Actor, ErrorAction};

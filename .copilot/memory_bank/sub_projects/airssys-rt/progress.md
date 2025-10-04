@@ -50,11 +50,12 @@
 - 30/30 tests passing, zero warnings
 - Full workspace standards compliance (§2.1, §3.2, §4.3, §6.2)
 
-### ✅ RT-TASK-002: Actor System Core - PHASE 2 COMPLETE (October 4, 2025)
-**Status**: 50% complete (Phase 2 of 5) | **Duration**: 1 day  
+### ✅ RT-TASK-002: Actor System Core - PHASE 3 COMPLETE (October 4, 2025)
+**Status**: 75% complete (Phase 3 of 5) | **Duration**: 1 day  
 **Files Created**:
 - `src/actor/traits.rs` - Actor trait and ErrorAction enum (690 lines, 10 tests)
 - `src/actor/context.rs` - ActorContext implementation (170 lines, 6 tests)
+- `src/actor/lifecycle.rs` - ActorLifecycle and ActorState (300+ lines, 10 tests)
 - `src/actor/mod.rs` - Module declarations (§4.3 compliant)
 
 **Phase 1 Achievements**:
@@ -68,7 +69,14 @@
 - Message tracking: message_count, last_message_at
 - record_message() for statistics tracking
 - Complete accessor methods with rustdoc
-- 46/46 tests passing, zero warnings
+
+**Phase 3 Achievements**:
+- ActorState enum: Starting, Running, Stopping, Stopped, Failed
+- ActorLifecycle with state machine and transitions
+- Restart count tracking for supervision
+- Helper methods: is_terminal(), is_running()
+- Full chrono DateTime<Utc> integration (§3.2)
+- 56/56 tests passing, zero warnings
 
 **Implementation Guide**: KNOWLEDGE-RT-005 created with complete RT-TASK-002 roadmap
 
@@ -82,12 +90,12 @@
   - `src/util/ids.rs` - ActorId and MessageId generation ✅
   - **Actual Duration**: 3 days (completed Oct 4, 2025)
 
-- **RT-TASK-002**: Actor System Core ⏳ IN PROGRESS (Phase 2/5 Complete)
+- **RT-TASK-002**: Actor System Core ⏳ IN PROGRESS (Phase 3/5 Complete)
   - `src/actor/traits.rs` - Actor trait with generic constraints ✅
   - `src/actor/context.rs` - Generic ActorContext implementation ✅
-  - `src/actor/lifecycle.rs` - Actor lifecycle management ⏳ NEXT
-  - **Progress**: Phase 2 complete, Phase 3 next (Lifecycle management)
-  - **Estimated Remaining**: 3-4 days
+  - `src/actor/lifecycle.rs` - Actor lifecycle management ✅
+  - **Progress**: Phase 3 complete, Phase 4 next (Integration & Examples)
+  - **Estimated Remaining**: 1-2 days
 
 - **RT-TASK-003**: Mailbox System
   - `src/mailbox/traits.rs` - Generic mailbox traits
