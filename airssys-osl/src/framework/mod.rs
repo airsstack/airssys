@@ -57,11 +57,13 @@ mod builder;
 pub mod config;
 mod framework;
 mod operations;
-mod pipeline;
-mod registry;
+pub mod pipeline;
+pub mod registry;
 
 // Re-exports
 pub use builder::OSLFrameworkBuilder;
 pub use config::{OSLConfig, OSLConfigBuilder, SecurityConfig};
 pub use framework::OSLFramework;
 pub use operations::{FilesystemBuilder, NetworkBuilder, ProcessBuilder};
+pub use pipeline::MiddlewarePipeline;
+pub use registry::ExecutorRegistry;

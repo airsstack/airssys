@@ -1,82 +1,96 @@
-//! Executor registry for dynamic operation dispatch.
+//! Executor registry for dynamic operation type dispatch.
 //!
-//! This module provides the executor registry that manages mappings between
-//! operation types and their corresponding executors, enabling dynamic dispatch
-//! for framework operation execution.
+//! This module provides the ExecutorRegistry for managing and dispatching
+//! operations to the appropriate executor based on operation type.
 //!
-//! # Phase 1 Note
-//!
-//! This is a foundational implementation. Full executor management with `dyn Operation`
-//! support will be completed in Phase 2-3 after resolving object-safety challenges.
+//! Phase 2 Note: Since Operation trait has Clone bound (not object-safe),
+//! we use a simplified registry that will be enhanced in Phase 3 with
+//! concrete operation type support.
 
-use std::fmt::Debug;
+use std::collections::HashMap;
 
-use crate::core::{
-    operation::OperationType,
-    result::OSResult,
-};
+use crate::core::{operation::OperationType, result::OSResult};
 
-/// Registry for managing executor instances and operation type mappings.
+/// Registry for managing operation executors with dynamic dispatch.
 ///
-/// `ExecutorRegistry` maintains the mapping between operation types and their
-/// executors, providing type-safe executor lookup and validation.
+/// The ExecutorRegistry maintains a mapping of operation types to their
+/// corresponding executors, enabling dynamic operation dispatch based on
+/// the operation type.
 ///
-/// # Phase 1 Implementation
+/// # Phase 2 Implementation
 ///
-/// Phase 1 provides the foundational structure. Full `dyn Operation` support
-/// requires making the Operation trait object-safe, which will be addressed
-/// in Phase 2 after removing the `Clone` constraint or using a wrapper type.
-#[derive(Debug, Default)]
-pub(crate) struct ExecutorRegistry {
-    /// Placeholder for executor count (Phase 1)
-    _executor_count: usize,
+/// This phase provides functional executor tracking. Full dynamic dispatch
+/// with concrete operation types will be implemented in Phase 3.
+///
+/// # Examples
+///
+/// ```rust
+/// use airssys_osl::framework::registry::ExecutorRegistry;
+///
+/// # fn example() -> airssys_osl::core::result::OSResult<()> {
+/// let registry = ExecutorRegistry::new()?;
+/// assert_eq!(registry.executor_count(), 0);
+/// # Ok(())
+/// # }
+/// ```
+#[derive(Debug, Clone, Default)]
+pub struct ExecutorRegistry {
+    /// Registered operation types and their executor names
+    registered_types: HashMap<OperationType, String>,
 }
 
 impl ExecutorRegistry {
     /// Create a new executor registry.
-    ///
-    /// # Phase 1 Note
-    ///
-    /// Creates an empty registry. Full executor management will be implemented
-    /// in Phase 2-3 after resolving Operation trait object-safety.
-    ///
-    /// # Returns
-    ///
-    /// Returns a configured `ExecutorRegistry`.
     pub fn new() -> OSResult<Self> {
         Ok(Self {
-            _executor_count: 0,
+            registered_types: HashMap::new(),
         })
     }
 
-    /// Check if an executor is registered for the given operation type.
+    /// Register an executor for specific operation types.
     ///
-    /// # Phase 1 Note
+    /// # Arguments
     ///
-    /// Always returns false in Phase 1. Will be implemented in Phase 2-3.
-    #[allow(dead_code)] // Phase 1: Will be used in Phase 2-3
-    pub fn has_executor(&self, _operation_type: &OperationType) -> bool {
-        false
+    /// * `operation_types` - The types of operations this executor handles
+    /// * `executor_name` - The name of the executor
+    ///
+    /// # Phase 2 Note
+    ///
+    /// Currently tracks executor names. Phase 3 will store actual executors
+    /// when concrete operation types are implemented.
+    pub fn register_executor(
+        &mut self,
+        operation_types: Vec<OperationType>,
+        executor_name: &str,
+    ) -> OSResult<()> {
+        for op_type in operation_types {
+            self.registered_types.insert(op_type, executor_name.to_string());
+        }
+        Ok(())
+    }
+
+    /// Check if an executor exists for the given operation type.
+    pub fn has_executor(&self, operation_type: &OperationType) -> bool {
+        self.registered_types.contains_key(operation_type)
     }
 
     /// Get the number of registered executors.
-    ///
-    /// # Phase 1 Note
-    ///
-    /// Returns 0 in Phase 1. Will be implemented in Phase 2-3.
-    #[allow(dead_code)] // Phase 1: Will be used in Phase 2-3
     pub fn executor_count(&self) -> usize {
-        0
+        self.registered_types.len()
     }
 
     /// Get all registered operation types.
-    ///
-    /// # Phase 1 Note
-    ///
-    /// Returns empty vector in Phase 1. Will be implemented in Phase 2-3.
-    #[allow(dead_code)] // Phase 1: Will be used in Phase 2-3
     pub fn registered_types(&self) -> Vec<OperationType> {
-        vec![]
+        self.registered_types.keys().copied().collect()
+    }
+
+    /// Get the executor name for a given operation type.
+    ///
+    /// # Phase 2 Note
+    ///
+    /// Returns the executor name. Phase 3 will return actual executor references.
+    pub fn get_executor_name(&self, operation_type: &OperationType) -> Option<&str> {
+        self.registered_types.get(operation_type).map(|s| s.as_str())
     }
 }
 
@@ -90,7 +104,6 @@ mod tests {
     fn test_registry_creation() {
         let result = ExecutorRegistry::new();
         assert!(result.is_ok());
-        
         let registry = result.expect("Registry creation should succeed");
         assert_eq!(registry.executor_count(), 0);
     }
@@ -106,6 +119,43 @@ mod tests {
     fn test_registered_types_empty() {
         let registry = ExecutorRegistry::new().expect("Registry creation should succeed");
         let types = registry.registered_types();
-        assert_eq!(types.len(), 0);
+        assert!(types.is_empty());
+    }
+
+    #[test]
+    fn test_register_executor() {
+        let mut registry = ExecutorRegistry::new().expect("Registry creation should succeed");
+
+        let result = registry.register_executor(
+            vec![OperationType::Filesystem, OperationType::Process],
+            "test-executor",
+        );
+
+        assert!(result.is_ok());
+        assert_eq!(registry.executor_count(), 2);
+        assert!(registry.has_executor(&OperationType::Filesystem));
+        assert!(registry.has_executor(&OperationType::Process));
+        assert_eq!(
+            registry.get_executor_name(&OperationType::Filesystem),
+            Some("test-executor")
+        );
+    }
+
+    #[test]
+    fn test_get_executor_name() {
+        let mut registry = ExecutorRegistry::new().expect("Registry creation should succeed");
+
+        registry
+            .register_executor(vec![OperationType::Network], "network-executor")
+            .expect("Registration should succeed");
+
+        assert_eq!(
+            registry.get_executor_name(&OperationType::Network),
+            Some("network-executor")
+        );
+        assert_eq!(
+            registry.get_executor_name(&OperationType::Utility),
+            None
+        );
     }
 }

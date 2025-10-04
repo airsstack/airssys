@@ -1,114 +1,103 @@
-//! Middleware pipeline orchestration.
+//! Middleware pipeline orchestration for operation processing.
 //!
-//! This module provides the middleware pipeline that orchestrates the execution
-//! of middleware in the proper order with comprehensive error handling and
-//! lifecycle management.
+//! This module provides the MiddlewarePipeline for managing and executing
+//! middleware in sequence before, during, and after operation execution.
 //!
-//! # Phase 1 Note
-//!
-//! This is a foundational implementation. Full pipeline execution with middleware
-//! orchestration will be implemented in Phase 2 after resolving Operation trait
-//! object-safety challenges (removing Clone constraint or using wrapper types).
+//! Phase 2 provides simplified middleware tracking. Full middleware execution
+//! with dynamic dispatch will be completed in Phase 3 when concrete operation
+//! implementations are available.
 
-use std::fmt::Debug;
-
-use crate::core::result::OSResult;
-
-/// Pipeline for orchestrating middleware execution.
+/// Middleware pipeline for orchestrating operation processing.
 ///
-/// `MiddlewarePipeline` manages the execution of middleware in the proper order,
-/// handling errors, and ensuring proper lifecycle management.
+/// The MiddlewarePipeline manages a collection of middleware components and
+/// executes them in sequence during operation processing.
 ///
-/// # Phase 1 Implementation
+/// # Phase 2 Implementation
 ///
-/// Phase 1 provides the foundational structure. Full middleware orchestration
-/// requires making the Operation trait object-safe, which will be addressed
-/// in Phase 2 by either:
-/// 1. Removing the Clone bound from Operation trait
-/// 2. Using a wrapper type for dynamic dispatch
-/// 3. Using a different architecture pattern
+/// This phase provides the foundational pipeline structure with lifecycle
+/// management. Full middleware orchestration with before/during/after execution
+/// hooks will be implemented in Phase 3.
 ///
-/// # Lifecycle
+/// # Examples
 ///
-/// The pipeline executes middleware in three phases:
-/// 1. **Before execution**: All middleware `before_execution` methods are called
-/// 2. **Execute**: The operation is executed by the appropriate executor
-/// 3. **After execution**: All middleware `after_execution` methods are called in reverse
-#[derive(Debug)]
-#[allow(dead_code)] // Phase 1: Fields will be used in Phase 2
-pub(crate) struct MiddlewarePipeline {
-    /// Number of middleware (Phase 1 placeholder)
-    _middleware_count: usize,
+/// ```rust
+/// use airssys_osl::framework::pipeline::MiddlewarePipeline;
+///
+/// # #[tokio::main]
+/// # async fn main() -> airssys_osl::core::result::OSResult<()> {
+/// let mut pipeline = MiddlewarePipeline::new();
+/// pipeline.initialize_all().await?;
+/// assert!(pipeline.is_initialized());
+/// # Ok(())
+/// # }
+/// ```
+#[derive(Debug, Clone)]
+pub struct MiddlewarePipeline {
     /// Whether the pipeline has been initialized
     initialized: bool,
+    /// Middleware names for tracking
+    middleware_names: Vec<String>,
 }
 
 impl MiddlewarePipeline {
-    /// Create a new empty middleware pipeline.
+    /// Create a new middleware pipeline.
     pub fn new() -> Self {
         Self {
-            _middleware_count: 0,
             initialized: false,
+            middleware_names: Vec::new(),
         }
+    }
+
+    /// Add a middleware to the pipeline.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the middleware to add
+    ///
+    /// # Phase 2 Note
+    ///
+    /// Currently tracks middleware names. Phase 3 will store actual middleware
+    /// instances and handle initialization.
+    pub fn add_middleware(&mut self, name: String) {
+        self.middleware_names.push(name);
     }
 
     /// Initialize all middleware in the pipeline.
     ///
-    /// This must be called before the pipeline can execute operations.
+    /// # Phase 2 Note
     ///
-    /// # Phase 1 Note
-    ///
-    /// Placeholder implementation. Full middleware initialization will be
-    /// implemented in Phase 2.
-    ///
-    /// # Returns
-    ///
-    /// Returns `Ok(())` if all middleware initialized successfully.
-    #[allow(dead_code)] // Phase 1: Will be used in Phase 2
-    pub async fn initialize_all(&mut self) -> OSResult<()> {
+    /// Sets the initialized flag. Phase 3 will call actual middleware
+    /// initialization methods.
+    pub async fn initialize_all(&mut self) -> crate::core::result::OSResult<()> {
         self.initialized = true;
         Ok(())
     }
 
     /// Shutdown all middleware in the pipeline.
     ///
-    /// Calls the `shutdown()` method on each middleware in reverse order.
+    /// # Phase 2 Note
     ///
-    /// # Phase 1 Note
-    ///
-    /// Placeholder implementation. Full middleware shutdown will be
-    /// implemented in Phase 2.
-    #[allow(dead_code)] // Phase 1: Will be used in Phase 2
-    pub async fn shutdown_all(&mut self) -> OSResult<()> {
+    /// Clears the initialized flag. Phase 3 will call actual middleware
+    /// shutdown methods.
+    pub async fn shutdown_all(&mut self) -> crate::core::result::OSResult<()> {
         self.initialized = false;
         Ok(())
     }
 
     /// Get the number of middleware in the pipeline.
-    #[allow(dead_code)] // Phase 1: Will be used in Phase 2
     pub fn middleware_count(&self) -> usize {
-        0
+        self.middleware_names.len()
     }
 
     /// Check if the pipeline is initialized.
-    #[allow(dead_code)] // Phase 1: Will be used in Phase 2
     pub fn is_initialized(&self) -> bool {
         self.initialized
     }
 
     /// Get the names of all middleware in the pipeline.
-    #[allow(dead_code)] // Phase 1: Will be used in Phase 2
     pub fn middleware_names(&self) -> Vec<String> {
-        vec![]
+        self.middleware_names.clone()
     }
-
-    // Phase 2 will implement:
-    // - add_middleware() with dyn Middleware support
-    // - execute() method with full pipeline orchestration
-    // - Before execution phase with error handling
-    // - Operation execution via executor registry
-    // - After execution phase in reverse order
-    // - Comprehensive error action handling (Continue, Stop, Retry, etc.)
 }
 
 impl Default for MiddlewarePipeline {
@@ -141,8 +130,8 @@ mod tests {
     #[tokio::test]
     async fn test_shutdown_all() {
         let mut pipeline = MiddlewarePipeline::new();
-        pipeline.initialize_all().await.expect("Initialization should succeed");
-
+        pipeline.initialize_all().await.expect("Initialize should succeed");
+        
         let result = pipeline.shutdown_all().await;
         assert!(result.is_ok());
         assert!(!pipeline.is_initialized());
@@ -152,6 +141,17 @@ mod tests {
     async fn test_middleware_names_empty() {
         let pipeline = MiddlewarePipeline::new();
         let names = pipeline.middleware_names();
-        assert_eq!(names.len(), 0);
+        assert!(names.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_add_middleware() {
+        let mut pipeline = MiddlewarePipeline::new();
+        pipeline.add_middleware("logger".to_string());
+        pipeline.add_middleware("security".to_string());
+
+        assert_eq!(pipeline.middleware_count(), 2);
+        let names = pipeline.middleware_names();
+        assert_eq!(names, vec!["logger", "security"]);
     }
 }
