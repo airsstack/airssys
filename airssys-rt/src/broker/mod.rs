@@ -36,9 +36,11 @@
 //! ```
 
 pub mod error;
+pub mod in_memory;
 pub mod registry;
 pub mod traits;
 
 pub use error::BrokerError;
+pub use in_memory::InMemoryMessageBroker;
 pub use registry::{ActorRegistry, PoolStrategy};
 pub use traits::MessageBroker;

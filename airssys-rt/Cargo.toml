@@ -22,6 +22,7 @@ parking_lot = { workspace = true }
 
 # Serialization support
 serde = { workspace = true }
+serde_json = { workspace = true }
 
 # Error handling
 thiserror = { workspace = true }

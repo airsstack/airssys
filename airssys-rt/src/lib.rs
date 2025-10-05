@@ -16,7 +16,9 @@ pub mod util;
 
 // Re-export commonly used types
 pub use actor::{Actor, ActorContext, ActorLifecycle, ActorState, ErrorAction};
-pub use broker::{ActorRegistry, BrokerError, MessageBroker, PoolStrategy};
+pub use broker::{
+    ActorRegistry, BrokerError, InMemoryMessageBroker, MessageBroker, PoolStrategy,
+};
 pub use mailbox::{
     BackpressureStrategy, BoundedMailbox, BoundedMailboxSender, MailboxReceiver, MailboxSender,
 };

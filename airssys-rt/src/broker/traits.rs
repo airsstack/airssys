@@ -185,7 +185,7 @@ pub trait MessageBroker<M: Message>: Send + Sync + Clone {
     /// Request-reply is a blocking operation that holds a task waiting for response.
     /// For long-running operations, consider using fire-and-forget with manual
     /// correlation IDs instead (see KNOWLEDGE-RT-010 Pattern 3).
-    async fn request<R: Message>(
+    async fn request<R: Message + for<'de> serde::Deserialize<'de>>(
         &self,
         envelope: MessageEnvelope<M>,
         timeout: Duration,

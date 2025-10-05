@@ -45,23 +45,41 @@ This provides the core messaging infrastructure that actors use for communicatio
 
 ## Progress Tracking
 
-**Overall Status:** in_progress - 50%
+**Overall Status:** in_progress - 75%
 
 ### Subtasks
 | ID | Description | Status | Updated | Notes |
 |----|-------------|--------|---------|-------|
-| 4.1 | MessageBroker trait definition | complete | 2025-10-05 | Generic broker interface - 239 lines |
+| 4.1 | MessageBroker trait definition | complete | 2025-10-05 | Generic broker interface - 241 lines |
 | 4.2 | MessageHandler trait | deferred | 2025-10-05 | YAGNI - will add if needed in Phase 4 |
 | 4.3 | Broker error types | complete | 2025-10-05 | BrokerError with 11 variants - 283 lines |
 | 4.4 | ActorRegistry implementation | complete | 2025-10-05 | Lock-free registry - 695 lines, 14 tests |
 | 4.5 | Actor pool management | complete | 2025-10-05 | RoundRobin/Random strategies integrated |
-| 4.6 | InMemoryMessageBroker core | not_started | 2025-10-05 | Default broker implementation - NEXT |
-| 4.7 | Request-reply pattern | not_started | 2025-10-05 | Message ID tracking and timeout |
-| 4.8 | Message delivery system | not_started | 2025-10-05 | Reliable delivery with retries |
+| 4.6 | InMemoryMessageBroker core | complete | 2025-10-05 | Default broker - 462 lines, 9 tests |
+| 4.7 | Request-reply pattern | complete | 2025-10-05 | Correlation IDs and timeout with serde |
+| 4.8 | Message delivery system | not_started | 2025-10-05 | Integration with ActorContext - Phase 4 |
 | 4.9 | Metrics collection | deferred | 2025-10-05 | YAGNI - deferred to RT-TASK-008 |
-| 4.10 | Unit test coverage | in_progress | 2025-10-05 | 31 tests complete (14 error + 3 trait + 14 registry) |
+| 4.10 | Unit test coverage | in_progress | 2025-10-05 | 40 tests (14 error + 3 trait + 14 registry + 9 broker) |
 
 ## Progress Log
+### 2025-10-05 (Phase 3)
+- **PHASE 3 COMPLETE**: InMemoryMessageBroker Implementation
+- Created `src/broker/in_memory.rs` (462 lines) - InMemoryMessageBroker<M, S>, 9 tests
+- Generic over Message and MailboxSender types with Arc-based cheap cloning
+- Zero-copy message routing with ownership transfer
+- Request-reply pattern with async await and timeout using tokio::time::timeout
+- Correlation ID tracking with DashMap for pending requests
+- Heterogeneous message type handling with serde serialization
+- Methods: new, register_actor, unregister_actor, actor_count, send_impl, request_impl
+- MessageBroker<M> trait implementation with serde bounds for request/response
+- Added serde_json dependency for heterogeneous message serialization
+- Updated MessageBroker trait: request<R: Message + for<'de> serde::Deserialize<'de>>
+- Comprehensive unit tests: new, register, unregister, send, send errors, multiple actors, timeout, clone
+- 40/40 broker tests passing (17 Phase 1 + 14 Phase 2 + 9 Phase 3), 152 total tests
+- Zero compilation warnings, zero clippy warnings (library code)
+- Full workspace standards compliance (§2.1, §4.3, §6.2, §6.3)
+- Ready for Phase 4: ActorContext Integration
+
 ### 2025-10-05 (Phase 2)
 - **PHASE 2 COMPLETE**: Actor Registry with Lock-Free Routing
 - Created `src/broker/registry.rs` (695 lines) - ActorRegistry<M, S>, 14 tests
@@ -115,11 +133,11 @@ This provides the core messaging infrastructure that actors use for communicatio
 - [x] Comprehensive broker error types
 - [x] ActorRegistry with address resolution
 - [x] Actor pool management with load balancing
-- [ ] InMemoryMessageBroker<M> implementation
-- [ ] Request-reply pattern with timeout
-- [ ] Message delivery with retry logic
+- [x] InMemoryMessageBroker<M> implementation
+- [x] Request-reply pattern with timeout
+- [ ] Message delivery system integration with ActorContext
 - [ ] ~~Metrics collection system~~ (DEFERRED to RT-TASK-008 - YAGNI)
-- [x] All unit tests passing with >95% coverage (Phase 1-2: 100%)
+- [x] All unit tests passing with >95% coverage (Phase 1-3: 100%)
 - [x] Clean compilation with zero warnings
 - [x] Proper module exports and public API
 - [x] Documentation with usage examples
