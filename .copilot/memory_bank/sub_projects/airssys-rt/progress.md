@@ -109,15 +109,17 @@
 - **RT-TASK-003**: Mailbox System ✅ COMPLETE
   - `src/mailbox/traits.rs` - Generic mailbox traits ✅
   - `src/mailbox/bounded.rs` - BoundedMailbox implementation ✅
+  - `src/mailbox/unbounded.rs` - UnboundedMailbox implementation ✅
   - `src/mailbox/backpressure.rs` - Backpressure strategies ✅
   - **Actual Duration**: 2 days (completed Oct 5, 2025)
-  - **Status**: 100% complete (all 3 phases done)
+  - **Status**: 100% complete (all 8 subtasks done)
   - **Key Achievements**:
     - Phase 1: MailboxReceiver<M>/MailboxSender<M> trait refactoring (YAGNI §6.1)
     - Phase 2: BoundedMailbox with tokio mpsc, TTL expiration, metrics tracking
     - Phase 3: Backpressure strategies (Block/Drop/Error) - simplified from 4 to 3 (ADR-RT-003)
+    - Phase 4: UnboundedMailbox with unlimited capacity, TTL support, metrics
     - YAGNI refactoring: Removed DropOldest/DropNewest (tokio mpsc limitation)
-    - 92 tests passing (11 backpressure tests), zero clippy warnings
+    - 105 tests passing (13 bounded + 13 unbounded + 11 backpressure + 10 trait tests), zero clippy warnings
     - ADR-RT-003: Backpressure Strategy Simplification decision
     - KNOWLEDGE-RT-007: Comprehensive backpressure strategy guide
 
