@@ -15,6 +15,8 @@ pub mod util;
 
 // Re-export commonly used types
 pub use actor::{Actor, ActorContext, ActorLifecycle, ActorState, ErrorAction};
-pub use mailbox::{BackpressureStrategy, MailboxReceiver, MailboxSender};
+pub use mailbox::{
+    BackpressureStrategy, BoundedMailbox, BoundedMailboxSender, MailboxReceiver, MailboxSender,
+};
 pub use message::{Message, MessageEnvelope, MessagePriority};
 pub use util::{ActorAddress, ActorId, MessageId};

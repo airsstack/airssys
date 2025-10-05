@@ -36,10 +36,12 @@
 
 // §4.3 MANDATORY: Module declarations only (no implementation code)
 pub mod backpressure;
+pub mod bounded;
 pub mod traits;
 
 // Re-exports for convenience
 pub use backpressure::BackpressureStrategy;
+pub use bounded::{BoundedMailbox, BoundedMailboxSender};
 pub use traits::{
     MailboxCapacity, MailboxError, MailboxMetrics, MailboxReceiver, MailboxSender, TryRecvError,
 };
