@@ -2,8 +2,8 @@
 
 **Sub-Project:** airssys-rt  
 **Last Updated:** 2025-10-05  
-**Total Knowledge Docs:** 7  
-**Active Knowledge Docs:** 7  
+**Total Knowledge Docs:** 8  
+**Active Knowledge Docs:** 8  
 
 ## Active Knowledge Documentation
 
@@ -37,6 +37,10 @@
 - **[KNOWLEDGE-RT-007](knowledge_rt_007_backpressure_strategy_guide.md)**: Backpressure Strategy Behavior and Selection Guide
   - *Status*: active | *Created*: 2025-10-05
   - *Summary*: Comprehensive explanation of Block/Drop/Error backpressure strategies, behavioral differences, selection criteria, real-world examples, and performance characteristics
+
+- **[KNOWLEDGE-RT-008](knowledge_rt_008_mailbox_metrics_refactoring_plan.md)**: Mailbox Metrics Refactoring Plan
+  - *Status*: planning | *Created*: 2025-10-05
+  - *Summary*: Complete refactoring plan for trait-based metrics design with MetricsRecorder trait, AtomicMetrics default implementation, dependency injection pattern, and encapsulation improvements
 
 ## Planned Knowledge Documentation
 
