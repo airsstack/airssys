@@ -3,9 +3,17 @@
 **Sub-Project:** airssys-rt  
 **Category:** Patterns  
 **Created:** 2025-10-05  
-**Last Updated:** 2025-10-05  
+**Last Updated:** 2025-10-05 (Refactored)  
 **Status:** active  
 **Related Task:** RT-TASK-003
+
+## ⚠️ IMPORTANT UPDATE (2025-10-05)
+
+**Phase 1 Refactoring Completed:**
+- ✅ **Renamed**: `Mailbox` trait → `MailboxReceiver` trait (for clarity)
+- ✅ **Removed**: `send()` method from receiver trait (YAGNI §6.1)
+- ✅ **Rationale**: Receiver exclusively receives; sender exclusively sends
+- ⚠️ **Note**: Examples in this guide may still reference old `Mailbox` name - mentally substitute with `MailboxReceiver`
 
 ## Context and Purpose
 

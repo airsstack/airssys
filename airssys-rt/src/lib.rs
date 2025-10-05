@@ -9,10 +9,12 @@
 //! - **High Performance**: Designed for 10,000+ concurrent actors
 
 pub mod actor;
+pub mod mailbox;
 pub mod message;
 pub mod util;
 
 // Re-export commonly used types
 pub use actor::{Actor, ActorContext, ActorLifecycle, ActorState, ErrorAction};
+pub use mailbox::{BackpressureStrategy, MailboxReceiver, MailboxSender};
 pub use message::{Message, MessageEnvelope, MessagePriority};
 pub use util::{ActorAddress, ActorId, MessageId};

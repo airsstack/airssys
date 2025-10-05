@@ -53,6 +53,7 @@ thiserror = { version = "2.0.16" }
 
 # Utilities
 uuid = { version = "1.6", features = ["v4", "serde"] }
+parking_lot = { version = "0.12" }
 bytes = { version = "1.5" }
 tokio-util = { version = "0.7", features = ["codec"] }
 tracing = { version = "0.1" }

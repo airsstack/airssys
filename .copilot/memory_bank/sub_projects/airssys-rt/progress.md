@@ -109,6 +109,9 @@
   - `src/mailbox/bounded.rs` - BoundedMailbox implementation
   - `src/mailbox/backpressure.rs` - Backpressure strategies
   - **Estimated**: 3-4 days
+  - **Status**: Phase 1 COMPLETE (2025-10-05) - Traits and foundation ✅
+  - **Progress**: 33% complete (1/3 phases done)
+  - **Notes**: Refactored `Mailbox` → `MailboxReceiver` for clarity (YAGNI §6.1)
 
 #### ⏳ Priority 2 - Message Broker (2 weeks)
 - **RT-TASK-004**: Message Broker Core

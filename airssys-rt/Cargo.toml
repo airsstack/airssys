@@ -17,6 +17,9 @@ chrono = { workspace = true }
 # UUID generation for IDs
 uuid = { workspace = true }
 
+# High-performance synchronization primitives
+parking_lot = { workspace = true }
+
 # Serialization support
 serde = { workspace = true }
 
