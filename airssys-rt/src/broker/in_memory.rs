@@ -184,8 +184,11 @@ impl<M: Message, S: MailboxSender<M>> InMemoryMessageBroker<M, S> {
         M: serde::Serialize,
     {
         // Save target address before moving envelope
-        let target = envelope.reply_to.clone().unwrap_or_else(ActorAddress::anonymous);
-        
+        let target = envelope
+            .reply_to
+            .clone()
+            .unwrap_or_else(ActorAddress::anonymous);
+
         // Generate correlation ID
         let correlation_id = uuid::Uuid::new_v4();
         envelope.correlation_id = Some(correlation_id);
@@ -202,11 +205,9 @@ impl<M: Message, S: MailboxSender<M>> InMemoryMessageBroker<M, S> {
             Ok(Ok(serialized)) => {
                 // Deserialize response
                 let response: MessageEnvelope<R> =
-                    serde_json::from_slice(&serialized).map_err(|e| {
-                        BrokerError::RouteError {
-                            message_type: R::MESSAGE_TYPE,
-                            reason: format!("Failed to deserialize reply: {e}"),
-                        }
+                    serde_json::from_slice(&serialized).map_err(|e| BrokerError::RouteError {
+                        message_type: R::MESSAGE_TYPE,
+                        reason: format!("Failed to deserialize reply: {e}"),
                     })?;
                 Ok(Some(response))
             }
