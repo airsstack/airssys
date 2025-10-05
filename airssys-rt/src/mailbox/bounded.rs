@@ -45,7 +45,6 @@ pub struct BoundedMailbox<M: Message> {
 #[derive(Clone)]
 pub struct BoundedMailboxSender<M: Message> {
     sender: mpsc::Sender<MessageEnvelope<M>>,
-    #[allow(dead_code)] // Will be used in Phase 3 for backpressure implementation
     backpressure_strategy: Arc<BackpressureStrategy>,
     capacity: usize,
     metrics: Arc<MailboxMetrics>,
@@ -199,14 +198,13 @@ impl<M: Message> MailboxSender<M> for BoundedMailboxSender<M> {
     type Error = MailboxError;
 
     async fn send(&self, envelope: MessageEnvelope<M>) -> Result<(), Self::Error> {
-        // Try to send the message
-        match self.sender.send(envelope).await {
-            Ok(()) => {
-                self.metrics.messages_sent.fetch_add(1, Ordering::Relaxed);
-                Ok(())
-            }
-            Err(_) => Err(MailboxError::Closed),
-        }
+        // Apply backpressure strategy
+        self.backpressure_strategy
+            .apply(&self.sender, envelope)
+            .await?;
+
+        self.metrics.messages_sent.fetch_add(1, Ordering::Relaxed);
+        Ok(())
     }
 
     fn try_send(&self, envelope: MessageEnvelope<M>) -> Result<(), Self::Error> {
