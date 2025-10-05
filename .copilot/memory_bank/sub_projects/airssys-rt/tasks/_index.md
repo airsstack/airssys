@@ -17,8 +17,8 @@
 - [RT-TASK-002] Actor System Core - Core traits and context (1 day) - **COMPLETE Oct 4, 2025**
 - [RT-TASK-003] Mailbox System - Bounded/unbounded mailboxes with backpressure (2 days) - **COMPLETE Oct 5, 2025**
 
-### Pending - Priority 2 (2 weeks)
-- [RT-TASK-004] Message Broker Core - In-memory broker implementation (7-8 days)
+### Pending - Priority 2 (2 weeks) - IN PROGRESS
+- [RT-TASK-004] Message Broker Core - In-memory broker implementation (7-8 days) - **PHASE 1 COMPLETE** ✅
 - [RT-TASK-005] Actor Addressing - Address resolution and pools (3-4 days)
 
 ### Pending - Priority 3 (1 week)
