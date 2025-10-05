@@ -109,14 +109,13 @@
   - `src/mailbox/bounded.rs` - BoundedMailbox implementation
   - `src/mailbox/backpressure.rs` - Backpressure strategies
   - **Estimated**: 3-4 days
-  - **Status**: COMPLETE (2025-10-05) - All 3 phases done ✅
-  - **Progress**: 100% complete
+  - **Status**: COMPLETE (2025-10-05) - All phases done ✅
+  - **Progress**: 100% complete (3/3 phases done)
   - **Notes**: 
     - Phase 1: Trait definitions with MailboxReceiver/MailboxSender refactoring (YAGNI §6.1)
     - Phase 2: BoundedMailbox with tokio mpsc channels, TTL expiration, metrics tracking
-    - Phase 3: Backpressure strategies (Block, DropOldest, DropNewest, Error) with priority mapping
+    - Phase 3: Backpressure strategies (Block, DropOldest, DropNewest, Error) with apply() and for_priority()
     - 13 new backpressure tests (93 total in airssys-rt), zero clippy warnings
-    - Full mailbox system ready for actor integration
 
 #### ⏳ Priority 2 - Message Broker (2 weeks)
 - **RT-TASK-004**: Message Broker Core
