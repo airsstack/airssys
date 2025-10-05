@@ -330,12 +330,8 @@ mod tests {
         let msg1 = mailbox.recv().await.unwrap();
         let msg2 = mailbox.recv().await.unwrap();
 
-        assert!(
-            msg1.payload.content == "sender1" || msg1.payload.content == "sender2"
-        );
-        assert!(
-            msg2.payload.content == "sender1" || msg2.payload.content == "sender2"
-        );
+        assert!(msg1.payload.content == "sender1" || msg1.payload.content == "sender2");
+        assert!(msg2.payload.content == "sender1" || msg2.payload.content == "sender2");
     }
 
     #[tokio::test]
@@ -356,10 +352,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_with_backpressure_strategy() {
-        let (mailbox, _sender) = BoundedMailbox::<TestMessage>::with_backpressure(
-            10,
-            BackpressureStrategy::DropOldest,
-        );
+        let (mailbox, _sender) =
+            BoundedMailbox::<TestMessage>::with_backpressure(10, BackpressureStrategy::DropOldest);
         assert_eq!(mailbox.capacity(), MailboxCapacity::Bounded(10));
     }
 
