@@ -2,8 +2,8 @@
 
 **Sub-Project:** airssys-rt  
 **Last Updated:** 2025-10-05  
-**Total Knowledge Docs:** 8  
-**Active Knowledge Docs:** 8  
+**Total Knowledge Docs:** 10  
+**Active Knowledge Docs:** 10  
 
 ## Active Knowledge Documentation
 
@@ -39,8 +39,16 @@
   - *Summary*: Comprehensive explanation of Block/Drop/Error backpressure strategies, behavioral differences, selection criteria, real-world examples, and performance characteristics
 
 - **[KNOWLEDGE-RT-008](knowledge_rt_008_mailbox_metrics_refactoring_plan.md)**: Mailbox Metrics Refactoring Plan
-  - *Status*: planning | *Created*: 2025-10-05
+  - *Status*: completed | *Created*: 2025-10-05
   - *Summary*: Complete refactoring plan for trait-based metrics design with MetricsRecorder trait, AtomicMetrics default implementation, dependency injection pattern, and encapsulation improvements
+
+- **[KNOWLEDGE-RT-009](knowledge_rt_009_message_broker_architecture.md)**: Message Broker Architecture and Implementation Patterns
+  - *Status*: active | *Created*: 2025-10-05
+  - *Summary*: Complete broker architecture with generic MessageBroker<M> trait, InMemoryMessageBroker implementation, ActorRegistry with lock-free routing, request-reply patterns, actor pool management, and separation of concerns (actor vs system)
+
+- **[KNOWLEDGE-RT-010](knowledge_rt_010_actor_messaging_patterns.md)**: Actor Messaging Patterns and Integration
+  - *Status*: active | *Created*: 2025-10-05
+  - *Summary*: Comprehensive guide to three messaging patterns (fire-and-forget, request-reply with async wait, manual correlation), complete integration examples showing Actor/ActorContext/Supervisor/MessageBroker interaction, performance characteristics, and decision matrix for pattern selection
 
 ## Planned Knowledge Documentation
 
@@ -70,7 +78,8 @@
 ### Task Dependencies
 - **RT-TASK-001**: Message System Implementation - implements KNOWLEDGE-RT-001 and KNOWLEDGE-RT-004 patterns
 - **RT-TASK-002**: Actor System Core - implements KNOWLEDGE-RT-001 and KNOWLEDGE-RT-005 patterns
-- **RT-TASK-003**: Mailbox System - implements KNOWLEDGE-RT-001 and KNOWLEDGE-RT-006 patterns
+- **RT-TASK-003**: Mailbox System - implements KNOWLEDGE-RT-001, KNOWLEDGE-RT-006, KNOWLEDGE-RT-007, and KNOWLEDGE-RT-008 patterns
+- **RT-TASK-004**: Message Broker Core - implements KNOWLEDGE-RT-002, KNOWLEDGE-RT-009, and KNOWLEDGE-RT-010 patterns
 - **RT-TASK-007**: Supervisor Framework - implements KNOWLEDGE-RT-003 patterns
 
 ---
