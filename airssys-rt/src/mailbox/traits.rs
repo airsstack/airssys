@@ -36,12 +36,10 @@
 
 // Layer 1: Standard library imports
 use std::error::Error;
-use std::sync::atomic::AtomicU64;
 
 // Layer 2: Third-party crate imports
 use async_trait::async_trait;
 use chrono::{DateTime, Utc}; // §3.2 MANDATORY
-use parking_lot::RwLock;
 
 // Layer 3: Internal module imports
 use crate::message::{Message, MessageEnvelope};
@@ -111,9 +109,6 @@ pub trait MailboxReceiver<M: Message>: Send + Sync {
     fn is_empty(&self) -> bool {
         self.len() == 0
     }
-
-    /// Get mailbox metrics for monitoring
-    fn metrics(&self) -> &MailboxMetrics;
 }
 
 /// Sender interface for mailboxes with backpressure support.
@@ -262,40 +257,9 @@ pub enum TryRecvError {
     Closed,
 }
 
-/// Mailbox metrics for monitoring and observability
-///
-/// Tracks message counts and timing information for debugging and monitoring.
-/// All counters use atomic operations for thread-safe updates.
-///
-/// # Example
-///
-/// ```rust
-/// use airssys_rt::mailbox::MailboxMetrics;
-/// use std::sync::atomic::Ordering;
-///
-/// let metrics = MailboxMetrics::default();
-/// assert_eq!(metrics.messages_sent.load(Ordering::Relaxed), 0);
-/// assert_eq!(metrics.messages_received.load(Ordering::Relaxed), 0);
-/// ```
-#[derive(Debug, Default)]
-pub struct MailboxMetrics {
-    /// Total number of messages received
-    pub messages_received: AtomicU64,
-
-    /// Total number of messages sent
-    pub messages_sent: AtomicU64,
-
-    /// Total number of messages dropped (backpressure or TTL)
-    pub messages_dropped: AtomicU64,
-
-    /// Timestamp of last message processed (§3.2 chrono DateTime<Utc>)
-    pub last_message_at: RwLock<Option<DateTime<Utc>>>,
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::atomic::Ordering;
 
     #[test]
     fn test_mailbox_capacity_bounded() {
@@ -361,39 +325,5 @@ mod tests {
     fn test_try_recv_error_closed() {
         let err = TryRecvError::Closed;
         assert_eq!(err.to_string(), "Mailbox is closed");
-    }
-
-    #[test]
-    fn test_mailbox_metrics_default() {
-        let metrics = MailboxMetrics::default();
-        assert_eq!(metrics.messages_received.load(Ordering::Relaxed), 0);
-        assert_eq!(metrics.messages_sent.load(Ordering::Relaxed), 0);
-        assert_eq!(metrics.messages_dropped.load(Ordering::Relaxed), 0);
-        assert!(metrics.last_message_at.read().is_none());
-    }
-
-    #[test]
-    fn test_mailbox_metrics_update() {
-        let metrics = MailboxMetrics::default();
-
-        metrics.messages_sent.fetch_add(1, Ordering::Relaxed);
-        metrics.messages_received.fetch_add(1, Ordering::Relaxed);
-
-        assert_eq!(metrics.messages_sent.load(Ordering::Relaxed), 1);
-        assert_eq!(metrics.messages_received.load(Ordering::Relaxed), 1);
-    }
-
-    #[test]
-    fn test_mailbox_metrics_last_message() {
-        let metrics = MailboxMetrics::default();
-        let now = Utc::now();
-
-        *metrics.last_message_at.write() = Some(now);
-
-        let last = *metrics.last_message_at.read();
-        assert!(last.is_some());
-        if let Some(timestamp) = last {
-            assert_eq!(timestamp, now);
-        }
     }
 }

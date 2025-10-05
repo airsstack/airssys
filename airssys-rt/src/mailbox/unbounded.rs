@@ -33,7 +33,6 @@
 //! ```
 
 // Layer 1: Standard library imports
-use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
 // Layer 2: Third-party crate imports
@@ -42,8 +41,9 @@ use chrono::Utc;
 use tokio::sync::mpsc;
 
 // Layer 3: Internal module imports
+use super::metrics::{AtomicMetrics, MetricsRecorder};
 use super::traits::{
-    MailboxCapacity, MailboxError, MailboxMetrics, MailboxReceiver, MailboxSender, TryRecvError,
+    MailboxCapacity, MailboxError, MailboxReceiver, MailboxSender, TryRecvError,
 };
 use crate::message::{Message, MessageEnvelope};
 
@@ -53,6 +53,11 @@ use crate::message::{Message, MessageEnvelope};
 /// without capacity limits. Messages are never dropped or blocked, but this can
 /// lead to unbounded memory growth if not managed carefully.
 ///
+/// # Type Parameters
+///
+/// * `M` - The message type implementing [`Message`]
+/// * `R` - The metrics recorder implementing [`MetricsRecorder`] (default: [`AtomicMetrics`])
+///
 /// # Memory Safety
 ///
 /// While the mailbox itself is unbounded, system memory is finite. Monitor
@@ -61,7 +66,7 @@ use crate::message::{Message, MessageEnvelope};
 /// # Example
 ///
 /// ```ignore
-/// use airssys_rt::mailbox::UnboundedMailbox;
+/// use airssys_rt::mailbox::{UnboundedMailbox, AtomicMetrics};
 /// use airssys_rt::message::{Message, MessageEnvelope};
 ///
 /// #[derive(Debug, Clone)]
@@ -70,12 +75,12 @@ use crate::message::{Message, MessageEnvelope};
 ///     const MESSAGE_TYPE: &'static str = "my_message";
 /// }
 ///
-/// // Create unbounded mailbox
-/// let (mailbox, sender) = UnboundedMailbox::<MyMessage>::new();
+/// // Create unbounded mailbox with default metrics
+/// let (mailbox, sender) = UnboundedMailbox::<MyMessage, AtomicMetrics>::new();
 /// ```
-pub struct UnboundedMailbox<M: Message> {
+pub struct UnboundedMailbox<M: Message, R: MetricsRecorder> {
     receiver: mpsc::UnboundedReceiver<MessageEnvelope<M>>,
-    metrics: Arc<MailboxMetrics>,
+    pub metrics: Arc<R>,
 }
 
 /// Sender for unbounded mailbox.
@@ -83,13 +88,47 @@ pub struct UnboundedMailbox<M: Message> {
 /// The sender can send messages without ever blocking or failing due to
 /// capacity limits. Clone the sender to share it across multiple tasks.
 #[derive(Clone)]
-pub struct UnboundedMailboxSender<M: Message> {
+pub struct UnboundedMailboxSender<M: Message, R: MetricsRecorder> {
     sender: mpsc::UnboundedSender<MessageEnvelope<M>>,
-    metrics: Arc<MailboxMetrics>,
+    pub metrics: Arc<R>,
 }
 
-impl<M: Message> UnboundedMailbox<M> {
-    /// Create a new unbounded mailbox.
+impl<M: Message, R: MetricsRecorder> UnboundedMailbox<M, R> {
+    /// Create a new unbounded mailbox with custom metrics recorder.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use airssys_rt::mailbox::{UnboundedMailbox, AtomicMetrics};
+    /// use airssys_rt::message::Message;
+    ///
+    /// #[derive(Debug, Clone)]
+    /// struct MyMsg;
+    /// impl Message for MyMsg {
+    ///     const MESSAGE_TYPE: &'static str = "my_msg";
+    /// }
+    ///
+    /// let metrics = AtomicMetrics::new();
+    /// let (mailbox, sender) = UnboundedMailbox::with_metrics(metrics);
+    /// ```
+    pub fn with_metrics(metrics: R) -> (Self, UnboundedMailboxSender<M, R>) {
+        let (sender, receiver) = mpsc::unbounded_channel();
+        let metrics = Arc::new(metrics);
+
+        let mailbox = Self {
+            receiver,
+            metrics: Arc::clone(&metrics),
+        };
+
+        let sender = UnboundedMailboxSender { sender, metrics };
+
+        (mailbox, sender)
+    }
+}
+
+// Convenience constructor for AtomicMetrics (common case)
+impl<M: Message> UnboundedMailbox<M, AtomicMetrics> {
+    /// Create a new unbounded mailbox with AtomicMetrics.
     ///
     /// # Example
     ///
@@ -103,25 +142,15 @@ impl<M: Message> UnboundedMailbox<M> {
     ///     const MESSAGE_TYPE: &'static str = "my_msg";
     /// }
     ///
-    /// let (mailbox, sender) = UnboundedMailbox::<MyMsg>::new();
+    /// let (mailbox, sender) = UnboundedMailbox::new();
     /// ```
-    pub fn new() -> (Self, UnboundedMailboxSender<M>) {
-        let (sender, receiver) = mpsc::unbounded_channel();
-        let metrics = Arc::new(MailboxMetrics::default());
-
-        let mailbox = Self {
-            receiver,
-            metrics: Arc::clone(&metrics),
-        };
-
-        let sender = UnboundedMailboxSender { sender, metrics };
-
-        (mailbox, sender)
+    pub fn new() -> (Self, UnboundedMailboxSender<M, AtomicMetrics>) {
+        Self::with_metrics(AtomicMetrics::new())
     }
 }
 
 #[async_trait]
-impl<M: Message> MailboxReceiver<M> for UnboundedMailbox<M> {
+impl<M: Message, R: MetricsRecorder> MailboxReceiver<M> for UnboundedMailbox<M, R> {
     type Error = MailboxError;
 
     async fn recv(&mut self) -> Option<MessageEnvelope<M>> {
@@ -135,18 +164,14 @@ impl<M: Message> MailboxReceiver<M> for UnboundedMailbox<M> {
 
                     if elapsed > ttl {
                         // Message expired, skip it
-                        self.metrics
-                            .messages_dropped
-                            .fetch_add(1, Ordering::Relaxed);
+                        self.metrics.record_dropped();
                         return self.recv().await; // Try next message (recursive)
                     }
                 }
 
                 // Update metrics
-                self.metrics
-                    .messages_received
-                    .fetch_add(1, Ordering::Relaxed);
-                *self.metrics.last_message_at.write() = Some(Utc::now()); // §3.2
+                self.metrics.record_received();
+                self.metrics.update_last_message(Utc::now()); // §3.2
 
                 Some(envelope)
             }
@@ -165,18 +190,14 @@ impl<M: Message> MailboxReceiver<M> for UnboundedMailbox<M> {
 
                     if elapsed > ttl {
                         // Message expired, try next
-                        self.metrics
-                            .messages_dropped
-                            .fetch_add(1, Ordering::Relaxed);
+                        self.metrics.record_dropped();
                         return self.try_recv(); // Try next message (recursive)
                     }
                 }
 
                 // Update metrics
-                self.metrics
-                    .messages_received
-                    .fetch_add(1, Ordering::Relaxed);
-                *self.metrics.last_message_at.write() = Some(Utc::now()); // §3.2
+                self.metrics.record_received();
+                self.metrics.update_last_message(Utc::now()); // §3.2
 
                 Ok(envelope)
             }
@@ -192,38 +213,34 @@ impl<M: Message> MailboxReceiver<M> for UnboundedMailbox<M> {
     fn len(&self) -> usize {
         // Note: unbounded channels don't provide accurate len()
         // We approximate using sent - received metrics
-        let sent = self.metrics.messages_sent.load(Ordering::Relaxed);
-        let received = self.metrics.messages_received.load(Ordering::Relaxed);
-        sent.saturating_sub(received) as usize
+        self.metrics.in_flight() as usize
     }
 
     fn is_empty(&self) -> bool {
         self.len() == 0
     }
-
-    fn metrics(&self) -> &MailboxMetrics {
-        &self.metrics
-    }
 }
 
 #[async_trait]
-impl<M: Message> MailboxSender<M> for UnboundedMailboxSender<M> {
+impl<M: Message, R: MetricsRecorder + Clone> MailboxSender<M> for UnboundedMailboxSender<M, R> {
     type Error = MailboxError;
 
     async fn send(&self, envelope: MessageEnvelope<M>) -> Result<(), Self::Error> {
-        // Update metrics before sending
-        self.metrics.messages_sent.fetch_add(1, Ordering::Relaxed);
-
         // Unbounded send never blocks or fails due to capacity
-        self.sender.send(envelope).map_err(|_| MailboxError::Closed)
+        self.sender.send(envelope).map_err(|_| MailboxError::Closed)?;
+
+        // Update metrics after sending
+        self.metrics.record_sent();
+        Ok(())
     }
 
     fn try_send(&self, envelope: MessageEnvelope<M>) -> Result<(), Self::Error> {
-        // Update metrics before sending
-        self.metrics.messages_sent.fetch_add(1, Ordering::Relaxed);
-
         // Unbounded send never fails due to capacity, only if closed
-        self.sender.send(envelope).map_err(|_| MailboxError::Closed)
+        self.sender.send(envelope).map_err(|_| MailboxError::Closed)?;
+
+        // Update metrics after sending
+        self.metrics.record_sent();
+        Ok(())
     }
 }
 
@@ -248,7 +265,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_unbounded_mailbox_new() {
-        let (mailbox, _sender) = UnboundedMailbox::<TestMessage>::new();
+        let (mailbox, _sender): (UnboundedMailbox<TestMessage, _>, _) = UnboundedMailbox::new();
         assert_eq!(mailbox.capacity(), MailboxCapacity::Unbounded);
         assert_eq!(mailbox.len(), 0);
         assert!(mailbox.is_empty());
@@ -256,7 +273,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_unbounded_send_and_recv() {
-        let (mut mailbox, sender) = UnboundedMailbox::<TestMessage>::new();
+        let (mut mailbox, sender) = UnboundedMailbox::new();
         let msg = TestMessage {
             data: "test".to_string(),
         };
@@ -270,7 +287,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_unbounded_try_send() {
-        let (mut mailbox, sender) = UnboundedMailbox::<TestMessage>::new();
+        let (mut mailbox, sender) = UnboundedMailbox::new();
         let msg = TestMessage {
             data: "test".to_string(),
         };
@@ -284,7 +301,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_unbounded_try_recv_empty() {
-        let (mut mailbox, _sender) = UnboundedMailbox::<TestMessage>::new();
+        let (mut mailbox, _sender): (UnboundedMailbox<TestMessage, _>, _) = UnboundedMailbox::new();
 
         match mailbox.try_recv() {
             Err(TryRecvError::Empty) => { /* expected */ }
@@ -294,7 +311,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_unbounded_multiple_messages() {
-        let (mut mailbox, sender) = UnboundedMailbox::<TestMessage>::new();
+        let (mut mailbox, sender) = UnboundedMailbox::new();
 
         // Send 1000 messages without blocking (unbounded)
         for i in 0..1000 {
@@ -313,7 +330,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_unbounded_sender_clone() {
-        let (mut mailbox, sender) = UnboundedMailbox::<TestMessage>::new();
+        let (mut mailbox, sender) = UnboundedMailbox::new();
 
         let sender2 = sender.clone();
 
@@ -342,7 +359,7 @@ mod tests {
     async fn test_unbounded_ttl_expiration() {
         use std::time::Duration;
 
-        let (mut mailbox, sender) = UnboundedMailbox::<TestMessage>::new();
+        let (mut mailbox, sender) = UnboundedMailbox::new();
 
         // Send message with 1 second TTL
         let msg = TestMessage {
@@ -369,13 +386,12 @@ mod tests {
         assert_eq!(received.payload.data, "valid");
 
         // Check metrics - expired message should be counted as dropped
-        let metrics = mailbox.metrics();
-        assert_eq!(metrics.messages_dropped.load(Ordering::Relaxed), 1);
+        assert_eq!(mailbox.metrics.dropped_count(), 1);
     }
 
     #[tokio::test]
     async fn test_unbounded_metrics() {
-        let (mut mailbox, sender) = UnboundedMailbox::<TestMessage>::new();
+        let (mut mailbox, sender) = UnboundedMailbox::new();
 
         // Send 5 messages
         for i in 0..5 {
@@ -388,11 +404,8 @@ mod tests {
         }
 
         // Check metrics after sending
-        {
-            let metrics = mailbox.metrics();
-            assert_eq!(metrics.messages_sent.load(Ordering::Relaxed), 5);
-            assert_eq!(metrics.messages_received.load(Ordering::Relaxed), 0);
-        }
+        assert_eq!(mailbox.metrics.sent_count(), 5);
+        assert_eq!(mailbox.metrics.received_count(), 0);
 
         // Receive 3 messages
         for _ in 0..3 {
@@ -400,13 +413,12 @@ mod tests {
         }
 
         // Check metrics after receiving
-        let metrics = mailbox.metrics();
-        assert_eq!(metrics.messages_received.load(Ordering::Relaxed), 3);
+        assert_eq!(mailbox.metrics.received_count(), 3);
     }
 
     #[tokio::test]
     async fn test_unbounded_closed_mailbox() {
-        let (mut mailbox, sender) = UnboundedMailbox::<TestMessage>::new();
+        let (mut mailbox, sender): (UnboundedMailbox<TestMessage, _>, _) = UnboundedMailbox::new();
 
         // Drop sender to close mailbox
         drop(sender);
@@ -418,7 +430,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_unbounded_closed_sender() {
-        let (mailbox, sender) = UnboundedMailbox::<TestMessage>::new();
+        let (mailbox, sender) = UnboundedMailbox::new();
 
         // Drop receiver to close channel
         drop(mailbox);
@@ -435,7 +447,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_unbounded_envelope_builder() {
-        let (mut mailbox, sender) = UnboundedMailbox::<TestMessage>::new();
+        let (mut mailbox, sender) = UnboundedMailbox::new();
 
         let msg = TestMessage {
             data: "test".to_string(),
@@ -451,7 +463,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_unbounded_capacity_reporting() {
-        let (mailbox, _sender) = UnboundedMailbox::<TestMessage>::new();
+        let (mailbox, _sender): (UnboundedMailbox<TestMessage, _>, _) = UnboundedMailbox::new();
 
         // Unbounded mailbox always reports Unbounded capacity
         assert_eq!(mailbox.capacity(), MailboxCapacity::Unbounded);
@@ -459,7 +471,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_unbounded_high_volume() {
-        let (mut mailbox, sender) = UnboundedMailbox::<TestMessage>::new();
+        let (mut mailbox, sender) = UnboundedMailbox::new();
 
         // Send 10,000 messages to test unbounded behavior
         for i in 0..10_000 {

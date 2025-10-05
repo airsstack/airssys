@@ -1,16 +1,18 @@
 # airssys-rt Progress
 
 ## Current Status
-**Phase:** Foundation Implementation In Progress  
-**Overall Progress:** 60%  
+**Phase:** Foundation Implementation Complete  
+**Overall Progress:** 100% (Foundation Phase)  
 **Last Updated:** 2025-10-05
 
 **Recent Changes** (2025-10-05):
-- RT-TASK-003 100% complete: Mailbox System with all 3 phases done
-- Backpressure strategies refactored: 4→3 variants (ADR-RT-003)
-- KNOWLEDGE-RT-007 created: Comprehensive backpressure strategy guide
-- 92 tests passing, zero clippy warnings
-- Foundation phase (Priority 1) now 100% complete
+- **METRICS REFACTORING COMPLETE**: Trait-based pluggable metrics architecture
+- Created MetricsRecorder trait with AtomicMetrics implementation
+- Refactored BoundedMailbox and UnboundedMailbox with generic metrics
+- KNOWLEDGE-RT-008: Complete metrics refactoring plan (600+ lines)
+- 110 total tests passing (56 mailbox + 10 metrics + 30 message + 14 actor)
+- Zero compilation errors, zero clippy warnings
+- Foundation phase (Priority 1) now 100% complete and production-ready
 
 ## What Works
 ### ✅ Completed Components - MAJOR MILESTONES ACHIEVED
@@ -111,17 +113,28 @@
   - `src/mailbox/bounded.rs` - BoundedMailbox implementation ✅
   - `src/mailbox/unbounded.rs` - UnboundedMailbox implementation ✅
   - `src/mailbox/backpressure.rs` - Backpressure strategies ✅
+  - `src/mailbox/metrics/recorder.rs` - MetricsRecorder trait ✅
+  - `src/mailbox/metrics/atomic.rs` - AtomicMetrics implementation ✅
+  - `src/mailbox/metrics/mod.rs` - Metrics module root ✅
   - **Actual Duration**: 2 days (completed Oct 5, 2025)
-  - **Status**: 100% complete (all 8 subtasks done)
+  - **Status**: 100% complete (all 8 subtasks + metrics refactoring done)
   - **Key Achievements**:
     - Phase 1: MailboxReceiver<M>/MailboxSender<M> trait refactoring (YAGNI §6.1)
     - Phase 2: BoundedMailbox with tokio mpsc, TTL expiration, metrics tracking
     - Phase 3: Backpressure strategies (Block/Drop/Error) - simplified from 4 to 3 (ADR-RT-003)
     - Phase 4: UnboundedMailbox with unlimited capacity, TTL support, metrics
+    - **Metrics Refactoring**: Trait-based pluggable metrics architecture
+      - MetricsRecorder trait for abstraction and encapsulation
+      - AtomicMetrics default implementation with manual Clone
+      - Generic `BoundedMailbox<M, R: MetricsRecorder + Clone>`
+      - Generic `UnboundedMailbox<M, R: MetricsRecorder + Clone>`
+      - Dependency injection pattern (no default type parameters)
+      - YAGNI-compliant: metrics in `mailbox/metrics/` not top-level
     - YAGNI refactoring: Removed DropOldest/DropNewest (tokio mpsc limitation)
-    - 105 tests passing (13 bounded + 13 unbounded + 11 backpressure + 10 trait tests), zero clippy warnings
+    - 110 tests passing (56 mailbox + 10 metrics + 30 message + 14 actor), zero clippy warnings
     - ADR-RT-003: Backpressure Strategy Simplification decision
     - KNOWLEDGE-RT-007: Comprehensive backpressure strategy guide
+    - KNOWLEDGE-RT-008: Complete metrics refactoring plan (600+ lines)
 
 #### ⏳ Priority 2 - Message Broker (2 weeks)
 - **RT-TASK-004**: Message Broker Core

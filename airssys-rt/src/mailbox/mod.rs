@@ -9,12 +9,12 @@
 
 pub mod backpressure;
 pub mod bounded;
+pub mod metrics;
 pub mod traits;
 pub mod unbounded;
 
 pub use backpressure::BackpressureStrategy;
 pub use bounded::{BoundedMailbox, BoundedMailboxSender};
-pub use traits::{
-    MailboxCapacity, MailboxError, MailboxMetrics, MailboxReceiver, MailboxSender, TryRecvError,
-};
+pub use metrics::{AtomicMetrics, MetricsRecorder};
+pub use traits::{MailboxCapacity, MailboxError, MailboxReceiver, MailboxSender, TryRecvError};
 pub use unbounded::{UnboundedMailbox, UnboundedMailboxSender};

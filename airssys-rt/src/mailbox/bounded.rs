@@ -1,5 +1,4 @@
 // Layer 1: Standard library imports
-use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
 // Layer 2: Third-party crate imports
@@ -9,8 +8,9 @@ use tokio::sync::mpsc;
 
 // Layer 3: Internal module imports
 use super::backpressure::BackpressureStrategy;
+use super::metrics::{AtomicMetrics, MetricsRecorder};
 use super::traits::{
-    MailboxCapacity, MailboxError, MailboxMetrics, MailboxReceiver, MailboxSender, TryRecvError,
+    MailboxCapacity, MailboxError, MailboxReceiver, MailboxSender, TryRecvError,
 };
 use crate::message::{Message, MessageEnvelope};
 
@@ -20,10 +20,15 @@ use crate::message::{Message, MessageEnvelope};
 /// with a fixed maximum capacity. When the mailbox is full, the configured
 /// backpressure strategy determines how new messages are handled.
 ///
+/// # Type Parameters
+///
+/// * `M` - The message type implementing [`Message`]
+/// * `R` - The metrics recorder implementing [`MetricsRecorder`] (default: [`AtomicMetrics`])
+///
 /// # Example
 ///
 /// ```ignore
-/// use airssys_rt::mailbox::{BoundedMailbox, BackpressureStrategy};
+/// use airssys_rt::mailbox::{BoundedMailbox, BackpressureStrategy, AtomicMetrics};
 /// use airssys_rt::message::{Message, MessageEnvelope};
 ///
 /// #[derive(Debug, Clone)]
@@ -32,31 +37,31 @@ use crate::message::{Message, MessageEnvelope};
 ///     const MESSAGE_TYPE: &'static str = "my_message";
 /// }
 ///
-/// // Create bounded mailbox with capacity 100
-/// let (mailbox, sender) = BoundedMailbox::<MyMessage>::new(100);
+/// // Create bounded mailbox with capacity 100 and default metrics
+/// let (mailbox, sender) = BoundedMailbox::<MyMessage, AtomicMetrics>::new(100);
 /// ```
-pub struct BoundedMailbox<M: Message> {
+pub struct BoundedMailbox<M: Message, R: MetricsRecorder> {
     receiver: mpsc::Receiver<MessageEnvelope<M>>,
     capacity: usize,
-    metrics: Arc<MailboxMetrics>,
+    pub metrics: Arc<R>,
 }
 
 /// Sender for bounded mailbox with backpressure support.
 #[derive(Clone)]
-pub struct BoundedMailboxSender<M: Message> {
+pub struct BoundedMailboxSender<M: Message, R: MetricsRecorder> {
     sender: mpsc::Sender<MessageEnvelope<M>>,
     backpressure_strategy: Arc<BackpressureStrategy>,
     capacity: usize,
-    metrics: Arc<MailboxMetrics>,
+    pub metrics: Arc<R>,
 }
 
-impl<M: Message> BoundedMailbox<M> {
-    /// Create a new bounded mailbox with default backpressure strategy (Error).
+impl<M: Message, R: MetricsRecorder> BoundedMailbox<M, R> {
+    /// Create a new bounded mailbox with custom metrics recorder.
     ///
     /// # Example
     ///
     /// ```ignore
-    /// use airssys_rt::mailbox::BoundedMailbox;
+    /// use airssys_rt::mailbox::{BoundedMailbox, AtomicMetrics};
     /// use airssys_rt::message::Message;
     ///
     /// #[derive(Debug, Clone)]
@@ -65,34 +70,38 @@ impl<M: Message> BoundedMailbox<M> {
     ///     const MESSAGE_TYPE: &'static str = "my_msg";
     /// }
     ///
-    /// let (mailbox, sender) = BoundedMailbox::<MyMsg>::new(100);
+    /// let metrics = AtomicMetrics::new();
+    /// let (mailbox, sender) = BoundedMailbox::with_metrics(100, metrics);
     /// ```
-    pub fn new(capacity: usize) -> (Self, BoundedMailboxSender<M>) {
-        Self::with_backpressure(capacity, BackpressureStrategy::Error)
+    pub fn with_metrics(capacity: usize, metrics: R) -> (Self, BoundedMailboxSender<M, R>) {
+        Self::with_backpressure_and_metrics(capacity, BackpressureStrategy::Error, metrics)
     }
 
-    /// Create a bounded mailbox with custom backpressure strategy.
+    /// Create a bounded mailbox with custom backpressure strategy and metrics recorder.
     ///
     /// # Example
     ///
     /// ```ignore
-    /// use airssys_rt::mailbox::{BoundedMailbox, BackpressureStrategy};
+    /// use airssys_rt::mailbox::{BoundedMailbox, BackpressureStrategy, AtomicMetrics};
     /// # use airssys_rt::message::Message;
     /// # #[derive(Debug, Clone)]
     /// # struct MyMsg;
     /// # impl Message for MyMsg { const MESSAGE_TYPE: &'static str = "my_msg"; }
     ///
-    /// let (mailbox, sender) = BoundedMailbox::<MyMsg>::with_backpressure(
+    /// let metrics = AtomicMetrics::new();
+    /// let (mailbox, sender) = BoundedMailbox::with_backpressure_and_metrics(
     ///     100,
-    ///     BackpressureStrategy::DropOldest
+    ///     BackpressureStrategy::DropOldest,
+    ///     metrics
     /// );
     /// ```
-    pub fn with_backpressure(
+    pub fn with_backpressure_and_metrics(
         capacity: usize,
         strategy: BackpressureStrategy,
-    ) -> (Self, BoundedMailboxSender<M>) {
+        metrics: R,
+    ) -> (Self, BoundedMailboxSender<M, R>) {
         let (sender, receiver) = mpsc::channel(capacity);
-        let metrics = Arc::new(MailboxMetrics::default());
+        let metrics = Arc::new(metrics);
 
         let mailbox = Self {
             receiver,
@@ -111,8 +120,54 @@ impl<M: Message> BoundedMailbox<M> {
     }
 }
 
+// Convenience constructors for AtomicMetrics (common case)
+impl<M: Message> BoundedMailbox<M, AtomicMetrics> {
+    /// Create a new bounded mailbox with default backpressure strategy and AtomicMetrics.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use airssys_rt::mailbox::BoundedMailbox;
+    /// use airssys_rt::message::Message;
+    ///
+    /// #[derive(Debug, Clone)]
+    /// struct MyMsg;
+    /// impl Message for MyMsg {
+    ///     const MESSAGE_TYPE: &'static str = "my_msg";
+    /// }
+    ///
+    /// let (mailbox, sender) = BoundedMailbox::new(100);
+    /// ```
+    pub fn new(capacity: usize) -> (Self, BoundedMailboxSender<M, AtomicMetrics>) {
+        Self::with_metrics(capacity, AtomicMetrics::new())
+    }
+
+    /// Create a bounded mailbox with custom backpressure strategy and AtomicMetrics.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use airssys_rt::mailbox::{BoundedMailbox, BackpressureStrategy};
+    /// # use airssys_rt::message::Message;
+    /// # #[derive(Debug, Clone)]
+    /// # struct MyMsg;
+    /// # impl Message for MyMsg { const MESSAGE_TYPE: &'static str = "my_msg"; }
+    ///
+    /// let (mailbox, sender) = BoundedMailbox::with_backpressure(
+    ///     100,
+    ///     BackpressureStrategy::DropOldest
+    /// );
+    /// ```
+    pub fn with_backpressure(
+        capacity: usize,
+        strategy: BackpressureStrategy,
+    ) -> (Self, BoundedMailboxSender<M, AtomicMetrics>) {
+        Self::with_backpressure_and_metrics(capacity, strategy, AtomicMetrics::new())
+    }
+}
+
 #[async_trait]
-impl<M: Message> MailboxReceiver<M> for BoundedMailbox<M> {
+impl<M: Message, R: MetricsRecorder> MailboxReceiver<M> for BoundedMailbox<M, R> {
     type Error = MailboxError;
 
     async fn recv(&mut self) -> Option<MessageEnvelope<M>> {
@@ -126,18 +181,14 @@ impl<M: Message> MailboxReceiver<M> for BoundedMailbox<M> {
 
                     if elapsed > ttl {
                         // Message expired, skip it
-                        self.metrics
-                            .messages_dropped
-                            .fetch_add(1, Ordering::Relaxed);
+                        self.metrics.record_dropped();
                         return self.recv().await; // Try next message
                     }
                 }
 
                 // Update metrics
-                self.metrics
-                    .messages_received
-                    .fetch_add(1, Ordering::Relaxed);
-                *self.metrics.last_message_at.write() = Some(Utc::now()); // §3.2
+                self.metrics.record_received();
+                self.metrics.update_last_message(Utc::now()); // §3.2
 
                 Some(envelope)
             }
@@ -155,17 +206,13 @@ impl<M: Message> MailboxReceiver<M> for BoundedMailbox<M> {
                         .num_seconds() as u64;
 
                     if elapsed > ttl {
-                        self.metrics
-                            .messages_dropped
-                            .fetch_add(1, Ordering::Relaxed);
+                        self.metrics.record_dropped();
                         return self.try_recv(); // Try next
                     }
                 }
 
-                self.metrics
-                    .messages_received
-                    .fetch_add(1, Ordering::Relaxed);
-                *self.metrics.last_message_at.write() = Some(Utc::now());
+                self.metrics.record_received();
+                self.metrics.update_last_message(Utc::now());
                 Ok(envelope)
             }
             Err(mpsc::error::TryRecvError::Empty) => Err(TryRecvError::Empty),
@@ -178,23 +225,17 @@ impl<M: Message> MailboxReceiver<M> for BoundedMailbox<M> {
     }
 
     fn len(&self) -> usize {
-        // Approximation: sent - received
-        let sent = self.metrics.messages_sent.load(Ordering::Relaxed);
-        let received = self.metrics.messages_received.load(Ordering::Relaxed);
-        sent.saturating_sub(received) as usize
+        // Use MetricsRecorder's in_flight() method
+        self.metrics.in_flight() as usize
     }
 
     fn is_empty(&self) -> bool {
         self.len() == 0
     }
-
-    fn metrics(&self) -> &MailboxMetrics {
-        &self.metrics
-    }
 }
 
 #[async_trait]
-impl<M: Message> MailboxSender<M> for BoundedMailboxSender<M> {
+impl<M: Message, R: MetricsRecorder + Clone> MailboxSender<M> for BoundedMailboxSender<M, R> {
     type Error = MailboxError;
 
     async fn send(&self, envelope: MessageEnvelope<M>) -> Result<(), Self::Error> {
@@ -203,7 +244,7 @@ impl<M: Message> MailboxSender<M> for BoundedMailboxSender<M> {
             .apply(&self.sender, envelope)
             .await?;
 
-        self.metrics.messages_sent.fetch_add(1, Ordering::Relaxed);
+        self.metrics.record_sent();
         Ok(())
     }
 
@@ -215,7 +256,7 @@ impl<M: Message> MailboxSender<M> for BoundedMailboxSender<M> {
             mpsc::error::TrySendError::Closed(_) => MailboxError::Closed,
         })?;
 
-        self.metrics.messages_sent.fetch_add(1, Ordering::Relaxed);
+        self.metrics.record_sent();
         Ok(())
     }
 }
@@ -237,7 +278,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_bounded_mailbox_creation() {
-        let (mailbox, _sender) = BoundedMailbox::<TestMessage>::new(10);
+        let (mailbox, _sender): (BoundedMailbox<TestMessage, _>, _) = BoundedMailbox::new(10);
         assert_eq!(mailbox.capacity(), MailboxCapacity::Bounded(10));
         assert_eq!(mailbox.len(), 0);
         assert!(mailbox.is_empty());
@@ -245,7 +286,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_send_receive() {
-        let (mut mailbox, sender) = BoundedMailbox::<TestMessage>::new(10);
+        let (mut mailbox, sender) = BoundedMailbox::new(10);
 
         let msg = TestMessage {
             content: "test".to_string(),
@@ -260,7 +301,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_bounded_capacity_enforcement() {
-        let (mut _mailbox, sender) = BoundedMailbox::<TestMessage>::new(2);
+        let (mut _mailbox, sender) = BoundedMailbox::new(2);
 
         // Fill the mailbox
         sender
@@ -283,32 +324,29 @@ mod tests {
 
     #[tokio::test]
     async fn test_try_recv_empty() {
-        let (mut mailbox, _sender) = BoundedMailbox::<TestMessage>::new(10);
+        let (mut mailbox, _sender): (BoundedMailbox<TestMessage, _>, _) = BoundedMailbox::new(10);
         let result = mailbox.try_recv();
         assert!(matches!(result, Err(TryRecvError::Empty)));
     }
 
     #[tokio::test]
     async fn test_metrics_tracking() {
-        let (mut mailbox, sender) = BoundedMailbox::<TestMessage>::new(10);
+        let (mut mailbox, sender) = BoundedMailbox::new(10);
 
         let envelope = MessageEnvelope::new(TestMessage {
             content: "test".to_string(),
         });
 
         sender.send(envelope).await.unwrap();
-        assert_eq!(mailbox.metrics().messages_sent.load(Ordering::Relaxed), 1);
+        assert_eq!(mailbox.metrics.sent_count(), 1);
 
         let _received = mailbox.recv().await.unwrap();
-        assert_eq!(
-            mailbox.metrics().messages_received.load(Ordering::Relaxed),
-            1
-        );
+        assert_eq!(mailbox.metrics.received_count(), 1);
     }
 
     #[tokio::test]
     async fn test_multiple_senders() {
-        let (mut mailbox, sender) = BoundedMailbox::<TestMessage>::new(10);
+        let (mut mailbox, sender) = BoundedMailbox::new(10);
 
         let sender2 = sender.clone();
 
@@ -334,7 +372,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_closed_mailbox() {
-        let (_mailbox, sender) = BoundedMailbox::<TestMessage>::new(10);
+        let (_mailbox, sender) = BoundedMailbox::new(10);
 
         // Drop the receiver
         drop(_mailbox);
@@ -350,14 +388,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_with_backpressure_strategy() {
-        let (mailbox, _sender) =
-            BoundedMailbox::<TestMessage>::with_backpressure(10, BackpressureStrategy::Drop);
+        let (mailbox, _sender): (BoundedMailbox<TestMessage, _>, _) =
+            BoundedMailbox::with_backpressure(10, BackpressureStrategy::Drop);
         assert_eq!(mailbox.capacity(), MailboxCapacity::Bounded(10));
     }
 
     #[tokio::test]
     async fn test_len_approximation() {
-        let (mut mailbox, sender) = BoundedMailbox::<TestMessage>::new(10);
+        let (mut mailbox, sender) = BoundedMailbox::new(10);
 
         sender
             .send(MessageEnvelope::new(TestMessage {
@@ -381,7 +419,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_ttl_expiration() {
-        let (mut mailbox, sender) = BoundedMailbox::<TestMessage>::new(10);
+        let (mut mailbox, sender) = BoundedMailbox::new(10);
 
         let msg = TestMessage {
             content: "expired".to_string(),
@@ -406,15 +444,12 @@ mod tests {
         assert_eq!(received.payload.content, "valid");
 
         // Check that one message was dropped
-        assert_eq!(
-            mailbox.metrics().messages_dropped.load(Ordering::Relaxed),
-            1
-        );
+        assert_eq!(mailbox.metrics.dropped_count(), 1);
     }
 
     #[tokio::test]
     async fn test_priority_message() {
-        let (mut mailbox, sender) = BoundedMailbox::<TestMessage>::new(10);
+        let (mut mailbox, sender) = BoundedMailbox::new(10);
 
         let msg = TestMessage {
             content: "high priority".to_string(),
