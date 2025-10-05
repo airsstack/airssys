@@ -29,6 +29,12 @@ thiserror = { workspace = true }
 # Async trait support
 async-trait = { workspace = true }
 
+# Concurrent lock-free data structures
+dashmap = { workspace = true }
+
+# Random number generation for pool strategies
+rand = { workspace = true }
+
 [dev-dependencies]
 tokio-test = { workspace = true }
 

@@ -36,7 +36,9 @@
 //! ```
 
 pub mod error;
+pub mod registry;
 pub mod traits;
 
 pub use error::BrokerError;
+pub use registry::{ActorRegistry, PoolStrategy};
 pub use traits::MessageBroker;

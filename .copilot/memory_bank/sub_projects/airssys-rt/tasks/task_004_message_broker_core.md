@@ -45,7 +45,7 @@ This provides the core messaging infrastructure that actors use for communicatio
 
 ## Progress Tracking
 
-**Overall Status:** in_progress - 25%
+**Overall Status:** in_progress - 50%
 
 ### Subtasks
 | ID | Description | Status | Updated | Notes |
@@ -53,16 +53,34 @@ This provides the core messaging infrastructure that actors use for communicatio
 | 4.1 | MessageBroker trait definition | complete | 2025-10-05 | Generic broker interface - 239 lines |
 | 4.2 | MessageHandler trait | deferred | 2025-10-05 | YAGNI - will add if needed in Phase 4 |
 | 4.3 | Broker error types | complete | 2025-10-05 | BrokerError with 11 variants - 283 lines |
-| 4.4 | ActorRegistry implementation | not_started | 2025-10-05 | Address resolution system - NEXT |
-| 4.5 | Actor pool management | not_started | 2025-10-05 | Load balancing and routing |
-| 4.6 | InMemoryMessageBroker core | not_started | 2025-10-05 | Default broker implementation |
+| 4.4 | ActorRegistry implementation | complete | 2025-10-05 | Lock-free registry - 695 lines, 14 tests |
+| 4.5 | Actor pool management | complete | 2025-10-05 | RoundRobin/Random strategies integrated |
+| 4.6 | InMemoryMessageBroker core | not_started | 2025-10-05 | Default broker implementation - NEXT |
 | 4.7 | Request-reply pattern | not_started | 2025-10-05 | Message ID tracking and timeout |
 | 4.8 | Message delivery system | not_started | 2025-10-05 | Reliable delivery with retries |
 | 4.9 | Metrics collection | deferred | 2025-10-05 | YAGNI - deferred to RT-TASK-008 |
-| 4.10 | Unit test coverage | in_progress | 2025-10-05 | 17 tests complete (error + traits) |
+| 4.10 | Unit test coverage | in_progress | 2025-10-05 | 31 tests complete (14 error + 3 trait + 14 registry) |
 
 ## Progress Log
-### 2025-10-05
+### 2025-10-05 (Phase 2)
+- **PHASE 2 COMPLETE**: Actor Registry with Lock-Free Routing
+- Created `src/broker/registry.rs` (695 lines) - ActorRegistry<M, S>, 14 tests
+- Implemented PoolStrategy enum (RoundRobin, Random)
+- Lock-free concurrent routing table using DashMap
+- Pre-computed routing keys for O(1) address resolution
+- Actor pool management with load balancing strategies
+- Generic over Message and MailboxSender with PhantomData
+- Methods: register, unregister, resolve, resolve_by_routing_key, get_pool_member
+- Helper methods: actor_count, pool_count, pool_size, compute_routing_key
+- Comprehensive unit tests: registration, resolution, pools, concurrent access, cloning
+- Added dependencies: dashmap 6.1.0, rand 0.8 (workspace + airssys-rt)
+- Updated module exports: ActorRegistry, PoolStrategy in lib.rs
+- 31/31 broker tests passing (17 Phase 1 + 14 Phase 2), 143 total tests
+- Zero compilation warnings, zero clippy warnings (library code)
+- Full workspace standards compliance (§2.1, §4.3, §6.2, §6.3)
+- Ready for Phase 3: InMemoryMessageBroker Implementation
+
+### 2025-10-05 (Phase 1)
 - **PHASE 1 COMPLETE**: Broker Error Types & Traits Foundation
 - Created `src/broker/mod.rs` (42 lines) - Module declarations
 - Created `src/broker/error.rs` (283 lines) - BrokerError with 11 variants, 14 tests
@@ -95,13 +113,13 @@ This provides the core messaging infrastructure that actors use for communicatio
 - [x] Generic MessageBroker<M> trait implemented
 - [x] ~~MessageHandler<M> trait implemented~~ (DEFERRED - YAGNI)
 - [x] Comprehensive broker error types
-- [ ] ActorRegistry with address resolution
-- [ ] Actor pool management with load balancing
+- [x] ActorRegistry with address resolution
+- [x] Actor pool management with load balancing
 - [ ] InMemoryMessageBroker<M> implementation
 - [ ] Request-reply pattern with timeout
 - [ ] Message delivery with retry logic
 - [ ] ~~Metrics collection system~~ (DEFERRED to RT-TASK-008 - YAGNI)
-- [x] All unit tests passing with >95% coverage (Phase 1: 100%)
+- [x] All unit tests passing with >95% coverage (Phase 1-2: 100%)
 - [x] Clean compilation with zero warnings
 - [x] Proper module exports and public API
 - [x] Documentation with usage examples

@@ -58,6 +58,7 @@ bytes = { version = "1.5" }
 tokio-util = { version = "0.7", features = ["codec"] }
 tracing = { version = "0.1" }
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
+rand = { version = "0.8", features = ["small_rng"] }
 
 # Async trait support
 async-trait = { version = "0.1.88" }

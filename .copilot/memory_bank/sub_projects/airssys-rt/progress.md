@@ -2,18 +2,20 @@
 
 ## Current Status
 **Phase:** Priority 2 - Message Broker Implementation (IN PROGRESS)  
-**Overall Progress:** ~35% (Foundation Complete + Broker Phase 1 Complete)  
+**Overall Progress:** ~40% (Foundation Complete + Broker Phase 1-2 Complete)  
 **Last Updated:** 2025-10-05
 
 **Recent Changes** (2025-10-05):
-- **RT-TASK-004 PHASE 1 COMPLETE**: Broker Error Types & Traits Foundation
-- Created comprehensive BrokerError enum with 11 error variants
-- Implemented generic MessageBroker<M: Message> trait with zero trait objects
-- Complete module structure following workspace standards (§4.3)
-- 17 new tests passing (14 error tests + 3 trait bound tests)
-- 127 total tests passing (110 foundation + 17 broker)
+- **RT-TASK-004 PHASE 2 COMPLETE**: Actor Registry with Lock-Free Routing
+- Implemented ActorRegistry<M, S> with DashMap-based concurrent routing table
+- Created PoolStrategy enum with RoundRobin and Random load balancing
+- Pre-computed routing keys for O(1) address resolution performance
+- Actor pool management with configurable routing strategies
+- 14 new tests passing (registration, resolution, pools, concurrency)
+- 143 total tests passing (110 foundation + 31 broker)
+- Added dependencies: dashmap 6.1.0, rand 0.8
 - Zero compilation errors, zero clippy warnings
-- Ready for Phase 2: Actor Registry Implementation
+- Ready for Phase 3: InMemoryMessageBroker Implementation
 
 ## What Works
 ### ✅ Completed Components - MAJOR MILESTONES ACHIEVED
@@ -138,15 +140,15 @@
     - KNOWLEDGE-RT-008: Complete metrics refactoring plan (600+ lines)
 
 #### ⏳ Priority 2 - Message Broker (2 weeks) - IN PROGRESS
-- **RT-TASK-004**: Message Broker Core - **PHASE 1 COMPLETE** ✅
+- **RT-TASK-004**: Message Broker Core - **PHASE 1-2 COMPLETE** ✅
   - `src/broker/mod.rs` - Module declarations ✅ (42 lines)
   - `src/broker/error.rs` - BrokerError with 11 variants ✅ (283 lines, 14 tests)
   - `src/broker/traits.rs` - Generic MessageBroker<M> trait ✅ (239 lines, 3 tests)
-  - `src/broker/registry.rs` - Actor registry with addressing ⏳ (NEXT - Phase 2)
-  - `src/broker/in_memory.rs` - InMemoryMessageBroker implementation ⏳ (Phase 3)
-  - **Status**: Phase 1 complete (Oct 5, 2025) - 25% done
-  - **Progress**: 17/17 tests passing, zero warnings, zero clippy errors
-  - **Estimated Total**: 7-8 days | **Completed**: ~2 days
+  - `src/broker/registry.rs` - ActorRegistry with lock-free routing ✅ (695 lines, 14 tests)
+  - `src/broker/in_memory.rs` - InMemoryMessageBroker implementation ⏳ (NEXT - Phase 3)
+  - **Status**: Phase 1-2 complete (Oct 5, 2025) - 50% done
+  - **Progress**: 31/31 broker tests passing, 143 total tests, zero warnings
+  - **Estimated Total**: 7-8 days | **Completed**: ~4 days
 
 - **RT-TASK-005**: Actor Addressing
   - `src/address/types.rs` - ActorAddress and PoolStrategy
