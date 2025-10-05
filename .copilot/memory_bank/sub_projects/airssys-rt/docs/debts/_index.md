@@ -1,18 +1,17 @@
 # airssys-rt Technical Debt Index
 
 **Sub-Project:** airssys-rt  
-**Last Updated:** 2025-09-27  
-**Total Debt Items:** 0  
-**Active Debt Items:** 0  
+**Last Updated:** 2025-10-05  
+**Total Debt Items:** 1  
+**Active Debt Items:** 1  
 
-## Anticipated Debt Categories
+## Debt Statistics
 
-### Expected DEBT-ARCH  
-- Actor state management simplifications during initial implementation
-- Message routing optimizations deferred for basic functionality
-- Supervisor tree complexity reductions for MVP
-
-### Expected DEBT-PERF
+- **Total Debts**: 1
+- **High Priority**: 1 (DEBT-RT-004)
+- **Medium Priority**: 0
+- **Low Priority**: 0
+- **Resolved**: 0
 ## Pending Debts
 
 ### High Priority
