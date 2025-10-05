@@ -2,13 +2,15 @@
 
 ## Current Status
 **Phase:** Foundation Implementation In Progress  
-**Overall Progress:** 55%  
-**Last Updated:** 2025-10-04
+**Overall Progress:** 60%  
+**Last Updated:** 2025-10-05
 
-**Recent Changes** (2025-10-04):
-- RT-TASK-008 scope revised: removed metrics collection and monitoring
-- Estimated duration reduced from 5-7 days to 3-5 days
-- Total remaining effort reduced by 2 days (61 days → 59 days estimated)
+**Recent Changes** (2025-10-05):
+- RT-TASK-003 100% complete: Mailbox System with all 3 phases done
+- Backpressure strategies refactored: 4→3 variants (ADR-RT-003)
+- KNOWLEDGE-RT-007 created: Comprehensive backpressure strategy guide
+- 92 tests passing, zero clippy warnings
+- Foundation phase (Priority 1) now 100% complete
 
 ## What Works
 ### ✅ Completed Components - MAJOR MILESTONES ACHIEVED
@@ -104,18 +106,20 @@
   - `examples/actor_lifecycle.rs` - Lifecycle demonstration ✅
   - **Actual Duration**: 1 day (completed Oct 4, 2025)
 
-- **RT-TASK-003**: Mailbox System
-  - `src/mailbox/traits.rs` - Generic mailbox traits
-  - `src/mailbox/bounded.rs` - BoundedMailbox implementation
-  - `src/mailbox/backpressure.rs` - Backpressure strategies
-  - **Estimated**: 3-4 days
-  - **Status**: COMPLETE (2025-10-05) - All phases done ✅
-  - **Progress**: 100% complete (3/3 phases done)
-  - **Notes**: 
-    - Phase 1: Trait definitions with MailboxReceiver/MailboxSender refactoring (YAGNI §6.1)
-    - Phase 2: BoundedMailbox with tokio mpsc channels, TTL expiration, metrics tracking
-    - Phase 3: Backpressure strategies (Block, DropOldest, DropNewest, Error) with apply() and for_priority()
-    - 13 new backpressure tests (93 total in airssys-rt), zero clippy warnings
+- **RT-TASK-003**: Mailbox System ✅ COMPLETE
+  - `src/mailbox/traits.rs` - Generic mailbox traits ✅
+  - `src/mailbox/bounded.rs` - BoundedMailbox implementation ✅
+  - `src/mailbox/backpressure.rs` - Backpressure strategies ✅
+  - **Actual Duration**: 2 days (completed Oct 5, 2025)
+  - **Status**: 100% complete (all 3 phases done)
+  - **Key Achievements**:
+    - Phase 1: MailboxReceiver<M>/MailboxSender<M> trait refactoring (YAGNI §6.1)
+    - Phase 2: BoundedMailbox with tokio mpsc, TTL expiration, metrics tracking
+    - Phase 3: Backpressure strategies (Block/Drop/Error) - simplified from 4 to 3 (ADR-RT-003)
+    - YAGNI refactoring: Removed DropOldest/DropNewest (tokio mpsc limitation)
+    - 92 tests passing (11 backpressure tests), zero clippy warnings
+    - ADR-RT-003: Backpressure Strategy Simplification decision
+    - KNOWLEDGE-RT-007: Comprehensive backpressure strategy guide
 
 #### ⏳ Priority 2 - Message Broker (2 weeks)
 - **RT-TASK-004**: Message Broker Core
