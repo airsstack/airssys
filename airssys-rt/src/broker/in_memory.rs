@@ -153,7 +153,7 @@ impl<M: Message, S: MailboxSender<M>> InMemoryMessageBroker<M, S> {
     where
         M: serde::Serialize,
     {
-        // Normal message routing
+        // Determine the target address (where this message is going)
         let target = envelope
             .reply_to
             .clone()
@@ -162,6 +162,24 @@ impl<M: Message, S: MailboxSender<M>> InMemoryMessageBroker<M, S> {
                 reason: "Missing recipient address".to_string(),
             })?;
 
+        // Check if this is a REPLY to a pending request
+        // A reply has a correlation_id AND its target matches a pending request
+        if let Some(correlation_id) = &envelope.correlation_id {
+            if let Some((_, tx)) = self.inner.pending_requests.remove(correlation_id) {
+                // This is a reply - serialize and send through oneshot channel
+                let serialized =
+                    serde_json::to_vec(&envelope).map_err(|e| BrokerError::RouteError {
+                        message_type: M::MESSAGE_TYPE,
+                        reason: format!("Failed to serialize reply: {e}"),
+                    })?;
+
+                // Send to waiting receiver (ignore errors if receiver dropped)
+                let _ = tx.send(serialized);
+                return Ok(());
+            }
+        }
+
+        // Normal message routing (request or regular message)
         // Resolve target actor
         let sender = self.inner.registry.resolve(&target)?;
 
@@ -195,10 +213,12 @@ impl<M: Message, S: MailboxSender<M>> InMemoryMessageBroker<M, S> {
 
         // Create oneshot channel for reply
         let (tx, rx) = oneshot::channel();
-        self.inner.pending_requests.insert(correlation_id, tx);
 
-        // Send request
+        // Send request FIRST (before inserting into pending_requests)
         self.send_impl(envelope).await?;
+
+        // NOW insert into pending_requests (so reply routing will find it)
+        self.inner.pending_requests.insert(correlation_id, tx);
 
         // Wait for reply with timeout
         match timeout(timeout_duration, rx).await {
@@ -423,6 +443,7 @@ mod tests {
         };
         let mut envelope = MessageEnvelope::new(request);
         envelope.reply_to = Some(address);
+        // NO correlation_id set - won't be recognized as pending request
 
         // Request with very short timeout (actor won't reply)
         let result: Result<Option<MessageEnvelope<TestResponse>>, _> =
@@ -435,6 +456,56 @@ mod tests {
             }
             other => {
                 panic!("Expected RequestTimeout, got: {:?}", other);
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_request_reply_success() {
+        let broker = TestBroker::new();
+        let (mut receiver, sender) = TestMailbox::new();
+        let address = ActorAddress::anonymous();
+
+        broker.register_actor(address.clone(), sender).unwrap();
+
+        let request = TestMessage {
+            data: "ping".to_string(),
+        };
+        let mut envelope = MessageEnvelope::new(request);
+        envelope.reply_to = Some(address.clone());
+
+        // Spawn task to simulate actor replying
+        let broker_clone = broker.clone();
+        tokio::spawn(async move {
+            // Small delay to ensure request is sent first
+            tokio::time::sleep(Duration::from_millis(10)).await;
+
+            // Actor receives request
+            if let Some(request_envelope) = receiver.recv().await {
+                let correlation_id = request_envelope.correlation_id.unwrap();
+
+                // Actor sends reply with same correlation_id
+                let response = TestMessage {
+                    data: "pong".to_string(),
+                };
+                let mut reply_envelope = MessageEnvelope::new(response);
+                reply_envelope.correlation_id = Some(correlation_id);
+                reply_envelope.reply_to = Some(address);
+
+                let _ = broker_clone.send(reply_envelope).await;
+            }
+        });
+
+        // Send request and wait for reply
+        let result: Result<Option<MessageEnvelope<TestMessage>>, _> =
+            broker.request(envelope, Duration::from_secs(1)).await;
+
+        match result {
+            Ok(Some(reply)) => {
+                assert_eq!(reply.payload.data, "pong");
+            }
+            other => {
+                panic!("Expected successful reply, got: {:?}", other);
             }
         }
     }
