@@ -5,18 +5,52 @@
 **Total ADRs:** 2  
 **Active ADRs:** 2  
 
-## Active Architecture Decision Records
+## Active ADRs
 
-### Core Architecture Decisions
-- **[ADR-RT-001](adr_rt_001_actor_model_strategy.md)**: Actor Model Implementation Strategy
-  - *Status*: Accepted | *Date*: 2025-10-02
-  - *Decision*: Zero-cost abstractions with generic constraints over trait objects
-  - *Impact*: Foundation for entire runtime performance and type safety
+### ADR-RT-001: Zero-Cost Abstractions and Generic Constraints
+**Status**: Accepted | **Date**: 2025-10-04  
+**File**: [adr_rt_001_zero_cost_abstractions.md](./adr_rt_001_zero_cost_abstractions.md)
 
-- **[ADR-RT-002](adr_rt_002_message_passing_architecture.md)**: Message Passing Architecture  
-  - *Status*: Accepted | *Date*: 2025-10-02
-  - *Decision*: Hybrid message passing with zero-copy local delivery and configurable guarantees
-  - *Impact*: Core communication mechanism design and performance characteristics
+Establishes zero-cost abstractions as the architectural foundation for airssys-rt through generic constraints and compile-time polymorphism instead of runtime trait objects.
+
+**Key Decisions**:
+- Use generic constraints (`T: Message`) over `dyn` trait objects
+- Compile-time type resolution for zero runtime overhead
+- Static dispatch for all message passing operations
+
+**Impact**: All message and actor types use generics, no `Box<dyn Trait>` patterns
+
+---
+
+### ADR-RT-002: Message Passing Architecture
+**Status**: Accepted | **Date**: 2025-10-04  
+**File**: [adr_rt_002_message_passing_architecture.md](./adr_rt_002_message_passing_architecture.md)
+
+Defines the message passing system architecture using type-safe envelopes and zero-cost generic constraints.
+
+**Key Decisions**:
+- Generic `MessageEnvelope<M: Message>` wrapper for all messages
+- Type-safe message routing with compile-time guarantees
+- Metadata support (priority, TTL, correlation, sender, reply-to)
+
+**Impact**: All actor communication uses strongly-typed message envelopes
+
+---
+
+### ADR-RT-003: Backpressure Strategy Simplification
+**Status**: Accepted | **Date**: 2025-10-05  
+**File**: [adr_rt_003_backpressure_strategy_simplification.md](./adr_rt_003_backpressure_strategy_simplification.md)
+
+Simplifies backpressure strategies from four to three by removing misleading `DropOldest` and `DropNewest` variants that had identical behavior due to tokio mpsc limitations.
+
+**Key Decisions**:
+- Simplified to `Block`, `Drop`, and `Error` strategies
+- Honest API that accurately reflects implementation capabilities
+- YAGNI-compliant design (§6.1)
+
+**Impact**: Clearer backpressure API, no false promises about drop-oldest semantics
+
+---
 
 ## Planned ADR Categories
 

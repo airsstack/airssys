@@ -351,7 +351,7 @@ mod tests {
     #[tokio::test]
     async fn test_with_backpressure_strategy() {
         let (mailbox, _sender) =
-            BoundedMailbox::<TestMessage>::with_backpressure(10, BackpressureStrategy::DropOldest);
+            BoundedMailbox::<TestMessage>::with_backpressure(10, BackpressureStrategy::Drop);
         assert_eq!(mailbox.capacity(), MailboxCapacity::Bounded(10));
     }
 

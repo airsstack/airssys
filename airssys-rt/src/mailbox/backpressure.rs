@@ -24,8 +24,7 @@ use crate::message::{Message, MessageEnvelope, MessagePriority};
 ///
 /// Different strategies are appropriate for different scenarios:
 /// - **Block**: Critical messages that must be delivered (may cause sender delays)
-/// - **DropOldest**: Time-sensitive data where newer is more relevant
-/// - **DropNewest**: Batch processing where older messages should complete first
+/// - **Drop**: Low priority messages where silent failure is acceptable
 /// - **Error**: Request/response patterns where sender needs immediate feedback
 ///
 /// # Example
@@ -46,17 +45,11 @@ pub enum BackpressureStrategy {
     /// sender delays if receiver is slow.
     Block,
 
-    /// Drop the oldest message in the queue to make room for new message.
+    /// Drop the incoming message when mailbox is full.
     ///
-    /// Use for time-sensitive data streams where newer data is more
-    /// relevant (e.g., sensor readings, real-time updates).
-    DropOldest,
-
-    /// Drop the incoming (newest) message.
-    ///
-    /// Use when processing order matters and older messages should
-    /// complete before newer ones (e.g., sequential batch processing).
-    DropNewest,
+    /// Use for low-priority messages or scenarios where silent message
+    /// dropping is acceptable (e.g., best-effort delivery, logging, metrics).
+    Drop,
 
     /// Return an error to the sender immediately.
     ///
@@ -75,8 +68,7 @@ impl fmt::Display for BackpressureStrategy {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Block => write!(f, "Block"),
-            Self::DropOldest => write!(f, "DropOldest"),
-            Self::DropNewest => write!(f, "DropNewest"),
+            Self::Drop => write!(f, "Drop"),
             Self::Error => write!(f, "Error"),
         }
     }
@@ -117,21 +109,7 @@ impl BackpressureStrategy {
                 Ok(())
             }
 
-            Self::DropOldest => {
-                // Try to send, if full drop newest (limitation of tokio mpsc)
-                // Note: mpsc::Sender doesn't support peeking/dropping from front,
-                // so we fall back to DropNewest behavior
-                match sender.try_send(envelope) {
-                    Ok(()) => Ok(()),
-                    Err(mpsc::error::TrySendError::Full(_)) => {
-                        // Silently drop the new message (mpsc limitation)
-                        Ok(())
-                    }
-                    Err(mpsc::error::TrySendError::Closed(_)) => Err(MailboxError::Closed),
-                }
-            }
-
-            Self::DropNewest => {
+            Self::Drop => {
                 // Drop incoming message if mailbox is full
                 match sender.try_send(envelope) {
                     Ok(()) => Ok(()),
@@ -160,9 +138,9 @@ impl BackpressureStrategy {
     /// # Strategy Mapping
     ///
     /// - Critical → Block (must be delivered)
-    /// - High → DropOldest (newer data more important)
+    /// - High → Block (important messages)
     /// - Normal → Error (sender should handle failure)
-    /// - Low → DropNewest (can be safely discarded)
+    /// - Low → Drop (can be safely discarded)
     ///
     /// # Example
     ///
@@ -174,14 +152,14 @@ impl BackpressureStrategy {
     /// assert_eq!(strategy, BackpressureStrategy::Block);
     ///
     /// let strategy = BackpressureStrategy::for_priority(MessagePriority::Low);
-    /// assert_eq!(strategy, BackpressureStrategy::DropNewest);
+    /// assert_eq!(strategy, BackpressureStrategy::Drop);
     /// ```
     pub fn for_priority(priority: MessagePriority) -> Self {
         match priority {
             MessagePriority::Critical => Self::Block,
-            MessagePriority::High => Self::DropOldest,
+            MessagePriority::High => Self::Block,
             MessagePriority::Normal => Self::Error,
-            MessagePriority::Low => Self::DropNewest,
+            MessagePriority::Low => Self::Drop,
         }
     }
 }
@@ -208,8 +186,7 @@ mod tests {
     #[test]
     fn test_backpressure_strategy_display() {
         assert_eq!(BackpressureStrategy::Block.to_string(), "Block");
-        assert_eq!(BackpressureStrategy::DropOldest.to_string(), "DropOldest");
-        assert_eq!(BackpressureStrategy::DropNewest.to_string(), "DropNewest");
+        assert_eq!(BackpressureStrategy::Drop.to_string(), "Drop");
         assert_eq!(BackpressureStrategy::Error.to_string(), "Error");
     }
 
@@ -222,7 +199,7 @@ mod tests {
     #[test]
     fn test_strategy_for_priority_high() {
         let strategy = BackpressureStrategy::for_priority(MessagePriority::High);
-        assert_eq!(strategy, BackpressureStrategy::DropOldest);
+        assert_eq!(strategy, BackpressureStrategy::Block);
     }
 
     #[test]
@@ -234,7 +211,7 @@ mod tests {
     #[test]
     fn test_strategy_for_priority_low() {
         let strategy = BackpressureStrategy::for_priority(MessagePriority::Low);
-        assert_eq!(strategy, BackpressureStrategy::DropNewest);
+        assert_eq!(strategy, BackpressureStrategy::Drop);
     }
 
     #[tokio::test]
@@ -337,7 +314,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_apply_drop_newest_strategy() {
+    async fn test_apply_drop_strategy() {
         let (sender, mut receiver) = mpsc::channel::<MessageEnvelope<TestMsg>>(1);
 
         // Fill the channel
@@ -347,8 +324,8 @@ mod tests {
             }))
             .unwrap();
 
-        // Try to send with DropNewest - should silently drop
-        BackpressureStrategy::DropNewest
+        // Try to send with Drop - should silently drop incoming message
+        BackpressureStrategy::Drop
             .apply(
                 &sender,
                 MessageEnvelope::new(TestMsg {
@@ -364,33 +341,6 @@ mod tests {
 
         // Channel should be empty now
         assert!(receiver.try_recv().is_err());
-    }
-
-    #[tokio::test]
-    async fn test_apply_drop_oldest_strategy() {
-        let (sender, mut receiver) = mpsc::channel::<MessageEnvelope<TestMsg>>(1);
-
-        // Fill the channel
-        sender
-            .try_send(MessageEnvelope::new(TestMsg {
-                content: "first".to_string(),
-            }))
-            .unwrap();
-
-        // Try to send with DropOldest - due to mpsc limitation, drops newest
-        BackpressureStrategy::DropOldest
-            .apply(
-                &sender,
-                MessageEnvelope::new(TestMsg {
-                    content: "second".to_string(),
-                }),
-            )
-            .await
-            .unwrap(); // Should return Ok
-
-        // First message should still be there (mpsc limitation)
-        let received = receiver.recv().await.unwrap();
-        assert_eq!(received.payload.content, "first");
     }
 
     #[tokio::test]
@@ -421,17 +371,7 @@ mod tests {
             .await;
         assert!(matches!(result, Err(MailboxError::Closed)));
 
-        let result = BackpressureStrategy::DropNewest
-            .apply(
-                &sender,
-                MessageEnvelope::new(TestMsg {
-                    content: "test".to_string(),
-                }),
-            )
-            .await;
-        assert!(matches!(result, Err(MailboxError::Closed)));
-
-        let result = BackpressureStrategy::DropOldest
+        let result = BackpressureStrategy::Drop
             .apply(
                 &sender,
                 MessageEnvelope::new(TestMsg {
@@ -450,7 +390,7 @@ mod tests {
 
     #[test]
     fn test_strategy_clone() {
-        let strategy = BackpressureStrategy::DropOldest;
+        let strategy = BackpressureStrategy::Drop;
         let cloned = strategy;
         assert_eq!(strategy, cloned);
     }
