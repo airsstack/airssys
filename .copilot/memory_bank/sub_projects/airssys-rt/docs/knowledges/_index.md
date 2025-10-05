@@ -2,8 +2,8 @@
 
 **Sub-Project:** airssys-rt  
 **Last Updated:** 2025-10-05  
-**Total Knowledge Docs:** 6  
-**Active Knowledge Docs:** 6  
+**Total Knowledge Docs:** 7  
+**Active Knowledge Docs:** 7  
 
 ## Active Knowledge Documentation
 
@@ -33,6 +33,10 @@
 - **[KNOWLEDGE-RT-006](knowledge_rt_006_mailbox_system_implementation_guide.md)**: Mailbox System Implementation Guide
   - *Status*: active | *Created*: 2025-10-05
   - *Summary*: Complete RT-TASK-003 implementation guide for generic Mailbox trait, bounded/unbounded mailboxes, and backpressure strategies
+
+- **[KNOWLEDGE-RT-007](knowledge_rt_007_backpressure_strategy_guide.md)**: Backpressure Strategy Behavior and Selection Guide
+  - *Status*: active | *Created*: 2025-10-05
+  - *Summary*: Comprehensive explanation of Block/Drop/Error backpressure strategies, behavioral differences, selection criteria, real-world examples, and performance characteristics
 
 ## Planned Knowledge Documentation
 
