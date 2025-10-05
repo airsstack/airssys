@@ -13,7 +13,21 @@
 - Supervisor tree complexity reductions for MVP
 
 ### Expected DEBT-PERF
-- Message serialization optimizations deferred
+## Pending Debts
+
+### High Priority
+
+- **DEBT-RT-004**: Request-Reply Serialization Performance
+  - **Component**: Message Broker (InMemoryMessageBroker)
+  - **Issue**: Uses JSON serialization for in-process request-reply (2-10μs overhead)
+  - **Solution**: TypedBox pattern for zero-copy type erasure (~100ns overhead)
+  - **Impact**: ~100x performance improvement for request-reply pattern
+  - **Target**: RT-TASK-010 (Performance Optimization) or Q1 2026
+  - **File**: `debt_rt_004_request_reply_serialization.md`
+
+### Medium Priority
+
+- Message serialization strategy selection for cross-boundary communication
 - Memory pooling implementations postponed
 - Actor scheduling optimizations delayed
 
