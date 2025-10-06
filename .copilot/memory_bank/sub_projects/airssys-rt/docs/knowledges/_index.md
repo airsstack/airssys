@@ -2,8 +2,8 @@
 
 **Sub-Project:** airssys-rt  
 **Last Updated:** 2025-10-06  
-**Total Knowledge Docs:** 11  
-**Active Knowledge Docs:** 11  
+**Total Knowledge Docs:** 12  
+**Active Knowledge Docs:** 12  
 
 ## Active Knowledge Documentation
 
@@ -54,6 +54,10 @@
   - *Status*: active | *Created*: 2025-10-06
   - *Summary*: Complete RT-TASK-006 implementation guide for ActorSystem framework with SystemConfig, SystemError, ActorSystem<B>, ActorSpawnBuilder, phase-by-phase implementation plan, integration examples, and workspace standards compliance
 
+- **[KNOWLEDGE-RT-012](knowledge_rt_012_pubsub_messagebroker_pattern.md)**: Pub-Sub MessageBroker Pattern ⚠️ **CRITICAL**
+  - *Status*: active | *Created*: 2025-10-06
+  - *Summary*: **CRITICAL ARCHITECTURE**: True pub-sub message bus pattern for MessageBroker with publish/subscribe operations, ActorSystem message router, multiple subscribers support, extensibility hooks, distributed broker implementations, and complete integration guide. **REQUIRED READING BEFORE RT-TASK-004 Phase 0 and RT-TASK-006 Phase 2**
+
 ## Planned Knowledge Documentation
 
 ### Actor Model Category (Remaining)
@@ -83,9 +87,16 @@
 - **RT-TASK-001**: Message System Implementation - implements KNOWLEDGE-RT-001 and KNOWLEDGE-RT-004 patterns
 - **RT-TASK-002**: Actor System Core - implements KNOWLEDGE-RT-001 and KNOWLEDGE-RT-005 patterns
 - **RT-TASK-003**: Mailbox System - implements KNOWLEDGE-RT-001, KNOWLEDGE-RT-006, KNOWLEDGE-RT-007, and KNOWLEDGE-RT-008 patterns
-- **RT-TASK-004**: Message Broker Core - implements KNOWLEDGE-RT-002, KNOWLEDGE-RT-009, and KNOWLEDGE-RT-010 patterns
-- **RT-TASK-006**: Actor System Framework - implements KNOWLEDGE-RT-011 patterns
+- **RT-TASK-004**: Message Broker Core - implements KNOWLEDGE-RT-002, KNOWLEDGE-RT-009, KNOWLEDGE-RT-010, and **KNOWLEDGE-RT-012** (pub-sub) patterns
+- **RT-TASK-006**: Actor System Framework - implements KNOWLEDGE-RT-011 and **KNOWLEDGE-RT-012** (router) patterns
 - **RT-TASK-007**: Supervisor Framework - implements KNOWLEDGE-RT-003 patterns
+
+### ⚠️ Critical Architecture Changes
+- **KNOWLEDGE-RT-012**: Pub-Sub MessageBroker Pattern
+  - **Impact**: RT-TASK-004 (trait changes) and RT-TASK-006 (integration changes)
+  - **ADR**: ADR-006 - MessageBroker Pub-Sub Architecture
+  - **Debt**: DEBT-RT-005 - Actor System Broker Integration Mismatch
+  - **Priority**: CRITICAL - Must implement before RT-TASK-006 Phase 2
 
 ---
 **Note:** Additional knowledge docs will be created during implementation phases to capture emerging patterns and optimizations.

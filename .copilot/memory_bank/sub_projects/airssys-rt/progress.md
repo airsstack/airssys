@@ -1,18 +1,39 @@
 # airssys-rt Progress
 
 ## Current Status
-**Phase:** Priority 3 - Actor System Framework (IN PROGRESS)  
+**Phase:** Priority 2 - Message Broker Refactoring (SWITCHED FOCUS)  
 **Overall Progress:** ~50% (Foundation Complete + RT-TASK-006 Phase 1 Complete)  
 **Last Updated:** 2025-10-06
 
+**🔄 FOCUS CHANGE: RT-TASK-004 Pub-Sub Refactoring** (2025-10-06):
+- **Switched from**: RT-TASK-006 Phase 2 (ActorSystem implementation)
+- **Switched to**: RT-TASK-004 refactoring (pub-sub architecture)
+- **Reason**: Architecture breakthrough requires broker refactoring first
+- **New Tasks Created**:
+  - RT-TASK-004-REFACTOR: MessageBroker trait pub-sub API (2-3 hours)
+  - RT-TASK-004-PUBSUB: InMemoryMessageBroker pub-sub implementation (3-4 hours)
+- **Total Refactoring Time**: 5-7 hours
+- **After Refactoring**: Resume RT-TASK-006 Phase 2
+
+**CRITICAL ARCHITECTURE BREAKTHROUGH** (2025-10-06):
+- **Discovery**: MessageBroker must be a true pub-sub message bus, not direct routing
+- **Impact**: RT-TASK-004 and RT-TASK-006 architecture refinement required
+- **Documentation**: 
+  - Created ADR-006: MessageBroker Pub-Sub Architecture
+  - Created KNOWLEDGE-RT-012: Pub-Sub MessageBroker Pattern (600+ lines)
+  - Updated DEBT-RT-005 with complete pub-sub architecture analysis
+  - Created RT-TASK-004-REFACTOR and RT-TASK-004-PUBSUB task files
+- **Next Action**: Start RT-TASK-004-REFACTOR (trait definition)
+
 **Recent Changes** (2025-10-06):
-- **RT-TASK-006 PHASE 1 COMPLETE**: System Configuration & Error Types
+- **RT-TASK-006 PHASE 1 COMPLETE**: System Configuration & Error Types ✅
 - Implemented SystemError enum with 8 variants and categorization helpers
 - Implemented SystemConfig with builder pattern and validation
 - Added public constants for default configuration values
 - 28 comprehensive tests passing (13 errors + 15 config)
 - Zero compilation errors, zero clippy warnings
-- Ready for Phase 2: Actor System Core implementation
+- **RT-TASK-006 PAUSED**: Phase 2 pending broker refactoring
+- **NEW FOCUS**: RT-TASK-004 pub-sub refactoring (2 new tasks created)
 
 ## What Works
 ### ✅ Completed Components - MAJOR MILESTONES ACHIEVED
@@ -136,17 +157,48 @@
     - KNOWLEDGE-RT-007: Comprehensive backpressure strategy guide
     - KNOWLEDGE-RT-008: Complete metrics refactoring plan (600+ lines)
 
-#### ⏳ Priority 2 - Message Broker (2 weeks) - IN PROGRESS
-- **RT-TASK-004**: Message Broker Core - **PHASE 1-3 COMPLETE** ✅
-  - `src/broker/mod.rs` - Module declarations ✅ (50 lines)
-  - `src/broker/error.rs` - BrokerError with 11 variants ✅ (283 lines, 14 tests)
-  - `src/broker/traits.rs` - Generic MessageBroker<M> trait ✅ (241 lines, 3 tests)
-  - `src/broker/registry.rs` - ActorRegistry with lock-free routing ✅ (695 lines, 14 tests)
-  - `src/broker/in_memory.rs` - InMemoryMessageBroker implementation ✅ (462 lines, 9 tests)
-  - **Status**: Phase 1-3 complete (Oct 5, 2025) - 75% done
-  - **Progress**: 40/40 broker tests passing, 152 total tests, zero warnings
-  - **Estimated Total**: 7-8 days | **Completed**: ~6 days
-  - **Next**: Phase 4 - ActorContext Integration (RT-TASK-006 dependency)
+#### ⏳ Priority 2 - Message Broker (2 weeks) - **REFACTORING IN PROGRESS** 🔄
+- **RT-TASK-004**: Message Broker Core - **REFACTORING FOR PUB-SUB** ⚠️
+  - **Phase 1-3 COMPLETE** ✅ (Oct 5, 2025):
+    - `src/broker/mod.rs` - Module declarations ✅ (50 lines)
+    - `src/broker/error.rs` - BrokerError with 11 variants ✅ (283 lines, 14 tests)
+    - `src/broker/traits.rs` - Generic MessageBroker<M> trait ✅ (241 lines, 3 tests)
+    - `src/broker/registry.rs` - ActorRegistry with lock-free routing ✅ (695 lines, 14 tests)
+    - `src/broker/in_memory.rs` - InMemoryMessageBroker implementation ✅ (462 lines, 9 tests)
+    - **Progress**: 40/40 broker tests passing, 152 total tests, zero warnings
+  
+  - **NEW: RT-TASK-004-REFACTOR** - Trait Pub-Sub API (Oct 6, 2025) 🆕
+    - **Status**: Not Started
+    - **Scope**: Update MessageBroker trait with publish/subscribe methods
+    - **Files**: `src/broker/traits.rs`, `src/broker/mod.rs`
+    - **Changes**: Add MessageStream<M>, publish(), subscribe(), publish_request()
+    - **Estimated**: 2-3 hours
+    - **Priority**: CRITICAL - Must complete before RT-TASK-004-PUBSUB
+    - **Task File**: `tasks/rt_task_004_refactor_pubsub_trait.md`
+  
+  - **NEW: RT-TASK-004-PUBSUB** - Pub-Sub Implementation (Oct 6, 2025) 🆕
+    - **Status**: Not Started (blocked by RT-TASK-004-REFACTOR)
+    - **Scope**: Implement pub-sub in InMemoryMessageBroker
+    - **Files**: `src/broker/in_memory.rs`
+    - **Changes**: Subscriber management, broadcast publishing, extensibility hooks
+    - **Estimated**: 3-4 hours
+    - **Priority**: CRITICAL - Blocks RT-TASK-006 Phase 2
+    - **Task File**: `tasks/rt_task_004_pubsub_implementation.md`
+  
+  - **Architecture Update Required** (Oct 6, 2025):
+    - **Issue**: Current trait has direct routing semantics (send/request)
+    - **Solution**: Pub-sub pattern with publish/subscribe methods
+    - **Decision**: ADR-006 - MessageBroker Pub-Sub Architecture
+    - **Guide**: KNOWLEDGE-RT-012 - Pub-Sub MessageBroker Pattern (600+ lines)
+    - **Impact**: Trait definition changes, implementation updates
+    - **Benefit**: Extensibility, monitoring, distributed brokers, dead letter support
+  
+  - **Estimated Total**: 
+    - Original: 7-8 days (Phase 1-3 complete ~6 days)
+    - Refactoring: +5-7 hours (2-3 trait + 3-4 implementation)
+    - Remaining: Phase 4 - ActorContext Integration (deferred to RT-TASK-006)
+  
+  - **Next**: Complete RT-TASK-004-REFACTOR, then RT-TASK-004-PUBSUB
 
 - **RT-TASK-005**: Actor Addressing
   - `src/address/types.rs` - ActorAddress and PoolStrategy
@@ -155,14 +207,19 @@
   - **Estimated**: 3-4 days
 
 #### ⏳ Priority 3 - Actor System Integration (1 week) - IN PROGRESS
-- **RT-TASK-006**: Actor System Framework - **PHASE 1 COMPLETE** ✅
+- **RT-TASK-006**: Actor System Framework - **PHASE 1 COMPLETE** ✅ | **PHASE 2 BLOCKED** ⚠️
   - `src/system/mod.rs` - Module declarations ✅ (15 lines)
   - `src/system/errors.rs` - SystemError with 8 variants ✅ (190 lines, 13 tests)
   - `src/system/config.rs` - SystemConfig with builder pattern ✅ (405 lines, 15 tests)
   - **Status**: Phase 1 complete (Oct 6, 2025) - 20% done
+  - **Architecture Blocker** (Oct 6, 2025):
+    - **Issue**: Phase 2 implementation (actor_system.rs) requires pub-sub MessageBroker
+    - **Dependency**: RT-TASK-004 Phase 0 (add publish/subscribe to trait) must complete first
+    - **Documentation**: DEBT-RT-005, ADR-006 define correct architecture
+    - **Action Plan**: Implement pub-sub in broker, then resume Phase 2
   - **Progress**: 28/28 tests passing, zero warnings
-  - **Estimated Total**: 5-6 days | **Completed**: ~1 day
-  - **Next**: Phase 2 - Actor System Core (actor_system.rs, builder.rs)
+  - **Estimated Total**: 5-6 days | **Completed**: ~1 day | **On Hold**: 4-5 days remaining
+  - **Next**: BLOCKED - Wait for RT-TASK-004 Phase 0 pub-sub implementation
 
 ### Phase 2: Advanced Features (Q1-Q2 2026)
 #### ⏳ Planned - Supervision System (2 weeks)

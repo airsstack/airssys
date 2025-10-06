@@ -1,18 +1,41 @@
 # airssys-rt Technical Debt Index
 
 **Sub-Project:** airssys-rt  
-**Last Updated:** 2025-10-05  
-**Total Debt Items:** 1  
-**Active Debt Items:** 1  
+**Last Updated:** 2025-10-06  
+**Total Debt Items:** 2  
+**Active Debt Items:** 2  
 
 ## Debt Statistics
 
-- **Total Debts**: 1
+- **Total Debts**: 2
+- **Critical Priority**: 1 (DEBT-RT-005) ⚠️ **BLOCKING**
 - **High Priority**: 1 (DEBT-RT-004)
 - **Medium Priority**: 0
 - **Low Priority**: 0
 - **Resolved**: 0
+
 ## Pending Debts
+
+### Critical Priority (BLOCKING)
+
+- **DEBT-RT-005**: Actor System / Broker Integration Architecture Mismatch ⚠️ **URGENT**
+  - **Component**: ActorSystem Framework (RT-TASK-006 Phase 2)
+  - **Issue**: Knowledge doc assumes `ActorSystem<B: MessageBroker>` but actual `MessageBroker<M>` is message-generic
+  - **Root Cause**: KNOWLEDGE-RT-011 written with outdated assumptions about generic parameters
+  - **Impact**: RT-TASK-006 Phase 2 BLOCKED - 10+ compilation errors in actor_system.rs
+  - **Compilation Errors**:
+    - Missing generic parameter for MessageBroker<M>
+    - BoundedMailbox::new() API mismatch (takes 1 arg, not 2)
+    - register_actor() not on MessageBroker trait (only concrete type)
+    - Wrong receiver/sender types from mailbox creation
+  - **Solution**: Redesign to use concrete `InMemoryMessageBroker<M, S>` instead of trait
+  - **Target**: TODAY (Oct 6, 2025) - must fix before continuing RT-TASK-006
+  - **Action Items**:
+    1. Update KNOWLEDGE-RT-011 with correct architecture
+    2. Rewrite actor_system.rs with concrete broker type
+    3. Update builder.rs to match new type parameters
+    4. Verify all tests pass (181 + 28 expected)
+  - **File**: `debt_rt_005_actor_system_broker_integration_mismatch.md`
 
 ### High Priority
 

@@ -1,9 +1,9 @@
 # airssys-rt Architecture Decision Records Index
 
 **Sub-Project:** airssys-rt  
-**Last Updated:** 2025-10-02  
-**Total ADRs:** 2  
-**Active ADRs:** 2  
+**Last Updated:** 2025-10-06  
+**Total ADRs:** 4  
+**Active ADRs:** 4  
 
 ## Active ADRs
 
@@ -49,6 +49,27 @@ Simplifies backpressure strategies from four to three by removing misleading `Dr
 - YAGNI-compliant design (§6.1)
 
 **Impact**: Clearer backpressure API, no false promises about drop-oldest semantics
+
+---
+
+### ADR-RT-006: MessageBroker Pub-Sub Architecture
+**Status**: Accepted | **Date**: 2025-10-06  
+**File**: [adr_006_messagebroker_pubsub_architecture.md](./adr_006_messagebroker_pubsub_architecture.md)
+
+**CRITICAL ARCHITECTURE DECISION**: Establishes MessageBroker as a true pub-sub message bus instead of a direct routing system, enabling proper separation of concerns and extensibility.
+
+**Key Decisions**:
+- MessageBroker trait provides `publish()` and `subscribe()` methods
+- ActorSystem subscribes to broker and routes messages via ActorRegistry
+- Clear separation: Broker = transport, Registry = routing, System = orchestration
+- Dependency Injection pattern for broker in ActorSystem
+- Enables multiple subscribers (monitoring, audit, dead letters)
+
+**Impact**: 
+- Changes MessageBroker trait API (RT-TASK-004 modification)
+- ActorSystem implementation pattern (RT-TASK-006)
+- Enables distributed brokers (Redis, NATS) without changing actors
+- Natural extensibility hooks for logging, metrics, persistence
 
 ---
 
