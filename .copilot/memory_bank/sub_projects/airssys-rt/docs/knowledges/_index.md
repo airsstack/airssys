@@ -1,9 +1,9 @@
 # airssys-rt Knowledge Documentation Index
 
 **Sub-Project:** airssys-rt  
-**Last Updated:** 2025-10-05  
-**Total Knowledge Docs:** 10  
-**Active Knowledge Docs:** 10  
+**Last Updated:** 2025-10-06  
+**Total Knowledge Docs:** 11  
+**Active Knowledge Docs:** 11  
 
 ## Active Knowledge Documentation
 
@@ -50,6 +50,10 @@
   - *Status*: active | *Created*: 2025-10-05
   - *Summary*: Comprehensive guide to three messaging patterns (fire-and-forget, request-reply with async wait, manual correlation), complete integration examples showing Actor/ActorContext/Supervisor/MessageBroker interaction, performance characteristics, and decision matrix for pattern selection
 
+- **[KNOWLEDGE-RT-011](knowledge_rt_011_actor_system_framework_implementation_guide.md)**: Actor System Framework Implementation Guide
+  - *Status*: active | *Created*: 2025-10-06
+  - *Summary*: Complete RT-TASK-006 implementation guide for ActorSystem framework with SystemConfig, SystemError, ActorSystem<B>, ActorSpawnBuilder, phase-by-phase implementation plan, integration examples, and workspace standards compliance
+
 ## Planned Knowledge Documentation
 
 ### Actor Model Category (Remaining)
@@ -80,6 +84,7 @@
 - **RT-TASK-002**: Actor System Core - implements KNOWLEDGE-RT-001 and KNOWLEDGE-RT-005 patterns
 - **RT-TASK-003**: Mailbox System - implements KNOWLEDGE-RT-001, KNOWLEDGE-RT-006, KNOWLEDGE-RT-007, and KNOWLEDGE-RT-008 patterns
 - **RT-TASK-004**: Message Broker Core - implements KNOWLEDGE-RT-002, KNOWLEDGE-RT-009, and KNOWLEDGE-RT-010 patterns
+- **RT-TASK-006**: Actor System Framework - implements KNOWLEDGE-RT-011 patterns
 - **RT-TASK-007**: Supervisor Framework - implements KNOWLEDGE-RT-003 patterns
 
 ---
