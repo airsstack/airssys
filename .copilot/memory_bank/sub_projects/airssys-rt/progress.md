@@ -1,16 +1,24 @@
 # airssys-rt Progress
 
 ## Current Status
-**Phase:** Priority 2 - Actor System Framework Complete  
-**Overall Progress:** ~60% (Foundation Complete + RT-TASK-006 Complete + Broker Pub-Sub Complete)  
+**Phase:** Foundation Complete - Ready for Advanced Features  
+**Overall Progress:** ~60% (6 foundation tasks complete)  
 **Last Updated:** 2025-10-06
 
 **🎉 MAJOR MILESTONE: RT-TASK-006 COMPLETE** (2025-10-06):
+- **Foundation Phase 100% Complete**: All 6 core tasks done ✅
 - **RT-TASK-006 PHASE 2 COMPLETE**: ActorSystem & ActorSpawnBuilder with Pub-Sub Architecture ✅
 - **RT-TASK-004 PUB-SUB REFACTORING COMPLETE**: MessageBroker pub-sub architecture ✅
 - **All Tests Passing**: 189/189 tests passing, zero clippy warnings ✅
 - **Code Quality**: Full workspace standards compliance (§2.1-§6.3) ✅
 - **Examples Working**: actor_basic.rs and actor_lifecycle.rs updated and tested ✅
+
+**🚀 NEXT PRIORITY: RT-TASK-010 (Monitoring Module)** (2025-10-06):
+- **Strategic Task Jump**: Starting RT-TASK-010 before RT-TASK-007
+- **Rationale**: Monitoring is foundational infrastructure for supervisor, performance, and system monitoring
+- **Duration**: 2-3 days (16-20 hours)
+- **Blocks**: RT-TASK-007 (Supervisor Framework)
+- **Action Plans**: Complete implementation plans in KNOWLEDGE-RT-013
 
 **RT-TASK-006 Phase 2 Achievements** (2025-10-06):
 - Implemented ActorSystem<M, B> with generic broker dependency injection (ADR-006)
@@ -254,20 +262,77 @@
     - Total: ~1.75 days (within 5-6 day estimate)
 
 ### Phase 2: Advanced Features (Q1-Q2 2026)
+#### 🚀 Next Priority - Universal Monitoring Infrastructure
+- **RT-TASK-010**: Universal Monitoring Infrastructure - **NEXT TASK** 🚀
+  - **Status**: Ready for implementation (Oct 6, 2025)
+  - **Priority**: CRITICAL - Foundational infrastructure
+  - **Estimated**: 2-3 days (16-20 hours)
+  - **Dependencies**: None (standalone)
+  - **Blocks**: RT-TASK-007 (Supervisor Framework), RT-TASK-008 (Performance Features)
+  - **Action Plans**: KNOWLEDGE-RT-013 (comprehensive implementation guide)
+  
+  - **Implementation Phases**:
+    - Phase 1 (Day 1, 6-8h): Core Traits & Types
+      - `src/monitoring/traits.rs` - Monitor<E> and MonitoringEvent traits
+      - `src/monitoring/types.rs` - 5+ event types (Supervision, Actor, System, Broker, Mailbox)
+      - 15+ unit tests
+    
+    - Phase 2 (Day 2, 6-8h): Monitor Implementations
+      - `src/monitoring/in_memory.rs` - InMemoryMonitor with atomic counters and ring buffer
+      - `src/monitoring/noop.rs` - NoopMonitor with zero overhead
+      - 20+ unit tests
+    
+    - Phase 3 (Day 3, 4-6h): Integration & Examples
+      - Module exports in src/lib.rs
+      - 2+ examples (monitoring_basic.rs, monitoring_supervisor.rs)
+      - 10+ integration tests
+  
+  - **Key Features**:
+    - Generic Monitor<E> trait for any entity type
+    - Lock-free atomic counters for concurrent event recording
+    - Ring buffer history with bounded memory
+    - NoopMonitor compiles away when monitoring disabled
+    - MonitoringSnapshot for observability
+    - 45+ tests total (unit + integration)
+  
+  - **Strategic Rationale**:
+    - Provides foundational infrastructure for RT-TASK-007+
+    - Reduces RT-TASK-007 complexity (supervisor just uses Monitor<E>)
+    - Enables reuse for performance monitoring (RT-TASK-008)
+    - Zero-overhead option for production deployments
+    - Clean separation of concerns
+
 #### ⏳ Planned - Supervision System (2 weeks)
 - **RT-TASK-007**: Supervisor Framework
-  - `src/supervisor/traits.rs` - Supervisor trait definitions
-  - `src/supervisor/tree.rs` - Supervisor tree implementation
-  - `src/supervisor/strategy.rs` - Restart strategies (OneForOne, OneForAll, RestForOne)
-  - **Estimated**: 10-12 days
+  - **Status**: Pending (depends on RT-TASK-010)
+  - **Dependencies**: RT-TASK-010 (Monitoring Module) - REQUIRED
+  - **Estimated**: 8-10 days (reduced from 10-12 with separate monitoring)
+  - **Action Plans**: KNOWLEDGE-RT-013 (comprehensive implementation guide)
+  
+  - **Implementation Files**:
+    - `src/supervisor/traits.rs` - Supervisor, Child, SupervisionStrategy traits
+    - `src/supervisor/types.rs` - ChildSpec, RestartPolicy, ShutdownPolicy
+    - `src/supervisor/strategy.rs` - OneForOne, OneForAll, RestForOne strategies
+    - `src/supervisor/backoff.rs` - Restart rate limiting and exponential backoff
+    - `src/supervisor/node.rs` - SupervisorNode<S, C, M> implementation
+    - `src/supervisor/tree.rs` - Supervisor tree hierarchy
+    - `src/supervisor/health.rs` - Health monitoring integration
+  
+  - **Key Features**:
+    - Generic SupervisorNode<S, C, M> with strategy, child, monitor types
+    - BEAM-inspired supervision strategies
+    - Restart policies: Permanent, Transient, Temporary
+    - Health monitoring with RT-TASK-010 Monitor<SupervisionEvent>
+    - 110+ tests total
 
 #### ⏳ Planned - Performance Optimization (1 week)
 - **RT-TASK-008**: Performance Features
+  - **Dependencies**: RT-TASK-010 (Monitoring Module) for performance metrics
+  - **Estimated**: 5-7 days
   - Message routing optimization
   - Actor pool load balancing
   - Performance benchmarks
-  - **Estimated**: 3-5 days (revised 2025-10-04)
-  - **Note**: Metrics collection and monitoring deferred to post-v1.0
+  - Performance monitoring via Monitor<PerformanceEvent>
 
 ### Phase 3: airssys-osl Integration (Q2 2026)
 #### ⏳ Planned - OS Layer Integration (2 weeks)
@@ -280,13 +345,13 @@
 
 ### Phase 4: Production Readiness (Q2 2026)
 #### ⏳ Planned - Testing and Documentation (2 weeks)
-- **RT-TASK-010**: Comprehensive Testing
+- **RT-TASK-011**: Comprehensive Testing (renumbered from RT-TASK-010)
   - Integration tests in `tests/` directory
   - Performance benchmarks in `benches/`
   - Examples in `examples/` directory
   - **Estimated**: 10-12 days
 
-- **RT-TASK-011**: Documentation Completion
+- **RT-TASK-012**: Documentation Completion (renumbered from RT-TASK-011)
   - Complete API documentation
   - Usage guides and tutorials
   - Performance tuning guides
@@ -363,20 +428,45 @@
 
 ## Next Milestones
 
-### Immediate (Next 2 Weeks)
-1. Complete memory bank setup with remaining index files
-2. Create foundational ADR for actor system architecture
-3. Begin basic actor runtime implementation
-4. Set up performance benchmarking infrastructure
+### Immediate (Current - Oct 6, 2025)
+1. ✅ RT-TASK-006 Complete - Actor System Framework (foundation done)
+2. 🚀 **Begin RT-TASK-010 - Universal Monitoring Infrastructure**
+   - Phase 1: Core Traits & Types (Day 1, 6-8h)
+   - Phase 2: Monitor Implementations (Day 2, 6-8h)
+   - Phase 3: Integration & Examples (Day 3, 4-6h)
+3. 📋 RT-TASK-010 Complete - Ready for RT-TASK-007
+4. 📋 Begin RT-TASK-007 - Supervisor Framework (8-10 days)
 
-### Short Term (Next Month)
-1. Implement basic actor creation and message passing
-2. Create simple supervisor implementation
-3. Integrate with airssys-osl for basic OS operations
-4. Establish testing framework for actor systems
+### Short Term (Next 2 Weeks - Oct 6-20, 2025)
+1. Complete RT-TASK-010 (Monitoring Module) - 2-3 days
+2. Begin RT-TASK-007 (Supervisor Framework) - 8-10 days
+3. Complete Phase 1-2 of RT-TASK-007 (Traits, Strategies)
+4. Continue Phase 3-4 of RT-TASK-007 (Tree, Health Monitoring)
 
-### Medium Term (Next Quarter)
-1. Complete supervisor tree implementation
-2. Optimize message passing performance
-3. Implement comprehensive fault tolerance
-4. Begin airssys-wasm integration planning
+### Medium Term (Next Month - Oct-Nov 2025)
+1. Complete RT-TASK-007 (Supervisor Framework)
+2. Begin RT-TASK-008 (Performance Features)
+3. Performance benchmarking and optimization
+4. Integration testing with supervision and monitoring
+
+## Recent Progress Log
+
+### 2025-10-06 (Evening) - Task Planning and Documentation
+**Action Plans Created:**
+- Created RT-TASK-010 (Universal Monitoring Infrastructure) task specification
+- Created KNOWLEDGE-RT-013 with comprehensive action plans for RT-TASK-010 and RT-TASK-007
+- Updated RT-TASK-007 with RT-TASK-010 dependency
+- Updated tasks/_index.md with task sequencing strategy
+- Updated docs/knowledges/_index.md with KNOWLEDGE-RT-013
+- Created ACTION_PLANS_SUMMARY.md for quick reference
+- Updated progress.md with next priorities
+
+**Task Sequencing Decision:**
+- RT-TASK-010 (Monitoring) before RT-TASK-007 (Supervisor)
+- Rationale: Monitoring is foundational infrastructure for multiple components
+- RT-TASK-007 duration reduced from 10-12 days to 8-10 days
+
+**Documentation Status:**
+- Complete implementation plans for next 2 tasks (10-13 days of work)
+- All memory bank files updated with task dependencies
+- Ready to begin RT-TASK-010 Phase 1 implementation

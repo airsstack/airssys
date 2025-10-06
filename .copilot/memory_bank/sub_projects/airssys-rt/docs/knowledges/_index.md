@@ -2,8 +2,8 @@
 
 **Sub-Project:** airssys-rt  
 **Last Updated:** 2025-10-06  
-**Total Knowledge Docs:** 12  
-**Active Knowledge Docs:** 12  
+**Total Knowledge Docs:** 13  
+**Active Knowledge Docs:** 13  
 
 ## Active Knowledge Documentation
 
@@ -54,9 +54,13 @@
   - *Status*: active | *Created*: 2025-10-06
   - *Summary*: Complete RT-TASK-006 implementation guide for ActorSystem framework with SystemConfig, SystemError, ActorSystem<B>, ActorSpawnBuilder, phase-by-phase implementation plan, integration examples, and workspace standards compliance
 
-- **[KNOWLEDGE-RT-012](knowledge_rt_012_pubsub_messagebroker_pattern.md)**: Pub-Sub MessageBroker Pattern ⚠️ **CRITICAL**
+- **[KNOWLEDGE-RT-012](knowledge_rt_012_pubsub_messagebroker_pattern.md)**: Pub-Sub MessageBroker Pattern
+  - *Status*: completed | *Created*: 2025-10-06
+  - *Summary*: True pub-sub message bus pattern for MessageBroker with publish/subscribe operations, ActorSystem message router, multiple subscribers support, extensibility hooks, and complete integration guide. **IMPLEMENTED in RT-TASK-006**
+
+- **[KNOWLEDGE-RT-013](knowledge_rt_013_task_007_010_action_plans.md)**: RT-TASK-007 and RT-TASK-010 Implementation Action Plans ⚠️ **NEW**
   - *Status*: active | *Created*: 2025-10-06
-  - *Summary*: **CRITICAL ARCHITECTURE**: True pub-sub message bus pattern for MessageBroker with publish/subscribe operations, ActorSystem message router, multiple subscribers support, extensibility hooks, distributed broker implementations, and complete integration guide. **REQUIRED READING BEFORE RT-TASK-004 Phase 0 and RT-TASK-006 Phase 2**
+  - *Summary*: **COMPREHENSIVE ACTION PLANS**: Complete implementation plans for RT-TASK-010 (Universal Monitoring Infrastructure) and RT-TASK-007 (Supervisor Framework) with phase-by-phase breakdowns, acceptance criteria, testing strategies, integration points, task sequencing rationale (monitoring before supervisor), and Microsoft Rust Guidelines compliance. **REQUIRED READING BEFORE RT-TASK-010 and RT-TASK-007**
 
 ## Planned Knowledge Documentation
 
@@ -73,8 +77,10 @@
 ### Integration Category
 - **airssys-osl Integration**: OS layer integration patterns and best practices
 - **airssys-wasm Integration**: WASM component hosting and management (future)
-- **Monitoring Integration**: Metrics, tracing, and observability patterns
 - **Testing Patterns**: Actor system testing and fault injection strategies
+
+### Implementation Guides (Completed)
+- **KNOWLEDGE-RT-013**: RT-TASK-007 and RT-TASK-010 Action Plans - monitoring and supervision implementation
 
 ## Knowledge Cross-References
 
@@ -87,16 +93,17 @@
 - **RT-TASK-001**: Message System Implementation - implements KNOWLEDGE-RT-001 and KNOWLEDGE-RT-004 patterns
 - **RT-TASK-002**: Actor System Core - implements KNOWLEDGE-RT-001 and KNOWLEDGE-RT-005 patterns
 - **RT-TASK-003**: Mailbox System - implements KNOWLEDGE-RT-001, KNOWLEDGE-RT-006, KNOWLEDGE-RT-007, and KNOWLEDGE-RT-008 patterns
-- **RT-TASK-004**: Message Broker Core - implements KNOWLEDGE-RT-002, KNOWLEDGE-RT-009, KNOWLEDGE-RT-010, and **KNOWLEDGE-RT-012** (pub-sub) patterns
-- **RT-TASK-006**: Actor System Framework - implements KNOWLEDGE-RT-011 and **KNOWLEDGE-RT-012** (router) patterns
-- **RT-TASK-007**: Supervisor Framework - implements KNOWLEDGE-RT-003 patterns
+- **RT-TASK-004**: Message Broker Core - implements KNOWLEDGE-RT-002, KNOWLEDGE-RT-009, KNOWLEDGE-RT-010, and KNOWLEDGE-RT-012 (pub-sub) patterns
+- **RT-TASK-006**: Actor System Framework - implements KNOWLEDGE-RT-011 and KNOWLEDGE-RT-012 (router) patterns
+- **RT-TASK-007**: Supervisor Framework - implements KNOWLEDGE-RT-003 and uses KNOWLEDGE-RT-013 action plans
+- **RT-TASK-010**: Monitoring Module - implements patterns from KNOWLEDGE-RT-013 action plans
 
-### ⚠️ Critical Architecture Changes
-- **KNOWLEDGE-RT-012**: Pub-Sub MessageBroker Pattern
-  - **Impact**: RT-TASK-004 (trait changes) and RT-TASK-006 (integration changes)
-  - **ADR**: ADR-006 - MessageBroker Pub-Sub Architecture
-  - **Debt**: DEBT-RT-005 - Actor System Broker Integration Mismatch
-  - **Priority**: CRITICAL - Must implement before RT-TASK-006 Phase 2
+### ⚠️ Task Sequencing Strategy
+- **KNOWLEDGE-RT-013**: RT-TASK-010 before RT-TASK-007
+  - **Rationale**: Monitoring is foundational infrastructure for supervisor, performance, and system monitoring
+  - **Impact**: RT-TASK-007 uses Monitor<SupervisionEvent> from RT-TASK-010
+  - **Benefits**: Reduces supervisor complexity, enables reuse, provides zero-overhead option
+  - **Priority**: CRITICAL - Must complete RT-TASK-010 before starting RT-TASK-007
 
 ---
 **Note:** Additional knowledge docs will be created during implementation phases to capture emerging patterns and optimizations.

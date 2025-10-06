@@ -1,80 +1,81 @@
 # airssys-rt Tasks Index
 
 **Last Updated:** 2025-10-06  
-**Total Tasks:** 13 (added 2 refactoring tasks)  
-**Completed Tasks:** 5  
-**Active Tasks:** 2 (refactoring in progress)  
-**Paused Tasks:** 1 (RT-TASK-006 Phase 2)  
-**Ready for Implementation:** 5  
+**Total Tasks:** 14 (RT-TASK-010 changed from Testing to Monitoring)  
+**Completed Tasks:** 6 (RT-TASK-006 complete)  
+**Active Tasks:** 0  
+**Ready for Implementation:** RT-TASK-010 (Monitoring Module)  
+**Blocked:** RT-TASK-007 (depends on RT-TASK-010)  
 
-## Task Summary - REFACTORING IN PROGRESS 🔄
-**Status:** RT-TASK-004 pub-sub refactoring (2 new tasks)  
-**Current Focus:** RT-TASK-004-REFACTOR and RT-TASK-004-PUBSUB  
-**Paused:** RT-TASK-006 Phase 2 (will resume after refactoring)  
-**Reason:** Architecture breakthrough - MessageBroker must be pub-sub  
+## Task Summary - RT-TASK-006 COMPLETE 🎉
+**Status:** Foundation phase complete - Ready for advanced features  
+**Current Focus:** RT-TASK-010 (Monitoring Module) - Next priority  
+**Completed:** RT-TASK-006 Actor System Framework (Oct 6, 2025)  
+**Next Task:** RT-TASK-010 before RT-TASK-007  
 
-## 🔄 ACTIVE REFACTORING TASKS (Oct 6, 2025)
+## 🎯 NEXT PRIORITY TASK (Oct 6, 2025)
 
-### RT-TASK-004-REFACTOR: MessageBroker Pub-Sub Trait Refactoring
+### RT-TASK-010: Universal Monitoring Infrastructure
 **Status:** Not Started  
-**Priority:** CRITICAL - Must complete FIRST  
-**Estimated Time:** 2-3 hours  
-**Task File:** `tasks/rt_task_004_refactor_pubsub_trait.md`  
+**Priority:** CRITICAL - Foundational infrastructure  
+**Estimated Time:** 2-3 days (16-20 hours)  
+**Task File:** `tasks/task_010_monitoring_module.md`  
+**Action Plans:** `docs/knowledges/knowledge_rt_013_task_007_010_action_plans.md`
+
+**Strategic Rationale:**
+- Provides foundational monitoring infrastructure
+- Required by RT-TASK-007 (Supervisor Framework)
+- Enables RT-TASK-008 (Performance Features)
+- Generic Monitor<E> trait for universal entity monitoring
+- Zero-overhead NoopMonitor when monitoring disabled
 
 **Scope:**
-- Update MessageBroker<M> trait with publish/subscribe methods
-- Add MessageStream<M> type
-- Update trait documentation with pub-sub architecture
-- Deprecate old send/request methods
+- Generic Monitor<E> trait for any entity type
+- InMemoryMonitor<E> with lock-free atomic counters
+- NoopMonitor<E> with zero overhead
+- 5+ event types: SupervisionEvent, ActorEvent, SystemEvent, BrokerEvent, MailboxEvent
+- MonitoringSnapshot for observability
+- 45+ tests (unit + integration)
 
-**Blocks:** RT-TASK-004-PUBSUB
+**Blocks:** RT-TASK-007 (Supervisor Framework)
 
 ---
 
-### RT-TASK-004-PUBSUB: InMemoryMessageBroker Pub-Sub Implementation  
-**Status:** Not Started (blocked by RT-TASK-004-REFACTOR)  
-**Priority:** CRITICAL - Must complete SECOND  
-**Estimated Time:** 3-4 hours  
-**Task File:** `tasks/rt_task_004_pubsub_implementation.md`  
-
-**Scope:**
-- Implement pub-sub in InMemoryMessageBroker
-- Add subscriber management with broadcast
-- Add extensibility hooks (logging, metrics placeholders)
-- Comprehensive pub-sub testing (~15 tests)
-
-**Blocks:** RT-TASK-006 Phase 2
-
----
-
-## Phase 1: Foundation Implementation (Q1 2026) - IN PROGRESS
+## Phase 1: Foundation Implementation (Q1 2026) - COMPLETE ✅
 
 ### Completed ✅
 - [RT-TASK-001] Message System Implementation - Foundation (3 days) - **COMPLETE Oct 4, 2025**
 - [RT-TASK-002] Actor System Core - Core traits and context (1 day) - **COMPLETE Oct 4, 2025**
 - [RT-TASK-003] Mailbox System - Bounded/unbounded mailboxes with backpressure (2 days) - **COMPLETE Oct 5, 2025**
-- [RT-TASK-004] Message Broker Core - In-memory broker implementation (7-8 days) - **COMPLETE Oct 5, 2025** ⚠️ **NOW REFACTORING**
-- [RT-TASK-005] Actor Addressing - Address resolution and pools (3-4 days) - **COMPLETE Oct 5, 2025**
-
-### In Progress 🔄
-- [RT-TASK-004-REFACTOR] MessageBroker Pub-Sub Trait (2-3 hours) - **NOT STARTED Oct 6, 2025**
-- [RT-TASK-004-PUBSUB] InMemoryMessageBroker Pub-Sub Implementation (3-4 hours) - **BLOCKED Oct 6, 2025**
-
-### Paused ⏸️
-- [RT-TASK-006] Actor System Framework - **PHASE 1 COMPLETE, PHASE 2 PAUSED Oct 6, 2025**
-  - Phase 1: SystemError, SystemConfig (DONE - 28 tests passing)
-  - Phase 2: ActorSystem, ActorSpawnBuilder (PAUSED - waiting for pub-sub refactoring)
-
-### Pending - Priority 3 (1 week) - BLOCKED
-- [RT-TASK-006] Actor System Framework - Main system and builder (5-6 days) - **Phase 2 blocked by refactoring**
+- [RT-TASK-004] Message Broker Core - In-memory broker with pub-sub (1.5 days) - **COMPLETE Oct 6, 2025**
+- [RT-TASK-005] Actor Addressing - Address resolution and pools (1 day) - **COMPLETE Oct 5, 2025**
+- [RT-TASK-006] Actor System Framework - ActorSystem and ActorSpawnBuilder (1.75 days) - **COMPLETE Oct 6, 2025**
+  - 189/189 tests passing
+  - Zero clippy warnings
+  - Full pub-sub architecture
+  - Examples working
 
 ## Phase 2: Advanced Features (Q1-Q2 2026)
 
+### Ready for Implementation 🚀
+- [RT-TASK-010] Universal Monitoring Infrastructure - Generic monitoring (2-3 days) - **NEXT PRIORITY**
+  - Generic Monitor<E> trait
+  - InMemoryMonitor and NoopMonitor
+  - 5+ event types
+  - Zero-overhead when disabled
+  - **Blocks:** RT-TASK-007
+
 ### Pending - Supervision System (2 weeks)
-- [RT-TASK-007] Supervisor Framework - Complete supervision system (10-12 days)
+- [RT-TASK-007] Supervisor Framework - Complete supervision system (8-10 days)
+  - **Depends on:** RT-TASK-010 (Monitoring Module)
+  - BEAM-inspired fault tolerance
+  - OneForOne, OneForAll, RestForOne strategies
+  - Restart policies and backoff
+  - Health monitoring integration
 
 ### Pending - Performance Optimization (1 week)  
 - [RT-TASK-008] Performance Features - Optimization and monitoring (5-7 days)
+  - **Depends on:** RT-TASK-010 (Monitoring Module)
 
 ## Phase 3: Integration (Q2 2026)
 
@@ -84,8 +85,8 @@
 ## Phase 4: Production Readiness (Q2 2026)
 
 ### Pending - Testing and Documentation (2 weeks)
-- [RT-TASK-010] Comprehensive Testing - Integration tests and benchmarks (10-12 days)
-- [RT-TASK-011] Documentation Completion - API docs and guides (3-5 days)
+- [RT-TASK-011] Comprehensive Testing - Integration tests and benchmarks (10-12 days)
+- [RT-TASK-012] Documentation Completion - API docs and guides (3-5 days)
 
 ## Task Categories
 
@@ -129,5 +130,28 @@
 - ✅ Embedded unit tests in each module
 - ✅ Integration tests in separate `tests/` directory
 
+## Task Sequencing Strategy
+
+**Current Task Sequence (Oct 6, 2025):**
+```
+RT-TASK-010 (Monitoring Module)  →  RT-TASK-007 (Supervisor Framework)
+     2-3 days                              8-10 days
+     
+     ↓                                      ↓
+   BLOCKS                                BLOCKS
+     ↓                                      ↓
+RT-TASK-007, RT-TASK-008            RT-TASK-008, RT-TASK-009
+```
+
+**Rationale for Task Jump:**
+- RT-TASK-010 (Monitoring) provides foundational infrastructure
+- Building monitoring separately reduces RT-TASK-007 complexity
+- Generic Monitor<E> enables reuse across supervisor, performance, system monitoring
+- Clean separation improves maintainability
+- NoopMonitor provides zero-overhead option
+
+**Detailed Action Plans:**
+- See `docs/knowledges/knowledge_rt_013_task_007_010_action_plans.md` for comprehensive implementation plans
+
 ---
-**Next Action:** Begin RT-TASK-001 Message System Implementation
+**Next Action:** Begin RT-TASK-010 Phase 1 - Core Traits & Types
