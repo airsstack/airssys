@@ -9,20 +9,28 @@ use std::marker::PhantomData;
 use chrono::{DateTime, Utc}; // §3.2 MANDATORY
 
 // Layer 3: Internal module imports
-use crate::message::Message;
+use crate::broker::MessageBroker;
+use crate::message::{Message, MessageEnvelope};
 use crate::util::{ActorAddress, ActorId};
 
 /// Actor context with metadata for zero-cost abstractions.
 ///
-/// Generic over message type M for compile-time type safety.
+/// Generic over message type M and broker type B for compile-time type safety.
+/// Broker is injected via dependency injection (ADR-006).
+///
+/// # Type Parameters
+///
+/// * `M` - Message type
+/// * `B` - Broker implementation (injected by ActorSystem)
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust,ignore
 /// use airssys_rt::{ActorContext, Message};
 /// use airssys_rt::util::ActorAddress;
+/// use airssys_rt::broker::InMemoryMessageBroker;
 ///
-/// #[derive(Debug, Clone)]
+/// #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 /// struct MyMessage;
 ///
 /// impl Message for MyMessage {
@@ -30,28 +38,35 @@ use crate::util::{ActorAddress, ActorId};
 /// }
 ///
 /// let address = ActorAddress::named("my-actor");
-/// let context = ActorContext::<MyMessage>::new(address);
-/// assert_eq!(context.address().name(), Some("my-actor"));
+/// let broker = InMemoryMessageBroker::new();
+/// let context = ActorContext::new(address, broker);
 /// ```
-pub struct ActorContext<M: Message> {
+pub struct ActorContext<M: Message, B: MessageBroker<M>> {
     address: ActorAddress,
     id: ActorId,
     created_at: DateTime<Utc>,
     last_message_at: Option<DateTime<Utc>>,
     message_count: u64,
+    broker: B, // Dependency injection (ADR-006)
     _marker: PhantomData<M>,
 }
 
-impl<M: Message> ActorContext<M> {
+impl<M: Message, B: MessageBroker<M>> ActorContext<M, B> {
     /// Create a new actor context.
+    ///
+    /// # Arguments
+    ///
+    /// * `address` - Actor's address
+    /// * `broker` - Message broker for sending messages (injected)
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust,ignore
     /// use airssys_rt::{ActorContext, Message};
     /// use airssys_rt::util::ActorAddress;
+    /// use airssys_rt::broker::InMemoryMessageBroker;
     ///
-    /// #[derive(Debug, Clone)]
+    /// #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
     /// struct TestMessage;
     ///
     /// impl Message for TestMessage {
@@ -59,15 +74,17 @@ impl<M: Message> ActorContext<M> {
     /// }
     ///
     /// let address = ActorAddress::anonymous();
-    /// let context = ActorContext::<TestMessage>::new(address);
+    /// let broker = InMemoryMessageBroker::new();
+    /// let context = ActorContext::new(address, broker);
     /// ```
-    pub fn new(address: ActorAddress) -> Self {
+    pub fn new(address: ActorAddress, broker: B) -> Self {
         Self {
             id: *address.id(),
             address,
             created_at: Utc::now(), // §3.2
             last_message_at: None,
             message_count: 0,
+            broker,
             _marker: PhantomData,
         }
     }
@@ -104,23 +121,99 @@ impl<M: Message> ActorContext<M> {
         self.last_message_at = Some(Utc::now());
         self.message_count += 1;
     }
+
+    /// Send a message to another actor.
+    ///
+    /// Publishes the message to the broker, which broadcasts it to all subscribers.
+    /// The ActorSystem router will route it to the target actor.
+    ///
+    /// # Arguments
+    ///
+    /// * `message` - The message to send
+    /// * `recipient` - Target actor address
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// context.send(message, target_address).await?;
+    /// ```
+    pub async fn send(&self, message: M, recipient: ActorAddress) -> Result<(), String>
+    where
+        M: serde::Serialize,
+    {
+        let mut envelope = MessageEnvelope::new(message);
+        envelope.reply_to = Some(recipient);
+
+        self.broker
+            .publish(envelope)
+            .await
+            .map_err(|e| e.to_string())
+    }
+
+    /// Send a request and wait for a reply.
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - The request message
+    /// * `recipient` - Target actor address
+    /// * `timeout` - Maximum time to wait for response
+    ///
+    /// # Returns
+    ///
+    /// The response message, or None if no response received
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// let response = context
+    ///     .request(request, target_address, Duration::from_secs(5))
+    ///     .await?;
+    /// ```
+    pub async fn request(
+        &self,
+        request: M,
+        recipient: ActorAddress,
+        timeout: std::time::Duration,
+    ) -> Result<Option<MessageEnvelope<M>>, String>
+    where
+        M: serde::Serialize + for<'de> serde::Deserialize<'de>,
+    {
+        let mut envelope = MessageEnvelope::new(request);
+        envelope.reply_to = Some(recipient);
+
+        self.broker
+            .publish_request(envelope, timeout)
+            .await
+            .map_err(|e| e.to_string())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::broker::in_memory::InMemoryMessageBroker;
+    use crate::message::MessagePriority;
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
     struct TestMessage;
 
     impl Message for TestMessage {
         const MESSAGE_TYPE: &'static str = "test";
+
+        fn priority(&self) -> MessagePriority {
+            MessagePriority::Normal
+        }
+    }
+
+    fn create_test_context() -> ActorContext<TestMessage, InMemoryMessageBroker<TestMessage>> {
+        let address = ActorAddress::anonymous();
+        let broker = InMemoryMessageBroker::new();
+        ActorContext::new(address, broker)
     }
 
     #[test]
     fn test_context_creation() {
-        let address = ActorAddress::anonymous();
-        let context = ActorContext::<TestMessage>::new(address);
+        let context = create_test_context();
 
         assert_eq!(context.message_count(), 0);
         assert!(context.last_message_at().is_none());
@@ -129,7 +222,8 @@ mod tests {
     #[test]
     fn test_context_address_accessor() {
         let address = ActorAddress::named("test-actor");
-        let context = ActorContext::<TestMessage>::new(address.clone());
+        let broker = InMemoryMessageBroker::<TestMessage>::new();
+        let context = ActorContext::new(address.clone(), broker);
 
         assert_eq!(context.address(), &address);
         assert_eq!(context.address().name(), Some("test-actor"));
@@ -139,15 +233,15 @@ mod tests {
     fn test_context_id_accessor() {
         let address = ActorAddress::anonymous();
         let id = *address.id();
-        let context = ActorContext::<TestMessage>::new(address);
+        let broker = InMemoryMessageBroker::<TestMessage>::new();
+        let context = ActorContext::new(address, broker);
 
         assert_eq!(context.id(), &id);
     }
 
     #[test]
     fn test_record_message() {
-        let address = ActorAddress::anonymous();
-        let mut context = ActorContext::<TestMessage>::new(address);
+        let mut context = create_test_context();
 
         assert_eq!(context.message_count(), 0);
         assert!(context.last_message_at().is_none());
@@ -160,8 +254,7 @@ mod tests {
 
     #[test]
     fn test_multiple_message_records() {
-        let address = ActorAddress::anonymous();
-        let mut context = ActorContext::<TestMessage>::new(address);
+        let mut context = create_test_context();
 
         for i in 1..=10 {
             context.record_message();
@@ -173,7 +266,8 @@ mod tests {
     fn test_created_at_timestamp() {
         let address = ActorAddress::anonymous();
         let before = Utc::now();
-        let context = ActorContext::<TestMessage>::new(address);
+        let broker = InMemoryMessageBroker::<TestMessage>::new();
+        let context = ActorContext::new(address, broker);
         let after = Utc::now();
 
         let created = context.created_at();

@@ -234,6 +234,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_apply_block_strategy_waits() {
+        use std::time::Duration;
+        use tokio::time::sleep;
+
         let (sender, mut receiver) = mpsc::channel::<MessageEnvelope<TestMsg>>(1);
 
         // Fill the channel
@@ -243,7 +246,7 @@ mod tests {
             }))
             .unwrap();
 
-        // Spawn task to send with Block strategy
+        // Try to send another message (will block)
         let sender_clone = sender.clone();
         let handle = tokio::spawn(async move {
             BackpressureStrategy::Block
@@ -257,7 +260,7 @@ mod tests {
         });
 
         // Give the task a moment to start
-        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+        sleep(Duration::from_millis(10)).await;
 
         // Receive first message to make space
         receiver.recv().await.unwrap();

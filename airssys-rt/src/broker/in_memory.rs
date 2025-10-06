@@ -133,16 +133,19 @@ impl<M: Message + serde::Serialize> MessageBroker<M> for InMemoryMessageBroker<M
     ) -> Result<Option<MessageEnvelope<R>>, Self::Error> {
         // Generate correlation ID
         let correlation_id = uuid::Uuid::new_v4();
+        
+        // Set correlation_id on envelope for subscribers to see
         envelope.correlation_id = Some(correlation_id);
 
         // Create oneshot channel for reply
         let (tx, rx) = oneshot::channel();
 
-        // Register pending request
-        self.inner.pending_requests.insert(correlation_id, tx);
-
-        // Publish request
+        // Publish request FIRST (before registering pending request)
+        // This ensures the request itself won't be routed as a reply
         self.publish(envelope.clone()).await?;
+
+        // NOW register pending request to receive the reply
+        self.inner.pending_requests.insert(correlation_id, tx);
 
         // Wait for reply with timeout
         let target = envelope.reply_to.unwrap_or_else(ActorAddress::anonymous);
@@ -178,6 +181,7 @@ impl<M: Message> Default for InMemoryMessageBroker<M> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::panic)]
 mod tests {
     use super::*;
     use crate::message::MessagePriority;

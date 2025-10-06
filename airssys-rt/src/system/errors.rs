@@ -180,7 +180,7 @@ mod tests {
     #[test]
     fn test_error_debug_impl() {
         let err = SystemError::SpawnFailed("test".to_string());
-        let debug = format!("{:?}", err);
+        let debug = format!("{err:?}");
         assert!(debug.contains("SpawnFailed"));
     }
 }

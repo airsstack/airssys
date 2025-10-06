@@ -8,10 +8,11 @@
 
 use airssys_rt::{Actor, ActorContext, ActorLifecycle, ActorState, ErrorAction, Message};
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
 // Define a simple message type
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct CounterMessage {
     delta: i32,
 }
@@ -46,10 +47,10 @@ impl Actor for CounterActor {
     type Message = CounterMessage;
     type Error = CounterError;
 
-    async fn handle_message(
+    async fn handle_message<B: airssys_rt::broker::MessageBroker<Self::Message>>(
         &mut self,
         message: Self::Message,
-        context: &mut ActorContext<Self::Message>,
+        context: &mut ActorContext<Self::Message, B>,
     ) -> Result<(), Self::Error> {
         println!(
             "[Actor {}] Processing message with delta: {}",
@@ -79,7 +80,10 @@ impl Actor for CounterActor {
         Ok(())
     }
 
-    async fn pre_start(&mut self, context: &mut ActorContext<Self::Message>) -> Result<(), Self::Error> {
+    async fn pre_start<B: airssys_rt::broker::MessageBroker<Self::Message>>(
+        &mut self,
+        context: &mut ActorContext<Self::Message, B>,
+    ) -> Result<(), Self::Error> {
         println!(
             "[Actor {}] Starting with initial value: {}",
             context.address().name().unwrap_or("anonymous"),
@@ -88,7 +92,10 @@ impl Actor for CounterActor {
         Ok(())
     }
 
-    async fn post_stop(&mut self, context: &mut ActorContext<Self::Message>) -> Result<(), Self::Error> {
+    async fn post_stop<B: airssys_rt::broker::MessageBroker<Self::Message>>(
+        &mut self,
+        context: &mut ActorContext<Self::Message, B>,
+    ) -> Result<(), Self::Error> {
         println!(
             "[Actor {}] Stopping with final value: {} (processed {} messages)",
             context.address().name().unwrap_or("anonymous"),
@@ -98,10 +105,10 @@ impl Actor for CounterActor {
         Ok(())
     }
 
-    async fn on_error(
+    async fn on_error<B: airssys_rt::broker::MessageBroker<Self::Message>>(
         &mut self,
         error: Self::Error,
-        context: &mut ActorContext<Self::Message>,
+        context: &mut ActorContext<Self::Message, B>,
     ) -> ErrorAction {
         println!(
             "[Actor {}] Error occurred: {}",
@@ -127,7 +134,8 @@ async fn main() {
 
     // Create actor context
     let address = airssys_rt::util::ActorAddress::named("counter-actor");
-    let mut context = ActorContext::<CounterMessage>::new(address);
+    let broker = airssys_rt::broker::in_memory::InMemoryMessageBroker::<CounterMessage>::new();
+    let mut context = ActorContext::new(address, broker);
 
     // Create lifecycle tracker
     let mut lifecycle = ActorLifecycle::new();
@@ -156,7 +164,7 @@ async fn main() {
                 println!("   Error: {e}");
                 let action = actor.on_error(e, &mut context).await;
                 println!("   Supervisor action: {action:?}");
-                
+
                 if action == ErrorAction::Restart {
                     lifecycle.transition_to(ActorState::Starting);
                     let _ = actor.pre_start(&mut context).await;

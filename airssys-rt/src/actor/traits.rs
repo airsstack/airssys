@@ -146,6 +146,8 @@ pub trait Actor: Send + Sync + 'static {
     /// This is the core method that processes messages sent to the actor.
     /// Implement your actor's business logic here.
     ///
+    /// Generic over broker type B to support dependency injection (ADR-006).
+    ///
     /// # Arguments
     ///
     /// * `message` - The message to process
@@ -163,7 +165,7 @@ pub trait Actor: Send + Sync + 'static {
     /// # use async_trait::async_trait;
     /// # use std::fmt;
     /// #
-    /// # #[derive(Debug, Clone)]
+    /// # #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
     /// # struct MyMessage;
     /// # impl Message for MyMessage {
     /// #     const MESSAGE_TYPE: &'static str = "my_message";
@@ -185,20 +187,20 @@ pub trait Actor: Send + Sync + 'static {
     ///     type Message = MyMessage;
     ///     type Error = MyError;
     ///
-    ///     async fn handle_message(
+    ///     async fn handle_message<B: airssys_rt::broker::MessageBroker<Self::Message>>(
     ///         &mut self,
     ///         _message: Self::Message,
-    ///         context: &mut ActorContext<Self::Message>,
+    ///         context: &mut ActorContext<Self::Message, B>,
     ///     ) -> Result<(), Self::Error> {
     ///         println!("Received message at actor: {:?}", context.address());
     ///         Ok(())
     ///     }
     /// }
     /// ```
-    async fn handle_message(
+    async fn handle_message<B: crate::broker::MessageBroker<Self::Message>>(
         &mut self,
         message: Self::Message,
-        context: &mut ActorContext<Self::Message>,
+        context: &mut ActorContext<Self::Message, B>,
     ) -> Result<(), Self::Error>;
 
     /// Lifecycle hook called before the actor starts receiving messages.
@@ -256,9 +258,9 @@ pub trait Actor: Send + Sync + 'static {
     ///         Ok(())
     ///     }
     ///
-    ///     async fn pre_start(
+    ///     async fn pre_start<B: airssys_rt::broker::MessageBroker<Self::Message>>(
     ///         &mut self,
-    ///         _context: &mut ActorContext<Self::Message>,
+    ///         _context: &mut ActorContext<Self::Message, B>,
     ///     ) -> Result<(), Self::Error> {
     ///         // Simulate connecting to database
     ///         self.connected = true;
@@ -267,9 +269,9 @@ pub trait Actor: Send + Sync + 'static {
     ///     }
     /// }
     /// ```
-    async fn pre_start(
+    async fn pre_start<B: crate::broker::MessageBroker<Self::Message>>(
         &mut self,
-        _context: &mut ActorContext<Self::Message>,
+        _context: &mut ActorContext<Self::Message, B>,
     ) -> Result<(), Self::Error> {
         Ok(())
     }
@@ -280,6 +282,8 @@ pub trait Actor: Send + Sync + 'static {
     /// any teardown required when the actor shuts down.
     ///
     /// Default implementation does nothing and returns `Ok(())`.
+    ///
+    /// Generic over broker type B to support dependency injection (ADR-006).
     ///
     /// # Arguments
     ///
@@ -297,7 +301,7 @@ pub trait Actor: Send + Sync + 'static {
     /// # use async_trait::async_trait;
     /// # use std::fmt;
     /// #
-    /// # #[derive(Debug, Clone)]
+    /// # #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
     /// # struct MyMessage;
     /// # impl Message for MyMessage {
     /// #     const MESSAGE_TYPE: &'static str = "my_message";
@@ -321,17 +325,17 @@ pub trait Actor: Send + Sync + 'static {
     ///     type Message = MyMessage;
     ///     type Error = MyError;
     ///
-    ///     async fn handle_message(
+    ///     async fn handle_message<B: airssys_rt::broker::MessageBroker<Self::Message>>(
     ///         &mut self,
     ///         _message: Self::Message,
-    ///         _context: &mut ActorContext<Self::Message>,
+    ///         _context: &mut ActorContext<Self::Message, B>,
     ///     ) -> Result<(), Self::Error> {
     ///         Ok(())
     ///     }
     ///
-    ///     async fn post_stop(
+    ///     async fn post_stop<B: airssys_rt::broker::MessageBroker<Self::Message>>(
     ///         &mut self,
-    ///         _context: &mut ActorContext<Self::Message>,
+    ///         _context: &mut ActorContext<Self::Message, B>,
     ///     ) -> Result<(), Self::Error> {
     ///         // Simulate closing file handle
     ///         self.file_open = false;
@@ -340,9 +344,9 @@ pub trait Actor: Send + Sync + 'static {
     ///     }
     /// }
     /// ```
-    async fn post_stop(
+    async fn post_stop<B: crate::broker::MessageBroker<Self::Message>>(
         &mut self,
-        _context: &mut ActorContext<Self::Message>,
+        _context: &mut ActorContext<Self::Message, B>,
     ) -> Result<(), Self::Error> {
         Ok(())
     }
@@ -353,6 +357,8 @@ pub trait Actor: Send + Sync + 'static {
     /// The returned `ErrorAction` determines how the supervisor handles the failure.
     ///
     /// Default implementation returns `ErrorAction::Stop`.
+    ///
+    /// Generic over broker type B to support dependency injection (ADR-006).
     ///
     /// # Arguments
     ///
@@ -374,7 +380,7 @@ pub trait Actor: Send + Sync + 'static {
     /// # use async_trait::async_trait;
     /// # use std::fmt;
     /// #
-    /// # #[derive(Debug, Clone)]
+    /// # #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
     /// # struct MyMessage;
     /// # impl Message for MyMessage {
     /// #     const MESSAGE_TYPE: &'static str = "my_message";
@@ -398,18 +404,18 @@ pub trait Actor: Send + Sync + 'static {
     ///     type Message = MyMessage;
     ///     type Error = MyError;
     ///
-    ///     async fn handle_message(
+    ///     async fn handle_message<B: airssys_rt::broker::MessageBroker<Self::Message>>(
     ///         &mut self,
     ///         _message: Self::Message,
-    ///         _context: &mut ActorContext<Self::Message>,
+    ///         _context: &mut ActorContext<Self::Message, B>,
     ///     ) -> Result<(), Self::Error> {
     ///         Ok(())
     ///     }
     ///
-    ///     async fn on_error(
+    ///     async fn on_error<B: airssys_rt::broker::MessageBroker<Self::Message>>(
     ///         &mut self,
     ///         error: Self::Error,
-    ///         _context: &mut ActorContext<Self::Message>,
+    ///         _context: &mut ActorContext<Self::Message, B>,
     ///     ) -> ErrorAction {
     ///         if error.recoverable && self.retry_count < 3 {
     ///             self.retry_count += 1;
@@ -422,10 +428,10 @@ pub trait Actor: Send + Sync + 'static {
     ///     }
     /// }
     /// ```
-    async fn on_error(
+    async fn on_error<B: crate::broker::MessageBroker<Self::Message>>(
         &mut self,
         _error: Self::Error,
-        _context: &mut ActorContext<Self::Message>,
+        _context: &mut ActorContext<Self::Message, B>,
     ) -> ErrorAction {
         ErrorAction::Stop
     }
@@ -500,10 +506,12 @@ impl Default for ErrorAction {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::broker::InMemoryMessageBroker;
     use crate::util::ActorAddress;
+    use serde::{Deserialize, Serialize};
     use std::fmt;
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     struct TestMessage {
         #[allow(dead_code)]
         content: String,
@@ -537,10 +545,10 @@ mod tests {
         type Message = TestMessage;
         type Error = TestError;
 
-        async fn handle_message(
+        async fn handle_message<B: crate::broker::MessageBroker<Self::Message>>(
             &mut self,
             _message: Self::Message,
-            _context: &mut ActorContext<Self::Message>,
+            _context: &mut ActorContext<Self::Message, B>,
         ) -> Result<(), Self::Error> {
             if self.should_fail {
                 return Err(TestError {
@@ -551,25 +559,25 @@ mod tests {
             Ok(())
         }
 
-        async fn pre_start(
+        async fn pre_start<B: crate::broker::MessageBroker<Self::Message>>(
             &mut self,
-            _context: &mut ActorContext<Self::Message>,
+            _context: &mut ActorContext<Self::Message, B>,
         ) -> Result<(), Self::Error> {
             self.message_count = 0;
             Ok(())
         }
 
-        async fn post_stop(
+        async fn post_stop<B: crate::broker::MessageBroker<Self::Message>>(
             &mut self,
-            _context: &mut ActorContext<Self::Message>,
+            _context: &mut ActorContext<Self::Message, B>,
         ) -> Result<(), Self::Error> {
             Ok(())
         }
 
-        async fn on_error(
+        async fn on_error<B: crate::broker::MessageBroker<Self::Message>>(
             &mut self,
             _error: Self::Error,
-            _context: &mut ActorContext<Self::Message>,
+            _context: &mut ActorContext<Self::Message, B>,
         ) -> ErrorAction {
             if self.message_count < 3 {
                 ErrorAction::Restart
@@ -586,7 +594,8 @@ mod tests {
             should_fail: false,
         };
         let address = ActorAddress::anonymous();
-        let mut context = ActorContext::new(address);
+        let broker = InMemoryMessageBroker::<TestMessage>::new();
+        let mut context = ActorContext::new(address, broker);
 
         let message = TestMessage {
             content: "test".to_string(),
@@ -604,7 +613,8 @@ mod tests {
             should_fail: true,
         };
         let address = ActorAddress::anonymous();
-        let mut context = ActorContext::new(address);
+        let broker = InMemoryMessageBroker::<TestMessage>::new();
+        let mut context = ActorContext::new(address, broker);
 
         let message = TestMessage {
             content: "test".to_string(),
@@ -621,7 +631,8 @@ mod tests {
             should_fail: false,
         };
         let address = ActorAddress::anonymous();
-        let mut context = ActorContext::new(address);
+        let broker = InMemoryMessageBroker::<TestMessage>::new();
+        let mut context = ActorContext::new(address, broker);
 
         let result = actor.pre_start(&mut context).await;
         assert!(result.is_ok());
@@ -635,7 +646,8 @@ mod tests {
             should_fail: false,
         };
         let address = ActorAddress::anonymous();
-        let mut context = ActorContext::new(address);
+        let broker = InMemoryMessageBroker::<TestMessage>::new();
+        let mut context = ActorContext::new(address, broker);
 
         let result = actor.post_stop(&mut context).await;
         assert!(result.is_ok());
@@ -648,7 +660,8 @@ mod tests {
             should_fail: false,
         };
         let address = ActorAddress::anonymous();
-        let mut context = ActorContext::new(address);
+        let broker = InMemoryMessageBroker::<TestMessage>::new();
+        let mut context = ActorContext::new(address, broker);
 
         let error = TestError {
             message: "test error".to_string(),
@@ -665,7 +678,8 @@ mod tests {
             should_fail: false,
         };
         let address = ActorAddress::anonymous();
-        let mut context = ActorContext::new(address);
+        let broker = InMemoryMessageBroker::<TestMessage>::new();
+        let mut context = ActorContext::new(address, broker);
 
         let error = TestError {
             message: "test error".to_string(),

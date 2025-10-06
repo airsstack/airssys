@@ -9,9 +9,7 @@ use tokio::sync::mpsc;
 // Layer 3: Internal module imports
 use super::backpressure::BackpressureStrategy;
 use super::metrics::{AtomicMetrics, MetricsRecorder};
-use super::traits::{
-    MailboxCapacity, MailboxError, MailboxReceiver, MailboxSender, TryRecvError,
-};
+use super::traits::{MailboxCapacity, MailboxError, MailboxReceiver, MailboxSender, TryRecvError};
 use crate::message::{Message, MessageEnvelope};
 
 /// Bounded mailbox with configurable capacity and backpressure handling.
@@ -419,6 +417,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_ttl_expiration() {
+        use std::time::Duration;
+        use tokio::time::sleep;
+
         let (mut mailbox, sender) = BoundedMailbox::new(10);
 
         let msg = TestMessage {
@@ -431,7 +432,7 @@ mod tests {
         sender.send(envelope).await.unwrap();
 
         // Sleep for 2 seconds to ensure TTL expires
-        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+        sleep(Duration::from_secs(2)).await;
 
         // Send a valid message
         let valid_msg = MessageEnvelope::new(TestMessage {

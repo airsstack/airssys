@@ -2,10 +2,14 @@
 //!
 //! Provides the main entry point for the actor runtime system.
 
+pub mod actor_system;
+pub mod builder;
 pub mod config;
 pub mod errors;
 
 // Re-exports
+pub use actor_system::ActorSystem;
+pub use builder::ActorSpawnBuilder;
 pub use config::{
     SystemConfig, DEFAULT_ENABLE_METRICS, DEFAULT_MAILBOX_CAPACITY, DEFAULT_MAX_ACTORS,
     DEFAULT_SHUTDOWN_TIMEOUT, DEFAULT_SPAWN_TIMEOUT,

@@ -42,9 +42,7 @@ use tokio::sync::mpsc;
 
 // Layer 3: Internal module imports
 use super::metrics::{AtomicMetrics, MetricsRecorder};
-use super::traits::{
-    MailboxCapacity, MailboxError, MailboxReceiver, MailboxSender, TryRecvError,
-};
+use super::traits::{MailboxCapacity, MailboxError, MailboxReceiver, MailboxSender, TryRecvError};
 use crate::message::{Message, MessageEnvelope};
 
 /// Unbounded mailbox with unlimited capacity.
@@ -227,7 +225,9 @@ impl<M: Message, R: MetricsRecorder + Clone> MailboxSender<M> for UnboundedMailb
 
     async fn send(&self, envelope: MessageEnvelope<M>) -> Result<(), Self::Error> {
         // Unbounded send never blocks or fails due to capacity
-        self.sender.send(envelope).map_err(|_| MailboxError::Closed)?;
+        self.sender
+            .send(envelope)
+            .map_err(|_| MailboxError::Closed)?;
 
         // Update metrics after sending
         self.metrics.record_sent();
@@ -236,7 +236,9 @@ impl<M: Message, R: MetricsRecorder + Clone> MailboxSender<M> for UnboundedMailb
 
     fn try_send(&self, envelope: MessageEnvelope<M>) -> Result<(), Self::Error> {
         // Unbounded send never fails due to capacity, only if closed
-        self.sender.send(envelope).map_err(|_| MailboxError::Closed)?;
+        self.sender
+            .send(envelope)
+            .map_err(|_| MailboxError::Closed)?;
 
         // Update metrics after sending
         self.metrics.record_sent();
@@ -358,6 +360,7 @@ mod tests {
     #[tokio::test]
     async fn test_unbounded_ttl_expiration() {
         use std::time::Duration;
+        use tokio::time::sleep;
 
         let (mut mailbox, sender) = UnboundedMailbox::new();
 
@@ -371,7 +374,7 @@ mod tests {
         sender.send(envelope).await.unwrap();
 
         // Sleep for 2 seconds to ensure TTL expires
-        tokio::time::sleep(Duration::from_secs(2)).await;
+        sleep(Duration::from_secs(2)).await;
 
         // Send valid message (no TTL)
         sender

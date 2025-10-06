@@ -8,9 +8,10 @@
 
 use airssys_rt::{Actor, ActorContext, ActorLifecycle, ActorState, ErrorAction, Message};
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct WorkMessage {
     id: u32,
     should_fail: bool,
@@ -43,10 +44,10 @@ impl Actor for WorkerActor {
     type Message = WorkMessage;
     type Error = WorkerError;
 
-    async fn handle_message(
+    async fn handle_message<B: airssys_rt::broker::MessageBroker<Self::Message>>(
         &mut self,
         message: Self::Message,
-        context: &mut ActorContext<Self::Message>,
+        context: &mut ActorContext<Self::Message, B>,
     ) -> Result<(), Self::Error> {
         println!("[Worker] Processing work item {}", message.id);
 
@@ -63,30 +64,39 @@ impl Actor for WorkerActor {
         Ok(())
     }
 
-    async fn pre_start(&mut self, _context: &mut ActorContext<Self::Message>) -> Result<(), Self::Error> {
+    async fn pre_start<B: airssys_rt::broker::MessageBroker<Self::Message>>(
+        &mut self,
+        _context: &mut ActorContext<Self::Message, B>,
+    ) -> Result<(), Self::Error> {
         println!("[Worker] Initializing...");
         self.processed = 0;
         Ok(())
     }
 
-    async fn post_stop(&mut self, _context: &mut ActorContext<Self::Message>) -> Result<(), Self::Error> {
-        println!("[Worker] Shutting down (processed {} items)", self.processed);
+    async fn post_stop<B: airssys_rt::broker::MessageBroker<Self::Message>>(
+        &mut self,
+        _context: &mut ActorContext<Self::Message, B>,
+    ) -> Result<(), Self::Error> {
+        println!(
+            "[Worker] Shutting down (processed {} items)",
+            self.processed
+        );
         Ok(())
     }
 
-    async fn on_error(
+    async fn on_error<B: airssys_rt::broker::MessageBroker<Self::Message>>(
         &mut self,
         error: Self::Error,
-        _context: &mut ActorContext<Self::Message>,
+        _context: &mut ActorContext<Self::Message, B>,
     ) -> ErrorAction {
         println!("[Worker] Error: {error}");
         ErrorAction::Restart
     }
 }
 
-async fn simulate_actor_lifecycle(
+async fn simulate_actor_lifecycle<B: airssys_rt::broker::MessageBroker<WorkMessage>>(
     actor: &mut WorkerActor,
-    context: &mut ActorContext<WorkMessage>,
+    context: &mut ActorContext<WorkMessage, B>,
     lifecycle: &mut ActorLifecycle,
     messages: Vec<WorkMessage>,
 ) {
@@ -121,7 +131,7 @@ async fn simulate_actor_lifecycle(
                     println!("   Restarting actor...");
                     lifecycle.transition_to(ActorState::Stopping);
                     let _ = actor.post_stop(context).await;
-                    
+
                     lifecycle.transition_to(ActorState::Starting);
                     if actor.pre_start(context).await.is_ok() {
                         lifecycle.transition_to(ActorState::Running);
@@ -136,7 +146,7 @@ async fn simulate_actor_lifecycle(
         println!("\n3. STOPPING state");
         lifecycle.transition_to(ActorState::Stopping);
         println!("   State: {:?}", lifecycle.state());
-        
+
         let _ = actor.post_stop(context).await;
         lifecycle.transition_to(ActorState::Stopped);
     }
@@ -157,15 +167,25 @@ async fn main() {
     };
 
     let address = airssys_rt::util::ActorAddress::named("worker");
-    let mut context = ActorContext::<WorkMessage>::new(address);
+    let broker = airssys_rt::broker::in_memory::InMemoryMessageBroker::<WorkMessage>::new();
+    let mut context = ActorContext::new(address, broker);
     let mut lifecycle = ActorLifecycle::new();
 
     // Scenario 1: Normal operation
     println!("\n### Scenario 1: Normal Operation");
     let messages = vec![
-        WorkMessage { id: 1, should_fail: false },
-        WorkMessage { id: 2, should_fail: false },
-        WorkMessage { id: 3, should_fail: false },
+        WorkMessage {
+            id: 1,
+            should_fail: false,
+        },
+        WorkMessage {
+            id: 2,
+            should_fail: false,
+        },
+        WorkMessage {
+            id: 3,
+            should_fail: false,
+        },
     ];
     simulate_actor_lifecycle(&mut actor, &mut context, &mut lifecycle, messages).await;
 
@@ -173,11 +193,26 @@ async fn main() {
     println!("\n\n### Scenario 2: With Failures and Restarts");
     lifecycle = ActorLifecycle::new();
     let messages = vec![
-        WorkMessage { id: 1, should_fail: false },
-        WorkMessage { id: 2, should_fail: true },  // Fails, triggers restart
-        WorkMessage { id: 3, should_fail: false },
-        WorkMessage { id: 4, should_fail: true },  // Fails, triggers restart
-        WorkMessage { id: 5, should_fail: false },
+        WorkMessage {
+            id: 1,
+            should_fail: false,
+        },
+        WorkMessage {
+            id: 2,
+            should_fail: true,
+        }, // Fails, triggers restart
+        WorkMessage {
+            id: 3,
+            should_fail: false,
+        },
+        WorkMessage {
+            id: 4,
+            should_fail: true,
+        }, // Fails, triggers restart
+        WorkMessage {
+            id: 5,
+            should_fail: false,
+        },
     ];
     simulate_actor_lifecycle(&mut actor, &mut context, &mut lifecycle, messages).await;
 

@@ -246,6 +246,7 @@ impl SystemConfigBuilder {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 
@@ -398,7 +399,7 @@ mod tests {
     #[test]
     fn test_config_debug() {
         let config = SystemConfig::default();
-        let debug = format!("{:?}", config);
+        let debug = format!("{config:?}");
         assert!(debug.contains("SystemConfig"));
     }
 }
