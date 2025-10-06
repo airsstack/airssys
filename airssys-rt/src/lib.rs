@@ -12,6 +12,7 @@ pub mod actor;
 pub mod broker;
 pub mod mailbox;
 pub mod message;
+pub mod monitoring;
 pub mod system;
 pub mod util;
 
@@ -22,5 +23,10 @@ pub use mailbox::{
     BackpressureStrategy, BoundedMailbox, BoundedMailboxSender, MailboxReceiver, MailboxSender,
 };
 pub use message::{Message, MessageEnvelope, MessagePriority};
+pub use monitoring::{
+    ActorEvent, ActorEventKind, BrokerEvent, BrokerEventKind, EventSeverity, MailboxEvent,
+    MailboxEventKind, Monitor, MonitoringConfig, MonitoringError, MonitoringEvent,
+    MonitoringSnapshot, SupervisionEvent, SupervisionEventKind, SystemEvent, SystemEventKind,
+};
 pub use system::{SystemConfig, SystemError};
 pub use util::{ActorAddress, ActorId, MessageId};
