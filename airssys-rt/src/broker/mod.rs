@@ -43,4 +43,4 @@ pub mod traits;
 pub use error::BrokerError;
 pub use in_memory::InMemoryMessageBroker;
 pub use registry::{ActorRegistry, PoolStrategy};
-pub use traits::MessageBroker;
+pub use traits::{MessageBroker, MessageStream};

@@ -10,16 +10,108 @@ use std::time::Duration;
 
 // Layer 2: Third-party crate imports
 use async_trait::async_trait;
+use tokio::sync::mpsc;
 
 // Layer 3: Internal module imports
 use crate::message::{Message, MessageEnvelope};
 
-/// Generic message broker trait for type-safe message routing.
+/// Message stream from broker subscriptions.
+///
+/// A stream of messages published to the broker. Multiple subscribers can
+/// independently receive all published messages.
+///
+/// # Example
+///
+/// ```ignore
+/// let mut stream = broker.subscribe().await?;
+///
+/// while let Some(envelope) = stream.recv().await {
+///     // Process message
+///     route_to_actor(envelope).await?;
+/// }
+/// ```
+pub struct MessageStream<M: Message> {
+    receiver: mpsc::UnboundedReceiver<MessageEnvelope<M>>,
+}
+
+impl<M: Message> MessageStream<M> {
+    /// Create a new message stream.
+    ///
+    /// This is typically called internally by broker implementations.
+    pub fn new(receiver: mpsc::UnboundedReceiver<MessageEnvelope<M>>) -> Self {
+        Self { receiver }
+    }
+
+    /// Receive next message from stream.
+    ///
+    /// Returns `None` when the stream is closed (all publishers dropped).
+    pub async fn recv(&mut self) -> Option<MessageEnvelope<M>> {
+        self.receiver.recv().await
+    }
+
+    /// Try to receive without blocking.
+    ///
+    /// Returns:
+    /// - `Ok(envelope)` - Message available
+    /// - `Err(TryRecvError::Empty)` - No messages available
+    /// - `Err(TryRecvError::Disconnected)` - Stream closed
+    pub fn try_recv(&mut self) -> Result<MessageEnvelope<M>, mpsc::error::TryRecvError> {
+        self.receiver.try_recv()
+    }
+}
+
+/// Generic message broker trait for pub-sub message bus architecture.
+///
+/// The broker implements a **publish-subscribe message bus** that decouples
+/// message publishers from subscribers. This architecture enables:
+/// - Multiple independent subscribers (ActorSystem, monitors, audit logs)
+/// - Extensibility hooks for observability and resilience
+/// - Clean separation between business logic and infrastructure
 ///
 /// The broker is infrastructure managed by ActorSystem and is completely
 /// hidden from actor implementations. Actors only implement `handle_message()`
 /// and never directly interact with the broker. Instead, actors use the
 /// `ActorContext` methods (`send`, `request`) which internally use the broker.
+///
+/// # Architecture: Pub-Sub Message Bus
+///
+/// ```text
+/// ┌─────────────────── Publishers ────────────────────┐
+/// │  Actor A          Actor B          Actor C        │
+/// │     │                │                 │          │
+/// │     └────────────────┼─────────────────┘          │
+/// │                      │                            │
+/// │                 publish(msg)                       │
+/// └──────────────────────┼────────────────────────────┘
+///                        ▼
+///              ┌──────────────────┐
+///              │  MessageBroker   │  ◀── Central message bus
+///              │   (Pub-Sub Bus)  │      Broadcasts to all
+///              └──────────────────┘
+///                        │
+///          ┌─────────────┼─────────────┐
+///          │             │             │
+///          ▼             ▼             ▼
+///   ┌──────────┐  ┌──────────┐  ┌──────────┐
+///   │ ActorSys │  │ Monitor  │  │  Audit   │  ◀── Subscribers
+///   │ (routes) │  │(metrics) │  │  (logs)  │
+///   └──────────┘  └──────────┘  └──────────┘
+///        │
+///        └──▶ routes to actor mailboxes
+/// ```
+///
+/// # Key Differences from Direct Routing
+///
+/// **Pub-Sub (Current)**:
+/// - `publish()` → broadcasts to ALL subscribers
+/// - Subscribers independently route to actors
+/// - Extensible: add monitors, audit logs, dead letter queues
+/// - Loose coupling: publishers don't know subscribers
+///
+/// **Direct Routing (Deprecated)**:
+/// - `send()` → directly to actor mailbox
+/// - Tight coupling: broker knows all actors
+/// - Hard to extend: no hooks for monitoring
 ///
 /// # Type Safety
 ///
@@ -39,14 +131,16 @@ use crate::message::{Message, MessageEnvelope};
 /// ┌─────────────────────────────────────────────┐
 /// │           ActorSystem (manages)             │
 /// │  ┌────────────┐        ┌────────────┐      │
-/// │  │ ActorSystem│───────▶│   Broker   │      │
-/// │  └────────────┘        └────────────┘      │
+/// │  │ ActorSystem│◀───────│   Broker   │      │
+/// │  │ (subscribes        │  (pub-sub)  │      │
+/// │  │  & routes)  │        └────────────┘      │
+/// │  └────────────┘               ▲             │
 /// │         │                     │             │
-/// │         │ spawns              │ routes      │
-/// │         ▼                     ▼             │
+/// │         │ spawns         publish(msg)       │
+/// │         ▼                     │             │
 /// │  ┌────────────┐        ┌────────────┐      │
-/// │  │   Actor    │        │  Mailbox   │      │
-/// │  │ (business) │◀───────│ (receives) │      │
+/// │  │   Actor    │────────│  Mailbox   │      │
+/// │  │ (business) │        │ (receives) │      │
 /// │  └────────────┘        └────────────┘      │
 /// │         ▲                                   │
 /// │         │ handle_message(M)                 │
@@ -64,18 +158,25 @@ use crate::message::{Message, MessageEnvelope};
 /// // ActorSystem creates broker internally
 /// let broker = InMemoryMessageBroker::<MyMessage>::new();
 ///
-/// // System registers actors with their mailbox senders
-/// broker.register_actor(address, mailbox_sender)?;
+/// // Subscribe for routing (ActorSystem does this)
+/// let mut routing_stream = broker.subscribe().await?;
+/// tokio::spawn(async move {
+///     while let Some(envelope) = routing_stream.recv().await {
+///         // Route to actor via registry
+///         route_to_actor(envelope).await;
+///     }
+/// });
 ///
-/// // System routes fire-and-forget messages
+/// // Publish messages to the bus
 /// let envelope = MessageEnvelope::new(message)
 ///     .with_recipient(address);
-/// broker.send(envelope).await?;
+/// broker.publish(envelope).await?;
+/// // Broadcast to all subscribers (ActorSystem, monitors, etc.)
 ///
-/// // System handles request-reply patterns
+/// // Request-reply over pub-sub
 /// let request_envelope = MessageEnvelope::new(request)
 ///     .with_recipient(address);
-/// let response = broker.request::<ResponseType>(
+/// let response = broker.publish_request::<ResponseType>(
 ///     request_envelope,
 ///     Duration::from_secs(5)
 /// ).await?;
@@ -86,6 +187,8 @@ use crate::message::{Message, MessageEnvelope};
 /// Implementations must:
 /// - Be `Send + Sync` for concurrent access across async tasks
 /// - Implement `Clone` for cheap broker handle distribution
+/// - Support multiple independent subscribers
+/// - Broadcast published messages to all active subscribers
 /// - Use generic constraints, not trait objects (§6.2)
 /// - Provide comprehensive error handling via `Error` associated type
 #[async_trait]
@@ -96,36 +199,103 @@ pub trait MessageBroker<M: Message>: Send + Sync + Clone {
     /// and propagation across async task boundaries.
     type Error: Error + Send + Sync + 'static;
 
-    /// Send a message to an actor by address (fire-and-forget).
+    /// Publish a message to the broker bus.
     ///
-    /// Transfers ownership of the message envelope to the target actor's
-    /// mailbox. Returns error if actor not found or mailbox closed.
+    /// Messages are broadcast to all subscribers. This is the fundamental
+    /// operation for actor-to-actor communication in the pub-sub architecture.
     ///
-    /// This is a non-blocking operation that completes when the message is
-    /// enqueued in the target mailbox, not when it's processed.
+    /// # Pub-Sub Semantics
+    ///
+    /// Unlike direct routing, `publish()` does NOT directly deliver to a specific
+    /// actor. Instead, it broadcasts the message to all subscribers (typically
+    /// ActorSystem routers), which then route to the appropriate actor mailbox.
+    ///
+    /// # Extensibility Hooks
+    ///
+    /// Implementations can add hooks for:
+    /// - Logging and distributed tracing
+    /// - Metrics collection (message rates, sizes)
+    /// - Message persistence for replay
+    /// - Circuit breakers for resilience
+    /// - Rate limiting for fairness
     ///
     /// # Arguments
     ///
-    /// * `envelope` - The message envelope containing the message and routing metadata
+    /// * `envelope` - The message envelope containing message and metadata
     ///
     /// # Errors
     ///
     /// Returns error if:
-    /// - Target actor not found in registry
-    /// - Target actor's mailbox is closed (actor stopped)
-    /// - Mailbox is full and backpressure rejects the message
+    /// - Broker is shut down
+    /// - Persistence layer fails (if enabled)
+    /// - Circuit breaker is open (if enabled)
     ///
     /// # Example
     ///
     /// ```ignore
     /// let envelope = MessageEnvelope::new(message)
     ///     .with_sender(sender_address)
-    ///     .with_recipient(target_address);
+    ///     .with_recipient(recipient_address);
     ///
-    /// broker.send(envelope).await?;
-    /// // Message ownership transferred to target mailbox
+    /// broker.publish(envelope).await?;
+    /// // Message broadcast to all subscribers
     /// ```
-    async fn send(&self, envelope: MessageEnvelope<M>) -> Result<(), Self::Error>;
+    async fn publish(&self, envelope: MessageEnvelope<M>) -> Result<(), Self::Error>;
+
+    /// Subscribe to message events on the broker.
+    ///
+    /// Returns a stream of all messages published to the broker. Multiple
+    /// subscribers can listen to the same message stream independently.
+    ///
+    /// # Subscriber Lifecycle
+    ///
+    /// The subscription remains active until the MessageStream is dropped.
+    /// When the stream is dropped, the subscriber is automatically unregistered.
+    ///
+    /// # Use Cases
+    ///
+    /// - **ActorSystem**: Subscribes to route messages to actors via ActorRegistry
+    /// - **Monitor Service**: Subscribes for observability and metrics collection
+    /// - **Audit Service**: Subscribes for compliance logging and event sourcing
+    /// - **Dead Letter Queue**: Subscribes to capture undeliverable messages
+    ///
+    /// # Multiple Subscribers
+    ///
+    /// Each subscriber receives ALL published messages independently. The broker
+    /// maintains separate channels for each subscriber.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if:
+    /// - Broker is shut down
+    /// - Maximum subscriber limit reached (implementation-specific)
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// // ActorSystem subscribes for routing
+    /// let mut routing_stream = broker.subscribe().await?;
+    ///
+    /// tokio::spawn(async move {
+    ///     while let Some(envelope) = routing_stream.recv().await {
+    ///         // Route to actor via registry
+    ///         if let Some(recipient) = envelope.metadata.reply_to {
+    ///             let sender = registry.resolve(&recipient)?;
+    ///             sender.send(envelope).await?;
+    ///         }
+    ///     }
+    /// });
+    ///
+    /// // Monitor subscribes for metrics
+    /// let mut monitor_stream = broker.subscribe().await?;
+    ///
+    /// tokio::spawn(async move {
+    ///     while let Some(envelope) = monitor_stream.recv().await {
+    ///         metrics.record_message(&envelope);
+    ///     }
+    /// });
+    /// ```
+    async fn subscribe(&self) -> Result<MessageStream<M>, Self::Error>;
 
     /// Send a request and wait for a reply (request-reply pattern).
     ///
@@ -185,7 +355,7 @@ pub trait MessageBroker<M: Message>: Send + Sync + Clone {
     /// Request-reply is a blocking operation that holds a task waiting for response.
     /// For long-running operations, consider using fire-and-forget with manual
     /// correlation IDs instead (see KNOWLEDGE-RT-010 Pattern 3).
-    async fn request<R: Message + for<'de> serde::Deserialize<'de>>(
+    async fn publish_request<R: Message + for<'de> serde::Deserialize<'de>>(
         &self,
         envelope: MessageEnvelope<M>,
         timeout: Duration,
