@@ -96,6 +96,13 @@ pub enum SupervisorError {
     /// structure, such as circular dependencies or orphaned children.
     #[error("Supervisor tree integrity violation: {reason}")]
     TreeIntegrityViolation { reason: String },
+
+    /// Health monitoring is not enabled for this supervisor.
+    ///
+    /// Attempted to perform a health check operation when health monitoring
+    /// has not been enabled via `enable_health_checks()`.
+    #[error("Health monitoring not enabled for child '{id}'")]
+    HealthMonitoringNotEnabled { id: String },
 }
 
 impl SupervisorError {

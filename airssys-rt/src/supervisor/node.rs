@@ -21,7 +21,7 @@ use super::error::SupervisorError;
 use super::strategy::should_restart;
 use super::traits::{Child, SupervisionStrategy, Supervisor};
 use super::types::{
-    ChildId, ChildSpec, ChildState, RestartPolicy, ShutdownPolicy, StrategyContext,
+    ChildHealth, ChildId, ChildSpec, ChildState, RestartPolicy, ShutdownPolicy, StrategyContext,
     SupervisionDecision,
 };
 use crate::monitoring::{Monitor, SupervisionEvent, SupervisionEventKind};
@@ -314,7 +314,7 @@ impl<S, C, M> SupervisorNode<S, C, M>
 where
     S: SupervisionStrategy,
     C: Child,
-    M: Monitor<SupervisionEvent>,
+    M: Monitor<SupervisionEvent> + 'static,
 {
     /// Creates a new supervisor node with default configuration.
     ///
@@ -565,6 +565,187 @@ where
     /// Returns `None` if health monitoring is not enabled.
     pub fn health_config_mut(&mut self) -> Option<&mut HealthConfig> {
         self.health_config.as_mut()
+    }
+
+    // ========================================================================
+    // Health Check Logic (Phase 4b)
+    // ========================================================================
+
+    /// Checks the health of a specific child with timeout.
+    ///
+    /// This method performs a health check on the specified child and updates
+    /// consecutive failure tracking. If the failure threshold is exceeded,
+    /// the child will be automatically restarted.
+    ///
+    /// # Parameters
+    ///
+    /// - `child_id`: The ID of the child to check
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(ChildHealth)`: The health status of the child
+    /// - `Err(SupervisorError::HealthMonitoringNotEnabled)`: If monitoring is disabled
+    /// - `Err(SupervisorError::ChildNotFound)`: If child doesn't exist
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use airssys_rt::supervisor::{SupervisorNode, OneForOne, ChildHealth};
+    /// use airssys_rt::monitoring::InMemoryMonitor;
+    /// use std::time::Duration;
+    ///
+    /// # use airssys_rt::supervisor::Child;
+    /// # use async_trait::async_trait;
+    /// # struct MyWorker;
+    /// # #[derive(Debug)]
+    /// # struct MyError;
+    /// # impl std::fmt::Display for MyError {
+    /// #     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result { Ok(()) }
+    /// # }
+    /// # impl std::error::Error for MyError {}
+    /// # #[async_trait]
+    /// # impl Child for MyWorker {
+    /// #     type Error = MyError;
+    /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+    /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
+    /// # }
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// # let monitor = InMemoryMonitor::new(Default::default());
+    /// # let mut supervisor = SupervisorNode::<OneForOne, MyWorker, _>::new(OneForOne, monitor);
+    /// # let child_id = Default::default();
+    /// // Enable health monitoring
+    /// supervisor.enable_health_checks(Duration::from_secs(30), Duration::from_secs(5), 3);
+    ///
+    /// // Check child health
+    /// let health = supervisor.check_child_health(&child_id).await?;
+    /// match health {
+    ///     ChildHealth::Healthy => println!("Child is healthy"),
+    ///     ChildHealth::Degraded(reason) => println!("Child degraded: {}", reason),
+    ///     ChildHealth::Failed(reason) => println!("Child failed: {}", reason),
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn check_child_health(
+        &mut self,
+        child_id: &ChildId,
+    ) -> Result<ChildHealth, SupervisorError> {
+        // Ensure health monitoring is enabled
+        let config = self.health_config.as_ref().ok_or_else(|| {
+            SupervisorError::HealthMonitoringNotEnabled {
+                id: child_id.to_string(),
+            }
+        })?;
+
+        let check_timeout = config.check_timeout;
+
+        // Get child handle
+        let child_handle = self.children.get(child_id).ok_or_else(|| {
+            SupervisorError::ChildNotFound {
+                id: child_id.clone(),
+            }
+        })?;
+
+        // Perform health check with timeout
+        let health_result = timeout(check_timeout, child_handle.child().health_check()).await;
+
+        let health = match health_result {
+            Ok(health) => health,
+            Err(_) => {
+                // Timeout occurred
+                ChildHealth::Failed(format!("Health check timeout after {:?}", check_timeout))
+            }
+        };
+
+        // Handle health check result
+        self.handle_health_check_result(child_id, &health).await?;
+
+        Ok(health)
+    }
+
+    /// Handles the result of a health check and updates failure tracking.
+    ///
+    /// This method updates consecutive failure counts and triggers restart
+    /// if the failure threshold is exceeded.
+    async fn handle_health_check_result(
+        &mut self,
+        child_id: &ChildId,
+        health: &ChildHealth,
+    ) -> Result<(), SupervisorError> {
+        let should_restart = {
+            // Get mutable config to update failure tracking
+            let config = self.health_config.as_mut().ok_or_else(|| {
+                SupervisorError::HealthMonitoringNotEnabled {
+                    id: child_id.to_string(),
+                }
+            })?;
+
+            match health {
+                ChildHealth::Healthy => {
+                    // Reset failure count on successful health check
+                    config.reset_failure(child_id);
+                    false
+                }
+                ChildHealth::Degraded(_) => {
+                    // Don't count degraded as failure, but emit event
+                    let _ = self
+                        .monitor
+                        .record(SupervisionEvent {
+                            timestamp: Utc::now(),
+                            supervisor_id: self.id.to_string(),
+                            child_id: Some(child_id.to_string()),
+                            event_kind: SupervisionEventKind::ChildFailed {
+                                error: format!("Child degraded: {:?}", health),
+                                restart_count: 0,
+                            },
+                            metadata: HashMap::new(),
+                        })
+                        .await;
+                    false
+                }
+                ChildHealth::Failed(reason) => {
+                    // Increment failure count
+                    config.increment_failure(child_id);
+
+                    // Check if threshold exceeded
+                    let exceeded = config.has_exceeded_threshold(child_id);
+                    let failure_count = config.get_failure_count(child_id);
+
+                    // Emit health check failure event
+                    let _ = self
+                        .monitor
+                        .record(SupervisionEvent {
+                            timestamp: Utc::now(),
+                            supervisor_id: self.id.to_string(),
+                            child_id: Some(child_id.to_string()),
+                            event_kind: SupervisionEventKind::ChildFailed {
+                                error: format!(
+                                    "Health check failed ({}): {}",
+                                    failure_count, reason
+                                ),
+                                restart_count: failure_count,
+                            },
+                            metadata: HashMap::new(),
+                        })
+                        .await;
+
+                    exceeded
+                }
+            }
+        };
+
+        // Trigger restart if threshold exceeded
+        if should_restart {
+            // Reset failure count before restart
+            if let Some(config) = self.health_config.as_mut() {
+                config.reset_failure(child_id);
+            }
+
+            // Restart the child
+            self.restart_child(child_id).await?;
+        }
+
+        Ok(())
     }
 
     /// Starts a child with timeout.
@@ -1358,5 +1539,273 @@ mod tests {
         assert!(debug_str.contains("5s"));
         assert!(debug_str.contains("failure_threshold"));
         assert!(debug_str.contains("3"));
+    }
+
+    // ========================================================================
+    // Phase 4b: Health Check Logic Tests
+    // ========================================================================
+
+    // Enhanced test child for health check testing
+    #[derive(Debug)]
+    struct HealthTestChild {
+        should_fail_start: bool,
+        should_fail_stop: bool,
+        health_status: ChildHealth,
+    }
+
+    #[async_trait]
+    impl Child for HealthTestChild {
+        type Error = TestChildError;
+
+        async fn start(&mut self) -> Result<(), Self::Error> {
+            if self.should_fail_start {
+                Err(TestChildError)
+            } else {
+                Ok(())
+            }
+        }
+
+        async fn stop(&mut self, _timeout: Duration) -> Result<(), Self::Error> {
+            if self.should_fail_stop {
+                Err(TestChildError)
+            } else {
+                Ok(())
+            }
+        }
+
+        async fn health_check(&self) -> ChildHealth {
+            self.health_status.clone()
+        }
+    }
+
+    #[tokio::test]
+    async fn test_check_child_health_success() {
+        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let mut supervisor =
+            SupervisorNode::<OneForOne, HealthTestChild, _>::new(OneForOne, monitor);
+
+        // Enable health monitoring
+        supervisor.enable_health_checks(Duration::from_secs(30), Duration::from_secs(5), 3);
+
+        // Start a healthy child
+        let spec = ChildSpec {
+            id: "healthy-child".into(),
+            factory: || HealthTestChild {
+                should_fail_start: false,
+                should_fail_stop: false,
+                health_status: ChildHealth::Healthy,
+            },
+            restart_policy: RestartPolicy::Permanent,
+            shutdown_policy: ShutdownPolicy::Graceful(Duration::from_secs(5)),
+            start_timeout: Duration::from_secs(10),
+            shutdown_timeout: Duration::from_secs(10),
+        };
+
+        let child_id = supervisor.start_child(spec).await.unwrap();
+
+        // Check health
+        let health = supervisor.check_child_health(&child_id).await.unwrap();
+        assert!(health.is_healthy());
+
+        // Verify failure count is 0
+        let config = supervisor.health_config().unwrap();
+        assert_eq!(config.get_failure_count(&child_id), 0);
+    }
+
+    #[tokio::test]
+    async fn test_check_child_health_degraded() {
+        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let mut supervisor =
+            SupervisorNode::<OneForOne, HealthTestChild, _>::new(OneForOne, monitor);
+
+        supervisor.enable_health_checks(Duration::from_secs(30), Duration::from_secs(5), 3);
+
+        let spec = ChildSpec {
+            id: "degraded-child".into(),
+            factory: || HealthTestChild {
+                should_fail_start: false,
+                should_fail_stop: false,
+                health_status: ChildHealth::Degraded("High latency".to_string()),
+            },
+            restart_policy: RestartPolicy::Permanent,
+            shutdown_policy: ShutdownPolicy::Graceful(Duration::from_secs(5)),
+            start_timeout: Duration::from_secs(10),
+            shutdown_timeout: Duration::from_secs(10),
+        };
+
+        let child_id = supervisor.start_child(spec).await.unwrap();
+
+        let health = supervisor.check_child_health(&child_id).await.unwrap();
+        assert!(health.is_degraded());
+
+        // Degraded doesn't increment failure count
+        let config = supervisor.health_config().unwrap();
+        assert_eq!(config.get_failure_count(&child_id), 0);
+    }
+
+    #[tokio::test]
+    async fn test_check_child_health_failed_increments_count() {
+        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let mut supervisor =
+            SupervisorNode::<OneForOne, HealthTestChild, _>::new(OneForOne, monitor);
+
+        supervisor.enable_health_checks(Duration::from_secs(30), Duration::from_secs(5), 3);
+
+        let spec = ChildSpec {
+            id: "failing-child".into(),
+            factory: || HealthTestChild {
+                should_fail_start: false,
+                should_fail_stop: false,
+                health_status: ChildHealth::Failed("Connection error".to_string()),
+            },
+            restart_policy: RestartPolicy::Permanent,
+            shutdown_policy: ShutdownPolicy::Graceful(Duration::from_secs(5)),
+            start_timeout: Duration::from_secs(10),
+            shutdown_timeout: Duration::from_secs(10),
+        };
+
+        let child_id = supervisor.start_child(spec).await.unwrap();
+
+        // First failure
+        let health = supervisor.check_child_health(&child_id).await.unwrap();
+        assert!(health.is_failed());
+        let config = supervisor.health_config().unwrap();
+        assert_eq!(config.get_failure_count(&child_id), 1);
+    }
+
+    #[tokio::test]
+    async fn test_health_check_failure_threshold_triggers_restart() {
+        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let mut supervisor =
+            SupervisorNode::<OneForOne, HealthTestChild, _>::new(OneForOne, monitor);
+
+        // Set threshold to 3
+        supervisor.enable_health_checks(Duration::from_secs(30), Duration::from_secs(5), 3);
+
+        let spec = ChildSpec {
+            id: "failing-child".into(),
+            factory: || HealthTestChild {
+                should_fail_start: false,
+                should_fail_stop: false,
+                health_status: ChildHealth::Failed("Error".to_string()),
+            },
+            restart_policy: RestartPolicy::Permanent,
+            shutdown_policy: ShutdownPolicy::Graceful(Duration::from_secs(5)),
+            start_timeout: Duration::from_secs(10),
+            shutdown_timeout: Duration::from_secs(10),
+        };
+
+        let child_id = supervisor.start_child(spec).await.unwrap();
+        let initial_restart_count = supervisor.get_child(&child_id).unwrap().restart_count();
+
+        // Trigger 3 health check failures
+        for i in 1..=3 {
+            let _ = supervisor.check_child_health(&child_id).await;
+            let config = supervisor.health_config().unwrap();
+            let count = config.get_failure_count(&child_id);
+            
+            if i < 3 {
+                assert_eq!(count, i);
+            } else {
+                // On 3rd failure, restart is triggered and count is reset
+                assert_eq!(count, 0);
+            }
+        }
+
+        // Verify child was restarted
+        let final_restart_count = supervisor.get_child(&child_id).unwrap().restart_count();
+        assert_eq!(final_restart_count, initial_restart_count + 1);
+    }
+
+    #[tokio::test]
+    async fn test_health_check_success_resets_failure_count() {
+        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let mut supervisor =
+            SupervisorNode::<OneForOne, HealthTestChild, _>::new(OneForOne, monitor);
+
+        supervisor.enable_health_checks(Duration::from_secs(30), Duration::from_secs(5), 3);
+
+        // Start with failing child
+        let spec = ChildSpec {
+            id: "test-child".into(),
+            factory: || HealthTestChild {
+                should_fail_start: false,
+                should_fail_stop: false,
+                health_status: ChildHealth::Failed("Error".to_string()),
+            },
+            restart_policy: RestartPolicy::Permanent,
+            shutdown_policy: ShutdownPolicy::Graceful(Duration::from_secs(5)),
+            start_timeout: Duration::from_secs(10),
+            shutdown_timeout: Duration::from_secs(10),
+        };
+
+        let child_id = supervisor.start_child(spec).await.unwrap();
+
+        // Fail twice
+        supervisor.check_child_health(&child_id).await.unwrap();
+        supervisor.check_child_health(&child_id).await.unwrap();
+        
+        let config = supervisor.health_config().unwrap();
+        assert_eq!(config.get_failure_count(&child_id), 2);
+
+        // Update child to be healthy (simulate recovery)
+        if let Some(handle) = supervisor.get_child_mut(&child_id) {
+            handle.child_mut().health_status = ChildHealth::Healthy;
+        }
+
+        // Successful check should reset count
+        supervisor.check_child_health(&child_id).await.unwrap();
+        let config = supervisor.health_config().unwrap();
+        assert_eq!(config.get_failure_count(&child_id), 0);
+    }
+
+    #[tokio::test]
+    async fn test_health_check_without_monitoring_enabled_fails() {
+        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let mut supervisor =
+            SupervisorNode::<OneForOne, HealthTestChild, _>::new(OneForOne, monitor);
+
+        // Don't enable health monitoring
+
+        let spec = ChildSpec {
+            id: "test-child".into(),
+            factory: || HealthTestChild {
+                should_fail_start: false,
+                should_fail_stop: false,
+                health_status: ChildHealth::Healthy,
+            },
+            restart_policy: RestartPolicy::Permanent,
+            shutdown_policy: ShutdownPolicy::Graceful(Duration::from_secs(5)),
+            start_timeout: Duration::from_secs(10),
+            shutdown_timeout: Duration::from_secs(10),
+        };
+
+        let child_id = supervisor.start_child(spec).await.unwrap();
+
+        // Should return error
+        let result = supervisor.check_child_health(&child_id).await;
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            SupervisorError::HealthMonitoringNotEnabled { .. }
+        ));
+    }
+
+    #[tokio::test]
+    async fn test_health_check_nonexistent_child_fails() {
+        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let mut supervisor =
+            SupervisorNode::<OneForOne, HealthTestChild, _>::new(OneForOne, monitor);
+
+        supervisor.enable_health_checks(Duration::from_secs(30), Duration::from_secs(5), 3);
+
+        let fake_child_id = ChildId::new();
+        let result = supervisor.check_child_health(&fake_child_id).await;
+        
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            SupervisorError::ChildNotFound { .. }
+        ));
     }
 }

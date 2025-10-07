@@ -140,7 +140,7 @@ impl<S, C, M> SupervisorTree<S, C, M>
 where
     S: SupervisionStrategy + Clone,
     C: Child,
-    M: Monitor<SupervisionEvent> + Clone,
+    M: Monitor<SupervisionEvent> + Clone + 'static,
 {
     /// Creates a new empty supervisor tree.
     ///
@@ -665,7 +665,7 @@ impl<S, C, M> Default for SupervisorTree<S, C, M>
 where
     S: SupervisionStrategy + Clone,
     C: Child,
-    M: Monitor<SupervisionEvent> + Clone,
+    M: Monitor<SupervisionEvent> + Clone + 'static,
 {
     fn default() -> Self {
         Self::new()
