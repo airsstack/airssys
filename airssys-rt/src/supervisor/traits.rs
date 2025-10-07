@@ -335,12 +335,12 @@ pub trait Child: Send + Sync + 'static {
 // #[async_trait]
 // impl Child for MyActor {
 //     type Error = MyError;
-//     
+//
 //     async fn start(&mut self) -> Result<(), Self::Error> {
 //         // Custom initialization logic for supervision
 //         self.initialize_resources()
 //     }
-//     
+//
 //     async fn stop(&mut self, timeout: Duration) -> Result<(), Self::Error> {
 //         // Custom cleanup logic for supervision
 //         self.cleanup_resources(timeout)

@@ -145,8 +145,7 @@ pub mod types;
 
 // Re-exports for convenient access
 pub use error::SupervisorError;
-pub use traits::{Child, Supervisor, SupervisionStrategy};
+pub use traits::{Child, SupervisionStrategy, Supervisor};
 pub use types::{
-    ChildHealth, ChildId, ChildSpec, ChildState, RestartPolicy, ShutdownPolicy,
-    SupervisionDecision,
+    ChildHealth, ChildId, ChildSpec, ChildState, RestartPolicy, ShutdownPolicy, SupervisionDecision,
 };
