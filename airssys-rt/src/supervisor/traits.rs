@@ -21,7 +21,9 @@ use async_trait::async_trait;
 
 // Layer 3: Internal module imports
 use super::error::SupervisorError;
-use super::types::{ChildHealth, ChildId, ChildSpec, SupervisionDecision};
+use super::types::{
+    ChildHealth, ChildId, ChildSpec, StrategyContext, SupervisionDecision,
+};
 
 /// Child trait for entities that can be supervised.
 ///
@@ -418,22 +420,79 @@ pub trait Supervisor: Send + Sync + 'static {
 /// Defines how a supervisor should respond to child failures. Implementations
 /// of this trait determine restart behavior (OneForOne, OneForAll, RestForOne).
 ///
-/// This trait will be fully implemented in RT-TASK-007 Phase 2.
+/// Each strategy implements a decision-making algorithm that determines which
+/// children should be affected when a child fails.
+///
+/// # Context-Based Decision Making
+///
+/// The strategy receives a `StrategyContext` enum that provides type-safe context
+/// for different scenarios (single failure, manual restart, shutdown). This design:
+///
+/// - Prevents invalid parameter combinations
+/// - Makes extension easy (new variants don't break existing code)
+/// - Self-documents the purpose of each decision scenario
 ///
 /// # Examples
 ///
-/// ```rust,ignore
-/// // Will be implemented in Phase 2
-/// pub struct OneForOne;
+/// ```rust
+/// use airssys_rt::supervisor::{SupervisionStrategy, SupervisionDecision, ChildId, StrategyContext};
 ///
-/// impl SupervisionStrategy for OneForOne {
-///     fn handle_failure(&self, failed_child: &ChildId) -> SupervisionDecision {
-///         SupervisionDecision::RestartChild(failed_child.clone())
-///     }
-/// }
+/// # struct OneForOne;
+/// # impl SupervisionStrategy for OneForOne {
+/// #     fn determine_decision(context: StrategyContext) -> SupervisionDecision {
+/// #         match context {
+/// #             StrategyContext::SingleFailure { failed_child_id, .. } => {
+/// #                 SupervisionDecision::RestartChild(failed_child_id)
+/// #             }
+/// #             _ => SupervisionDecision::StopAll,
+/// #         }
+/// #     }
+/// # }
+/// // OneForOne strategy: restart only the failed child
+/// let failed_id = ChildId::new();
+/// let context = StrategyContext::SingleFailure {
+///     failed_child_id: failed_id.clone(),
+///     all_child_ids: vec![failed_id.clone()],
+/// };
+/// let decision = OneForOne::determine_decision(context);
 /// ```
 pub trait SupervisionStrategy: Send + Sync + 'static {
-    // Strategy methods will be defined in Phase 2
+    /// Determines what action to take based on the supervision context.
+    ///
+    /// # Parameters
+    ///
+    /// - `context`: The supervision context (failure, manual restart, or shutdown)
+    ///
+    /// # Returns
+    ///
+    /// A `SupervisionDecision` indicating what action to take
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use airssys_rt::supervisor::{StrategyContext, SupervisionDecision, ChildId};
+    ///
+    /// # struct MyStrategy;
+    /// # impl airssys_rt::supervisor::SupervisionStrategy for MyStrategy {
+    /// #     fn determine_decision(context: StrategyContext) -> SupervisionDecision {
+    /// match context {
+    ///     StrategyContext::SingleFailure { failed_child_id, all_child_ids } => {
+    ///         // Strategy-specific logic here
+    /// #         SupervisionDecision::RestartChild(failed_child_id)
+    ///     }
+    ///     StrategyContext::ManualRestart { child_id } => {
+    ///         // Handle manual restart
+    /// #         SupervisionDecision::RestartChild(child_id)
+    ///     }
+    ///     StrategyContext::Shutdown { all_child_ids } => {
+    ///         // Handle shutdown
+    /// #         SupervisionDecision::StopAll
+    ///     }
+    /// }
+    /// #     }
+    /// # }
+    /// ```
+    fn determine_decision(context: StrategyContext) -> SupervisionDecision;
 }
 
 #[cfg(test)]

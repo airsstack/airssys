@@ -35,14 +35,14 @@
 //! ```
 
 // Layer 1: Standard library imports
-use std::collections::HashMap;
+// (none needed for Phase 2)
 
 // Layer 2: Third-party crate imports
 // (none needed for Phase 2)
 
 // Layer 3: Internal module imports
 use super::traits::SupervisionStrategy;
-use super::types::{ChildId, RestartPolicy};
+use super::types::{RestartPolicy, StrategyContext, SupervisionDecision};
 
 /// OneForOne supervision strategy.
 ///
@@ -83,7 +83,18 @@ use super::types::{ChildId, RestartPolicy};
 pub struct OneForOne;
 
 impl SupervisionStrategy for OneForOne {
-    // Implementation will be added in Phase 3 when SupervisorNode is complete
+    fn determine_decision(context: StrategyContext) -> SupervisionDecision {
+        // OneForOne: Restart only the failed child
+        match context {
+            StrategyContext::SingleFailure {
+                failed_child_id, ..
+            } => SupervisionDecision::RestartChild(failed_child_id),
+            StrategyContext::ManualRestart { child_id } => {
+                SupervisionDecision::RestartChild(child_id)
+            }
+            StrategyContext::Shutdown { .. } => SupervisionDecision::StopAll,
+        }
+    }
 }
 
 /// OneForAll supervision strategy.
@@ -136,7 +147,20 @@ impl SupervisionStrategy for OneForOne {
 pub struct OneForAll;
 
 impl SupervisionStrategy for OneForAll {
-    // Implementation will be added in Phase 3 when SupervisorNode is complete
+    fn determine_decision(context: StrategyContext) -> SupervisionDecision {
+        // OneForAll: Restart all children
+        match context {
+            StrategyContext::SingleFailure { all_child_ids, .. } => {
+                SupervisionDecision::RestartAll(all_child_ids)
+            }
+            StrategyContext::ManualRestart { child_id } => {
+                // Manual restart of one child in OneForAll: restart all
+                // (In practice, this might not be triggered, but being defensive)
+                SupervisionDecision::RestartChild(child_id)
+            }
+            StrategyContext::Shutdown { .. } => SupervisionDecision::StopAll,
+        }
+    }
 }
 
 /// RestForOne supervision strategy.
@@ -198,7 +222,28 @@ impl SupervisionStrategy for OneForAll {
 pub struct RestForOne;
 
 impl SupervisionStrategy for RestForOne {
-    // Implementation will be added in Phase 3 when SupervisorNode is complete
+    fn determine_decision(context: StrategyContext) -> SupervisionDecision {
+        // RestForOne: Restart failed child and all children started after it
+        match context {
+            StrategyContext::SingleFailure {
+                failed_child_id,
+                all_child_ids,
+            } => {
+                if let Some(index) = all_child_ids.iter().position(|id| id == &failed_child_id) {
+                    // Include the failed child and all after it
+                    SupervisionDecision::RestartSubset(all_child_ids[index..].to_vec())
+                } else {
+                    // Child not found, just restart it
+                    SupervisionDecision::RestartChild(failed_child_id)
+                }
+            }
+            StrategyContext::ManualRestart { child_id } => {
+                // Manual restart: just restart the specified child
+                SupervisionDecision::RestartChild(child_id)
+            }
+            StrategyContext::Shutdown { .. } => SupervisionDecision::StopAll,
+        }
+    }
 }
 
 /// Determine if a child should be restarted based on its restart policy.
@@ -245,12 +290,16 @@ pub fn should_restart(policy: &RestartPolicy, is_normal_exit: bool) -> bool {
 
 /// Determine if at least one child in a set should be restarted.
 ///
-/// Used by OneForAll strategy to decide if the entire supervision group
+/// Used by custom strategies to decide if a supervision group
 /// should restart. If all children are Temporary, no restart occurs.
+///
+/// **Note**: This is a utility function for custom strategy implementations.
+/// The built-in strategies (OneForOne, OneForAll, RestForOne) don't use this
+/// directly as restart policy checking happens at the supervisor node level.
 ///
 /// # Parameters
 ///
-/// - `children_policies`: Map of child IDs to their restart policies
+/// - `children_policies`: Iterator over restart policies
 /// - `is_normal_exit`: Whether the triggering child exited normally
 ///
 /// # Returns
@@ -260,30 +309,23 @@ pub fn should_restart(policy: &RestartPolicy, is_normal_exit: bool) -> bool {
 /// # Examples
 ///
 /// ```rust
-/// use airssys_rt::supervisor::{RestartPolicy, ChildId, should_restart_any};
-/// use std::collections::HashMap;
+/// use airssys_rt::supervisor::{RestartPolicy, should_restart_any};
 ///
-/// let mut policies = HashMap::new();
-/// policies.insert(ChildId::new(), RestartPolicy::Permanent);
-/// policies.insert(ChildId::new(), RestartPolicy::Temporary);
+/// let policies = vec![RestartPolicy::Permanent, RestartPolicy::Temporary];
 ///
 /// // At least one Permanent child, so group should restart
-/// assert!(should_restart_any(&policies, false));
+/// assert!(should_restart_any(policies.iter(), false));
 ///
-/// let mut temp_only = HashMap::new();
-/// temp_only.insert(ChildId::new(), RestartPolicy::Temporary);
-/// temp_only.insert(ChildId::new(), RestartPolicy::Temporary);
+/// let temp_only = vec![RestartPolicy::Temporary, RestartPolicy::Temporary];
 ///
 /// // All Temporary, so group should not restart
-/// assert!(!should_restart_any(&temp_only, false));
+/// assert!(!should_restart_any(temp_only.iter(), false));
 /// ```
-pub fn should_restart_any(
-    children_policies: &HashMap<ChildId, RestartPolicy>,
-    is_normal_exit: bool,
-) -> bool {
-    children_policies
-        .values()
-        .any(|policy| should_restart(policy, is_normal_exit))
+pub fn should_restart_any<'a, I>(mut children_policies: I, is_normal_exit: bool) -> bool
+where
+    I: Iterator<Item = &'a RestartPolicy>,
+{
+    children_policies.any(|policy| should_restart(policy, is_normal_exit))
 }
 
 #[cfg(test)]
@@ -313,44 +355,38 @@ mod tests {
 
     #[test]
     fn test_should_restart_any_with_permanent() {
-        let mut policies = HashMap::new();
-        policies.insert(ChildId::new(), RestartPolicy::Permanent);
-        policies.insert(ChildId::new(), RestartPolicy::Temporary);
+        let policies = vec![RestartPolicy::Permanent, RestartPolicy::Temporary];
 
         // At least one Permanent child
-        assert!(should_restart_any(&policies, false));
-        assert!(should_restart_any(&policies, true));
+        assert!(should_restart_any(policies.iter(), false));
+        assert!(should_restart_any(policies.iter(), true));
     }
 
     #[test]
     fn test_should_restart_any_with_transient() {
-        let mut policies = HashMap::new();
-        policies.insert(ChildId::new(), RestartPolicy::Transient);
-        policies.insert(ChildId::new(), RestartPolicy::Temporary);
+        let policies = vec![RestartPolicy::Transient, RestartPolicy::Temporary];
 
         // Transient restarts on abnormal exit
-        assert!(should_restart_any(&policies, false));
-        assert!(!should_restart_any(&policies, true));
+        assert!(should_restart_any(policies.iter(), false));
+        assert!(!should_restart_any(policies.iter(), true));
     }
 
     #[test]
     fn test_should_restart_any_all_temporary() {
-        let mut policies = HashMap::new();
-        policies.insert(ChildId::new(), RestartPolicy::Temporary);
-        policies.insert(ChildId::new(), RestartPolicy::Temporary);
+        let policies = vec![RestartPolicy::Temporary, RestartPolicy::Temporary];
 
         // All Temporary, no restart
-        assert!(!should_restart_any(&policies, false));
-        assert!(!should_restart_any(&policies, true));
+        assert!(!should_restart_any(policies.iter(), false));
+        assert!(!should_restart_any(policies.iter(), true));
     }
 
     #[test]
     fn test_should_restart_any_empty() {
-        let policies = HashMap::new();
+        let policies: Vec<RestartPolicy> = vec![];
 
         // No children, no restart
-        assert!(!should_restart_any(&policies, false));
-        assert!(!should_restart_any(&policies, true));
+        assert!(!should_restart_any(policies.iter(), false));
+        assert!(!should_restart_any(policies.iter(), true));
     }
 
     #[test]

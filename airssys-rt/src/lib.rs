@@ -31,9 +31,9 @@ pub use monitoring::{
     SystemEventKind,
 };
 pub use supervisor::{
-    Child, ChildHealth, ChildId, ChildSpec, ChildState, OneForAll, OneForOne, RestForOne,
-    RestartBackoff, RestartPolicy, ShutdownPolicy, SupervisionDecision, SupervisionStrategy,
-    Supervisor, SupervisorError,
+    Child, ChildHandle, ChildHealth, ChildId, ChildSpec, ChildState, OneForAll, OneForOne,
+    RestForOne, RestartBackoff, RestartPolicy, ShutdownPolicy, SupervisionDecision,
+    SupervisionStrategy, Supervisor, SupervisorError, SupervisorNode,
 };
 pub use system::{SystemConfig, SystemError};
 pub use util::{ActorAddress, ActorId, MessageId};

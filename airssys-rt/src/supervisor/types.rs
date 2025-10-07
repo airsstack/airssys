@@ -405,6 +405,138 @@ impl ChildHealth {
     }
 }
 
+/// Context information for supervision strategy decision-making.
+///
+/// This enum provides type-safe context for different supervision scenarios,
+/// ensuring strategies receive exactly the information they need.
+///
+/// # Design Rationale
+///
+/// Using an enum instead of separate parameters:
+/// - **Type Safety**: Prevents invalid parameter combinations
+/// - **Extensibility**: Easy to add new scenarios without breaking existing code
+/// - **Self-Documenting**: Each variant clearly states its purpose
+/// - **Future-Proof**: Can add fields to variants without API breaks
+///
+/// # Examples
+///
+/// ```rust
+/// use airssys_rt::supervisor::{StrategyContext, ChildId};
+///
+/// let failed_id = ChildId::new();
+/// let all_ids = vec![ChildId::new(), failed_id.clone(), ChildId::new()];
+///
+/// let context = StrategyContext::SingleFailure {
+///     failed_child_id: failed_id,
+///     all_child_ids: all_ids,
+/// };
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum StrategyContext {
+    /// A single child has failed and requires a restart decision.
+    ///
+    /// Provides:
+    /// - `failed_child_id`: The ID of the child that failed
+    /// - `all_child_ids`: All child IDs in start order (for RestForOne position lookup)
+    ///
+    /// # Used By
+    ///
+    /// - Normal child failure handling
+    /// - Error escalation from child processes
+    /// - Health check failures
+    SingleFailure {
+        /// ID of the child that failed
+        failed_child_id: ChildId,
+        /// All child IDs in their start order
+        all_child_ids: Vec<ChildId>,
+    },
+
+    /// Manual restart request for a specific child.
+    ///
+    /// Triggered by explicit supervisor API calls, not by failures.
+    ///
+    /// # Future Use
+    ///
+    /// - Proactive restarts based on external signals
+    /// - Configuration reload restarts
+    /// - Scheduled maintenance restarts
+    ManualRestart {
+        /// ID of the child to restart
+        child_id: ChildId,
+    },
+
+    /// Coordinated shutdown of all children.
+    ///
+    /// Used when the supervisor itself is shutting down and needs
+    /// to stop all children in the correct order.
+    ///
+    /// # Future Use
+    ///
+    /// - Graceful supervisor shutdown
+    /// - Supervisor escalation handling
+    /// - System-wide shutdown coordination
+    Shutdown {
+        /// All child IDs that need to be stopped
+        all_child_ids: Vec<ChildId>,
+    },
+}
+
+impl StrategyContext {
+    /// Extracts the failed child ID from the context, if applicable.
+    ///
+    /// # Returns
+    ///
+    /// - `Some(child_id)` for `SingleFailure` and `ManualRestart`
+    /// - `None` for `Shutdown`
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use airssys_rt::supervisor::{StrategyContext, ChildId};
+    ///
+    /// let failed_id = ChildId::new();
+    /// let context = StrategyContext::SingleFailure {
+    ///     failed_child_id: failed_id.clone(),
+    ///     all_child_ids: vec![failed_id.clone()],
+    /// };
+    ///
+    /// assert_eq!(context.failed_child_id(), Some(&failed_id));
+    /// ```
+    pub fn failed_child_id(&self) -> Option<&ChildId> {
+        match self {
+            StrategyContext::SingleFailure { failed_child_id, .. } => Some(failed_child_id),
+            StrategyContext::ManualRestart { child_id } => Some(child_id),
+            StrategyContext::Shutdown { .. } => None,
+        }
+    }
+
+    /// Extracts all child IDs from the context.
+    ///
+    /// # Returns
+    ///
+    /// Slice of all child IDs, or empty slice if not applicable.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use airssys_rt::supervisor::{StrategyContext, ChildId};
+    ///
+    /// let all_ids = vec![ChildId::new(), ChildId::new()];
+    /// let context = StrategyContext::Shutdown {
+    ///     all_child_ids: all_ids.clone(),
+    /// };
+    ///
+    /// assert_eq!(context.all_child_ids(), &all_ids[..]);
+    /// ```
+    pub fn all_child_ids(&self) -> &[ChildId] {
+        match self {
+            StrategyContext::SingleFailure { all_child_ids, .. } => all_child_ids,
+            StrategyContext::ManualRestart { .. } => &[],
+            StrategyContext::Shutdown { all_child_ids } => all_child_ids,
+        }
+    }
+}
+
 /// Supervision decision made by a supervisor strategy.
 ///
 /// Determines what action to take when a child fails or requires intervention.

@@ -1,15 +1,15 @@
 # airssys-rt Technical Debt Index
 
 **Sub-Project:** airssys-rt  
-**Last Updated:** 2025-10-06  
-**Total Debt Items:** 2  
-**Active Debt Items:** 2  
+**Last Updated:** 2025-10-07  
+**Total Debt Items:** 3  
+**Active Debt Items:** 3  
 
 ## Debt Statistics
 
-- **Total Debts**: 2
-- **Critical Priority**: 1 (DEBT-RT-005) ⚠️ **BLOCKING**
-- **High Priority**: 1 (DEBT-RT-004)
+- **Total Debts**: 3
+- **Critical Priority**: 1 (DEBT-RT-006) ⚠️ **BLOCKING RT-TASK-007 Phase 3**
+- **High Priority**: 2 (DEBT-RT-004, DEBT-RT-005)
 - **Medium Priority**: 0
 - **Low Priority**: 0
 - **Resolved**: 0
@@ -17,6 +17,23 @@
 ## Pending Debts
 
 ### Critical Priority (BLOCKING)
+
+- **DEBT-RT-006**: Phase 3 node.rs Implementation Alignment Fixes ⚠️ **NEW - URGENT**
+  - **Component**: Supervisor Framework (RT-TASK-007 Phase 3)
+  - **Issue**: node.rs has 39 compilation errors due to API misalignment with Phase 1 and RT-TASK-010
+  - **Root Cause**: Implementation based on knowledge doc examples without verifying actual Phase 1 APIs
+  - **Impact**: RT-TASK-007 Phase 3 BLOCKED - cannot proceed to tree.rs
+  - **Key Mismatches**:
+    - Supervisor trait takes no generic parameter (uses associated type)
+    - SupervisionEvent is struct, not enum (has event_kind field)
+    - RestartBackoff should be per-child HashMap, not global
+    - SupervisorError uses String IDs, not ChildId
+    - Missing fields: id (Uuid), state (SupervisorState)
+  - **Solution**: Systematic API alignment following actual Phase 1 implementations
+  - **Target**: TODAY (Oct 7, 2025) - 3-4 hours to fix
+  - **File**: `debt_rt_006_phase3_node_implementation_fixes.md`
+
+### High Priority
 
 - **DEBT-RT-005**: Actor System / Broker Integration Architecture Mismatch ⚠️ **URGENT**
   - **Component**: ActorSystem Framework (RT-TASK-006 Phase 2)
