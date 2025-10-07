@@ -183,6 +183,93 @@ where
 /// # Ok(())
 /// # }
 /// ```
+/// Health monitoring configuration for supervised children.
+///
+/// Defines parameters for periodic health checking and failure threshold management.
+///
+/// # Design Philosophy
+///
+/// Following YAGNI principles (§6.1), health monitoring is an optional feature
+/// that can be enabled per supervisor instance. This structure encapsulates all
+/// health-related configuration and state tracking.
+#[derive(Clone)]
+pub struct HealthConfig {
+    /// How often to check child health
+    pub check_interval: Duration,
+
+    /// Timeout for each individual health check
+    pub check_timeout: Duration,
+
+    /// Number of consecutive failures before triggering restart
+    pub failure_threshold: u32,
+
+    /// Per-child consecutive failure tracking
+    consecutive_failures: HashMap<ChildId, u32>,
+}
+
+impl std::fmt::Debug for HealthConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("HealthConfig")
+            .field("check_interval", &self.check_interval)
+            .field("check_timeout", &self.check_timeout)
+            .field("failure_threshold", &self.failure_threshold)
+            .field("consecutive_failures_count", &self.consecutive_failures.len())
+            .finish()
+    }
+}
+
+impl HealthConfig {
+    /// Creates a new health configuration.
+    ///
+    /// # Parameters
+    ///
+    /// - `check_interval`: How often to perform health checks
+    /// - `check_timeout`: Maximum time to wait for each health check
+    /// - `failure_threshold`: Consecutive failures before restart
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use std::time::Duration;
+    /// # use airssys_rt::supervisor::node::HealthConfig;
+    ///
+    /// let config = HealthConfig::new(
+    ///     Duration::from_secs(30),  // Check every 30 seconds
+    ///     Duration::from_secs(5),   // 5 second timeout
+    ///     3,                        // Restart after 3 consecutive failures
+    /// );
+    /// ```
+    pub fn new(check_interval: Duration, check_timeout: Duration, failure_threshold: u32) -> Self {
+        Self {
+            check_interval,
+            check_timeout,
+            failure_threshold,
+            consecutive_failures: HashMap::new(),
+        }
+    }
+
+    /// Gets the consecutive failure count for a child.
+    pub fn get_failure_count(&self, child_id: &ChildId) -> u32 {
+        self.consecutive_failures.get(child_id).copied().unwrap_or(0)
+    }
+
+    /// Increments the failure count for a child.
+    pub fn increment_failure(&mut self, child_id: &ChildId) {
+        let count = self.consecutive_failures.entry(child_id.clone()).or_insert(0);
+        *count += 1;
+    }
+
+    /// Resets the failure count for a child.
+    pub fn reset_failure(&mut self, child_id: &ChildId) {
+        self.consecutive_failures.remove(child_id);
+    }
+
+    /// Checks if a child has exceeded the failure threshold.
+    pub fn has_exceeded_threshold(&self, child_id: &ChildId) -> bool {
+        self.get_failure_count(child_id) >= self.failure_threshold
+    }
+}
+
 #[derive(Debug)]
 pub struct SupervisorNode<S, C, M>
 where
@@ -209,6 +296,9 @@ where
 
     /// Ordered list of child IDs (for RestForOne strategy)
     child_order: Vec<ChildId>,
+
+    /// Optional health monitoring configuration (YAGNI §6.1 - opt-in feature)
+    health_config: Option<HealthConfig>,
 }
 
 impl<S, C, M> SupervisorNode<S, C, M>
@@ -220,6 +310,7 @@ where
     /// Creates a new supervisor node with default configuration.
     ///
     /// Uses default restart backoff settings: 5 restarts per 60 seconds.
+    /// Health monitoring is disabled by default (YAGNI §6.1).
     ///
     /// # Examples
     ///
@@ -254,6 +345,7 @@ where
             backoff: HashMap::new(),
             monitor,
             child_order: Vec::new(),
+            health_config: None, // Health monitoring disabled by default
         }
     }
 
@@ -318,6 +410,152 @@ where
     /// Returns all child IDs in start order.
     pub fn child_ids(&self) -> &[ChildId] {
         &self.child_order
+    }
+
+    // ========================================================================
+    // Health Monitoring API (Phase 4a)
+    // ========================================================================
+
+    /// Enables health monitoring with the specified configuration.
+    ///
+    /// Health monitoring allows the supervisor to periodically check child
+    /// health and automatically restart unhealthy children. This is an
+    /// optional feature (YAGNI §6.1) that can be enabled per supervisor.
+    ///
+    /// # Parameters
+    ///
+    /// - `check_interval`: How often to perform health checks
+    /// - `check_timeout`: Maximum time to wait for each health check
+    /// - `failure_threshold`: Number of consecutive failures before restart
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use airssys_rt::supervisor::{SupervisorNode, OneForOne};
+    /// use airssys_rt::monitoring::InMemoryMonitor;
+    /// use std::time::Duration;
+    ///
+    /// # use airssys_rt::supervisor::Child;
+    /// # use async_trait::async_trait;
+    /// # struct MyWorker;
+    /// # #[derive(Debug)]
+    /// # struct MyError;
+    /// # impl std::fmt::Display for MyError {
+    /// #     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result { Ok(()) }
+    /// # }
+    /// # impl std::error::Error for MyError {}
+    /// # #[async_trait]
+    /// # impl Child for MyWorker {
+    /// #     type Error = MyError;
+    /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+    /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
+    /// # }
+    /// let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+    /// let mut supervisor = SupervisorNode::<OneForOne, MyWorker, _>::new(OneForOne, monitor);
+    ///
+    /// // Enable health checks: every 30s, 5s timeout, restart after 3 failures
+    /// supervisor.enable_health_checks(
+    ///     Duration::from_secs(30),
+    ///     Duration::from_secs(5),
+    ///     3,
+    /// );
+    /// ```
+    pub fn enable_health_checks(
+        &mut self,
+        check_interval: Duration,
+        check_timeout: Duration,
+        failure_threshold: u32,
+    ) {
+        self.health_config = Some(HealthConfig::new(
+            check_interval,
+            check_timeout,
+            failure_threshold,
+        ));
+    }
+
+    /// Disables health monitoring.
+    ///
+    /// Removes the health configuration and clears all failure tracking.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use airssys_rt::supervisor::{SupervisorNode, OneForOne};
+    /// # use airssys_rt::monitoring::InMemoryMonitor;
+    /// # use std::time::Duration;
+    /// # use airssys_rt::supervisor::Child;
+    /// # use async_trait::async_trait;
+    /// # struct MyWorker;
+    /// # #[derive(Debug)]
+    /// # struct MyError;
+    /// # impl std::fmt::Display for MyError {
+    /// #     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result { Ok(()) }
+    /// # }
+    /// # impl std::error::Error for MyError {}
+    /// # #[async_trait]
+    /// # impl Child for MyWorker {
+    /// #     type Error = MyError;
+    /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+    /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
+    /// # }
+    /// let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+    /// let mut supervisor = SupervisorNode::<OneForOne, MyWorker, _>::new(OneForOne, monitor);
+    ///
+    /// supervisor.enable_health_checks(Duration::from_secs(30), Duration::from_secs(5), 3);
+    /// // Later...
+    /// supervisor.disable_health_checks();
+    /// ```
+    pub fn disable_health_checks(&mut self) {
+        self.health_config = None;
+    }
+
+    /// Returns whether health monitoring is currently enabled.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use airssys_rt::supervisor::{SupervisorNode, OneForOne};
+    /// # use airssys_rt::monitoring::InMemoryMonitor;
+    /// # use std::time::Duration;
+    /// # use airssys_rt::supervisor::Child;
+    /// # use async_trait::async_trait;
+    /// # struct MyWorker;
+    /// # #[derive(Debug)]
+    /// # struct MyError;
+    /// # impl std::fmt::Display for MyError {
+    /// #     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result { Ok(()) }
+    /// # }
+    /// # impl std::error::Error for MyError {}
+    /// # #[async_trait]
+    /// # impl Child for MyWorker {
+    /// #     type Error = MyError;
+    /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+    /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
+    /// # }
+    /// let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+    /// let mut supervisor = SupervisorNode::<OneForOne, MyWorker, _>::new(OneForOne, monitor);
+    ///
+    /// assert!(!supervisor.is_health_monitoring_enabled());
+    ///
+    /// supervisor.enable_health_checks(Duration::from_secs(30), Duration::from_secs(5), 3);
+    /// assert!(supervisor.is_health_monitoring_enabled());
+    /// ```
+    pub fn is_health_monitoring_enabled(&self) -> bool {
+        self.health_config.is_some()
+    }
+
+    /// Gets the health configuration if enabled.
+    ///
+    /// Returns `None` if health monitoring is not enabled.
+    pub fn health_config(&self) -> Option<&HealthConfig> {
+        self.health_config.as_ref()
+    }
+
+    /// Gets mutable health configuration if enabled.
+    ///
+    /// Returns `None` if health monitoring is not enabled.
+    pub fn health_config_mut(&mut self) -> Option<&mut HealthConfig> {
+        self.health_config.as_mut()
     }
 
     /// Starts a child with timeout.
@@ -996,5 +1234,144 @@ mod tests {
         handle.record_restart();
         handle.record_restart();
         assert_eq!(handle.restart_count(), 3);
+    }
+
+    // ========================================================================
+    // Phase 4a: Health Monitoring Configuration Tests
+    // ========================================================================
+
+    #[test]
+    fn test_health_config_initialization() {
+        let config = HealthConfig::new(
+            Duration::from_secs(30),
+            Duration::from_secs(5),
+            3,
+        );
+
+        assert_eq!(config.check_interval, Duration::from_secs(30));
+        assert_eq!(config.check_timeout, Duration::from_secs(5));
+        assert_eq!(config.failure_threshold, 3);
+    }
+
+    #[test]
+    fn test_health_config_failure_tracking() {
+        let mut config = HealthConfig::new(
+            Duration::from_secs(30),
+            Duration::from_secs(5),
+            3,
+        );
+
+        let child_id = ChildId::new();
+
+        // Initial count should be 0
+        assert_eq!(config.get_failure_count(&child_id), 0);
+        assert!(!config.has_exceeded_threshold(&child_id));
+
+        // Increment failures
+        config.increment_failure(&child_id);
+        assert_eq!(config.get_failure_count(&child_id), 1);
+        assert!(!config.has_exceeded_threshold(&child_id));
+
+        config.increment_failure(&child_id);
+        assert_eq!(config.get_failure_count(&child_id), 2);
+        assert!(!config.has_exceeded_threshold(&child_id));
+
+        config.increment_failure(&child_id);
+        assert_eq!(config.get_failure_count(&child_id), 3);
+        assert!(config.has_exceeded_threshold(&child_id));
+
+        // Reset failures
+        config.reset_failure(&child_id);
+        assert_eq!(config.get_failure_count(&child_id), 0);
+        assert!(!config.has_exceeded_threshold(&child_id));
+    }
+
+    #[tokio::test]
+    async fn test_health_monitoring_disabled_by_default() {
+        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let supervisor = SupervisorNode::<OneForOne, TestChild, _>::new(OneForOne, monitor);
+
+        assert!(!supervisor.is_health_monitoring_enabled());
+        assert!(supervisor.health_config().is_none());
+    }
+
+    #[tokio::test]
+    async fn test_enable_health_checks() {
+        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let mut supervisor = SupervisorNode::<OneForOne, TestChild, _>::new(OneForOne, monitor);
+
+        supervisor.enable_health_checks(
+            Duration::from_secs(30),
+            Duration::from_secs(5),
+            3,
+        );
+
+        assert!(supervisor.is_health_monitoring_enabled());
+        
+        let config = supervisor.health_config().unwrap();
+        assert_eq!(config.check_interval, Duration::from_secs(30));
+        assert_eq!(config.check_timeout, Duration::from_secs(5));
+        assert_eq!(config.failure_threshold, 3);
+    }
+
+    #[tokio::test]
+    async fn test_disable_health_checks() {
+        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let mut supervisor = SupervisorNode::<OneForOne, TestChild, _>::new(OneForOne, monitor);
+
+        // Enable first
+        supervisor.enable_health_checks(
+            Duration::from_secs(30),
+            Duration::from_secs(5),
+            3,
+        );
+        assert!(supervisor.is_health_monitoring_enabled());
+
+        // Disable
+        supervisor.disable_health_checks();
+        assert!(!supervisor.is_health_monitoring_enabled());
+        assert!(supervisor.health_config().is_none());
+    }
+
+    #[tokio::test]
+    async fn test_health_config_accessors() {
+        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let mut supervisor = SupervisorNode::<OneForOne, TestChild, _>::new(OneForOne, monitor);
+
+        // Initially None
+        assert!(supervisor.health_config().is_none());
+
+        // Enable monitoring
+        supervisor.enable_health_checks(
+            Duration::from_secs(30),
+            Duration::from_secs(5),
+            3,
+        );
+
+        // Immutable access
+        let config = supervisor.health_config().unwrap();
+        assert_eq!(config.failure_threshold, 3);
+
+        // Config should be cloneable
+        let cloned_config = config.clone();
+        assert_eq!(cloned_config.failure_threshold, 3);
+    }
+
+    #[tokio::test]
+    async fn test_health_config_debug_format() {
+        let config = HealthConfig::new(
+            Duration::from_secs(30),
+            Duration::from_secs(5),
+            3,
+        );
+
+        let debug_str = format!("{:?}", config);
+        assert!(debug_str.contains("HealthConfig"));
+        assert!(debug_str.contains("check_interval"));
+        assert!(debug_str.contains("30s"));
+        assert!(debug_str.contains("check_timeout"));
+        assert!(debug_str.contains("5s"));
+        assert!(debug_str.contains("failure_threshold"));
+        assert!(debug_str.contains("3"));
     }
 }

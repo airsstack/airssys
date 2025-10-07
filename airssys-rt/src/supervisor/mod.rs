@@ -150,7 +150,7 @@ pub mod types;
 // Re-exports for convenient access
 pub use backoff::RestartBackoff;
 pub use error::SupervisorError;
-pub use node::{ChildHandle, SupervisorNode};
+pub use node::{ChildHandle, HealthConfig, SupervisorNode};
 pub use strategy::{should_restart, should_restart_any, OneForAll, OneForOne, RestForOne};
 pub use traits::{Child, SupervisionStrategy, Supervisor};
 pub use tree::{SupervisorId, SupervisorTree};
