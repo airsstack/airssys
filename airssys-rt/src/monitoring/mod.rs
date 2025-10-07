@@ -15,29 +15,36 @@
 //! - `BrokerEvent`: Message broker operations
 //! - `MailboxEvent`: Mailbox operations and backpressure
 //!
+//! ## Monitor Implementations
+//! - **InMemoryMonitor**: Production monitor with atomic counters and ring buffer
+//! - **NoopMonitor**: Zero-overhead no-op monitor for disabled monitoring
+//!
 //! ## Examples
 //! ```rust,ignore
-//! // InMemoryMonitor will be available in Phase 2
 //! use airssys_rt::monitoring::{InMemoryMonitor, MonitoringConfig, ActorEvent};
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! let config = MonitoringConfig::default();
 //! let monitor = InMemoryMonitor::new(config);
 //!
-//! // Record events (available in Phase 2)
+//! // Record events
 //! // monitor.record(event).await?;
 //!
-//! // Take snapshots (available in Phase 2)
+//! // Take snapshots
 //! // let snapshot = monitor.snapshot().await?;
 //! # Ok(())
 //! # }
 //! ```
 
 pub mod error;
+pub mod in_memory;
+pub mod noop;
 pub mod traits;
 pub mod types;
 
 pub use error::MonitoringError;
+pub use in_memory::InMemoryMonitor;
+pub use noop::NoopMonitor;
 pub use traits::{EventSeverity, Monitor, MonitoringEvent};
 pub use types::{
     ActorEvent, ActorEventKind, BrokerEvent, BrokerEventKind, MailboxEvent, MailboxEventKind,

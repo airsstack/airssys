@@ -24,9 +24,10 @@ pub use mailbox::{
 };
 pub use message::{Message, MessageEnvelope, MessagePriority};
 pub use monitoring::{
-    ActorEvent, ActorEventKind, BrokerEvent, BrokerEventKind, EventSeverity, MailboxEvent,
-    MailboxEventKind, Monitor, MonitoringConfig, MonitoringError, MonitoringEvent,
-    MonitoringSnapshot, SupervisionEvent, SupervisionEventKind, SystemEvent, SystemEventKind,
+    ActorEvent, ActorEventKind, BrokerEvent, BrokerEventKind, EventSeverity, InMemoryMonitor,
+    MailboxEvent, MailboxEventKind, Monitor, MonitoringConfig, MonitoringError, MonitoringEvent,
+    MonitoringSnapshot, NoopMonitor, SupervisionEvent, SupervisionEventKind, SystemEvent,
+    SystemEventKind,
 };
 pub use system::{SystemConfig, SystemError};
 pub use util::{ActorAddress, ActorId, MessageId};
