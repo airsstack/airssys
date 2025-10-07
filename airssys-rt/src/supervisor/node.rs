@@ -213,7 +213,10 @@ impl std::fmt::Debug for HealthConfig {
             .field("check_interval", &self.check_interval)
             .field("check_timeout", &self.check_timeout)
             .field("failure_threshold", &self.failure_threshold)
-            .field("consecutive_failures_count", &self.consecutive_failures.len())
+            .field(
+                "consecutive_failures_count",
+                &self.consecutive_failures.len(),
+            )
             .finish()
     }
 }
@@ -250,12 +253,18 @@ impl HealthConfig {
 
     /// Gets the consecutive failure count for a child.
     pub fn get_failure_count(&self, child_id: &ChildId) -> u32 {
-        self.consecutive_failures.get(child_id).copied().unwrap_or(0)
+        self.consecutive_failures
+            .get(child_id)
+            .copied()
+            .unwrap_or(0)
     }
 
     /// Increments the failure count for a child.
     pub fn increment_failure(&mut self, child_id: &ChildId) {
-        let count = self.consecutive_failures.entry(child_id.clone()).or_insert(0);
+        let count = self
+            .consecutive_failures
+            .entry(child_id.clone())
+            .or_insert(0);
         *count += 1;
     }
 
@@ -1242,11 +1251,7 @@ mod tests {
 
     #[test]
     fn test_health_config_initialization() {
-        let config = HealthConfig::new(
-            Duration::from_secs(30),
-            Duration::from_secs(5),
-            3,
-        );
+        let config = HealthConfig::new(Duration::from_secs(30), Duration::from_secs(5), 3);
 
         assert_eq!(config.check_interval, Duration::from_secs(30));
         assert_eq!(config.check_timeout, Duration::from_secs(5));
@@ -1255,11 +1260,7 @@ mod tests {
 
     #[test]
     fn test_health_config_failure_tracking() {
-        let mut config = HealthConfig::new(
-            Duration::from_secs(30),
-            Duration::from_secs(5),
-            3,
-        );
+        let mut config = HealthConfig::new(Duration::from_secs(30), Duration::from_secs(5), 3);
 
         let child_id = ChildId::new();
 
@@ -1300,14 +1301,10 @@ mod tests {
         let monitor = InMemoryMonitor::new(MonitoringConfig::default());
         let mut supervisor = SupervisorNode::<OneForOne, TestChild, _>::new(OneForOne, monitor);
 
-        supervisor.enable_health_checks(
-            Duration::from_secs(30),
-            Duration::from_secs(5),
-            3,
-        );
+        supervisor.enable_health_checks(Duration::from_secs(30), Duration::from_secs(5), 3);
 
         assert!(supervisor.is_health_monitoring_enabled());
-        
+
         let config = supervisor.health_config().unwrap();
         assert_eq!(config.check_interval, Duration::from_secs(30));
         assert_eq!(config.check_timeout, Duration::from_secs(5));
@@ -1320,11 +1317,7 @@ mod tests {
         let mut supervisor = SupervisorNode::<OneForOne, TestChild, _>::new(OneForOne, monitor);
 
         // Enable first
-        supervisor.enable_health_checks(
-            Duration::from_secs(30),
-            Duration::from_secs(5),
-            3,
-        );
+        supervisor.enable_health_checks(Duration::from_secs(30), Duration::from_secs(5), 3);
         assert!(supervisor.is_health_monitoring_enabled());
 
         // Disable
@@ -1342,11 +1335,7 @@ mod tests {
         assert!(supervisor.health_config().is_none());
 
         // Enable monitoring
-        supervisor.enable_health_checks(
-            Duration::from_secs(30),
-            Duration::from_secs(5),
-            3,
-        );
+        supervisor.enable_health_checks(Duration::from_secs(30), Duration::from_secs(5), 3);
 
         // Immutable access
         let config = supervisor.health_config().unwrap();
@@ -1359,11 +1348,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_health_config_debug_format() {
-        let config = HealthConfig::new(
-            Duration::from_secs(30),
-            Duration::from_secs(5),
-            3,
-        );
+        let config = HealthConfig::new(Duration::from_secs(30), Duration::from_secs(5), 3);
 
         let debug_str = format!("{:?}", config);
         assert!(debug_str.contains("HealthConfig"));
