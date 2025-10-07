@@ -33,8 +33,7 @@ pub use monitoring::{
 pub use supervisor::{
     Child, ChildHandle, ChildHealth, ChildId, ChildSpec, ChildState, OneForAll, OneForOne,
     RestForOne, RestartBackoff, RestartPolicy, ShutdownPolicy, SupervisionDecision,
-    SupervisionStrategy, Supervisor, SupervisorError, SupervisorId, SupervisorNode,
-    SupervisorTree,
+    SupervisionStrategy, Supervisor, SupervisorError, SupervisorId, SupervisorNode, SupervisorTree,
 };
 pub use system::{SystemConfig, SystemError};
 pub use util::{ActorAddress, ActorId, MessageId};

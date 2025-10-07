@@ -315,11 +315,11 @@ where
         }
 
         // Remove the supervisor itself
-        self.supervisors
-            .remove(&supervisor_id)
-            .ok_or_else(|| SupervisorError::TreeIntegrityViolation {
+        self.supervisors.remove(&supervisor_id).ok_or_else(|| {
+            SupervisorError::TreeIntegrityViolation {
                 reason: format!("Supervisor {} not found", supervisor_id),
-            })?;
+            }
+        })?;
 
         // Clean up relationships
         self.parent_map.remove(&supervisor_id);
