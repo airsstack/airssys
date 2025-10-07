@@ -283,8 +283,10 @@ mod tests {
     #[tokio::test]
     #[allow(clippy::expect_used)]
     async fn test_severity_filtering() {
-        let mut config = MonitoringConfig::default();
-        config.severity_filter = EventSeverity::Warning;
+        let config = MonitoringConfig {
+            severity_filter: EventSeverity::Warning,
+            ..MonitoringConfig::default()
+        };
         let monitor = InMemoryMonitor::new(config);
 
         // These should be filtered out
@@ -312,8 +314,10 @@ mod tests {
     #[tokio::test]
     #[allow(clippy::expect_used)]
     async fn test_ring_buffer_overflow() {
-        let mut config = MonitoringConfig::default();
-        config.max_history_size = 5;
+        let config = MonitoringConfig {
+            max_history_size: 5,
+            ..MonitoringConfig::default()
+        };
         let monitor = InMemoryMonitor::new(config);
 
         // Record more events than max_history_size
@@ -372,8 +376,10 @@ mod tests {
     #[tokio::test]
     #[allow(clippy::expect_used)]
     async fn test_disabled_monitoring() {
-        let mut config = MonitoringConfig::default();
-        config.enabled = false;
+        let config = MonitoringConfig {
+            enabled: false,
+            ..MonitoringConfig::default()
+        };
         let monitor = InMemoryMonitor::new(config);
 
         let event = create_test_event(EventSeverity::Info);
@@ -386,8 +392,10 @@ mod tests {
     #[tokio::test]
     #[allow(clippy::expect_used)]
     async fn test_severity_counters() {
-        let mut config = MonitoringConfig::default();
-        config.severity_filter = EventSeverity::Trace; // Allow all event levels
+        let config = MonitoringConfig {
+            severity_filter: EventSeverity::Trace, // Allow all event levels
+            ..MonitoringConfig::default()
+        };
         let monitor = InMemoryMonitor::new(config);
 
         // Record events with different severities
