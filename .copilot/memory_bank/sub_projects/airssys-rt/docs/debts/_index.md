@@ -54,6 +54,21 @@
     4. Verify all tests pass (181 + 28 expected)
   - **File**: `debt_rt_005_actor_system_broker_integration_mismatch.md`
 
+### Completed Debts
+
+- **DEBT-RT-006**: ✅ RT-TASK-007 Phase 3 Node Implementation Fixes - **COMPLETE**
+  - **Component**: Supervisor Framework (RT-TASK-007 Phase 3b)
+  - **Completed**: 2025-10-07
+  - **Result**: 69 supervisor tests passing, zero warnings, production-ready
+  - **File**: `debt_rt_006_phase3_node_implementation_fixes.md`
+
+- **DEBT-RT-007**: ✅ RT-TASK-007 Phase 3c SupervisorTree Implementation - **COMPLETE**
+  - **Component**: Supervisor Framework (RT-TASK-007 Phase 3c)
+  - **Completed**: 2025-10-07
+  - **Implementation**: Registry-based hierarchical supervision with zero trait objects
+  - **Result**: 69 supervisor tests passing (10 new tree tests), YAGNI-compliant architecture
+  - **File**: `debt_rt_007_phase3c_tree.md`
+
 ### High Priority
 
 - **DEBT-RT-004**: Request-Reply Serialization Performance
