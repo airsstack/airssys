@@ -1,9 +1,9 @@
 # airssys-rt Knowledge Documentation Index
 
 **Sub-Project:** airssys-rt  
-**Last Updated:** 2025-10-06  
-**Total Knowledge Docs:** 13  
-**Active Knowledge Docs:** 13  
+**Last Updated:** 2025-10-07  
+**Total Knowledge Docs:** 14  
+**Active Knowledge Docs:** 14  
 
 ## Active Knowledge Documentation
 
@@ -58,9 +58,13 @@
   - *Status*: completed | *Created*: 2025-10-06
   - *Summary*: True pub-sub message bus pattern for MessageBroker with publish/subscribe operations, ActorSystem message router, multiple subscribers support, extensibility hooks, and complete integration guide. **IMPLEMENTED in RT-TASK-006**
 
-- **[KNOWLEDGE-RT-013](knowledge_rt_013_task_007_010_action_plans.md)**: RT-TASK-007 and RT-TASK-010 Implementation Action Plans ⚠️ **NEW**
+- **[KNOWLEDGE-RT-013](knowledge_rt_013_task_007_010_action_plans.md)**: RT-TASK-007 and RT-TASK-010 Implementation Action Plans
   - *Status*: active | *Created*: 2025-10-06
   - *Summary*: **COMPREHENSIVE ACTION PLANS**: Complete implementation plans for RT-TASK-010 (Universal Monitoring Infrastructure) and RT-TASK-007 (Supervisor Framework) with phase-by-phase breakdowns, acceptance criteria, testing strategies, integration points, task sequencing rationale (monitoring before supervisor), and Microsoft Rust Guidelines compliance. **REQUIRED READING BEFORE RT-TASK-010 and RT-TASK-007**
+
+- **[KNOWLEDGE-RT-014](knowledge_rt_014_child_trait_design_patterns.md)**: Child Trait Design Patterns and Integration Strategies ⚠️ **NEW**
+  - *Status*: active | *Created*: 2025-10-07
+  - *Summary*: **CHILD TRAIT ARCHITECTURE**: Comprehensive patterns for Child trait separation from Actor trait, blanket implementation bridge, supervision lifecycle management, health checking strategies, mixed supervision trees (actors + non-actors), performance characteristics, testing patterns, and migration guide. **REQUIRED READING BEFORE RT-TASK-007 Phase 1**
 
 ## Planned Knowledge Documentation
 
@@ -81,6 +85,7 @@
 
 ### Implementation Guides (Completed)
 - **KNOWLEDGE-RT-013**: RT-TASK-007 and RT-TASK-010 Action Plans - monitoring and supervision implementation
+- **KNOWLEDGE-RT-014**: Child Trait Design Patterns - separation strategy, blanket impl, lifecycle patterns
 
 ## Knowledge Cross-References
 
@@ -95,7 +100,7 @@
 - **RT-TASK-003**: Mailbox System - implements KNOWLEDGE-RT-001, KNOWLEDGE-RT-006, KNOWLEDGE-RT-007, and KNOWLEDGE-RT-008 patterns
 - **RT-TASK-004**: Message Broker Core - implements KNOWLEDGE-RT-002, KNOWLEDGE-RT-009, KNOWLEDGE-RT-010, and KNOWLEDGE-RT-012 (pub-sub) patterns
 - **RT-TASK-006**: Actor System Framework - implements KNOWLEDGE-RT-011 and KNOWLEDGE-RT-012 (router) patterns
-- **RT-TASK-007**: Supervisor Framework - implements KNOWLEDGE-RT-003 and uses KNOWLEDGE-RT-013 action plans
+- **RT-TASK-007**: Supervisor Framework - implements KNOWLEDGE-RT-003, KNOWLEDGE-RT-013 (action plans), and KNOWLEDGE-RT-014 (Child trait patterns)
 - **RT-TASK-010**: Monitoring Module - implements patterns from KNOWLEDGE-RT-013 action plans
 
 ### ⚠️ Task Sequencing Strategy

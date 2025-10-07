@@ -1,9 +1,9 @@
 # airssys-rt Architecture Decision Records Index
 
 **Sub-Project:** airssys-rt  
-**Last Updated:** 2025-10-06  
-**Total ADRs:** 4  
-**Active ADRs:** 4  
+**Last Updated:** 2025-10-07  
+**Total ADRs:** 5  
+**Active ADRs:** 5  
 
 ## Active ADRs
 
@@ -52,6 +52,28 @@ Simplifies backpressure strategies from four to three by removing misleading `Dr
 
 ---
 
+### ADR-RT-004: Child Trait Separation from Actor Trait ⚠️ **NEW**
+**Status**: Accepted | **Date**: 2025-10-07  
+**File**: [adr_rt_004_child_trait_separation.md](./adr_rt_004_child_trait_separation.md)
+
+**CRITICAL ARCHITECTURE DECISION**: Establishes separate `Child` trait independent from `Actor` trait for supervision framework, with blanket implementation bridge providing automatic Child implementation for all actors.
+
+**Key Decisions**:
+- Separate `Child` trait with `start()`, `stop()`, `health_check()` methods
+- Blanket impl `impl<A: Actor> Child for A` provides automatic bridge
+- Child trait enables supervision of ANY entity (actors, tasks, I/O handlers, services)
+- Zero breaking changes to existing Actor implementations
+- BEAM/OTP alignment - supervisors manage processes, not just actors
+
+**Impact**:
+- RT-TASK-007 Phase 1 implementation pattern
+- Enables heterogeneous supervision trees (actors + non-actors)
+- Future-proof for WASM components, OSL services integration
+- Zero performance overhead via static dispatch and monomorphization
+- All existing actors automatically supervisable without code changes
+
+---
+
 ### ADR-RT-006: MessageBroker Pub-Sub Architecture
 **Status**: Accepted | **Date**: 2025-10-06  
 **File**: [adr_006_messagebroker_pubsub_architecture.md](./adr_006_messagebroker_pubsub_architecture.md)
@@ -76,8 +98,7 @@ Simplifies backpressure strategies from four to three by removing misleading `Dr
 ## Planned ADR Categories
 
 ### Actor System Architecture (Remaining)
-- **ADR-003: Actor State Management** - State storage and access patterns
-- **ADR-004: Supervisor Tree Design** - Supervision strategies and implementation
+- **ADR-RT-005: Actor State Management** - State storage and access patterns (planned)
 
 ### Performance and Concurrency  
 - **ADR-005: Async Runtime Selection** - Tokio integration and configuration
@@ -96,6 +117,9 @@ Simplifies backpressure strategies from four to three by removing misleading `Dr
 ### Completed (Foundation)
 1. ✅ **ADR-RT-001**: Actor Model Implementation Strategy (Zero-cost abstractions)
 2. ✅ **ADR-RT-002**: Message Passing Architecture (Hybrid routing with type safety)
+3. ✅ **ADR-RT-003**: Backpressure Strategy Simplification (YAGNI compliance)
+4. ✅ **ADR-RT-004**: Child Trait Separation (Supervision lifecycle architecture)
+5. ✅ **ADR-RT-006**: MessageBroker Pub-Sub Architecture (True pub-sub message bus)
 
 ### Critical Path (Required Before Implementation)
 1. **ADR-RT-005**: Async Runtime Selection
