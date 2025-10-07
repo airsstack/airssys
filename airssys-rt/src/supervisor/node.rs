@@ -979,9 +979,6 @@ where
     }
 
     async fn restart_child(&mut self, id: &ChildId) -> Result<(), SupervisorError> {
-        // TODO: Implement per-child backoff properly
-        // For now, we use a simple approach without rate limiting
-
         // Get child handle
         let child_handle = self
             .children
@@ -1343,17 +1340,10 @@ mod tests {
         assert!(children_after.is_empty());
     }
 
-    // TODO: Re-enable after per-child backoff is fully implemented
     #[tokio::test]
-    #[ignore]
     async fn test_restart_rate_limiting() {
-        // This test is temporarily disabled as the API has changed
-        // Need to update to use per-child backoff configuration
-        /*
         let monitor = InMemoryMonitor::new(MonitoringConfig::default());
-        let backoff = RestartBackoff::new(2, Duration::from_secs(60));
-        let mut supervisor =
-            SupervisorNode::<OneForOne, TestChild, _>::new(OneForOne, monitor);
+        let mut supervisor = SupervisorNode::<OneForOne, TestChild, _>::new(OneForOne, monitor);
 
         let spec = ChildSpec {
             id: "test-child".into(),
@@ -1369,14 +1359,69 @@ mod tests {
 
         let child_id = supervisor.start_child(spec).await.unwrap();
 
-        // First two restarts should succeed
-        supervisor.restart_child(&child_id).await.unwrap();
-        supervisor.restart_child(&child_id).await.unwrap();
+        // Default backoff allows 5 restarts per 60 seconds
+        // First 5 restarts should succeed
+        for _ in 0..5 {
+            supervisor.restart_child(&child_id).await.unwrap();
+        }
 
-        // Third restart should fail due to rate limit
+        // 6th restart should fail due to rate limit
         let result = supervisor.restart_child(&child_id).await;
         assert!(result.is_err());
-        */
+        assert!(matches!(
+            result.unwrap_err(),
+            SupervisorError::RestartLimitExceeded { .. }
+        ));
+    }
+
+    #[tokio::test]
+    async fn test_restart_per_child_backoff_independence() {
+        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let mut supervisor = SupervisorNode::<OneForOne, TestChild, _>::new(OneForOne, monitor);
+
+        // Start two children
+        let spec1 = ChildSpec {
+            id: "child-1".into(),
+            factory: || TestChild {
+                should_fail_start: false,
+                should_fail_stop: false,
+            },
+            restart_policy: RestartPolicy::Permanent,
+            shutdown_policy: ShutdownPolicy::Graceful(Duration::from_secs(5)),
+            start_timeout: Duration::from_secs(10),
+            shutdown_timeout: Duration::from_secs(10),
+        };
+
+        let spec2 = ChildSpec {
+            id: "child-2".into(),
+            factory: || TestChild {
+                should_fail_start: false,
+                should_fail_stop: false,
+            },
+            restart_policy: RestartPolicy::Permanent,
+            shutdown_policy: ShutdownPolicy::Graceful(Duration::from_secs(5)),
+            start_timeout: Duration::from_secs(10),
+            shutdown_timeout: Duration::from_secs(10),
+        };
+
+        let child1_id = supervisor.start_child(spec1).await.unwrap();
+        let child2_id = supervisor.start_child(spec2).await.unwrap();
+
+        // Restart child1 5 times (hit limit)
+        for _ in 0..5 {
+            supervisor.restart_child(&child1_id).await.unwrap();
+        }
+
+        // child1 should be at limit
+        let result1 = supervisor.restart_child(&child1_id).await;
+        assert!(matches!(
+            result1.unwrap_err(),
+            SupervisorError::RestartLimitExceeded { .. }
+        ));
+
+        // child2 should still be able to restart (independent backoff)
+        let result2 = supervisor.restart_child(&child2_id).await;
+        assert!(result2.is_ok());
     }
 
     #[tokio::test]
