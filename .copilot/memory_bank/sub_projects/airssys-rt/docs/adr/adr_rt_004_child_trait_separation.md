@@ -2,8 +2,8 @@
 
 **ADR ID:** ADR-RT-004  
 **Created:** 2025-10-07  
-**Updated:** 2025-10-07  
-**Status:** Accepted  
+**Updated:** 2025-01-07  
+**Status:** Accepted (Revised)  
 **Deciders:** Architecture team, RT-TASK-007 implementation team  
 
 ## Title
@@ -40,9 +40,9 @@ This decision fundamentally affects the flexibility, composability, and BEAM/OTP
 ## Decision
 
 ### Summary
-**ACCEPTED: Implement separate `Child` trait independent from `Actor` trait, with blanket implementation bridge.**
+**ACCEPTED: Implement separate `Child` trait completely independent from `Actor` trait. NO automatic blanket implementation.**
 
-The supervision framework will define a separate `Child` trait for lifecycle management, providing a blanket implementation `impl<A: Actor> Child for A` to automatically make all actors supervisable without code changes.
+The supervision framework defines a separate `Child` trait for lifecycle management that is intentionally independent from the `Actor` trait. Actors that need to be supervised must **explicitly implement the Child trait**. This maintains true separation of concerns and enables supervision of ANY entity type without coupling Child to Actor-specific concepts like `ActorContext` or `MessageBroker`.
 
 ### Rationale
 
@@ -56,15 +56,18 @@ The supervision framework will define a separate `Child` trait for lifecycle man
    - Future-proof for WASM components, OSL services
    - Not limited to message-passing paradigm
 
-3. **Zero Breaking Changes** ⭐⭐⭐⭐⭐
-   - Blanket impl makes ALL actors automatically supervisable
-   - Existing actor implementations work unchanged
-   - No modifications to Actor trait required
+3. **True Independence** ⭐⭐⭐⭐⭐
+   - Child trait has NO dependencies on Actor trait
+   - No coupling to `ActorContext<M, B>` generic parameters
+   - Actor lifecycle methods (`pre_start`, `post_stop`) require context parameter
+   - Child lifecycle methods (`start`, `stop`) are context-free
+   - Incompatible method signatures prevent automatic blanket impl
 
-4. **Clean Separation of Concerns** ⭐⭐⭐⭐
+4. **Clean Separation of Concerns** ⭐⭐⭐⭐⭐
    - Actor trait: Message handling and actor-specific behavior
    - Child trait: Lifecycle management for supervision
    - Single Responsibility Principle (SRP) compliance
+   - Each trait can evolve independently
 
 5. **Composability** ⭐⭐⭐⭐
    - Supervisors can manage heterogeneous children
@@ -72,28 +75,31 @@ The supervision framework will define a separate `Child` trait for lifecycle man
    - Adapter pattern for third-party integrations
 
 ### Assumptions
-- Blanket implementation `impl<A: Actor> Child for A` provides seamless bridge
-- Most users will only implement Actor (automatic Child via blanket impl)
-- Explicit Child implementation only needed for non-actor entities
-- Documentation clearly explains relationship between traits
+- Actors requiring supervision implement BOTH Actor and Child traits explicitly
+- Most supervised entities will be actors (explicit dual implementation common)
+- Explicit implementation provides clear lifecycle contract
+- Documentation explains Actor/Child independence and implementation patterns
 
 ## Considered Options
 
 ### Option 1: Separate Child Trait (SELECTED)
-**Description:** Define independent `Child` trait with `start()`, `stop()`, `health_check()`, provide blanket impl for Actor
+**Description:** Define independent `Child` trait with `start()`, `stop()`, `health_check()`. Actors requiring supervision must explicitly implement both Actor and Child traits.
 
 **Pros:**
 - ✅ Maximum flexibility - supervise ANY entity type
 - ✅ True BEAM/OTP alignment
-- ✅ Zero Actor code changes (blanket impl)
+- ✅ Complete independence - no coupling between traits
 - ✅ Clean separation of concerns
 - ✅ Future-proof for WASM, OSL integration
 - ✅ Composable - mix actors and non-actors
+- ✅ Each trait evolves independently
+- ✅ No method signature conflicts
 
 **Cons:**
+- ❌ Actors must explicitly implement Child (one-time implementation cost)
 - ❌ Two traits to understand (moderate learning curve)
 - ❌ Generic signatures slightly more complex
-- ❌ Small documentation burden explaining relationship
+- ❌ Documentation burden explaining both traits
 - ❌ Slightly larger testing surface area
 
 **Implementation Effort:** Medium  
@@ -161,20 +167,35 @@ The supervision framework will define a separate `Child` trait for lifecycle man
    }
    ```
 
-3. Implement blanket impl in `src/supervisor/traits.rs`
+3. **No blanket implementation** - Child and Actor are independent
+   
+   **Rationale:** Actor lifecycle methods require `ActorContext<M, B>` parameter:
+   ```rust
+   // Actor trait (existing)
+   async fn pre_start<B>(&mut self, context: &mut ActorContext<M, B>);
+   async fn post_stop<B>(&mut self, context: &mut ActorContext<M, B>);
+   
+   // Child trait (new)
+   async fn start(&mut self) -> Result<(), Self::Error>;
+   async fn stop(&mut self, timeout: Duration) -> Result<(), Self::Error>;
+   ```
+   
+   **Incompatible signatures** prevent automatic blanket impl. This is intentional - it maintains true independence between traits.
+
+4. Actors implement Child explicitly when supervision needed
    ```rust
    #[async_trait]
-   impl<A> Child for A
-   where
-       A: Actor + Send + Sync + 'static,
-       A::Error: Error + Send + Sync + 'static,
-   {
-       type Error = A::Error;
+   impl Child for MyActor {
+       type Error = MyActorError;
+       
        async fn start(&mut self) -> Result<(), Self::Error> {
-           self.pre_start().await
+           // Actor-specific initialization for supervision
+           Ok(())
        }
+       
        async fn stop(&mut self, _timeout: Duration) -> Result<(), Self::Error> {
-           self.post_stop().await
+           // Actor-specific cleanup for supervision
+           Ok(())
        }
    }
    ```
@@ -185,8 +206,8 @@ The supervision framework will define a separate `Child` trait for lifecycle man
 3. All supervision operations use `Child` trait methods
 
 **Phase 3: Documentation and Examples**
-1. Comprehensive rustdoc explaining Child/Actor relationship
-2. Example: Supervising actors (automatic via blanket impl)
+1. Comprehensive rustdoc explaining Child/Actor independence
+2. Example: Actor with explicit Child implementation
 3. Example: Supervising non-actor background tasks
 4. Example: Mixed supervision (actors + tasks)
 
@@ -222,9 +243,9 @@ The supervision framework will define a separate `Child` trait for lifecycle man
 ### Performance Impact
 **Zero Performance Overhead:**
 - Static dispatch via generics (no `dyn` trait objects)
-- Blanket impl compiles to direct Actor method calls
+- Explicit Child implementations compile to direct method calls
 - Monomorphization eliminates abstraction cost
-- Same performance as calling Actor methods directly
+- No runtime overhead from trait separation
 
 ### Security Impact
 **Neutral/Positive:**
@@ -245,18 +266,19 @@ The supervision framework will define a separate `Child` trait for lifecycle man
 - ✅ Clear separation of concerns (SRP)
 - ✅ Easier testing (mock Child implementations)
 - ✅ Simpler trait implementations (focused responsibilities)
-- ✅ Documentation clearly explains trait relationships
+- ✅ Documentation clearly explains trait independence
+- ✅ Traits can evolve independently without conflicts
 
 **Considerations:**
-- ⚠️ Need to maintain blanket impl consistency with Actor trait changes
-- ⚠️ Documentation must explain Child/Actor relationship clearly
+- ⚠️ Actors need explicit Child implementation for supervision
+- ⚠️ Documentation must explain when/why to implement Child
 
 ## Mitigation Strategies
 
-### Learning Curve Mitigation
-1. **Comprehensive Documentation**: Rustdoc with clear examples
-2. **Type Aliases**: Provide convenience aliases like `type ActorChild<A> = ...`
-3. **Examples Repository**: Show both actor and non-actor supervision
+### Implementation Boilerplate Mitigation
+1. **Derive Macros** (future): `#[derive(Child)]` for common patterns
+2. **Documentation Templates**: Clear copy-paste examples for actor supervision
+3. **Examples Repository**: Show various Child implementation patterns
 4. **Migration Guide**: Clear guide for existing Actor implementations (no changes needed)
 
 ### Complexity Mitigation
@@ -284,25 +306,28 @@ If this decision proves problematic in practice, we can:
 
 ## Success Metrics
 
-- ✅ All existing Actor implementations work with supervisors unchanged
+- ✅ Actors can be supervised by explicitly implementing Child trait
 - ✅ At least one non-actor entity successfully supervised
-- ✅ Documentation clearly explains Child/Actor relationship
-- ✅ Zero performance regression vs direct Actor method calls
-- ✅ Developer feedback shows acceptable learning curve
+- ✅ Documentation clearly explains Child/Actor independence
+- ✅ Zero performance regression vs direct method calls
+- ✅ Developer feedback shows acceptable implementation patterns
+- ✅ Test suite validates both actor and non-actor supervision
 
 ## References
 
 - **KNOWLEDGE-RT-003**: Supervisor Tree Implementation Strategies
 - **KNOWLEDGE-RT-013**: RT-TASK-007 and RT-TASK-010 Action Plans
+- **KNOWLEDGE-RT-014**: Child Trait Design Patterns and Integration Guide
 - **Workspace Standards**: §6.2 (Avoid dyn Patterns), §6.1 (YAGNI Principles)
 - **Microsoft Rust Guidelines**: M-DI-HIERARCHY (generic constraints over trait objects)
 - **Erlang/OTP Documentation**: Supervisor behavior and gen_server patterns
 
 ## Appendix: Code Examples
 
-### Example 1: Actor Supervision (Zero Code Changes)
+### Example 1: Actor Supervision with Explicit Child Implementation
+
 ```rust
-// Existing actor - NO CHANGES NEEDED
+// Define actor
 struct CounterActor { count: u32 }
 
 #[async_trait]
@@ -310,15 +335,36 @@ impl Actor for CounterActor {
     type Message = CounterMsg;
     type Error = CounterError;
     
-    async fn handle_message(&mut self, msg: Self::Message, ctx: &mut ActorContext<Self::Message>) 
-        -> Result<(), Self::Error> 
+    async fn handle_message<B: MessageBroker<Self::Message>>(
+        &mut self, 
+        msg: Self::Message, 
+        ctx: &mut ActorContext<Self::Message, B>
+    ) -> Result<(), Self::Error> 
     {
         self.count += msg.delta;
         Ok(())
     }
 }
 
-// ✅ CounterActor is now automatically supervisable via blanket impl!
+// Explicitly implement Child for supervision
+#[async_trait]
+impl Child for CounterActor {
+    type Error = CounterError;
+    
+    async fn start(&mut self) -> Result<(), Self::Error> {
+        // Actor-specific initialization
+        println!("CounterActor starting");
+        Ok(())
+    }
+    
+    async fn stop(&mut self, _timeout: Duration) -> Result<(), Self::Error> {
+        // Actor-specific cleanup
+        println!("CounterActor stopping");
+        Ok(())
+    }
+}
+
+// ✅ CounterActor can now be supervised!
 let supervisor = SupervisorNode::<OneForOne, _, _>::new(OneForOne, monitor);
 supervisor.add_child(ChildSpec {
     id: "counter".into(),

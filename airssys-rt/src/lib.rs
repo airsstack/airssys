@@ -13,6 +13,7 @@ pub mod broker;
 pub mod mailbox;
 pub mod message;
 pub mod monitoring;
+pub mod supervisor;
 pub mod system;
 pub mod util;
 
@@ -28,6 +29,10 @@ pub use monitoring::{
     MailboxEvent, MailboxEventKind, Monitor, MonitoringConfig, MonitoringError, MonitoringEvent,
     MonitoringSnapshot, NoopMonitor, SupervisionEvent, SupervisionEventKind, SystemEvent,
     SystemEventKind,
+};
+pub use supervisor::{
+    Child, ChildHealth, ChildId, ChildSpec, ChildState, RestartPolicy, ShutdownPolicy,
+    Supervisor, SupervisionDecision, SupervisionStrategy, SupervisorError,
 };
 pub use system::{SystemConfig, SystemError};
 pub use util::{ActorAddress, ActorId, MessageId};

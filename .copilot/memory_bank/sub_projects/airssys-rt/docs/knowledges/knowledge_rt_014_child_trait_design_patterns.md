@@ -3,12 +3,35 @@
 **Sub-Project:** airssys-rt  
 **Category:** Patterns  
 **Created:** 2025-10-07  
-**Last Updated:** 2025-10-07  
-**Status:** active  
+**Last Updated:** 2025-01-07  
+**Status:** active (NEEDS REVISION)  
+
+---
+
+## ⚠️ CRITICAL UPDATE REQUIRED
+
+**This document is OUTDATED** and requires comprehensive revision. The current version incorrectly describes a blanket implementation `impl<A: Actor> Child for A` that **does NOT exist** in the actual implementation.
+
+**Corrected Design (per ADR-RT-004 Revision 2025-01-07):**
+- Child and Actor are **completely independent** traits
+- **NO automatic blanket implementation** exists
+- Actors requiring supervision **must explicitly implement Child trait**
+- Incompatible method signatures prevent automatic bridge:
+  - `Actor::pre_start<B>(&mut self, context: &mut ActorContext<M, B>)` (requires context)
+  - `Child::start(&mut self) -> Result<(), Self::Error>` (context-free)
+
+**Action Required:** Comprehensive rewrite to remove all blanket impl references and provide explicit Child implementation examples for actors.
+
+**Until Revision:** Refer to:
+- `src/supervisor/traits.rs` - Authoritative Child trait definition and documentation
+- ADR-RT-004 (revised 2025-01-07) - Correct architectural decision
+- Working tests in `src/supervisor/traits.rs::tests` - Correct implementation patterns
+
+---
 
 ## Context and Problem
 
-RT-TASK-007 (Supervisor Framework) requires a lifecycle management interface for supervised entities. The design decision (ADR-RT-004) establishes a separate `Child` trait independent from the `Actor` trait, with a blanket implementation bridge. This knowledge document provides comprehensive implementation patterns, integration strategies, and best practices for the Child trait architecture.
+RT-TASK-007 (Supervisor Framework) requires a lifecycle management interface for supervised entities. The design decision (ADR-RT-004) establishes a separate `Child` trait **completely independent** from the `Actor` trait. This knowledge document provides comprehensive implementation patterns, integration strategies, and best practices for the Child trait architecture.
 
 ## Knowledge Details
 
