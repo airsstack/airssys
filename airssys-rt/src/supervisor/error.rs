@@ -310,8 +310,6 @@ mod tests {
 
         assert!(err.is_fatal());
         assert!(!err.is_retryable());
-        assert!(err
-            .to_string()
-            .contains("circular dependency detected"));
+        assert!(err.to_string().contains("circular dependency detected"));
     }
 }

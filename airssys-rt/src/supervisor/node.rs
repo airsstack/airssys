@@ -640,11 +640,12 @@ where
         let check_timeout = config.check_timeout;
 
         // Get child handle
-        let child_handle = self.children.get(child_id).ok_or_else(|| {
-            SupervisorError::ChildNotFound {
-                id: child_id.clone(),
-            }
-        })?;
+        let child_handle =
+            self.children
+                .get(child_id)
+                .ok_or_else(|| SupervisorError::ChildNotFound {
+                    id: child_id.clone(),
+                })?;
 
         // Perform health check with timeout
         let health_result = timeout(check_timeout, child_handle.child().health_check()).await;
@@ -1703,7 +1704,7 @@ mod tests {
             let _ = supervisor.check_child_health(&child_id).await;
             let config = supervisor.health_config().unwrap();
             let count = config.get_failure_count(&child_id);
-            
+
             if i < 3 {
                 assert_eq!(count, i);
             } else {
@@ -1744,7 +1745,7 @@ mod tests {
         // Fail twice
         supervisor.check_child_health(&child_id).await.unwrap();
         supervisor.check_child_health(&child_id).await.unwrap();
-        
+
         let config = supervisor.health_config().unwrap();
         assert_eq!(config.get_failure_count(&child_id), 2);
 
@@ -1801,7 +1802,7 @@ mod tests {
 
         let fake_child_id = ChildId::new();
         let result = supervisor.check_child_health(&fake_child_id).await;
-        
+
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
