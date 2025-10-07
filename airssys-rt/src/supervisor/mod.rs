@@ -139,12 +139,16 @@
 //! - [`error`]: Error types for supervision operations
 
 // Module declarations
+pub mod backoff;
 pub mod error;
+pub mod strategy;
 pub mod traits;
 pub mod types;
 
 // Re-exports for convenient access
+pub use backoff::RestartBackoff;
 pub use error::SupervisorError;
+pub use strategy::{should_restart, should_restart_any, OneForAll, OneForOne, RestForOne};
 pub use traits::{Child, SupervisionStrategy, Supervisor};
 pub use types::{
     ChildHealth, ChildId, ChildSpec, ChildState, RestartPolicy, ShutdownPolicy, SupervisionDecision,
