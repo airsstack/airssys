@@ -22,16 +22,37 @@
 //! # Examples
 //!
 //! ```rust
-//! use airssys_rt::supervisor::{OneForOne, OneForAll, RestForOne};
+//! use airssys_rt::supervisor::{SupervisorNode, OneForOne, OneForAll, RestForOne};
+//! use airssys_rt::monitoring::InMemoryMonitor;
+//!
+//! # use airssys_rt::supervisor::Child;
+//! # use async_trait::async_trait;
+//! # use std::time::Duration;
+//! # struct MyWorker;
+//! # #[derive(Debug)]
+//! # struct MyError;
+//! # impl std::fmt::Display for MyError {
+//! #     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result { Ok(()) }
+//! # }
+//! # impl std::error::Error for MyError {}
+//! # #[async_trait]
+//! # impl Child for MyWorker {
+//! #     type Error = MyError;
+//! #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+//! #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
+//! # }
+//! # fn example() {
+//! let monitor = InMemoryMonitor::new(Default::default());
 //!
 //! // Independent children - use OneForOne
-//! let supervisor = SupervisorNode::new(OneForOne, monitor);
+//! let supervisor1 = SupervisorNode::<OneForOne, MyWorker, _>::new(OneForOne, monitor.clone());
 //!
 //! // Interdependent children - use OneForAll
-//! let supervisor = SupervisorNode::new(OneForAll, monitor);
+//! let supervisor2 = SupervisorNode::<OneForAll, MyWorker, _>::new(OneForAll, monitor.clone());
 //!
 //! // Dependent startup order - use RestForOne
-//! let supervisor = SupervisorNode::new(RestForOne, monitor);
+//! let supervisor3 = SupervisorNode::<RestForOne, MyWorker, _>::new(RestForOne, monitor);
+//! # }
 //! ```
 
 // Layer 1: Standard library imports
@@ -67,17 +88,41 @@ use super::types::{RestartPolicy, StrategyContext, SupervisionDecision};
 /// # Examples
 ///
 /// ```rust
-/// use airssys_rt::supervisor::{OneForOne, ChildSpec, RestartPolicy};
+/// use airssys_rt::supervisor::{SupervisorNode, OneForOne, ChildSpec, RestartPolicy, ShutdownPolicy, Supervisor};
+/// use airssys_rt::monitoring::InMemoryMonitor;
+/// use std::time::Duration;
 ///
+/// # use airssys_rt::supervisor::Child;
+/// # use async_trait::async_trait;
+/// # struct HttpHandler;
+/// # #[derive(Debug)]
+/// # struct HttpError;
+/// # impl std::fmt::Display for HttpError {
+/// #     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result { Ok(()) }
+/// # }
+/// # impl std::error::Error for HttpError {}
+/// # #[async_trait]
+/// # impl Child for HttpHandler {
+/// #     type Error = HttpError;
+/// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+/// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
+/// # }
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 /// // Strategy for independent HTTP handlers
-/// let supervisor = SupervisorNode::new(OneForOne, monitor);
+/// let monitor = InMemoryMonitor::new(Default::default());
+/// let mut supervisor = SupervisorNode::<OneForOne, HttpHandler, _>::new(OneForOne, monitor);
 ///
 /// // Add independent children
 /// supervisor.start_child(ChildSpec {
 ///     id: "handler-1".into(),
+///     factory: || HttpHandler,
 ///     restart_policy: RestartPolicy::Permanent,
-///     // ... other config
+///     shutdown_policy: ShutdownPolicy::Graceful(Duration::from_secs(5)),
+///     start_timeout: Duration::from_secs(10),
+///     shutdown_timeout: Duration::from_secs(10),
 /// }).await?;
+/// # Ok(())
+/// # }
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct OneForOne;
@@ -125,23 +170,50 @@ impl SupervisionStrategy for OneForOne {
 /// # Examples
 ///
 /// ```rust
-/// use airssys_rt::supervisor::{OneForAll, ChildSpec, RestartPolicy};
+/// use airssys_rt::supervisor::{SupervisorNode, OneForAll, ChildSpec, RestartPolicy, ShutdownPolicy, Supervisor};
+/// use airssys_rt::monitoring::InMemoryMonitor;
+/// use std::time::Duration;
 ///
+/// # use airssys_rt::supervisor::Child;
+/// # use async_trait::async_trait;
+/// # struct PoolWorker;
+/// # #[derive(Debug)]
+/// # struct PoolError;
+/// # impl std::fmt::Display for PoolError {
+/// #     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result { Ok(()) }
+/// # }
+/// # impl std::error::Error for PoolError {}
+/// # #[async_trait]
+/// # impl Child for PoolWorker {
+/// #     type Error = PoolError;
+/// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+/// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
+/// # }
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 /// // Strategy for interdependent services
-/// let supervisor = SupervisorNode::new(OneForAll, monitor);
+/// let monitor = InMemoryMonitor::new(Default::default());
+/// let mut supervisor = SupervisorNode::<OneForAll, PoolWorker, _>::new(OneForAll, monitor);
 ///
 /// // Add interdependent children
 /// supervisor.start_child(ChildSpec {
 ///     id: "db-pool".into(),
+///     factory: || PoolWorker,
 ///     restart_policy: RestartPolicy::Permanent,
-///     // ... other config
+///     shutdown_policy: ShutdownPolicy::Graceful(Duration::from_secs(5)),
+///     start_timeout: Duration::from_secs(10),
+///     shutdown_timeout: Duration::from_secs(10),
 /// }).await?;
 ///
 /// supervisor.start_child(ChildSpec {
 ///     id: "cache-manager".into(),
+///     factory: || PoolWorker,
 ///     restart_policy: RestartPolicy::Permanent,
-///     // ... other config
+///     shutdown_policy: ShutdownPolicy::Graceful(Duration::from_secs(5)),
+///     start_timeout: Duration::from_secs(10),
+///     shutdown_timeout: Duration::from_secs(10),
 /// }).await?;
+/// # Ok(())
+/// # }
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct OneForAll;
@@ -190,29 +262,59 @@ impl SupervisionStrategy for OneForAll {
 /// # Examples
 ///
 /// ```rust
-/// use airssys_rt::supervisor::{RestForOne, ChildSpec, RestartPolicy};
+/// use airssys_rt::supervisor::{SupervisorNode, RestForOne, ChildSpec, RestartPolicy, ShutdownPolicy, Supervisor};
+/// use airssys_rt::monitoring::InMemoryMonitor;
+/// use std::time::Duration;
 ///
+/// # use airssys_rt::supervisor::Child;
+/// # use async_trait::async_trait;
+/// # struct ServiceWorker;
+/// # #[derive(Debug)]
+/// # struct ServiceError;
+/// # impl std::fmt::Display for ServiceError {
+/// #     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result { Ok(()) }
+/// # }
+/// # impl std::error::Error for ServiceError {}
+/// # #[async_trait]
+/// # impl Child for ServiceWorker {
+/// #     type Error = ServiceError;
+/// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+/// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
+/// # }
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 /// // Strategy for dependent startup sequence
-/// let supervisor = SupervisorNode::new(RestForOne, monitor);
+/// let monitor = InMemoryMonitor::new(Default::default());
+/// let mut supervisor = SupervisorNode::<RestForOne, ServiceWorker, _>::new(RestForOne, monitor);
 ///
 /// // Order matters! Later children depend on earlier ones
 /// supervisor.start_child(ChildSpec {
 ///     id: "config-loader".into(),      // Started first
+///     factory: || ServiceWorker,
 ///     restart_policy: RestartPolicy::Permanent,
-///     // ... other config
+///     shutdown_policy: ShutdownPolicy::Graceful(Duration::from_secs(5)),
+///     start_timeout: Duration::from_secs(10),
+///     shutdown_timeout: Duration::from_secs(10),
 /// }).await?;
 ///
 /// supervisor.start_child(ChildSpec {
 ///     id: "database".into(),            // Depends on config
+///     factory: || ServiceWorker,
 ///     restart_policy: RestartPolicy::Permanent,
-///     // ... other config
+///     shutdown_policy: ShutdownPolicy::Graceful(Duration::from_secs(5)),
+///     start_timeout: Duration::from_secs(10),
+///     shutdown_timeout: Duration::from_secs(10),
 /// }).await?;
 ///
 /// supervisor.start_child(ChildSpec {
 ///     id: "api-server".into(),          // Depends on database
+///     factory: || ServiceWorker,
 ///     restart_policy: RestartPolicy::Permanent,
-///     // ... other config
+///     shutdown_policy: ShutdownPolicy::Graceful(Duration::from_secs(5)),
+///     start_timeout: Duration::from_secs(10),
+///     shutdown_timeout: Duration::from_secs(10),
 /// }).await?;
+/// # Ok(())
+/// # }
 ///
 /// // If database fails, it and api-server will restart
 /// // If api-server fails, only it restarts
@@ -329,6 +431,7 @@ where
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
 
@@ -355,7 +458,7 @@ mod tests {
 
     #[test]
     fn test_should_restart_any_with_permanent() {
-        let policies = vec![RestartPolicy::Permanent, RestartPolicy::Temporary];
+        let policies = [RestartPolicy::Permanent, RestartPolicy::Temporary];
 
         // At least one Permanent child
         assert!(should_restart_any(policies.iter(), false));
@@ -364,7 +467,7 @@ mod tests {
 
     #[test]
     fn test_should_restart_any_with_transient() {
-        let policies = vec![RestartPolicy::Transient, RestartPolicy::Temporary];
+        let policies = [RestartPolicy::Transient, RestartPolicy::Temporary];
 
         // Transient restarts on abnormal exit
         assert!(should_restart_any(policies.iter(), false));
@@ -373,7 +476,7 @@ mod tests {
 
     #[test]
     fn test_should_restart_any_all_temporary() {
-        let policies = vec![RestartPolicy::Temporary, RestartPolicy::Temporary];
+        let policies = [RestartPolicy::Temporary, RestartPolicy::Temporary];
 
         // All Temporary, no restart
         assert!(!should_restart_any(policies.iter(), false));
@@ -396,7 +499,7 @@ mod tests {
         let strategy2 = OneForOne;
 
         assert_eq!(strategy, strategy2);
-        assert_eq!(format!("{:?}", strategy), "OneForOne");
+        assert_eq!(format!("{strategy:?}"), "OneForOne");
     }
 
     #[test]
@@ -406,7 +509,7 @@ mod tests {
         let strategy2 = OneForAll;
 
         assert_eq!(strategy, strategy2);
-        assert_eq!(format!("{:?}", strategy), "OneForAll");
+        assert_eq!(format!("{strategy:?}"), "OneForAll");
     }
 
     #[test]
@@ -416,7 +519,7 @@ mod tests {
         let strategy2 = RestForOne;
 
         assert_eq!(strategy, strategy2);
-        assert_eq!(format!("{:?}", strategy), "RestForOne");
+        assert_eq!(format!("{strategy:?}"), "RestForOne");
     }
 
     #[test]

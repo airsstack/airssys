@@ -29,7 +29,7 @@
 //!
 //! // Get backoff delay (exponential)
 //! let delay = backoff.calculate_delay();
-//! tokio::time::sleep(delay).await;
+//! println!("Waiting {:?} before restart", delay);
 //! ```
 
 // Layer 1: Standard library imports
@@ -242,17 +242,17 @@ impl RestartBackoff {
     ///
     /// let mut backoff = RestartBackoff::new(10, Duration::from_secs(60));
     ///
-    /// // First restart: 100ms
-    /// backoff.record_restart();
-    /// assert_eq!(backoff.calculate_delay(), Duration::from_millis(100));
-    ///
-    /// // Second restart: 200ms
+    /// // First restart: base * 2^1 = 100ms * 2 = 200ms
     /// backoff.record_restart();
     /// assert_eq!(backoff.calculate_delay(), Duration::from_millis(200));
     ///
-    /// // Third restart: 400ms
+    /// // Second restart: base * 2^2 = 100ms * 4 = 400ms
     /// backoff.record_restart();
     /// assert_eq!(backoff.calculate_delay(), Duration::from_millis(400));
+    ///
+    /// // Third restart: base * 2^3 = 100ms * 8 = 800ms
+    /// backoff.record_restart();
+    /// assert_eq!(backoff.calculate_delay(), Duration::from_millis(800));
     /// ```
     pub fn calculate_delay(&mut self) -> Duration {
         self.cleanup_expired_restarts();

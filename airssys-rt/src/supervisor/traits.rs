@@ -21,9 +21,7 @@ use async_trait::async_trait;
 
 // Layer 3: Internal module imports
 use super::error::SupervisorError;
-use super::types::{
-    ChildHealth, ChildId, ChildSpec, StrategyContext, SupervisionDecision,
-};
+use super::types::{ChildHealth, ChildId, ChildSpec, StrategyContext, SupervisionDecision};
 
 /// Child trait for entities that can be supervised.
 ///
@@ -229,42 +227,10 @@ pub trait Child: Send + Sync + 'static {
     ///
     /// # Examples
     ///
-    /// ```rust
-    /// # use airssys_rt::supervisor::Child;
-    /// # use async_trait::async_trait;
-    /// # use std::time::Duration;
-    /// # struct MyChild;
-    /// # #[derive(Debug)]
-    /// # struct MyError;
-    /// # impl std::fmt::Display for MyError {
-    /// #     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result { Ok(()) }
-    /// # }
-    /// # impl std::error::Error for MyError {}
-    /// #[async_trait]
-    /// impl Child for MyChild {
-    ///     type Error = MyError;
-    /// #   async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
-    ///     
-    ///     async fn stop(&mut self, timeout: Duration) -> Result<(), Self::Error> {
-    ///         // Graceful shutdown with timeout
-    ///         tokio::select! {
-    ///             _ = self.graceful_shutdown() => Ok(()),
-    ///             _ = tokio::time::sleep(timeout) => {
-    ///                 Err(MyError::ShutdownTimeout)
-    ///             }
-    ///         }
-    ///     }
-    /// }
-    /// # impl MyChild {
-    /// #   async fn graceful_shutdown(&self) {}
-    /// # }
-    /// # #[derive(Debug)]
-    /// # enum MyError { ShutdownTimeout }
-    /// # impl std::fmt::Display for MyError {
-    /// #     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result { Ok(()) }
-    /// # }
-    /// # impl std::error::Error for MyError {}
-    /// ```
+    /// See the strategy examples for complete implementations:
+    /// - [`crate::supervisor::OneForOne`]
+    /// - [`crate::supervisor::OneForAll`]
+    /// - [`crate::supervisor::RestForOne`]
     async fn stop(&mut self, timeout: Duration) -> Result<(), Self::Error>;
 
     /// Check the health status of the child.
@@ -496,6 +462,7 @@ pub trait SupervisionStrategy: Send + Sync + 'static {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
     use crate::actor::Actor;

@@ -7,17 +7,20 @@
 // Layer 1: Standard library imports
 use std::collections::HashMap;
 use std::error::Error as StdError;
+use std::sync::Arc;
 use std::time::Duration;
 
 // Layer 2: Third-party crate imports
 use async_trait::async_trait;
 use chrono::Utc;
+use tokio::sync::Mutex;
 use tokio::time::timeout;
 use uuid::Uuid;
 
 // Layer 3: Internal module imports
 use super::backoff::RestartBackoff;
 use super::error::SupervisorError;
+use super::health_monitor::spawn_health_monitor;
 use super::strategy::should_restart;
 use super::traits::{Child, SupervisionStrategy, Supervisor};
 use super::types::{
@@ -25,6 +28,42 @@ use super::types::{
     SupervisionDecision,
 };
 use crate::monitoring::{Monitor, SupervisionEvent, SupervisionEventKind};
+
+/// A supervisor with automatic background health monitoring enabled.
+///
+/// This wrapper type is returned by `with_automatic_health_monitoring()` and
+/// manages the lifecycle of the background health checking task. The task
+/// will automatically stop when this wrapper is dropped.
+///
+/// # Type Parameters
+///
+/// - `S`: Supervision strategy type
+/// - `C`: Child type implementing the `Child` trait
+/// - `M`: Monitor type for supervision events
+///
+/// # Usage
+///
+/// Access the underlying supervisor through the `supervisor` field:
+///
+/// ```rust,ignore
+/// let monitored = supervisor.with_automatic_health_monitoring(...);
+/// monitored.supervisor.lock().await.start_child(...).await?;
+/// ```
+pub struct MonitoredSupervisor<S, C, M>
+where
+    S: SupervisionStrategy,
+    C: Child,
+    M: Monitor<SupervisionEvent>,
+{
+    /// The wrapped supervisor instance
+    pub supervisor: Arc<Mutex<SupervisorNode<S, C, M>>>,
+
+    /// Background health monitoring task handle (kept alive)
+    _task_handle: tokio::task::JoinHandle<()>,
+
+    /// Shutdown signal sender (kept alive to prevent premature shutdown)
+    _shutdown_tx: tokio::sync::oneshot::Sender<()>,
+}
 
 /// Child handle with lifecycle state and restart tracking.
 ///
@@ -143,7 +182,7 @@ where
 /// # Examples
 ///
 /// ```rust,no_run
-/// use airssys_rt::supervisor::{SupervisorNode, OneForOne, ChildSpec, RestartPolicy, ShutdownPolicy};
+/// use airssys_rt::supervisor::{SupervisorNode, OneForOne, ChildSpec, RestartPolicy, ShutdownPolicy, Supervisor};
 /// use airssys_rt::monitoring::InMemoryMonitor;
 /// use std::time::Duration;
 ///
@@ -165,7 +204,7 @@ where
 /// #
 /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 /// // Create supervisor with OneForOne strategy
-/// let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+/// let monitor = InMemoryMonitor::new(Default::default());
 /// let mut supervisor = SupervisorNode::<OneForOne, MyWorker, _>::new(
 ///     OneForOne,
 ///     monitor,
@@ -343,7 +382,7 @@ where
     /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
     /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
     /// # }
-    /// let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+    /// let monitor = InMemoryMonitor::new(Default::default());
     /// let supervisor = SupervisorNode::<OneForOne, MyWorker, _>::new(OneForOne, monitor);
     /// ```
     pub fn new(strategy: S, monitor: M) -> Self {
@@ -459,7 +498,7 @@ where
     /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
     /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
     /// # }
-    /// let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+    /// let monitor = InMemoryMonitor::new(Default::default());
     /// let mut supervisor = SupervisorNode::<OneForOne, MyWorker, _>::new(OneForOne, monitor);
     ///
     /// // Enable health checks: every 30s, 5s timeout, restart after 3 failures
@@ -507,7 +546,7 @@ where
     /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
     /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
     /// # }
-    /// let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+    /// let monitor = InMemoryMonitor::new(Default::default());
     /// let mut supervisor = SupervisorNode::<OneForOne, MyWorker, _>::new(OneForOne, monitor);
     ///
     /// supervisor.enable_health_checks(Duration::from_secs(30), Duration::from_secs(5), 3);
@@ -541,7 +580,7 @@ where
     /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
     /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
     /// # }
-    /// let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+    /// let monitor = InMemoryMonitor::new(Default::default());
     /// let mut supervisor = SupervisorNode::<OneForOne, MyWorker, _>::new(OneForOne, monitor);
     ///
     /// assert!(!supervisor.is_health_monitoring_enabled());
@@ -565,6 +604,95 @@ where
     /// Returns `None` if health monitoring is not enabled.
     pub fn health_config_mut(&mut self) -> Option<&mut HealthConfig> {
         self.health_config.as_mut()
+    }
+
+    /// Enables automatic background health monitoring (builder pattern).
+    ///
+    /// This method combines health configuration and automatic background monitoring
+    /// in a single call. It configures health checking parameters and automatically
+    /// spawns a background task that periodically checks all children.
+    ///
+    /// **Important**: This method consumes `self` and returns an `Arc<Mutex<Self>>`.
+    /// The supervisor is wrapped to allow shared access from the background task.
+    /// All subsequent operations must use the returned Arc.
+    ///
+    /// # Parameters
+    ///
+    /// - `check_interval`: How often to perform health checks
+    /// - `check_timeout`: Maximum time to wait for each health check
+    /// - `failure_threshold`: Number of consecutive failures before restart
+    ///
+    /// # Returns
+    ///
+    /// An `Arc<Mutex<SupervisorNode>>` with background health monitoring active.
+    /// The background task will continue until the supervisor is dropped or
+    /// `disable_health_checks()` is called.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use airssys_rt::supervisor::{SupervisorNode, OneForOne};
+    /// use airssys_rt::monitoring::InMemoryMonitor;
+    /// use std::time::Duration;
+    ///
+    /// # use airssys_rt::supervisor::Child;
+    /// # use async_trait::async_trait;
+    /// # struct MyWorker;
+    /// # #[derive(Debug)]
+    /// # struct MyError;
+    /// # impl std::fmt::Display for MyError {
+    /// #     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result { Ok(()) }
+    /// # }
+    /// # impl std::error::Error for MyError {}
+    /// # #[async_trait]
+    /// # impl Child for MyWorker {
+    /// #     type Error = MyError;
+    /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+    /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
+    /// # }
+    /// # async fn example() {
+    /// let monitor = InMemoryMonitor::new(Default::default());
+    ///
+    /// // Builder pattern - automatic background monitoring
+    /// let supervisor = SupervisorNode::<OneForOne, MyWorker, _>::new(OneForOne, monitor)
+    ///     .with_automatic_health_monitoring(
+    ///         Duration::from_secs(30),  // Check every 30 seconds
+    ///         Duration::from_secs(5),   // 5 second timeout
+    ///         3,                        // Restart after 3 failures
+    ///     );
+    ///
+    /// // Use the wrapped supervisor
+    /// // supervisor.lock().await.start_child(...).await;
+    ///
+    /// // Background health monitoring is automatically running!
+    /// # }
+    /// ```
+    pub fn with_automatic_health_monitoring(
+        mut self,
+        check_interval: Duration,
+        check_timeout: Duration,
+        failure_threshold: u32,
+    ) -> MonitoredSupervisor<S, C, M>
+    where
+        S: Send + Sync + 'static,
+        C: Send + Sync + 'static,
+        M: Send + Sync + 'static,
+    {
+        // Enable health monitoring configuration
+        self.enable_health_checks(check_interval, check_timeout, failure_threshold);
+
+        // Wrap in Arc<Mutex<>> for shared access
+        let supervisor_arc = Arc::new(Mutex::new(self));
+
+        // Spawn background health monitoring task
+        let (task_handle, shutdown_tx) = spawn_health_monitor(Arc::clone(&supervisor_arc), check_interval);
+
+        // Return wrapped supervisor that keeps task alive
+        MonitoredSupervisor {
+            supervisor: supervisor_arc,
+            _task_handle: task_handle,
+            _shutdown_tx: shutdown_tx,
+        }
     }
 
     // ========================================================================
@@ -654,7 +782,7 @@ where
             Ok(health) => health,
             Err(_) => {
                 // Timeout occurred
-                ChildHealth::Failed(format!("Health check timeout after {:?}", check_timeout))
+                ChildHealth::Failed(format!("Health check timeout after {check_timeout:?}"))
             }
         };
 
@@ -696,7 +824,7 @@ where
                             supervisor_id: self.id.to_string(),
                             child_id: Some(child_id.to_string()),
                             event_kind: SupervisionEventKind::ChildFailed {
-                                error: format!("Child degraded: {:?}", health),
+                                error: format!("Child degraded: {health:?}"),
                                 restart_count: 0,
                             },
                             metadata: HashMap::new(),
@@ -721,8 +849,7 @@ where
                             child_id: Some(child_id.to_string()),
                             event_kind: SupervisionEventKind::ChildFailed {
                                 error: format!(
-                                    "Health check failed ({}): {}",
-                                    failure_count, reason
+                                    "Health check failed ({failure_count}): {reason}"
                                 ),
                                 restart_count: failure_count,
                             },
@@ -1113,9 +1240,10 @@ where
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
-    use crate::monitoring::{InMemoryMonitor, MonitoringConfig};
+    use crate::monitoring::InMemoryMonitor;
     use crate::supervisor::strategy::{OneForOne, RestForOne};
     use crate::supervisor::types::ChildHealth;
 
@@ -1164,7 +1292,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_supervisor_node_creation() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let supervisor = SupervisorNode::<OneForOne, TestChild, _>::new(OneForOne, monitor);
 
         assert_eq!(supervisor.child_count(), 0);
@@ -1172,7 +1300,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_start_child_success() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let mut supervisor = SupervisorNode::<OneForOne, TestChild, _>::new(OneForOne, monitor);
 
         let spec = ChildSpec {
@@ -1198,7 +1326,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_start_child_failure() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let mut supervisor = SupervisorNode::<OneForOne, TestChild, _>::new(OneForOne, monitor);
 
         let spec = ChildSpec {
@@ -1220,7 +1348,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_stop_child_success() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let mut supervisor = SupervisorNode::<OneForOne, TestChild, _>::new(OneForOne, monitor);
 
         let spec = ChildSpec {
@@ -1245,7 +1373,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_stop_nonexistent_child() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let mut supervisor = SupervisorNode::<OneForOne, TestChild, _>::new(OneForOne, monitor);
 
         let child_id = ChildId::new();
@@ -1255,7 +1383,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_restart_child_success() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let mut supervisor = SupervisorNode::<OneForOne, TestChild, _>::new(OneForOne, monitor);
 
         let spec = ChildSpec {
@@ -1282,14 +1410,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_child_order_tracking() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let mut supervisor = SupervisorNode::<OneForOne, TestChild, _>::new(OneForOne, monitor);
 
         let mut child_ids = Vec::new();
 
         for i in 0..3 {
             let spec = ChildSpec {
-                id: format!("child-{}", i),
+                id: format!("child-{i}"),
                 factory: || TestChild {
                     should_fail_start: false,
                     should_fail_stop: false,
@@ -1309,14 +1437,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_children_started_after() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let mut supervisor = SupervisorNode::<RestForOne, TestChild, _>::new(RestForOne, monitor);
 
         let mut child_ids = Vec::new();
 
         for i in 0..5 {
             let spec = ChildSpec {
-                id: format!("child-{}", i),
+                id: format!("child-{i}"),
                 factory: || TestChild {
                     should_fail_start: false,
                     should_fail_stop: false,
@@ -1342,7 +1470,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_restart_rate_limiting() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let mut supervisor = SupervisorNode::<OneForOne, TestChild, _>::new(OneForOne, monitor);
 
         let spec = ChildSpec {
@@ -1376,7 +1504,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_restart_per_child_backoff_independence() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let mut supervisor = SupervisorNode::<OneForOne, TestChild, _>::new(OneForOne, monitor);
 
         // Start two children
@@ -1516,7 +1644,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_health_monitoring_disabled_by_default() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let supervisor = SupervisorNode::<OneForOne, TestChild, _>::new(OneForOne, monitor);
 
         assert!(!supervisor.is_health_monitoring_enabled());
@@ -1525,7 +1653,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_enable_health_checks() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let mut supervisor = SupervisorNode::<OneForOne, TestChild, _>::new(OneForOne, monitor);
 
         supervisor.enable_health_checks(Duration::from_secs(30), Duration::from_secs(5), 3);
@@ -1540,7 +1668,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_disable_health_checks() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let mut supervisor = SupervisorNode::<OneForOne, TestChild, _>::new(OneForOne, monitor);
 
         // Enable first
@@ -1555,7 +1683,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_health_config_accessors() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let mut supervisor = SupervisorNode::<OneForOne, TestChild, _>::new(OneForOne, monitor);
 
         // Initially None
@@ -1577,7 +1705,7 @@ mod tests {
     async fn test_health_config_debug_format() {
         let config = HealthConfig::new(Duration::from_secs(30), Duration::from_secs(5), 3);
 
-        let debug_str = format!("{:?}", config);
+        let debug_str = format!("{config:?}");
         assert!(debug_str.contains("HealthConfig"));
         assert!(debug_str.contains("check_interval"));
         assert!(debug_str.contains("30s"));
@@ -1626,7 +1754,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_check_child_health_success() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let mut supervisor =
             SupervisorNode::<OneForOne, HealthTestChild, _>::new(OneForOne, monitor);
 
@@ -1660,7 +1788,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_check_child_health_degraded() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let mut supervisor =
             SupervisorNode::<OneForOne, HealthTestChild, _>::new(OneForOne, monitor);
 
@@ -1691,7 +1819,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_check_child_health_failed_increments_count() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let mut supervisor =
             SupervisorNode::<OneForOne, HealthTestChild, _>::new(OneForOne, monitor);
 
@@ -1721,7 +1849,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_health_check_failure_threshold_triggers_restart() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let mut supervisor =
             SupervisorNode::<OneForOne, HealthTestChild, _>::new(OneForOne, monitor);
 
@@ -1765,7 +1893,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_health_check_success_resets_failure_count() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let mut supervisor =
             SupervisorNode::<OneForOne, HealthTestChild, _>::new(OneForOne, monitor);
 
@@ -1807,7 +1935,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_health_check_without_monitoring_enabled_fails() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let mut supervisor =
             SupervisorNode::<OneForOne, HealthTestChild, _>::new(OneForOne, monitor);
 
@@ -1839,7 +1967,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_health_check_nonexistent_child_fails() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let mut supervisor =
             SupervisorNode::<OneForOne, HealthTestChild, _>::new(OneForOne, monitor);
 
@@ -1853,5 +1981,245 @@ mod tests {
             result.unwrap_err(),
             SupervisorError::ChildNotFound { .. }
         ));
+    }
+
+    // ========================================================================
+    // Phase 4c: Automatic Background Health Monitoring Tests
+    // ========================================================================
+
+    #[tokio::test]
+    async fn test_with_automatic_health_monitoring_returns_arc_mutex() {
+        let monitor = InMemoryMonitor::new(Default::default());
+        let supervisor = SupervisorNode::<OneForOne, HealthTestChild, _>::new(OneForOne, monitor);
+
+        let monitored = supervisor.with_automatic_health_monitoring(
+            Duration::from_secs(30),
+            Duration::from_secs(5),
+            3,
+        );
+
+        // Verify we got MonitoredSupervisor with proper Arc<Mutex<SupervisorNode>>
+        let sup = monitored.supervisor.lock().await;
+        assert!(sup.is_health_monitoring_enabled());
+        assert_eq!(sup.child_count(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_automatic_monitoring_config_is_set() {
+        let monitor = InMemoryMonitor::new(Default::default());
+        let supervisor = SupervisorNode::<OneForOne, HealthTestChild, _>::new(OneForOne, monitor);
+
+        let monitored = supervisor.with_automatic_health_monitoring(
+            Duration::from_secs(30),
+            Duration::from_secs(5),
+            3,
+        );
+
+        let sup = monitored.supervisor.lock().await;
+        let config = sup.health_config().unwrap();
+        
+        assert_eq!(config.check_interval, Duration::from_secs(30));
+        assert_eq!(config.check_timeout, Duration::from_secs(5));
+        assert_eq!(config.failure_threshold, 3);
+    }
+
+    #[tokio::test]
+    async fn test_background_monitoring_checks_children_periodically() {
+        let monitor = InMemoryMonitor::new(Default::default());
+        let supervisor = SupervisorNode::<OneForOne, HealthTestChild, _>::new(OneForOne, monitor);
+
+        let monitored = supervisor.with_automatic_health_monitoring(
+            Duration::from_millis(100), // Fast interval for testing
+            Duration::from_secs(5),
+            3,
+        );
+
+        // Add a healthy child
+        let spec = ChildSpec {
+            id: "test-child".into(),
+            factory: || HealthTestChild {
+                should_fail_start: false,
+                should_fail_stop: false,
+                health_status: ChildHealth::Healthy,
+            },
+            restart_policy: RestartPolicy::Permanent,
+            shutdown_policy: ShutdownPolicy::Graceful(Duration::from_secs(5)),
+            start_timeout: Duration::from_secs(10),
+            shutdown_timeout: Duration::from_secs(10),
+        };
+
+        let child_id = {
+            let mut sup = monitored.supervisor.lock().await;
+            sup.start_child(spec).await.unwrap()
+        };
+
+        // Wait for multiple health check cycles
+        tokio::time::sleep(Duration::from_millis(350)).await;
+
+        // Verify child is still healthy and running
+        let sup = monitored.supervisor.lock().await;
+        let handle = sup.get_child(&child_id).unwrap();
+        assert_eq!(handle.state(), &ChildState::Running);
+        
+        // Verify failure count is 0 (no failures detected)
+        let config = sup.health_config().unwrap();
+        assert_eq!(config.get_failure_count(&child_id), 0);
+    }
+
+    #[tokio::test]
+    async fn test_background_monitoring_detects_and_restarts_failed_child() {
+        let monitor = InMemoryMonitor::new(Default::default());
+        let supervisor = SupervisorNode::<OneForOne, HealthTestChild, _>::new(OneForOne, monitor);
+
+        let monitored = supervisor.with_automatic_health_monitoring(
+            Duration::from_millis(100), // Fast interval for testing
+            Duration::from_secs(5),
+            2, // Low threshold for faster test
+        );
+
+        // Add a child that will fail health checks
+        let spec = ChildSpec {
+            id: "failing-child".into(),
+            factory: || HealthTestChild {
+                should_fail_start: false,
+                should_fail_stop: false,
+                health_status: ChildHealth::Failed("Simulated failure".to_string()),
+            },
+            restart_policy: RestartPolicy::Permanent,
+            shutdown_policy: ShutdownPolicy::Graceful(Duration::from_secs(5)),
+            start_timeout: Duration::from_secs(10),
+            shutdown_timeout: Duration::from_secs(10),
+        };
+
+        let child_id = {
+            let mut sup = monitored.supervisor.lock().await;
+            sup.start_child(spec).await.unwrap()
+        };
+
+        let initial_restart_count = {
+            let sup = monitored.supervisor.lock().await;
+            sup.get_child(&child_id).unwrap().restart_count()
+        };
+
+        // Wait for health checks to detect failures and trigger restart
+        // interval.tick() completes immediately on first call, then waits
+        // So: tick 0 (immediate) -> tick 1 (100ms) -> tick 2 (200ms) -> tick 3 (300ms)
+        // We need at least 2 failed checks (threshold=2) plus processing time
+        // Give it longer to be safe: 3 ticks (300ms) + processing (200ms)
+        tokio::time::sleep(Duration::from_millis(600)).await;
+
+        // Verify child was restarted
+        let sup = monitored.supervisor.lock().await;
+        let handle = sup.get_child(&child_id).unwrap();
+        let final_restart_count = handle.restart_count();
+        
+        // Also check failure count was reset after restart
+        let config = sup.health_config().unwrap();
+        let failure_count = config.get_failure_count(&child_id);
+        
+        // Should have been restarted at least once
+        assert!(
+            final_restart_count > initial_restart_count,
+            "Expected restart count to increase from {initial_restart_count} but got {final_restart_count}. Failure count: {failure_count}"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_background_monitoring_stops_when_monitoring_disabled() {
+        let monitor = InMemoryMonitor::new(Default::default());
+        let supervisor = SupervisorNode::<OneForOne, HealthTestChild, _>::new(OneForOne, monitor);
+
+        let monitored = supervisor.with_automatic_health_monitoring(
+            Duration::from_millis(100),
+            Duration::from_secs(5),
+            3,
+        );
+
+        // Add a child
+        let spec = ChildSpec {
+            id: "test-child".into(),
+            factory: || HealthTestChild {
+                should_fail_start: false,
+                should_fail_stop: false,
+                health_status: ChildHealth::Healthy,
+            },
+            restart_policy: RestartPolicy::Permanent,
+            shutdown_policy: ShutdownPolicy::Graceful(Duration::from_secs(5)),
+            start_timeout: Duration::from_secs(10),
+            shutdown_timeout: Duration::from_secs(10),
+        };
+
+        {
+            let mut sup = monitored.supervisor.lock().await;
+            sup.start_child(spec).await.unwrap();
+        }
+
+        // Wait for health checks to run
+        tokio::time::sleep(Duration::from_millis(150)).await;
+
+        // Disable health monitoring
+        {
+            let mut sup = monitored.supervisor.lock().await;
+            sup.disable_health_checks();
+        }
+
+        // Wait a bit more
+        tokio::time::sleep(Duration::from_millis(150)).await;
+
+        // Verify monitoring is disabled
+        let sup = monitored.supervisor.lock().await;
+        assert!(!sup.is_health_monitoring_enabled());
+    }
+
+    #[tokio::test]
+    async fn test_automatic_monitoring_handles_multiple_children() {
+        let monitor = InMemoryMonitor::new(Default::default());
+        let supervisor = SupervisorNode::<OneForOne, HealthTestChild, _>::new(OneForOne, monitor);
+
+        let monitored = supervisor.with_automatic_health_monitoring(
+            Duration::from_millis(100),
+            Duration::from_secs(5),
+            3,
+        );
+
+        // Add multiple children with different health states
+        let mut child_ids = Vec::new();
+
+        for i in 0..5 {
+            let health_status = if i % 2 == 0 {
+                ChildHealth::Healthy
+            } else {
+                ChildHealth::Degraded("Minor issue".to_string())
+            };
+
+            let spec = ChildSpec {
+                id: format!("child-{i}"),
+                factory: move || HealthTestChild {
+                    should_fail_start: false,
+                    should_fail_stop: false,
+                    health_status: health_status.clone(),
+                },
+                restart_policy: RestartPolicy::Permanent,
+                shutdown_policy: ShutdownPolicy::Graceful(Duration::from_secs(5)),
+                start_timeout: Duration::from_secs(10),
+                shutdown_timeout: Duration::from_secs(10),
+            };
+
+            let child_id = {
+                let mut sup = monitored.supervisor.lock().await;
+                sup.start_child(spec).await.unwrap()
+            };
+            child_ids.push(child_id);
+        }
+
+        // Wait for health checks
+        tokio::time::sleep(Duration::from_millis(250)).await;
+
+        // Verify all children are still running
+        let sup = monitored.supervisor.lock().await;
+        for child_id in &child_ids {
+            let handle = sup.get_child(child_id).unwrap();
+            assert_eq!(handle.state(), &ChildState::Running);
+        }
     }
 }

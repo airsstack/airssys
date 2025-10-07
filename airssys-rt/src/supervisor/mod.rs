@@ -34,103 +34,18 @@
 //!
 //! # Examples
 //!
-//! ## Basic Actor Supervision
+//! See the individual strategy documentation for detailed examples:
+//! - [`OneForOne`] - Independent children
+//! - [`OneForAll`] - Interdependent children  
+//! - [`RestForOne`] - Dependent startup sequences
 //!
-//! ```rust
-//! use airssys_rt::{
-//!     Actor, ActorContext, InMemoryMonitor, MonitoringConfig,
-//!     RestartPolicy, ShutdownPolicy, ChildSpec,
-//! };
-//! use async_trait::async_trait;
-//! use std::time::Duration;
+//! See also the examples in the repository:
+//! - `examples/supervisor_automatic_health.rs` - Automatic health monitoring
+//! - `examples/supervisor_basic.rs` - Basic supervision patterns
 //!
-//! // Define an actor (automatically implements Child via blanket impl)
-//! struct CounterActor {
-//!     count: u32,
-//! }
-//!
-//! # #[derive(Debug, Clone)]
-//! # struct CounterMsg { delta: u32 }
-//! # impl airssys_rt::Message for CounterMsg {
-//! #     const MESSAGE_TYPE: &'static str = "counter";
-//! # }
-//! # #[derive(Debug)]
-//! # struct CounterError;
-//! # impl std::fmt::Display for CounterError {
-//! #     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-//! #         write!(f, "Counter error")
-//! #     }
-//! # }
-//! # impl std::error::Error for CounterError {}
-//! #
-//! #[async_trait]
-//! impl Actor for CounterActor {
-//!     type Message = CounterMsg;
-//!     type Error = CounterError;
-//!     
-//!     async fn handle_message(
-//!         &mut self,
-//!         msg: Self::Message,
-//!         _ctx: &mut ActorContext<Self::Message>,
-//!     ) -> Result<(), Self::Error> {
-//!         self.count += msg.delta;
-//!         Ok(())
-//!     }
-//! }
-//!
-//! // ✅ CounterActor is now automatically supervisable!
-//! // Use it with supervisors in RT-TASK-007 Phase 3
-//! ```
-//!
-//! ## Custom Child Implementation
-//!
-//! ```rust
-//! use airssys_rt::supervisor::{Child, ChildHealth};
-//! use async_trait::async_trait;
-//! use std::time::Duration;
-//!
-//! // Background worker (not an actor)
-//! struct BackgroundWorker {
-//!     name: String,
-//!     running: bool,
-//! }
-//!
-//! #[derive(Debug)]
-//! struct WorkerError;
-//!
-//! impl std::fmt::Display for WorkerError {
-//!     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-//!         write!(f, "Worker error")
-//!     }
-//! }
-//!
-//! impl std::error::Error for WorkerError {}
-//!
-//! #[async_trait]
-//! impl Child for BackgroundWorker {
-//!     type Error = WorkerError;
-//!     
-//!     async fn start(&mut self) -> Result<(), Self::Error> {
-//!         println!("[{}] Starting worker", self.name);
-//!         self.running = true;
-//!         Ok(())
-//!     }
-//!     
-//!     async fn stop(&mut self, _timeout: Duration) -> Result<(), Self::Error> {
-//!         println!("[{}] Stopping worker", self.name);
-//!         self.running = false;
-//!         Ok(())
-//!     }
-//!     
-//!     async fn health_check(&self) -> ChildHealth {
-//!         if self.running {
-//!             ChildHealth::Healthy
-//!         } else {
-//!             ChildHealth::Failed("Worker not running".into())
-//!         }
-//!     }
-//! }
-//! ```
+//! For detailed examples of implementing the `Child` trait, see:
+//! - [`Child`] trait documentation
+//! - [`traits::Child`] for implementation details
 //!
 //! # Module Structure
 //!
@@ -141,6 +56,7 @@
 // Module declarations
 pub mod backoff;
 pub mod error;
+pub mod health_monitor;
 pub mod node;
 pub mod strategy;
 pub mod traits;

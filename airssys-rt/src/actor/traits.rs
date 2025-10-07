@@ -12,48 +12,9 @@
 //!
 //! # Example
 //!
-//! ```rust
-//! use airssys_rt::{Actor, ActorContext, ErrorAction, Message};
-//! use async_trait::async_trait;
-//! use std::fmt;
-//!
-//! #[derive(Debug, Clone)]
-//! struct PingMessage;
-//!
-//! impl Message for PingMessage {
-//!     const MESSAGE_TYPE: &'static str = "ping";
-//! }
-//!
-//! struct PingActor {
-//!     count: u32,
-//! }
-//!
-//! #[derive(Debug)]
-//! struct PingError;
-//!
-//! impl fmt::Display for PingError {
-//!     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//!         write!(f, "Ping error")
-//!     }
-//! }
-//!
-//! impl std::error::Error for PingError {}
-//!
-//! #[async_trait]
-//! impl Actor for PingActor {
-//!     type Message = PingMessage;
-//!     type Error = PingError;
-//!
-//!     async fn handle_message(
-//!         &mut self,
-//!         _message: Self::Message,
-//!         _context: &mut ActorContext<Self::Message>,
-//!     ) -> Result<(), Self::Error> {
-//!         self.count += 1;
-//!         Ok(())
-//!     }
-//! }
-//! ```
+//! See the examples in the repository for complete actor implementations:
+//! - `examples/actor_basic.rs` - Basic actor implementation
+//! - `examples/actor_lifecycle.rs` - Actor lifecycle hooks
 
 // Layer 1: Standard library imports
 use std::error::Error;
@@ -85,54 +46,9 @@ use crate::message::Message;
 ///
 /// # Examples
 ///
-/// ```rust
-/// use airssys_rt::{Actor, ActorContext, ErrorAction, Message};
-/// use async_trait::async_trait;
-/// use std::fmt;
-///
-/// #[derive(Debug, Clone)]
-/// struct CounterMessage { delta: i32 }
-///
-/// impl Message for CounterMessage {
-///     const MESSAGE_TYPE: &'static str = "counter";
-/// }
-///
-/// struct CounterActor { value: i32 }
-///
-/// #[derive(Debug)]
-/// struct CounterError;
-///
-/// impl fmt::Display for CounterError {
-///     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-///         write!(f, "Counter error")
-///     }
-/// }
-///
-/// impl std::error::Error for CounterError {}
-///
-/// #[async_trait]
-/// impl Actor for CounterActor {
-///     type Message = CounterMessage;
-///     type Error = CounterError;
-///
-///     async fn handle_message(
-///         &mut self,
-///         message: Self::Message,
-///         _context: &mut ActorContext<Self::Message>,
-///     ) -> Result<(), Self::Error> {
-///         self.value += message.delta;
-///         Ok(())
-///     }
-///
-///     async fn pre_start(
-///         &mut self,
-///         _context: &mut ActorContext<Self::Message>,
-///     ) -> Result<(), Self::Error> {
-///         println!("CounterActor starting with value: {}", self.value);
-///         Ok(())
-///     }
-/// }
-/// ```
+/// See the examples in the repository for complete actor implementations:
+/// - `examples/actor_basic.rs` - Basic actor implementation
+/// - `examples/actor_lifecycle.rs` - Actor lifecycle hooks
 #[async_trait]
 pub trait Actor: Send + Sync + 'static {
     /// The type of messages this actor can handle.
@@ -250,10 +166,10 @@ pub trait Actor: Send + Sync + 'static {
     ///     type Message = MyMessage;
     ///     type Error = MyError;
     ///
-    ///     async fn handle_message(
+    ///     async fn handle_message<B: airssys_rt::broker::MessageBroker<Self::Message>>(
     ///         &mut self,
     ///         _message: Self::Message,
-    ///         _context: &mut ActorContext<Self::Message>,
+    ///         _context: &mut ActorContext<Self::Message, B>,
     ///     ) -> Result<(), Self::Error> {
     ///         Ok(())
     ///     }

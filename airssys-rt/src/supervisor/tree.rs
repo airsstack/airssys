@@ -71,7 +71,7 @@ use crate::monitoring::{Monitor, SupervisionEvent};
 /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
 /// # }
 /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-/// let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+/// let monitor = InMemoryMonitor::new(Default::default());
 /// let mut tree = SupervisorTree::<OneForOne, MyWorker, _>::new();
 ///
 /// // Create root supervisor
@@ -215,7 +215,7 @@ where
     /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
     /// # }
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+    /// let monitor = InMemoryMonitor::new(Default::default());
     /// let mut tree = SupervisorTree::<OneForOne, MyWorker, _>::new();
     ///
     /// // Create root supervisor
@@ -236,7 +236,7 @@ where
         if let Some(pid) = parent_id {
             if !self.supervisors.contains_key(&pid) {
                 return Err(SupervisorError::TreeIntegrityViolation {
-                    reason: format!("Parent supervisor {} not found", pid),
+                    reason: format!("Parent supervisor {pid} not found"),
                 });
             }
         }
@@ -288,7 +288,7 @@ where
     /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
     /// # }
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// # let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+    /// # let monitor = InMemoryMonitor::new(Default::default());
     /// let mut tree = SupervisorTree::<OneForOne, MyWorker, _>::new();
     /// let supervisor_id = tree.create_supervisor(None, OneForOne, monitor)?;
     ///
@@ -317,7 +317,7 @@ where
         // Remove the supervisor itself
         self.supervisors.remove(&supervisor_id).ok_or_else(|| {
             SupervisorError::TreeIntegrityViolation {
-                reason: format!("Supervisor {} not found", supervisor_id),
+                reason: format!("Supervisor {supervisor_id} not found"),
             }
         })?;
 
@@ -353,7 +353,7 @@ where
     /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
     /// # }
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// # let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+    /// # let monitor = InMemoryMonitor::new(Default::default());
     /// let mut tree = SupervisorTree::<OneForOne, MyWorker, _>::new();
     /// let supervisor_id = tree.create_supervisor(None, OneForOne, monitor)?;
     ///
@@ -367,7 +367,7 @@ where
     ) -> Result<&SupervisorNode<S, C, M>, SupervisorError> {
         self.supervisors.get(&supervisor_id).ok_or_else(|| {
             SupervisorError::TreeIntegrityViolation {
-                reason: format!("Supervisor {} not found", supervisor_id),
+                reason: format!("Supervisor {supervisor_id} not found"),
             }
         })
     }
@@ -377,7 +377,7 @@ where
     /// # Examples
     ///
     /// ```rust
-    /// use airssys_rt::supervisor::{SupervisorTree, OneForOne, ChildSpec, RestartPolicy, ShutdownPolicy};
+    /// use airssys_rt::supervisor::{SupervisorTree, OneForOne, ChildSpec, RestartPolicy, ShutdownPolicy, Supervisor};
     /// use airssys_rt::monitoring::InMemoryMonitor;
     /// use std::time::Duration;
     ///
@@ -397,7 +397,7 @@ where
     /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
     /// # }
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// # let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+    /// # let monitor = InMemoryMonitor::new(Default::default());
     /// let mut tree = SupervisorTree::<OneForOne, MyWorker, _>::new();
     /// let supervisor_id = tree.create_supervisor(None, OneForOne, monitor)?;
     ///
@@ -420,7 +420,7 @@ where
     ) -> Result<&mut SupervisorNode<S, C, M>, SupervisorError> {
         self.supervisors.get_mut(&supervisor_id).ok_or_else(|| {
             SupervisorError::TreeIntegrityViolation {
-                reason: format!("Supervisor {} not found", supervisor_id),
+                reason: format!("Supervisor {supervisor_id} not found"),
             }
         })
     }
@@ -452,7 +452,7 @@ where
     /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
     /// # }
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// # let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+    /// # let monitor = InMemoryMonitor::new(Default::default());
     /// let mut tree = SupervisorTree::<OneForOne, MyWorker, _>::new();
     ///
     /// let root = tree.create_supervisor(None, OneForOne, monitor.clone())?;
@@ -500,7 +500,7 @@ where
     /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
     /// # }
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// # let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+    /// # let monitor = InMemoryMonitor::new(Default::default());
     /// let mut tree = SupervisorTree::<OneForOne, MyWorker, _>::new();
     /// let supervisor_id = tree.create_supervisor(None, OneForOne, monitor)?;
     ///
@@ -520,8 +520,7 @@ where
             // For now, we log the error. In future phases, this can trigger
             // parent supervision strategies.
             eprintln!(
-                "Supervisor {} escalating error to parent {}: {}",
-                supervisor_id, parent_id, error
+                "Supervisor {supervisor_id} escalating error to parent {parent_id}: {error}"
             );
             Ok(())
         } else {
@@ -529,8 +528,7 @@ where
             // This is a critical system error
             Err(SupervisorError::TreeIntegrityViolation {
                 reason: format!(
-                    "Root supervisor {} encountered unrecoverable error: {}",
-                    supervisor_id, error
+                    "Root supervisor {supervisor_id} encountered unrecoverable error: {error}"
                 ),
             })
         }
@@ -564,7 +562,7 @@ where
     /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
     /// # }
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// # let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+    /// # let monitor = InMemoryMonitor::new(Default::default());
     /// let mut tree = SupervisorTree::<OneForOne, MyWorker, _>::new();
     /// tree.create_supervisor(None, OneForOne, monitor)?;
     ///
@@ -607,7 +605,7 @@ where
     /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
     /// # }
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// # let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+    /// # let monitor = InMemoryMonitor::new(Default::default());
     /// let mut tree = SupervisorTree::<OneForOne, MyWorker, _>::new();
     /// tree.create_supervisor(None, OneForOne, monitor.clone())?;
     /// tree.create_supervisor(None, OneForOne, monitor)?;
@@ -645,7 +643,7 @@ where
     /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
     /// # }
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// # let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+    /// # let monitor = InMemoryMonitor::new(Default::default());
     /// let mut tree = SupervisorTree::<OneForOne, MyWorker, _>::new();
     ///
     /// let root1 = tree.create_supervisor(None, OneForOne, monitor.clone())?;
@@ -673,9 +671,10 @@ where
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
-    use crate::monitoring::{InMemoryMonitor, MonitoringConfig};
+    use crate::monitoring::InMemoryMonitor;
     use crate::supervisor::strategy::OneForOne;
     use crate::supervisor::traits::{Child, Supervisor};
     use crate::supervisor::types::{ChildSpec, RestartPolicy, ShutdownPolicy};
@@ -715,7 +714,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_root_supervisor() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let mut tree = SupervisorTree::<OneForOne, TestChild, _>::new();
 
         let root_id = tree
@@ -730,7 +729,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_child_supervisor() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let mut tree = SupervisorTree::<OneForOne, TestChild, _>::new();
 
         let root_id = tree
@@ -748,7 +747,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_supervisor_with_invalid_parent() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let mut tree = SupervisorTree::<OneForOne, TestChild, _>::new();
 
         let invalid_id = SupervisorId::new();
@@ -759,7 +758,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_multiple_root_supervisors() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let mut tree = SupervisorTree::<OneForOne, TestChild, _>::new();
 
         let root1 = tree
@@ -777,7 +776,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_remove_supervisor() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let mut tree = SupervisorTree::<OneForOne, TestChild, _>::new();
 
         let root_id = tree
@@ -794,7 +793,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_remove_supervisor_removes_children() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let mut tree = SupervisorTree::<OneForOne, TestChild, _>::new();
 
         let root_id = tree
@@ -818,7 +817,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_shutdown_tree() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let mut tree = SupervisorTree::<OneForOne, TestChild, _>::new();
 
         tree.create_supervisor(None, OneForOne, monitor.clone())
@@ -836,7 +835,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_add_child_to_supervisor() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let mut tree = SupervisorTree::<OneForOne, TestChild, _>::new();
 
         let supervisor_id = tree
@@ -864,7 +863,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_hierarchical_shutdown() {
-        let monitor = InMemoryMonitor::new(MonitoringConfig::default());
+        let monitor = InMemoryMonitor::new(Default::default());
         let mut tree = SupervisorTree::<OneForOne, TestChild, _>::new();
 
         // Create hierarchy: root -> child -> grandchild

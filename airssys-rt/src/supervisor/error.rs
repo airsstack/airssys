@@ -248,7 +248,7 @@ mod tests {
     fn test_child_start_failed_error() {
         let err = SupervisorError::ChildStartFailed {
             id: "worker-1".into(),
-            source: Box::new(io::Error::new(io::ErrorKind::Other, "test error")),
+            source: Box::new(io::Error::other("test error")),
         };
 
         assert!(!err.is_fatal());

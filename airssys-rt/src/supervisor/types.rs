@@ -504,7 +504,9 @@ impl StrategyContext {
     /// ```
     pub fn failed_child_id(&self) -> Option<&ChildId> {
         match self {
-            StrategyContext::SingleFailure { failed_child_id, .. } => Some(failed_child_id),
+            StrategyContext::SingleFailure {
+                failed_child_id, ..
+            } => Some(failed_child_id),
             StrategyContext::ManualRestart { child_id } => Some(child_id),
             StrategyContext::Shutdown { .. } => None,
         }
@@ -614,7 +616,7 @@ mod tests {
     #[test]
     fn test_child_id_display() {
         let id = ChildId::new();
-        let display = format!("{}", id);
+        let display = format!("{id}");
         assert!(!display.is_empty());
     }
 
@@ -628,21 +630,21 @@ mod tests {
     #[test]
     fn test_restart_policy_permanent() {
         let policy = RestartPolicy::Permanent;
-        assert!(policy.should_restart(true));  // Error exit
+        assert!(policy.should_restart(true)); // Error exit
         assert!(policy.should_restart(false)); // Normal exit
     }
 
     #[test]
     fn test_restart_policy_transient() {
         let policy = RestartPolicy::Transient;
-        assert!(policy.should_restart(true));   // Error exit
+        assert!(policy.should_restart(true)); // Error exit
         assert!(!policy.should_restart(false)); // Normal exit
     }
 
     #[test]
     fn test_restart_policy_temporary() {
         let policy = RestartPolicy::Temporary;
-        assert!(!policy.should_restart(true));  // Error exit
+        assert!(!policy.should_restart(true)); // Error exit
         assert!(!policy.should_restart(false)); // Normal exit
     }
 

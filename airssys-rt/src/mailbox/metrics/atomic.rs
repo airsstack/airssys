@@ -118,7 +118,7 @@ impl AtomicMetrics {
     /// # Example
     ///
     /// ```rust
-    /// use airssys_rt::mailbox::metrics::AtomicMetrics;
+    /// use airssys_rt::mailbox::metrics::{AtomicMetrics, MetricsRecorder};
     ///
     /// let metrics = AtomicMetrics::new();
     /// assert_eq!(metrics.sent_count(), 0);
