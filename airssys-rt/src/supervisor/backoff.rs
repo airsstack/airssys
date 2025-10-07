@@ -320,7 +320,7 @@ impl RestartBackoff {
     /// `restart_window` from now.
     fn cleanup_expired_restarts(&mut self) {
         let now = Utc::now();
-        
+
         // Convert std::time::Duration to chrono::Duration
         // This conversion can only fail if the duration is too large (> ~292 years)
         // If conversion fails (extremely unlikely), we keep all history for safety
