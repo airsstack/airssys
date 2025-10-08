@@ -14,8 +14,8 @@
 //!
 //! #[executor]
 //! impl MyExecutor {
-//!     async fn file_read(&self, op: FileReadOperation, ctx: &ExecutionContext) 
-//!         -> OSResult<ExecutionResult> 
+//!     async fn file_read(&self, op: FileReadOperation, ctx: &ExecutionContext)
+//!         -> OSResult<ExecutionResult>
 //!     {
 //!         // Custom implementation
 //!         todo!()

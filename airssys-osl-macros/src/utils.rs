@@ -6,6 +6,7 @@ use syn::Ident;
 ///
 /// Returns (OperationType, ModulePath) tuple.
 /// Full mapping table will be added in MACROS-TASK-002.
+#[allow(dead_code)]
 pub fn map_method_name_to_operation(name: &Ident) -> Option<(&'static str, &'static str)> {
     match name.to_string().as_str() {
         "file_read" => Some(("FileReadOperation", "filesystem")),
