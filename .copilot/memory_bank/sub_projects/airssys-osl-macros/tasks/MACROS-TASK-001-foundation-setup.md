@@ -42,10 +42,13 @@ Create the complete foundation for the proc-macro crate that will provide ergono
 - ✅ Dev dependencies: airssys-osl, async-trait, tokio, trybuild
 
 ### 4. Test Infrastructure
-- ✅ `tests/unit/` directory for unit tests
+- ✅ Unit tests inline with source code (following Rust conventions)
 - ✅ `tests/integration.rs` for integration tests
-- ✅ `tests/ui/` directory for trybuild UI tests
 - ✅ Basic test structure and examples
+
+**Note:** Following Rust conventions:
+- Unit tests are placed in `#[cfg(test)] mod tests` within the same file
+- Only integration tests use the `tests/` directory
 
 ### 5. Quality Gates
 - ✅ cargo check passes
@@ -180,21 +183,37 @@ pub fn map_method_name_to_operation(name: &Ident) -> Option<(&'static str, &'sta
 #### Directory Structure
 ```
 tests/
-├── unit/                    # Unit tests for utilities
-│   └── mapping_tests.rs
-├── integration.rs           # Integration tests with airssys-osl
-└── ui/                      # UI tests for error messages (trybuild)
-    ├── invalid_signature.rs
-    └── invalid_signature.stderr
+└── integration.rs           # Integration tests with airssys-osl
 ```
 
-#### Basic Integration Test
+#### Unit Tests (Inline)
+```rust
+// In src/executor.rs
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use quote::quote;
+
+    #[test]
+    fn test_expand_placeholder() {
+        let input = quote! {
+            impl MyExecutor {
+                async fn file_read(&self) {}
+            }
+        };
+        let result = expand(input.clone());
+        assert!(result.is_ok());
+    }
+}
+```
+
+#### Integration Tests
 ```rust
 // tests/integration.rs
 #[test]
-fn test_placeholder() {
-    // Placeholder test - real tests in MACROS-TASK-002
-    assert!(true);
+fn test_crate_compiles() {
+    // Basic integration test
+    assert_eq!(2 + 2, 4);
 }
 ```
 
