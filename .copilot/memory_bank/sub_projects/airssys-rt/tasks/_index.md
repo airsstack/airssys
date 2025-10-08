@@ -1,43 +1,62 @@
 # airssys-rt Tasks Index
 
-**Last Updated:** 2025-10-06  
-**Total Tasks:** 14 (RT-TASK-010 changed from Testing to Monitoring)  
-**Completed Tasks:** 6 (RT-TASK-006 complete)  
+**Last Updated:** 2025-10-08  
+**Total Tasks:** 15 (RT-TASK-013 added - Supervisor Builder Pattern)  
+**Completed Tasks:** 8 (RT-TASK-007 complete)  
 **Active Tasks:** 0  
-**Ready for Implementation:** RT-TASK-010 (Monitoring Module)  
-**Blocked:** RT-TASK-007 (depends on RT-TASK-010)  
+**Ready for Implementation:** RT-TASK-008 (Performance) or RT-TASK-009 (OSL Integration)  
+**Planned Ergonomics:** RT-TASK-013 (Supervisor Builder Pattern - after RT-TASK-008)  
 
-## Task Summary - RT-TASK-006 COMPLETE 🎉
-**Status:** Foundation phase complete - Ready for advanced features  
-**Current Focus:** RT-TASK-010 (Monitoring Module) - Next priority  
-**Completed:** RT-TASK-006 Actor System Framework (Oct 6, 2025)  
-**Next Task:** RT-TASK-010 before RT-TASK-007  
+## Task Summary - RT-TASK-007 COMPLETE 🎉
+**Status:** Foundation + Monitoring + Supervisor complete - Ready for performance optimization  
+**Current Focus:** Decision: RT-TASK-008 (Performance) or RT-TASK-009 (OSL Integration)  
+**Completed:** RT-TASK-007 Supervisor Framework (Oct 8, 2025)  
+**Planned:** RT-TASK-013 Supervisor Builder Pattern (after RT-TASK-008)  
 
-## 🎯 NEXT PRIORITY TASK (Oct 6, 2025)
+## 🎯 NEXT PRIORITY DECISION (Oct 8, 2025)
 
-### RT-TASK-010: Universal Monitoring Infrastructure
-**Status:** Not Started  
-**Priority:** CRITICAL - Foundational infrastructure  
-**Estimated Time:** 2-3 days (16-20 hours)  
-**Task File:** `tasks/task_010_monitoring_module.md`  
-**Action Plans:** `docs/knowledges/knowledge_rt_013_task_007_010_action_plans.md`
-
-**Strategic Rationale:**
-- Provides foundational monitoring infrastructure
-- Required by RT-TASK-007 (Supervisor Framework)
-- Enables RT-TASK-008 (Performance Features)
-- Generic Monitor<E> trait for universal entity monitoring
-- Zero-overhead NoopMonitor when monitoring disabled
+### Option A: RT-TASK-008 - Performance Features
+**Status:** Ready for Implementation  
+**Priority:** HIGH - Performance optimization and monitoring  
+**Estimated Time:** 5-7 days  
+**Task File:** `tasks/task_008_performance_features.md`
 
 **Scope:**
-- Generic Monitor<E> trait for any entity type
-- InMemoryMonitor<E> with lock-free atomic counters
-- NoopMonitor<E> with zero overhead
-- 5+ event types: SupervisionEvent, ActorEvent, SystemEvent, BrokerEvent, MailboxEvent
-- MonitoringSnapshot for observability
-- 45+ tests (unit + integration)
+- Message routing optimization
+- Actor pool load balancing
+- Performance benchmarking
+- Integration with Monitor<PerformanceEvent>
 
-**Blocks:** RT-TASK-007 (Supervisor Framework)
+### Option B: RT-TASK-009 - OSL Integration
+**Status:** Ready for Implementation  
+**Priority:** HIGH - OS layer integration  
+**Estimated Time:** 10-14 days  
+**Task File:** `tasks/task_009_osl_integration.md`
+
+**Scope:**
+- Direct airssys-osl integration
+- Process management
+- Security context inheritance
+- Activity logging
+
+### RT-TASK-013: Supervisor Builder Pattern (PLANNED)
+**Status:** Planned for after RT-TASK-008  
+**Priority:** MEDIUM - Developer experience enhancement  
+**Estimated Time:** 3 days (18-24 hours)  
+**Task File:** `tasks/task_013_supervisor_builder_pattern.md`  
+**Knowledge Doc:** `docs/knowledges/knowledge_rt_015_supervisor_builder_pattern.md`
+
+**Strategic Rationale:**
+- Reduce boilerplate and cognitive load
+- Fluent API with sensible defaults
+- Shared configuration for batch operations
+- Implement after RT-TASK-008 to validate ergonomics with real usage
+
+**Scope:**
+- SingleChildBuilder for fluent API
+- ChildrenBatchBuilder for shared defaults
+- Per-child overrides within batch
+- 60% code reduction for common cases
 
 ---
 
@@ -54,33 +73,43 @@
   - Zero clippy warnings
   - Full pub-sub architecture
   - Examples working
+- [RT-TASK-010] Universal Monitoring Infrastructure - Generic monitoring (2-3 days) - **COMPLETE Oct 7, 2025**
+  - 61 monitoring tests passing
+  - 242 total project tests
+  - Zero warnings
+  - InMemoryMonitor + NoopMonitor
+- [RT-TASK-007] Supervisor Framework - Complete supervision system (8 days) - **COMPLETE Oct 8, 2025**
+  - 91 supervisor tests passing
+  - 319 total project tests
+  - BEAM/OTP-inspired fault tolerance
+  - All 3 strategies implemented
+  - Health monitoring integrated
 
 ## Phase 2: Advanced Features (Q1-Q2 2026)
 
 ### Ready for Implementation 🚀
-- [RT-TASK-010] Universal Monitoring Infrastructure - Generic monitoring (2-3 days) - **NEXT PRIORITY**
-  - Generic Monitor<E> trait
-  - InMemoryMonitor and NoopMonitor
-  - 5+ event types
-  - Zero-overhead when disabled
-  - **Blocks:** RT-TASK-007
+- [RT-TASK-008] Performance Features - Optimization and monitoring (5-7 days) - **OPTION A**
+  - Message routing optimization
+  - Actor pool load balancing
+  - Performance benchmarks
+  - Monitor<PerformanceEvent> integration
 
-### Pending - Supervision System (2 weeks)
-- [RT-TASK-007] Supervisor Framework - Complete supervision system (8-10 days)
-  - **Depends on:** RT-TASK-010 (Monitoring Module)
-  - BEAM-inspired fault tolerance
-  - OneForOne, OneForAll, RestForOne strategies
-  - Restart policies and backoff
-  - Health monitoring integration
-
-### Pending - Performance Optimization (1 week)  
-- [RT-TASK-008] Performance Features - Optimization and monitoring (5-7 days)
-  - **Depends on:** RT-TASK-010 (Monitoring Module)
+### Pending - Developer Experience Enhancement
+- [RT-TASK-013] Supervisor Builder Pattern - Ergonomic builders (3 days) - **PLANNED**
+  - **Recommended:** Implement after RT-TASK-008
+  - Fluent API with sensible defaults
+  - Batch operations with shared config
+  - 60-75% code reduction
+  - Zero breaking changes
 
 ## Phase 3: Integration (Q2 2026)
 
 ### Pending - OS Layer Integration (2 weeks)
-- [RT-TASK-009] OSL Integration - Direct airssys-osl integration (10-14 days)
+- [RT-TASK-009] OSL Integration - Direct airssys-osl integration (10-14 days) - **OPTION B**
+  - Process management integration
+  - Security context inheritance
+  - Activity logging
+  - Resource coordination
 
 ## Phase 4: Production Readiness (Q2 2026)
 

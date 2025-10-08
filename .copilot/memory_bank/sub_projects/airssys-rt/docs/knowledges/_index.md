@@ -1,9 +1,9 @@
 # airssys-rt Knowledge Documentation Index
 
 **Sub-Project:** airssys-rt  
-**Last Updated:** 2025-10-07  
-**Total Knowledge Docs:** 14  
-**Active Knowledge Docs:** 14  
+**Last Updated:** 2025-10-08  
+**Total Knowledge Docs:** 15  
+**Active Knowledge Docs:** 15  
 
 ## Active Knowledge Documentation
 
@@ -65,6 +65,10 @@
 - **[KNOWLEDGE-RT-014](knowledge_rt_014_child_trait_design_patterns.md)**: Child Trait Design Patterns and Integration Strategies ⚠️ **NEW**
   - *Status*: active | *Created*: 2025-10-07
   - *Summary*: **CHILD TRAIT ARCHITECTURE**: Comprehensive patterns for Child trait separation from Actor trait, blanket implementation bridge, supervision lifecycle management, health checking strategies, mixed supervision trees (actors + non-actors), performance characteristics, testing patterns, and migration guide. **REQUIRED READING BEFORE RT-TASK-007 Phase 1**
+
+- **[KNOWLEDGE-RT-015](knowledge_rt_015_supervisor_builder_pattern.md)**: Supervisor Builder Pattern Design & Implementation Guide ⭐ **NEW**
+  - *Status*: active | *Created*: 2025-10-08
+  - *Summary*: **ERGONOMIC BUILDER PATTERNS**: Complete design guide for supervisor builder patterns with three-layer API (manual ChildSpec, SingleChildBuilder, ChildrenBatchBuilder), modular file structure, fluent API design, shared defaults with per-child overrides, return type analysis (Vec vs HashMap), performance considerations, migration guide, common patterns, and troubleshooting. **REQUIRED READING BEFORE RT-TASK-013**
 
 ## Planned Knowledge Documentation
 
