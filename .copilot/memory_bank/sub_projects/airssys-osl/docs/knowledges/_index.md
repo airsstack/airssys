@@ -1,9 +1,9 @@
 # airssys-osl Knowledge Documentation Index
 
 **Sub-Project:** airssys-osl  
-**Last Updated:** 2025-10-04  
-**Total Knowledge Docs:** 5  
-**Active Knowledge Docs:** 5  
+**Last Updated:** 2025-10-08  
+**Total Knowledge Docs:** 6  
+**Active Knowledge Docs:** 6  
 
 ## Knowledge Summary
 
@@ -13,6 +13,7 @@
 | Architecture | 2 | Draft | 2025-10-04 |
 | Standards | 1 | Draft | 2025-09-27 |
 | Patterns | 2 | Draft | 2025-10-04 |
+| System Programming | 1 | Draft | 2025-10-08 |
 | Performance | 0 | N/A | N/A |
 | Integration | 0 | N/A | N/A |
 | Security | 0 | N/A | N/A |
@@ -21,7 +22,7 @@
 ### By Maturity
 | Maturity | Count | Description |
 |----------|-------|-------------|
-| Draft | 5 | Under development, may change significantly |
+| Draft | 6 | Under development, may change significantly |
 | Stable | 0 | Proven patterns, ready for use |
 | Deprecated | 0 | No longer recommended, kept for reference |
 
@@ -117,6 +118,31 @@
 - OSL-TASK-007: Concrete Operations
 - OSL-TASK-008: Platform Executors  
 - Core: core/executor.rs OSExecutor<O> trait definition
+
+### System Programming Category
+
+#### 012-process-groups.md *(Draft)*
+**Purpose:** Future enhancement design for process group management in Process Executor  
+**Last Updated:** 2025-10-08  
+**Key Topics:**
+- Process groups concept and Unix/Windows platform differences
+- Design options: implicit creation, optional field, separate operation
+- ProcessGroupConfig enum design with NewGroup/JoinGroup/Inherit options
+- Signal handling for process groups (kill entire process tree)
+- Platform-specific implementations (Unix setpgid vs Windows Job Objects)
+- Use cases: shell scripts, daemon isolation, container-like process trees
+- Security considerations and audit logging requirements
+- Migration path and implementation phases (deferred for future)
+
+**Cross-References:**
+- OSL-TASK-008 Phase 2: Process Executor implementation
+- operations/process/spawn.rs: ProcessSpawnOperation
+- operations/process/signal.rs: ProcessSignalOperation
+- executors/process/spawn.rs: Spawn executor implementation
+- executors/process/signal.rs: Signal executor implementation
+- Workspace Standards: §6.1 YAGNI Principles (why deferred)
+- POSIX setpgid: https://pubs.opengroup.org/onlinepubs/9699919799/functions/setpgid.html
+- Windows Job Objects: https://docs.microsoft.com/en-us/windows/win32/procthread/job-objects
 
 ## Planned Knowledge Documentation
 
