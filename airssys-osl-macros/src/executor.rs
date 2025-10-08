@@ -15,8 +15,8 @@ pub fn expand(input: TokenStream) -> Result<TokenStream> {
     // Parse the impl block
     let item_impl = parse2::<ItemImpl>(input)?;
 
-    // Extract executor type name (will be used in Phase 2 for code generation)
-    let _executor_type = &item_impl.self_ty;
+    // Extract executor type name
+    let executor_type = &item_impl.self_ty;
 
     // Find operation methods (only methods matching operation names)
     let methods = extract_operation_methods(&item_impl)?;
@@ -28,11 +28,13 @@ pub fn expand(input: TokenStream) -> Result<TokenStream> {
         ));
     }
 
-    // For Phase 1: Return original impl + placeholder comment
-    // Phase 2 will add actual trait implementation generation
+    // Generate OSExecutor trait implementations
+    let trait_impls = generate_trait_implementations(executor_type, &methods)?;
+
+    // Return original impl + generated trait implementations
     Ok(quote! {
         #item_impl
-        // TODO: Generate OSExecutor trait implementations here
+        #(#trait_impls)*
     })
 }
 
@@ -199,6 +201,72 @@ fn validate_return_type(sig: &syn::Signature) -> Result<()> {
     }
 }
 
+/// Generates OSExecutor trait implementations for all operation methods.
+///
+/// # Example
+///
+/// Given:
+/// ```rust,ignore
+/// impl MyExecutor {
+///     async fn file_read(&self, operation: FileReadOperation, context: &ExecutionContext)
+///         -> OSResult<ExecutionResult> { ... }
+/// }
+/// ```
+///
+/// Generates:
+/// ```rust,ignore
+/// #[async_trait::async_trait]
+/// impl OSExecutor<FileReadOperation> for MyExecutor {
+///     async fn execute(&self, operation: FileReadOperation, context: &ExecutionContext)
+///         -> OSResult<ExecutionResult> {
+///         self.file_read(operation, context).await
+///     }
+/// }
+/// ```
+fn generate_trait_implementations(
+    executor_type: &syn::Type,
+    methods: &[&ImplItemFn],
+) -> Result<Vec<TokenStream>> {
+    methods
+        .iter()
+        .map(|method| generate_single_trait_impl(executor_type, method))
+        .collect()
+}
+
+/// Generates a single OSExecutor trait implementation for one operation method.
+fn generate_single_trait_impl(
+    executor_type: &syn::Type,
+    method: &ImplItemFn,
+) -> Result<TokenStream> {
+    let method_name = &method.sig.ident;
+    let method_name_str = method_name.to_string();
+
+    // Get operation information
+    let op_info = crate::utils::get_operation_info(&method_name_str).ok_or_else(|| {
+        Error::new_spanned(
+            method_name,
+            format!("Unknown operation method: '{method_name_str}'"),
+        )
+    })?;
+
+    // Generate fully qualified path to operation type
+    let operation_type_path = op_info.operation_path();
+
+    // Generate the trait implementation
+    Ok(quote! {
+        #[async_trait::async_trait]
+        impl airssys_osl::core::executor::OSExecutor<#operation_type_path> for #executor_type {
+            async fn execute(
+                &self,
+                operation: #operation_type_path,
+                context: &airssys_osl::core::context::ExecutionContext,
+            ) -> airssys_osl::core::result::OSResult<airssys_osl::core::result::ExecutionResult> {
+                self.#method_name(operation, context).await
+            }
+        }
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -223,6 +291,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::unwrap_used)]
     fn test_reject_non_async_method() {
         let input = quote! {
             impl MyExecutor {
@@ -246,6 +315,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::unwrap_used)]
     fn test_reject_mut_self() {
         let input = quote! {
             impl MyExecutor {
@@ -269,6 +339,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::unwrap_used)]
     fn test_reject_owned_self() {
         let input = quote! {
             impl MyExecutor {
@@ -292,6 +363,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::unwrap_used)]
     fn test_reject_wrong_first_param_name() {
         let input = quote! {
             impl MyExecutor {
@@ -315,6 +387,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::unwrap_used)]
     fn test_reject_wrong_second_param_name() {
         let input = quote! {
             impl MyExecutor {
@@ -341,6 +414,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::unwrap_used)]
     fn test_reject_too_few_params() {
         let input = quote! {
             impl MyExecutor {
@@ -363,6 +437,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::unwrap_used)]
     fn test_reject_too_many_params() {
         let input = quote! {
             impl MyExecutor {
@@ -387,6 +462,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::unwrap_used)]
     fn test_reject_no_return_type() {
         let input = quote! {
             impl MyExecutor {
@@ -432,6 +508,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::unwrap_used)]
     fn test_error_when_no_operation_methods() {
         let input = quote! {
             impl MyExecutor {
