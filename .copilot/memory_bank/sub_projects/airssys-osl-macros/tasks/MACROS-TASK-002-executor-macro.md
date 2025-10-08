@@ -2,22 +2,198 @@
 
 **Task ID:** MACROS-TASK-002  
 **Priority:** High  
-**Status:** Pending  
+**Status:** Ready to Start  
 **Created:** 2025-10-08  
-**Estimated Effort:** 2-3 weeks  
+**Updated:** 2025-10-08 (Development plan complete)  
+**Estimated Effort:** 10 days (2 work weeks)  
 
-## Task Overview
-Implement the complete #[executor] attribute macro that generates `OSExecutor<O>` trait implementations from method names, reducing ~85% of boilerplate code for custom executor implementations.
+## Next Steps
+After completion, proceed to **MACROS-TASK-003**: Integration with airssys-osl.
+
+## Development Timeline (Updated 2025-10-08)
+
+### Phase 1: Core Parsing & Validation (Days 1-3)
+**Goal:** Parse impl blocks and validate method signatures
+
+**Tasks:**
+- [ ] Day 1: Implement basic parser in executor.rs
+  - Parse ItemImpl with syn::parse2
+  - Extract executor type name
+  - Find operation methods
+  - Return original impl + placeholder trait impls
+  
+- [ ] Day 2: Implement signature validation
+  - Validate async keyword
+  - Validate &self receiver (not &mut self, not self)
+  - Validate 2 parameters (operation, &ExecutionContext)
+  - Validate return type OSResult<ExecutionResult>
+  - Add helpful error messages
+  
+- [ ] Day 3: Unit tests for parsing
+  - Test valid impl blocks
+  - Test rejection of non-async methods
+  - Test rejection of &mut self
+  - Test rejection of invalid parameters
+  - Test rejection of invalid return types
+
+### Phase 2: Operation Mapping & Code Generation (Days 4-7)
+**Goal:** Map method names to operation types and generate trait implementations
+
+**Tasks:**
+- [ ] Day 4: Complete operation mapping in utils.rs
+  - Create OperationInfo struct
+  - Implement get_operation_info() for all 11 operations
+  - Add operation_path() method for full qualified paths
+  - Add is_operation_method() helper
+  
+- [ ] Day 5: Implement code generation
+  - Generate #[async_trait::async_trait] attribute
+  - Generate impl OSExecutor<OperationType> for ExecutorType
+  - Generate execute() method delegation
+  - Preserve original impl block
+  
+- [ ] Day 6: Support multiple operations
+  - Generate multiple trait impls for multiple methods
+  - Detect and error on duplicate methods
+  - Test with all operation combinations
+  
+- [ ] Day 7: Unit tests for generation
+  - Test operation mapping table (11 operations)
+  - Test single operation code generation
+  - Test multiple operations code generation
+  - Test generated code compiles
+
+### Phase 3: Testing & Documentation (Days 8-10)
+**Goal:** Comprehensive testing and documentation
+
+**Tasks:**
+- [ ] Day 8: Integration tests
+  - Create tests/integration.rs
+  - Test macro with actual airssys-osl types
+  - Test all 11 operations compile correctly
+  - Test error cases
+  
+- [ ] Day 9: Documentation
+  - Update lib.rs with comprehensive examples
+  - Document macro expansion output
+  - Create usage guide with before/after code
+  - Document all error messages
+  
+- [ ] Day 10: Final validation
+  - Run cargo check --workspace
+  - Run cargo clippy --workspace
+  - Run cargo test --workspace
+  - Update progress.md
+  - Git commit
+
+## Quality Checklist
+
+### Before Task Completion
+- [ ] All 11 operations mapped correctly
+- [ ] Parse impl blocks with syn correctly
+- [ ] Validate method signatures with helpful errors
+- [ ] Generate correct OSExecutor<O> trait implementations
+- [ ] Support multiple operations in one impl block
+- [ ] Use async_trait::async_trait correctly
+- [ ] 20+ unit tests passing
+- [ ] 10+ integration tests passing
+- [ ] Comprehensive rustdoc with examples
+- [ ] Zero compiler warnings
+- [ ] Zero clippy warnings
+- [ ] cargo check --workspace passes
+- [ ] Memory bank updated
+- [ ] Git commit with proper message
+
+## Key Implementation Notes
+
+### Critical Requirements
+1. **Must use `#[async_trait::async_trait]`** - OSExecutor trait has async methods
+2. **Preserve original impl block** - User's methods must stay unchanged in output
+3. **Generate one trait impl per operation method** - Each method gets its own `OSExecutor<SpecificOp>` impl
+4. **Type paths must be fully qualified** - Use complete paths like `airssys_osl::operations::filesystem::FileReadOperation`
+5. **Error messages must be helpful** - Tell users exactly what's wrong and how to fix it
+
+### Method Signature Requirements
+```rust
+// VALID signature:
+async fn operation_name(
+    &self,                              // Must be &self (not &mut self, not self)
+    operation: OperationType,           // First param: operation type
+    context: &ExecutionContext          // Second param: context reference
+) -> OSResult<ExecutionResult>         // Return type must be OSResult<ExecutionResult>
+
+// The macro will generate:
+#[async_trait::async_trait]
+impl OSExecutor<OperationType> for ExecutorType {
+    async fn execute(
+        &self,
+        operation: OperationType,
+        context: &ExecutionContext,
+    ) -> OSResult<ExecutionResult> {
+        self.operation_name(operation, context).await
+    }
+}
+```
+
+### Operation Mapping Table (Complete)
+| Method Name | Operation Type | Module Path |
+|-------------|---------------|-------------|
+| file_read | FileReadOperation | filesystem |
+| file_write | FileWriteOperation | filesystem |
+| file_delete | FileDeleteOperation | filesystem |
+| directory_create | DirectoryCreateOperation | filesystem |
+| directory_list | DirectoryListOperation | filesystem |
+| process_spawn | ProcessSpawnOperation | process |
+| process_kill | ProcessKillOperation | process |
+| process_signal | ProcessSignalOperation | process |
+| network_connect | NetworkConnectOperation | network |
+| network_listen | NetworkListenOperation | network |
+| network_socket | NetworkSocketOperation | network |
+
+### Error Message Standards
+- **Non-async method**: "Operation method 'method_name' must be async. Add 'async' keyword."
+- **Wrong receiver**: "Use '&self', not '&mut self'. Executors should be immutable."
+- **Wrong parameters**: "Operation methods must have signature: async fn name(&self, op: OpType, ctx: &ExecutionContext)"
+- **Unknown method**: "Unknown operation method: 'method_name'. Valid operations: file_read, file_write, ..."
+
+## Success Criteria Summary
+
+✅ Task is complete when:
+1. All 11 operation types mapped and tested
+2. Macro generates valid OSExecutor<O> trait implementations
+3. Multiple operations in one impl block supported
+4. All validation errors have helpful messages
+5. 30+ tests passing (20 unit + 10 integration)
+6. Comprehensive documentation with examples
+7. Zero warnings (compiler + clippy)
+8. Integration with airssys-osl verified
+9. Memory bank updated
+10. Changes committed to git
 
 ## Task Description
 Build the core macro logic using syn v2 for parsing and quote for code generation. The macro will detect operation-named methods in impl blocks and generate corresponding trait implementations with full type safety and error handling.
 
+**Key Discovery from airssys-osl Exploration:**
+- `OSExecutor<O>` is a generic trait with operation type parameter
+- Uses `#[async_trait::async_trait]` for async methods
+- Must generate: `impl OSExecutor<OperationType> for ExecutorType`
+- 11 concrete operations found across filesystem, process, network modules
+- Method signature: `async fn execute(&self, operation: O, context: &ExecutionContext) -> OSResult<ExecutionResult>`
+
 ## Dependencies
-- **Blocked by:** MACROS-TASK-001 (Foundation Setup)
+- **Blocked by:** MACROS-TASK-001 (Foundation Setup) ✅ COMPLETE
 - **Blocks:** MACROS-TASK-003 (Integration with airssys-osl)
 - **Related:** 
   - OSL-TASK-009 (airssys-osl refactoring)
-  - All 10 airssys-osl operation types
+  - airssys-osl core abstractions (explored and documented)
+  
+**Core Dependencies Identified:**
+- `airssys_osl::core::executor::OSExecutor<O>` trait
+- `airssys_osl::core::context::ExecutionContext` type
+- `airssys_osl::core::executor::ExecutionResult` type
+- `airssys_osl::core::result::{OSResult, OSError}` types
+- `async_trait::async_trait` attribute macro
+- 11 concrete operation types from airssys-osl/src/operations/
 
 ## Acceptance Criteria
 
@@ -29,10 +205,10 @@ Build the core macro logic using syn v2 for parsing and quote for code generatio
 - ✅ Comprehensive error messages for invalid signatures
 
 ### 2. Operation Name Mapping
-- ✅ Complete mapping table for all 10 operations
-- ✅ Filesystem: file_read, file_write, file_delete, directory_create
-- ✅ Process: process_spawn, process_kill, process_query
-- ✅ Network: tcp_connect, tcp_listen, udp_bind
+- ✅ Complete mapping table for all 11 operations (verified from airssys-osl/src/operations/)
+- ✅ Filesystem: file_read, file_write, file_delete, directory_create, directory_list
+- ✅ Process: process_spawn, process_kill, process_signal
+- ✅ Network: network_connect, network_listen, network_socket
 - ✅ Case-sensitive matching
 - ✅ Clear error for unknown method names
 
@@ -73,7 +249,53 @@ Build the core macro logic using syn v2 for parsing and quote for code generatio
 
 ## Implementation Plan
 
-### Phase 1: Basic Parsing (Week 1)
+### ⚠️ CRITICAL: Implementation Based on airssys-osl Core Exploration
+
+**Actual airssys-osl Architecture (Verified 2025-10-08):**
+
+**OSExecutor<O> Trait Signature:**
+```rust
+#[async_trait]
+pub trait OSExecutor<O>: Debug + Send + Sync + 'static
+where O: Operation
+{
+    fn name(&self) -> &str;
+    fn supported_operation_types(&self) -> Vec<OperationType>;
+    
+    async fn execute(
+        &self, 
+        operation: O, 
+        context: &ExecutionContext
+    ) -> OSResult<ExecutionResult>;
+    
+    // Default implementations available:
+    async fn can_execute(&self, operation: &O, context: &ExecutionContext) -> OSResult<bool> { ... }
+    async fn validate_operation(&self, operation: &O, context: &ExecutionContext) -> OSResult<()> { ... }
+    async fn cleanup(&self, context: &ExecutionContext) -> OSResult<()> { ... }
+}
+```
+
+**Verified Operation Types and Paths:**
+- `airssys_osl::operations::filesystem::FileReadOperation`
+- `airssys_osl::operations::filesystem::FileWriteOperation`
+- `airssys_osl::operations::filesystem::FileDeleteOperation`
+- `airssys_osl::operations::filesystem::DirectoryCreateOperation`
+- `airssys_osl::operations::filesystem::DirectoryListOperation`
+- `airssys_osl::operations::process::ProcessSpawnOperation`
+- `airssys_osl::operations::process::ProcessKillOperation`
+- `airssys_osl::operations::process::ProcessSignalOperation`
+- `airssys_osl::operations::network::NetworkConnectOperation`
+- `airssys_osl::operations::network::NetworkListenOperation`
+- `airssys_osl::operations::network::NetworkSocketOperation`
+
+**Key Types:**
+- Context: `airssys_osl::core::context::ExecutionContext`
+- Result: `airssys_osl::core::executor::ExecutionResult`
+- Error: `airssys_osl::core::result::{OSResult, OSError}`
+
+---
+
+### Phase 1: Basic Parsing (Days 1-3)
 **Goal:** Parse impl blocks and extract method information
 
 #### Step 1.1: Implement Basic Parser
