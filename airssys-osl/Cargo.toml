@@ -26,6 +26,10 @@ uuid = { workspace = true }
 # Logging integration
 tracing = { workspace = true }
 
+# Unix process signals (Unix-only)
+[target.'cfg(unix)'.dependencies]
+nix = { version = "0.29", features = ["signal", "process"] }
+
 [dev-dependencies]
 # Property-based testing
 proptest = { workspace = true }

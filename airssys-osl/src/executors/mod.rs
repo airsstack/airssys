@@ -10,25 +10,31 @@
 //! The executor module follows a component-based architecture:
 //! - **FilesystemExecutor**: Handles file and directory operations using tokio::fs
 //! - **ProcessExecutor**: Manages process spawning and control using tokio::process
-//! - **NetworkExecutor**: Handles network connections using tokio::net
+//! - **NetworkExecutor**: Handles network connections using tokio::net (TODO: Phase 3)
 //!
 //! # Usage
 //!
 //! Executors are automatically initialized and managed by the `ExecutorRegistry`:
 //!
 //! ```rust,no_run
-//! use airssys_osl::executors::FilesystemExecutor;
+//! use airssys_osl::executors::{FilesystemExecutor, ProcessExecutor};
 //! use airssys_osl::core::executor::OSExecutor;
-//! use airssys_osl::operations::filesystem::FileReadOperation;
 //! use airssys_osl::core::context::{ExecutionContext, SecurityContext};
+//! use airssys_osl::operations::{FileReadOperation, ProcessSpawnOperation};
 //!
 //! # async fn example() -> airssys_osl::core::result::OSResult<()> {
-//! let executor = FilesystemExecutor::new();
-//! let operation = FileReadOperation::new("/etc/hosts");
-//! let security_context = SecurityContext::new("test-user".to_string());
-//! let context = ExecutionContext::new(security_context);
+//! // Create execution context
+//! let context = ExecutionContext::new(SecurityContext::new("user".to_string()));
 //!
-//! let result = executor.execute(operation, &context).await?;
+//! // Filesystem executor
+//! let fs_executor = FilesystemExecutor::new();
+//! let read_op = FileReadOperation::new("/etc/hosts");
+//! let result = fs_executor.execute(read_op, &context).await?;
+//!
+//! // Process executor
+//! let proc_executor = ProcessExecutor::new("proc-executor");
+//! let spawn_op = ProcessSpawnOperation::new("echo").arg("hello");
+//! let result = proc_executor.execute(spawn_op, &context).await?;
 //! # Ok(())
 //! # }
 //! ```
@@ -39,17 +45,17 @@
 //! for each operation type, mirroring the structure of the operations module:
 //!
 //! - `filesystem/` - Filesystem operations (read, write, create_dir, delete)
-//! - `process/` - Process operations (spawn, kill, signal) - TODO
-//! - `network/` - Network operations (connect, listen) - TODO
+//! - `process/` - Process operations (spawn, kill, signal)
+//! - `network/` - Network operations (connect, listen) - TODO: Phase 3
 
 // Re-export executor implementations
 pub mod filesystem;
-// TODO(OSL-TASK-008): Implement process executor for ProcessSpawnOperation, etc.
-// pub mod process;
+pub mod process;
 // TODO(OSL-TASK-008): Implement network executor for NetworkConnectOperation, etc.
 // pub mod network;
 
 // Re-export main types for convenience
 pub use filesystem::FilesystemExecutor;
-// pub use process::ProcessExecutor;
+pub use process::ProcessExecutor;
 // pub use network::NetworkExecutor;
+
