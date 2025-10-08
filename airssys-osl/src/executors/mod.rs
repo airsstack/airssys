@@ -10,17 +10,17 @@
 //! The executor module follows a component-based architecture:
 //! - **FilesystemExecutor**: Handles file and directory operations using tokio::fs
 //! - **ProcessExecutor**: Manages process spawning and control using tokio::process
-//! - **NetworkExecutor**: Handles network connections using tokio::net (TODO: Phase 3)
+//! - **NetworkExecutor**: Handles network connections using tokio::net
 //!
 //! # Usage
 //!
 //! Executors are automatically initialized and managed by the `ExecutorRegistry`:
 //!
 //! ```rust,no_run
-//! use airssys_osl::executors::{FilesystemExecutor, ProcessExecutor};
+//! use airssys_osl::executors::{FilesystemExecutor, ProcessExecutor, NetworkExecutor};
 //! use airssys_osl::core::executor::OSExecutor;
 //! use airssys_osl::core::context::{ExecutionContext, SecurityContext};
-//! use airssys_osl::operations::{FileReadOperation, ProcessSpawnOperation};
+//! use airssys_osl::operations::{FileReadOperation, ProcessSpawnOperation, NetworkConnectOperation};
 //!
 //! # async fn example() -> airssys_osl::core::result::OSResult<()> {
 //! // Create execution context
@@ -35,6 +35,11 @@
 //! let proc_executor = ProcessExecutor::new("proc-executor");
 //! let spawn_op = ProcessSpawnOperation::new("echo").arg("hello");
 //! let result = proc_executor.execute(spawn_op, &context).await?;
+//!
+//! // Network executor
+//! let net_executor = NetworkExecutor::new("net-executor");
+//! let connect_op = NetworkConnectOperation::new("localhost:8080");
+//! let result = net_executor.execute(connect_op, &context).await?;
 //! # Ok(())
 //! # }
 //! ```
@@ -46,15 +51,14 @@
 //!
 //! - `filesystem/` - Filesystem operations (read, write, create_dir, delete)
 //! - `process/` - Process operations (spawn, kill, signal)
-//! - `network/` - Network operations (connect, listen) - TODO: Phase 3
+//! - `network/` - Network operations (connect, listen, socket)
 
 // Re-export executor implementations
 pub mod filesystem;
+pub mod network;
 pub mod process;
-// TODO(OSL-TASK-008): Implement network executor for NetworkConnectOperation, etc.
-// pub mod network;
 
 // Re-export main types for convenience
 pub use filesystem::FilesystemExecutor;
+pub use network::NetworkExecutor;
 pub use process::ProcessExecutor;
-// pub use network::NetworkExecutor;
