@@ -216,3 +216,6 @@ pub mod middleware;
 
 // Public modules - Concrete Operation Implementations
 pub mod operations;
+
+// Public modules - Platform Executors
+pub mod executors;
