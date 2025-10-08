@@ -42,8 +42,11 @@ pub fn expand(input: TokenStream) -> Result<TokenStream> {
 ///
 /// Only processes methods whose names match known operation names.
 /// Helper methods and other non-operation methods are ignored.
+///
+/// Returns an error if duplicate operation methods are found.
 fn extract_operation_methods(impl_block: &ItemImpl) -> Result<Vec<&ImplItemFn>> {
     let mut methods = Vec::new();
+    let mut seen_operations = std::collections::HashSet::new();
 
     for item in &impl_block.items {
         if let ImplItem::Fn(method) = item {
@@ -51,6 +54,16 @@ fn extract_operation_methods(impl_block: &ItemImpl) -> Result<Vec<&ImplItemFn>> 
 
             // Only process if method name matches an operation
             if crate::utils::is_operation_method(&method_name) {
+                // Check for duplicates
+                if !seen_operations.insert(method_name.clone()) {
+                    return Err(Error::new_spanned(
+                        &method.sig.ident,
+                        format!(
+                            "Duplicate operation method '{method_name}'. Each operation can only be implemented once per executor"
+                        ),
+                    ));
+                }
+
                 // Validate the method signature
                 validate_method_signature(method)?;
                 methods.push(method);
@@ -528,5 +541,230 @@ mod tests {
             err.to_string().contains("No operation methods found"),
             "Error should mention no operation methods"
         );
+    }
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_multiple_operations_two() {
+        let input = quote! {
+            impl MyExecutor {
+                async fn file_read(
+                    &self,
+                    operation: FileReadOperation,
+                    context: &ExecutionContext
+                ) -> OSResult<ExecutionResult> {
+                    todo!()
+                }
+
+                async fn file_write(
+                    &self,
+                    operation: FileWriteOperation,
+                    context: &ExecutionContext
+                ) -> OSResult<ExecutionResult> {
+                    todo!()
+                }
+            }
+        };
+
+        let result = expand(input);
+        assert!(result.is_ok(), "Two operations should be accepted");
+
+        let output = result.unwrap().to_string();
+        // Should contain both trait implementations
+        assert!(
+            output.contains("FileReadOperation"),
+            "Should generate FileReadOperation trait impl"
+        );
+        assert!(
+            output.contains("FileWriteOperation"),
+            "Should generate FileWriteOperation trait impl"
+        );
+    }
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_multiple_operations_three_different_modules() {
+        let input = quote! {
+            impl MyExecutor {
+                async fn file_read(
+                    &self,
+                    operation: FileReadOperation,
+                    context: &ExecutionContext
+                ) -> OSResult<ExecutionResult> {
+                    todo!()
+                }
+
+                async fn process_spawn(
+                    &self,
+                    operation: ProcessSpawnOperation,
+                    context: &ExecutionContext
+                ) -> OSResult<ExecutionResult> {
+                    todo!()
+                }
+
+                async fn network_connect(
+                    &self,
+                    operation: NetworkConnectOperation,
+                    context: &ExecutionContext
+                ) -> OSResult<ExecutionResult> {
+                    todo!()
+                }
+            }
+        };
+
+        let result = expand(input);
+        assert!(
+            result.is_ok(),
+            "Three operations from different modules should be accepted"
+        );
+
+        let output = result.unwrap().to_string();
+        // Should contain all three trait implementations
+        assert!(
+            output.contains("FileReadOperation"),
+            "Should generate filesystem operation trait impl"
+        );
+        assert!(
+            output.contains("ProcessSpawnOperation"),
+            "Should generate process operation trait impl"
+        );
+        assert!(
+            output.contains("NetworkConnectOperation"),
+            "Should generate network operation trait impl"
+        );
+    }
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_all_eleven_operations() {
+        let input = quote! {
+            impl MyExecutor {
+                async fn file_read(&self, operation: FileReadOperation, context: &ExecutionContext)
+                    -> OSResult<ExecutionResult> { todo!() }
+                async fn file_write(&self, operation: FileWriteOperation, context: &ExecutionContext)
+                    -> OSResult<ExecutionResult> { todo!() }
+                async fn file_delete(&self, operation: FileDeleteOperation, context: &ExecutionContext)
+                    -> OSResult<ExecutionResult> { todo!() }
+                async fn directory_create(&self, operation: DirectoryCreateOperation, context: &ExecutionContext)
+                    -> OSResult<ExecutionResult> { todo!() }
+                async fn directory_list(&self, operation: DirectoryListOperation, context: &ExecutionContext)
+                    -> OSResult<ExecutionResult> { todo!() }
+                async fn process_spawn(&self, operation: ProcessSpawnOperation, context: &ExecutionContext)
+                    -> OSResult<ExecutionResult> { todo!() }
+                async fn process_kill(&self, operation: ProcessKillOperation, context: &ExecutionContext)
+                    -> OSResult<ExecutionResult> { todo!() }
+                async fn process_signal(&self, operation: ProcessSignalOperation, context: &ExecutionContext)
+                    -> OSResult<ExecutionResult> { todo!() }
+                async fn network_connect(&self, operation: NetworkConnectOperation, context: &ExecutionContext)
+                    -> OSResult<ExecutionResult> { todo!() }
+                async fn network_listen(&self, operation: NetworkListenOperation, context: &ExecutionContext)
+                    -> OSResult<ExecutionResult> { todo!() }
+                async fn network_socket(&self, operation: NetworkSocketOperation, context: &ExecutionContext)
+                    -> OSResult<ExecutionResult> { todo!() }
+            }
+        };
+
+        let result = expand(input);
+        assert!(result.is_ok(), "All 11 operations should be accepted");
+
+        let output = result.unwrap().to_string();
+        // Verify all 11 operation types appear in generated code
+        assert!(output.contains("FileReadOperation"));
+        assert!(output.contains("FileWriteOperation"));
+        assert!(output.contains("FileDeleteOperation"));
+        assert!(output.contains("DirectoryCreateOperation"));
+        assert!(output.contains("DirectoryListOperation"));
+        assert!(output.contains("ProcessSpawnOperation"));
+        assert!(output.contains("ProcessKillOperation"));
+        assert!(output.contains("ProcessSignalOperation"));
+        assert!(output.contains("NetworkConnectOperation"));
+        assert!(output.contains("NetworkListenOperation"));
+        assert!(output.contains("NetworkSocketOperation"));
+    }
+
+    #[test]
+    #[allow(clippy::unwrap_used, clippy::uninlined_format_args)]
+    fn test_reject_duplicate_operations() {
+        let input = quote! {
+            impl MyExecutor {
+                async fn file_read(
+                    &self,
+                    operation: FileReadOperation,
+                    context: &ExecutionContext
+                ) -> OSResult<ExecutionResult> {
+                    todo!()
+                }
+
+                async fn file_read(
+                    &self,
+                    operation: FileReadOperation,
+                    context: &ExecutionContext
+                ) -> OSResult<ExecutionResult> {
+                    todo!()
+                }
+            }
+        };
+
+        let result = expand(input);
+        assert!(
+            result.is_err(),
+            "Duplicate operation methods should be rejected"
+        );
+        let err = result.unwrap_err();
+        let err_msg = err.to_string();
+        assert!(
+            err_msg.contains("Duplicate operation method"),
+            "Error should mention duplicate operation: {}",
+            err_msg
+        );
+        assert!(
+            err_msg.contains("file_read"),
+            "Error should mention the duplicate method name: {}",
+            err_msg
+        );
+    }
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_multiple_operations_with_helpers() {
+        let input = quote! {
+            impl MyExecutor {
+                async fn file_read(
+                    &self,
+                    operation: FileReadOperation,
+                    context: &ExecutionContext
+                ) -> OSResult<ExecutionResult> {
+                    self.validate_path(&operation.path)?;
+                    todo!()
+                }
+
+                async fn file_write(
+                    &self,
+                    operation: FileWriteOperation,
+                    context: &ExecutionContext
+                ) -> OSResult<ExecutionResult> {
+                    self.validate_path(&operation.path)?;
+                    todo!()
+                }
+
+                fn validate_path(&self, path: &str) -> OSResult<()> {
+                    // Helper method - should be ignored
+                    Ok(())
+                }
+            }
+        };
+
+        let result = expand(input);
+        assert!(
+            result.is_ok(),
+            "Multiple operations with helper methods should be accepted"
+        );
+
+        let output = result.unwrap().to_string();
+        // Should contain both operation trait impls but not helper
+        assert!(output.contains("FileReadOperation"));
+        assert!(output.contains("FileWriteOperation"));
+        // Helper method should remain in original impl only
+        assert!(output.contains("validate_path"));
     }
 }
