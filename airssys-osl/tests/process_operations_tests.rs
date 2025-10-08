@@ -4,7 +4,9 @@
 //! to ensure consistency and compliance with the Operation trait requirements.
 
 use airssys_osl::core::operation::Operation;
-use airssys_osl::operations::{ProcessKillOperation, ProcessSignalOperation, ProcessSpawnOperation};
+use airssys_osl::operations::{
+    ProcessKillOperation, ProcessSignalOperation, ProcessSpawnOperation,
+};
 
 /// Test that all process operations are cloneable (required by Operation trait)
 #[test]
@@ -30,10 +32,7 @@ fn test_process_operations_display() {
     assert_eq!(format!("{}", kill), "ProcessKill(pid=12345)");
 
     let signal = ProcessSignalOperation::new(12345, 9);
-    assert_eq!(
-        format!("{}", signal),
-        "ProcessSignal(pid=12345, signal=9)"
-    );
+    assert_eq!(format!("{}", signal), "ProcessSignal(pid=12345, signal=9)");
 }
 
 /// Test that all process operations require elevated privileges
