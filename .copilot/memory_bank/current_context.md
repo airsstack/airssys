@@ -1,53 +1,75 @@
 # Current Context
 
+**Last Updated:** 2025-10-08  
+**Active Sub-Project:** airssys-osl-macros  
+**Status:** Foundation Setup (5% complete)  
+**Current Phase:** MACROS-TASK-001 - Workspace Integration
 
+**Context Switch:** airssys-osl → airssys-osl-macros  
+**Context Switch Reason:** Architecture refactoring decision - Create new proc-macro crate for ergonomic custom executor creation. Framework removal in favor of three-tier approach (low-level API, helpers, macros).
 
-**Active Sub-Project:** airs## CURRENT PROJECT STATUS - airssys-osl (Foundation Project)
+---
 
-### Completed Foundation ✅ (100% OSL-TASK-007 Complete)
-- ✅ **Core Module Structure**: Complete module hierarchy with 6 core modules
-- ✅ **Enhanced Error System**: OSError with constructor methods and categorization
-- ✅ **Rich Context Types**: ExecutionContext and SecurityContext with metadata management
-- ✅ **Core Trait Definitions**: OSExecutor<O> and Middleware<O> with lifecycle management
-- ✅ **API Ergonomics Foundation**: OSLFramework with builder patterns
-- ✅ **Logger Middleware**: Production-ready with 90 tests passing
-- ✅ **Concrete Operations**: All 11 operations implemented (filesystem, process, network)
-- ✅ **Framework Integration**: Operation wrappers wired through framework.execute()
-- ✅ **Quality Gates**: 242 tests passing, zero warnings, zero clippy errors
+## airssys-osl-macros - Current Focus 🎯
 
-### Critical Path - Next Up 🎯
-- 🎯 **OSL-TASK-008**: Platform Executors (3-4 days, NEXT - Ready to start)
-  - Implement FilesystemExecutor with real tokio::fs I/O
-  - Implement ProcessExecutor with real tokio::process operations
-  - Implement NetworkExecutor with real tokio::net connections
-  - Update ExecutorRegistry to store actual executor instances
-- 🚫 **OSL-TASK-006 Phase 4**: Blocked by need for platform executors (need 008)
-- **Impact**: Once 008 complete, full framework functionality enabledt Updated:** 2025-10-08  
+### Status: Foundation Setup - MACROS-TASK-001 In Progress (50%)
+- **Active Focus**: Procedural Macros for airssys-osl Core Abstractions
+- **Project Type**: Proc-Macro Crate (compile-time code generation)
+- **Project Priority**: High - Ergonomic layer for airssys-osl
+- **Technology Stack**: Rust proc-macro, syn v2, quote, proc-macro2
+- **Architecture Model**: Token-based code generation (zero runtime cost)
+- **Phase**: Foundation Setup - Workspace integration and basic structure
 
-**Context Switch:** OSL-TASK-007 Complete → OSL-TASK-008 Next  
-**Context Switch Reason:** OSL-TASK-007 (Concrete Operations) completed successfully with all 5 phases done. Ready to implement OSL-TASK-008 (Platform Executors) to enable real I/O operations.
+### What's Been Done ✅
+1. ✅ **Memory Bank Structure**: Complete sub-project documentation created
+2. ✅ **Product Context**: Project identity, vision, scope, strategic goals defined
+3. ✅ **Technical Context**: Architecture, operation mapping table, testing strategy documented
+4. ✅ **System Patterns**: Macro patterns, testing patterns, documentation standards defined
+5. ✅ **Task Definitions**: MACROS-TASK-001 (foundation), MACROS-TASK-002 (executor macro) created
+6. ✅ **Git Commit**: All planning documentation committed to repository
 
-
-
-## airssys-osl - Current Focus 🎯
-
-### Status: 100% Complete (OSL-TASK-007) - Ready for OSL-TASK-008
-- **Active Focus**: Operating System Layer - Cross-platform OS abstraction with security and activity logging
-- ✅ **OSL-TASK-007 Complete**: All 11 concrete operations implemented with framework integration
-- **Current Status**: Framework Foundation Complete - Ready for platform executors implementation
-- **Project Priority**: Critical - Foundation for airssys-rt and other components
-- **Technology Stack**: Rust, tokio async I/O, security-first design
-- **Architecture Model**: Three-layer framework (Framework API → Middleware Pipeline → Platform Executors)
-- **Phase**: OSL-TASK-008 Next - Platform Executors (enables real I/O execution)
+### What's Next - MACROS-TASK-001 Remaining (50%) 🎯
+1. 🎯 **Workspace Integration**: Add airssys-osl-macros to workspace Cargo.toml members
+2. 🎯 **Crate Structure**: Create Cargo.toml with proc-macro configuration
+3. 🎯 **Source Files**: Create lib.rs, executor.rs, utils.rs with placeholders
+4. 🎯 **Test Infrastructure**: Create tests/ directories (unit, integration, ui)
+5. 🎯 **README**: Create project overview documentation
+6. 🎯 **Validation**: Run cargo check --workspace and verify
 
 ### Next Tasks
-1. 🎯 **OSL-TASK-008**: Implement platform executors with real tokio I/O (3-4 days, NEXT)
-2. **OSL-TASK-006 Phase 4**: Wire everything together (after 008)
-3. **OSL-TASK-003/004**: Security and Pipeline middleware (after 006)
+1. 🎯 **MACROS-TASK-001**: Complete foundation setup (4 hours remaining)
+2. **MACROS-TASK-002**: Implement #[executor] macro (2-3 weeks, after 001)
+3. **MACROS-TASK-003**: Integration with airssys-osl (1 week, after 002)
 
-## STRATEGIC VISION - airssys-osl 🎯
-- 🎯 **OS Abstraction**: Cross-platform filesystem, process, and network operations
-- 🎯 **Security-First**: Comprehensive permission validation and security context
+---
+
+## Related Projects - Context
+
+### airssys-osl (Related - Architecture Refactoring)
+- **Status**: OSL-TASK-008 Phases 1-4 Complete (165 tests passing)
+- **Phase 5**: ❌ Abandoned - Registry integration replaced by new architecture
+- **OSL-TASK-009**: Pending - Remove framework and add helpers (2-3 days)
+- **Relationship**: airssys-osl-macros provides macros for airssys-osl custom executors
+
+### Architecture Refactoring Plan (October 2025)
+**Three Usage Levels:**
+1. **Low-Level API**: Direct use of core abstractions (Operation, OSExecutor, Middleware)
+2. **Helper Functions**: One-line convenience APIs (read_file, spawn_process, etc.)
+3. **Proc-Macros**: #[executor] for custom executor creation (~85% code reduction)
+
+**Strategic Decision:**
+- Remove framework abstractions (OSLFramework, ExecutorRegistry, builders)
+- Provide simple helpers for common operations
+- Provide proc-macros for advanced customization
+- Benefits: ~30% code reduction, clearer architecture, better ergonomics
+
+---
+
+## STRATEGIC VISION - airssys-osl-macros 🎯
+- 🎯 **Developer Ergonomics**: Reduce ~85% of boilerplate for custom executors
+- 🎯 **Type Safety**: Compile-time checked trait implementations
+- 🎯 **Zero Runtime Cost**: Pure compile-time code generation
+- 🎯 **Clear Error Messages**: Actionable compile-time diagnostics
 - 🎯 **Activity Logging**: Detailed audit trails for all system operations
 - 🎯 **Middleware Pipeline**: Extensible pre/post operation processing
 - 🎯 **Performance Targets**: <1ms file operations, <10ms process spawning
