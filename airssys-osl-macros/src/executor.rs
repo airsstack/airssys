@@ -767,4 +767,131 @@ mod tests {
         // Helper method should remain in original impl only
         assert!(output.contains("validate_path"));
     }
+
+    // ========================================================================
+    // Day 7: Code Generation Tests
+    // ========================================================================
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_generated_code_contains_async_trait() {
+        let input = quote! {
+            impl MyExecutor {
+                async fn file_read(&self, operation: FileReadOperation, context: &ExecutionContext)
+                    -> OSResult<ExecutionResult> { todo!() }
+            }
+        };
+
+        let result = expand(input);
+        let output = result.unwrap().to_string();
+        
+        assert!(
+            output.contains("async_trait"),
+            "Generated code should include #[async_trait::async_trait]"
+        );
+    }
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_generated_code_contains_executor_trait() {
+        let input = quote! {
+            impl MyExecutor {
+                async fn file_read(&self, operation: FileReadOperation, context: &ExecutionContext)
+                    -> OSResult<ExecutionResult> { todo!() }
+            }
+        };
+
+        let result = expand(input);
+        let output = result.unwrap().to_string();
+        
+        assert!(
+            output.contains("OSExecutor"),
+            "Generated code should implement OSExecutor trait"
+        );
+    }
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_generated_code_delegates_to_method() {
+        let input = quote! {
+            impl MyExecutor {
+                async fn process_spawn(&self, operation: ProcessSpawnOperation, context: &ExecutionContext)
+                    -> OSResult<ExecutionResult> { todo!() }
+            }
+        };
+
+        let result = expand(input);
+        let output = result.unwrap().to_string();
+        
+        assert!(
+            output.contains("process_spawn"),
+            "Generated execute() should delegate to user's process_spawn method"
+        );
+        assert!(
+            output.contains("await"),
+            "Delegation should await the async method"
+        );
+    }
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_generated_code_preserves_original_impl() {
+        let input = quote! {
+            impl MyExecutor {
+                async fn network_connect(&self, operation: NetworkConnectOperation, context: &ExecutionContext)
+                    -> OSResult<ExecutionResult> { 
+                    println!("Connecting...");
+                    todo!() 
+                }
+            }
+        };
+
+        let result = expand(input);
+        let output = result.unwrap().to_string();
+        
+        assert!(
+            output.contains("impl MyExecutor"),
+            "Original impl block should be preserved"
+        );
+        assert!(
+            output.contains("Connecting"),
+            "Original method body should be preserved"
+        );
+    }
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_all_operation_types_generate_valid_paths() {
+        // Test that each operation generates correct fully qualified paths
+        let operations = [
+            ("file_read", "FileReadOperation", "filesystem"),
+            ("file_write", "FileWriteOperation", "filesystem"),
+            ("directory_create", "DirectoryCreateOperation", "filesystem"),
+            ("process_spawn", "ProcessSpawnOperation", "process"),
+            ("network_connect", "NetworkConnectOperation", "network"),
+        ];
+
+        for (method_name, type_name, module) in operations {
+            let method_ident = syn::Ident::new(method_name, proc_macro2::Span::call_site());
+            let input = quote! {
+                impl MyExecutor {
+                    async fn #method_ident(&self, operation: Operation, context: &ExecutionContext)
+                        -> OSResult<ExecutionResult> { todo!() }
+                }
+            };
+
+            let result = expand(input);
+            assert!(result.is_ok(), "Operation {method_name} should parse successfully");
+            
+            let output = result.unwrap().to_string();
+            assert!(
+                output.contains(type_name),
+                "Generated code should contain {type_name} for {method_name}",
+            );
+            assert!(
+                output.contains(module),
+                "Generated code should contain module path {module} for {method_name}",
+            );
+        }
+    }
 }
