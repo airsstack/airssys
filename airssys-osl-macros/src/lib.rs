@@ -128,7 +128,6 @@
 //! This macro is designed to work with the `airssys-osl` framework. For complete
 //! examples and integration patterns, see the `airssys-osl` documentation.
 
-
 // Layer 1: Standard library imports
 use proc_macro::TokenStream;
 
