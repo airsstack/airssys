@@ -44,7 +44,7 @@
 //! assert!(operation.required_permissions().contains(&Permission::FilesystemRead("/etc/config.toml".to_string())));
 //! ```
 
-// Filesystem operation types
+// Filesystem operation types (modular structure)
 pub mod filesystem;
 
 // Process operation types
