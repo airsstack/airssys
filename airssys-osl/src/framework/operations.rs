@@ -167,7 +167,6 @@ impl<'a> FileDeleteOperationWrapper<'a> {
     }
 }
 
-
 /// Builder for process operations.
 pub struct ProcessBuilder<'a> {
     framework: &'a OSLFramework,
@@ -280,8 +279,6 @@ impl<'a> ProcessSignalOperationWrapper<'a> {
         self.framework.execute(operation).await
     }
 }
-
-
 
 /// Builder for network operations.
 pub struct NetworkBuilder<'a> {

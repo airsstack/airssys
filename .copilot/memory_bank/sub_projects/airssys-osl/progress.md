@@ -1,8 +1,8 @@
 # airssys-osl Progress
 
 ## Current Status
-**Phase:** OSL-TASK-007 Phase 3 Complete - Process Operations with Modular Structure
-**Overall Progress:** 96%  
+**Phase:** OSL-TASK-007 Complete - All Concrete Operations with Framework Integration
+**Overall Progress:** 100%  
 **Last Updated:** 2025-10-08
 
 ## What Works
@@ -130,37 +130,101 @@
 - **Comprehensive Testing**: 24 unit tests + 20 doc tests = 44 tests, 100% pass rate
 - **Quality Gates**: Zero compiler warnings, zero clippy warnings, all tests passing
 - **Standards Compliance**: Full §2.1, §3.2, §4.3, §6.1, §6.2
-- **Next**: Phase 4 - Network Operations Implementation (2-3 hours)
+- **Git Commit**: c86ba67 - "feat(osl): OSL-TASK-007 Phase 3 - Process operations with modular structure"
+
+### ✅ OSL-TASK-007 Phase 4: Network Operations Implementation (COMPLETED 2025-10-08)
+- **Complete Implementations**: All 3 network operations with full Operation trait and elevated privileges
+  - **NetworkConnectOperation**: TCP/UDP connections with timeout support (~230 lines, 10 unit tests)
+  - **NetworkListenOperation**: Network listeners with Unix socket support (~310 lines, 14 unit tests)
+  - **NetworkSocketOperation**: Socket creation with convenience constructors (~240 lines, 11 unit tests)
+- **Unix Domain Socket Support**: NetworkListenOperation enhanced with socket file management
+  - `socket_path: Option<String>` field for Unix socket paths
+  - Dual permission model: NetworkSocket + FilesystemWrite(path) for socket files
+  - Smart Display formatting showing socket_path OR address based on configuration
+  - Builder methods: `with_socket_path(path)`, `with_backlog(i32)`
+- **Modular Structure**: Following filesystem/process pattern with dedicated subdirectory
+  - `network/mod.rs`: Module exports and re-exports (§4.3 compliant)
+  - `network/connect.rs`, `network/listen.rs`, `network/socket.rs`
+- **Elevated Privileges**: All operations require NetworkConnect or NetworkSocket permissions with elevation
+- **Rich Builder API**: Fluent API with multiple configuration options
+  - NetworkConnectOperation: `with_timeout()`, `with_operation_id()`
+  - NetworkListenOperation: `with_backlog()`, `with_socket_path()`, `with_operation_id()`
+  - NetworkSocketOperation: `tcp()`, `udp()`, `unix()` convenience constructors
+- **Comprehensive Testing**: 35 unit tests + 6 integration tests = 41 tests, 100% pass rate
+- **Quality Gates**: Zero compiler warnings, zero clippy warnings, all tests passing
+- **Standards Compliance**: Full §2.1, §3.2, §4.3, §6.1 (YAGNI - Unix sockets added based on real use case)
+- **Git Commit**: d7c2794 - "feat(osl): Implement Phase 4 - Network Operations with Unix socket support"
+
+### ✅ OSL-TASK-007 Phase 5: Framework Integration (COMPLETED 2025-10-08)
+- **Framework Integration Architecture**: Complete wrapper pattern bridging builders to concrete operations
+  - Each wrapper holds framework reference and operation parameters
+  - Delegate to `framework.execute()` with concrete operations from Phases 2-4
+  - Support fluent builder API with method chaining
+  - Removed all placeholder FileOperation/ProcessOperation/NetworkOperation structs
+- **Filesystem Operation Wrappers (5 operations)**: All operations wired through framework
+  - FileReadOperationWrapper: `read_file(path).execute()`
+  - FileWriteOperationWrapper: `write_file(path).with_content(bytes).execute()`
+  - DirectoryCreateOperationWrapper: `create_directory(path).recursive().execute()`
+  - DirectoryListOperationWrapper: `list_directory(path).execute()`
+  - FileDeleteOperationWrapper: `delete_file(path).execute()`
+- **Process Operation Wrappers (3 operations)**: All operations wired through framework
+  - ProcessSpawnOperationWrapper: `spawn(cmd).with_args(vec).with_working_dir(dir).execute()`
+  - ProcessKillOperationWrapper: `kill(pid).execute()`
+  - ProcessSignalOperationWrapper: `signal(pid, sig).execute()`
+- **Network Operation Wrappers (3 operations)**: All operations wired through framework
+  - NetworkConnectOperationWrapper: `connect(addr).execute()`
+  - NetworkListenOperationWrapper: `listen(addr).with_backlog(128).with_socket_path(path).execute()`
+  - NetworkSocketOperationWrapper: `create_socket(type).execute()`
+- **Implementation Quality**: Production-ready wrapper implementations
+  - Removed all _ prefixes from builder parameters (now actively used in wrappers)
+  - Added #[allow(dead_code)] to timeout fields (reserved for future timeout support)
+  - Each wrapper.execute() creates concrete operation and calls framework.execute()
+  - TODO comments indicate timeout will be applied when Operation trait supports it
+- **Comprehensive Testing**: 242 tests passing (107 unit + 42 integration + 93 doc tests), 100% pass rate
+- **Quality Gates**: Zero compiler warnings, zero clippy warnings, focused testing on airssys-osl only
+- **Standards Compliance**: Full §2.1 (3-layer imports), §4.3 (modular architecture), §6.1 (YAGNI), §6.2 (static dispatch, no dyn)
+- **Git Commit**: 9a3a8a2 - "feat(osl): Implement Phase 5 - Framework Integration with Concrete Operations"
+
+### ✅ OSL-TASK-007: Concrete Operation Types (COMPLETED 2025-10-08)
+**Overall Status**: ✅ **100% COMPLETE** - All 5 phases implemented and tested
+**Completion Time**: ~8 hours total (2025-10-08)
+**Total Operations**: 11 concrete operation types fully implemented and wired through framework
+
+**Summary of Deliverables**:
+- **Phase 1**: Module structure with 11 placeholder types ✅
+- **Phase 2**: 5 filesystem operations with modular refactoring ✅
+- **Phase 3**: 3 process operations with elevated privileges ✅
+- **Phase 4**: 3 network operations with Unix socket support ✅
+- **Phase 5**: Framework integration with 11 operation wrappers ✅
+
+**Quality Metrics**:
+- ✅ 242 total tests passing (107 unit + 42 integration + 93 doc)
+- ✅ Zero compiler warnings across all targets
+- ✅ Zero clippy warnings with strict linting
+- ✅ Full workspace standards compliance (§2.1, §3.2, §4.3, §6.1, §6.2)
+- ✅ Microsoft Rust Guidelines compliance (M-DI-HIERARCHY, M-SIMPLE-ABSTRACTIONS)
+
+**Next Steps**: Ready for OSL-TASK-008 (Platform Executors) which needs concrete operations for real I/O
 
 ## What's Left to Build
 
-### Phase 1: Core Foundation (88% Complete - Q4 2025)
-#### ✅ COMPLETED
+### Phase 1: Core Foundation (100% Complete - Q4 2025) ✅
+#### ✅ ALL PHASES COMPLETED
 - **Core Module Structure**: Complete module hierarchy and interfaces ✅
 - **Enhanced Error Handling Framework**: Structured error types and handling patterns ✅  
 - **Core Trait Definitions**: Production-ready OSExecutor and Middleware traits ✅
 - **API Ergonomics Foundation**: Complete framework foundation with builder patterns ✅
 - **OSL-TASK-006 Phases 1-3**: Framework API skeleton with builder patterns ✅
-- **OSL-TASK-007 Phase 1**: Operations module structure with 11 placeholder types ✅
+- **OSL-TASK-007 All Phases**: Complete concrete operations with framework integration ✅
 
-#### 🔄 IN PROGRESS: Critical Path for Functional Framework
-**Next Tasks** (Critical - enables real operation execution):
+#### 🔄 NEXT TASK: Platform Executors (Critical Path)
 
-**OSL-TASK-007 Phase 2-5: Concrete Operation Types** ⏳ NEXT (High Priority, 18-24 hours remaining)
-- Phase 2: Implement filesystem operations (FileRead, FileWrite, DirectoryCreate, etc.)
-- Phase 3: Implement process operations (ProcessSpawn, ProcessKill, ProcessSignal)
-- Phase 4: Implement network operations (NetworkConnect, NetworkListen, NetworkSocket)
-- Phase 5: Framework integration and comprehensive testing
-- **Status**: Phase 1 complete (module structure), ready for Phase 2
-- **Blocks**: OSL-TASK-008, real execution, middleware integration
-- **Resolves**: DEBT-002 (Framework-Core Integration Gap, partial)
-
-**OSL-TASK-008: Platform Executors** ⏳ AFTER 007 (Critical Priority, 3-4 days)
+**OSL-TASK-008: Platform Executors** ⏳ NEXT (Critical Priority, 3-4 days)
 - Implement OSExecutor trait with real tokio I/O
 - FilesystemExecutor, ProcessExecutor, NetworkExecutor
 - Update ExecutorRegistry to store actual executors
 - Real file operations, process spawning, network connections
-- **Depends on**: OSL-TASK-007
+- **Status**: Ready to start - OSL-TASK-007 complete
 - **Blocks**: Real operation execution, integration testing
 - **Resolves**: DEBT-002 (Framework-Core Integration Gap, complete)
 
@@ -170,150 +234,7 @@
 - Comprehensive integration tests with real I/O
 - Performance validation (<1ms file ops, <10ms process spawning)
 - **Completes**: OSL-TASK-006 (100%)
-
-#### 🔄 IN PROGRESS: OSL-TASK-007 - Concrete Operation Types (High Priority)
-**Overall Status**: 🔄 **IN PROGRESS** - Phase 1 ✅ COMPLETE (20% of task)
-**Current Phase**: Phase 2 - Filesystem Operations Implementation (Next)
-**Estimated Remaining**: 18-24 hours (Phases 2-5)
-
-**Phase 1: Module Structure Setup** ✅ COMPLETED (30 minutes, 2025-10-08)
-- **ExecutorRegistry**: Foundation structure with placeholder implementation
-  - Supports executor type dispatch infrastructure
-  - 3 passing unit tests: creation, has_executor, registered_types
-  - Full implementation deferred to Phase 2-3 (requires Operation object-safety resolution)
-- **MiddlewarePipeline**: Lifecycle management foundation
-  - Initialize/shutdown infrastructure in place
-  - 4 passing unit tests: creation, initialize, shutdown, middleware_names
-  - Full orchestration deferred to Phase 2 (requires dyn Operation support)
-- **OSLFramework**: Complete framework entry point
-  - `execute()` method with Phase 1 placeholder
-  - Operation builders: `filesystem()`, `process()`, `network()`
-  - Internal accessors: `middleware_pipeline()`, `executor_registry()`
-- **OSLFrameworkBuilder**: Complete builder implementation
-  - Full `build()` async method creating pipeline and registry
-  - Configuration validation and security context setup
-  - Proper initialization flow
-- **Operation Builders**: Foundation complete
-  - `FilesystemBuilder`, `ProcessBuilder`, `NetworkBuilder` with constructors
-  - Framework reference maintained via lifetime parameters
-  - Phase 3 will implement operation construction methods
-- **Knowledge Documentation**: KNOW-003 created documenting lifetime pattern
-- **Quality Metrics**: 38 tests passing, 0 failures, 0 compiler warnings, 0 clippy warnings
-
-**Phase 2: Pipeline Orchestration** ✅ COMPLETED (1 hour, 2025-10-04)
-- **ExecutorRegistry Enhancement**: Functional executor tracking
-  - `register_executor()` method with Vec<OperationType> support
-  - `get_executor_name()` method for executor lookup
-  - Tracks executor names per operation type
-  - 5 passing unit tests (2 new tests)
-  - Phase 3 will add actual executor instances
-- **MiddlewarePipeline Enhancement**: Middleware tracking
-  - `add_middleware()` method for middleware registration
-  - Tracks middleware names in execution order
-  - Enhanced lifecycle management
-  - 5 passing unit tests
-  - Phase 3 will add actual middleware execution
-- **Public Module Exports**: Framework component access
-  - Made `pipeline` and `registry` modules public
-  - Added re-exports for `MiddlewarePipeline` and `ExecutorRegistry`
-  - Enables user access to framework internals
-- **Quality Metrics**: 40 tests passing, 0 failures, 0 compiler warnings, 0 clippy warnings
-- **Architectural Decision**: Deferred `dyn Operation` trait object-safety to Phase 3 (concrete types approach)
-
-**Phase 3: Operation Builders** ✅ COMPLETED (30 minutes, 2025-10-04)
-- **FilesystemBuilder**: Fluent API with operation methods
-  - `read_file()`, `write_file()` methods
-  - `with_timeout()` configuration
-  - Returns `FileOperation` with async `execute()`
-- **ProcessBuilder**: Process operation construction
-  - `spawn()` method  
-  - `with_timeout()` configuration
-  - Returns `ProcessOperation` with async `execute()`
-- **NetworkBuilder**: Network operation construction
-  - `connect()` method
-  - `with_timeout()` configuration
-  - Returns `NetworkOperation` with async `execute()`
-- **Execute Methods**: Placeholder implementations returning success
-- **Quality**: 37 tests passing, 0 warnings, clean clippy
-- **Status**: API skeleton complete, ready for concrete implementation
-
-**Phase 4: Integration & Real Implementation** 🚫 BLOCKED BY OSL-TASK-007 & OSL-TASK-008
-- **Status**: 🚫 **BLOCKED** - Cannot proceed until concrete operations and platform executors exist
-- **Blocking Dependencies**:
-  1. 🔄 **OSL-TASK-007** (Concrete Operations) - IN PROGRESS (Phase 1 ✅ COMPLETE)
-     - ✅ Phase 1 Complete: Module structure with 11 placeholder operation types
-     - ⏳ Phase 2-5 Next: Implement Operation trait for all concrete types
-     - Framework builders cannot be wired without full FileReadOperation, FileWriteOperation, etc.
-     - Cannot store real operation data (paths, commands) without concrete type implementations
-  2. ❌ **OSL-TASK-008** (Platform Executors) - Must complete SECOND (after 007)
-     - Need platform executors implementing OSExecutor<O> trait  
-     - ExecutorRegistry cannot register executors without FilesystemExecutor, ProcessExecutor, etc.
-     - Framework.execute() cannot call real executor.execute() without platform executors
-  3. ✅ **OSL-TASK-006 Phase 4** - Can complete AFTER 007 & 008
-     - Wire framework.execute() to use OSExecutor  
-     - Wire middleware pipeline execution
-     - Integration tests with real I/O operations
-     - Final quality gates and documentation
-
-- **Decision (2025-10-04)**: Phase 4 implementation path restructured through dependencies
-- **Rationale**: Cannot complete integration without concrete operations and executors existing first
-- **Documentation**: 
-  - DEBT-002: Framework-Core Integration Gap (identified blocking issues)
-  - KNOW-004: Framework-Core Integration Pattern (5-layer architecture guide)
-  - KNOW-005: Framework OSExecutor Usage (answers "should framework use OSExecutor?")
-  - OSL-TASK-007: Concrete Operation Types (2-3 days, Phase 1 ✅, Phases 2-5 ⏳)
-  - OSL-TASK-008: Platform Executors (3-4 days, after 007)
-
-**OSL-TASK-006 Overall Status**: 🔄 **IN PROGRESS** - 92% complete (Phases 1-3 ✅), Phase 4 blocked by dependencies
-
-#### 🔄 IN PROGRESS: OSL-TASK-007 - Concrete Operation Types (High Priority)
-**Overall Status**: 🔄 **IN PROGRESS** - Phase 1 ✅ COMPLETE (20% of task)  
-**Current Phase**: Phase 2 - Filesystem Operations Implementation (Next)  
-**Estimated Remaining**: 18-24 hours (Phases 2-5)  
-**Started**: 2025-10-08  
-**Completion Report**: `.copilot/memory_bank/sub_projects/airssys-osl/tasks/OSL-TASK-007-PHASE-1-COMPLETE.md`
-
-**Phase 1: Module Structure Setup** ✅ COMPLETED (30 minutes, 2025-10-08)
-- **Module Structure Created**: Complete `src/operations/` directory with proper organization
-  - `mod.rs`: Comprehensive documentation with KNOW-004 pattern, all re-exports
-  - `filesystem.rs`: 5 placeholder types (FileRead, FileWrite, DirectoryCreate, DirectoryList, FileDelete)
-  - `process.rs`: 3 placeholder types (ProcessSpawn, ProcessKill, ProcessSignal)
-  - `network.rs`: 3 placeholder types (NetworkConnect, NetworkListen, NetworkSocket)
-- **Integration Complete**: Operations module added to `lib.rs` and `prelude.rs`
-- **Documentation**: Builder-to-Operation Bridge architecture (KNOW-004) properly documented
-- **Quality Gates**: ✅ Zero compiler warnings, ✅ Zero clippy warnings, ✅ rustdoc builds successfully
-- **Standards Compliance**: ✅ Full workspace standards (§2.1, §3.2, §4.3)
-- **Files Modified**: 6 files (4 created, 2 modified)
-  - Created: `src/operations/{mod.rs, filesystem.rs, process.rs, network.rs}`
-  - Modified: `src/lib.rs` (added module), `src/prelude.rs` (added re-exports)
-
-**Phase 2: Filesystem Operations Implementation** ⏳ NEXT (4-5 hours estimated)
-- Implement `FileReadOperation` with Operation trait
-- Implement `FileWriteOperation` with content and append support
-- Implement `DirectoryCreateOperation` with recursive option
-- Implement `DirectoryListOperation` for directory enumeration
-- Implement `FileDeleteOperation` for file removal
-- Comprehensive unit tests for all operations
-- Full rustdoc documentation with examples
-
-**Phase 3: Process Operations Implementation** (3-4 hours estimated)
-- Implement `ProcessSpawnOperation` with command, args, env
-- Implement `ProcessKillOperation` with PID and force option
-- Implement `ProcessSignalOperation` with signal handling
-- All operations require elevated privileges
-- Comprehensive unit tests and documentation
-
-**Phase 4: Network Operations Implementation** (3-4 hours estimated)
-- Implement `NetworkConnectOperation` with endpoint
-- Implement `NetworkListenOperation` with address binding
-- Implement `NetworkSocketOperation` for socket creation
-- Comprehensive unit tests and documentation
-
-**Phase 5: Framework Integration & Testing** (2-3 hours estimated)
-- Update `src/framework/operations.rs` to create concrete operations
-- Remove `_` prefix from parameters (now used)
-- Integration tests with framework builders
-- Final quality gates and documentation
+- **Unblocks**: Real-world usage, middleware development
 
 
 #### ✅ COMPLETED - PRODUCTION READY
