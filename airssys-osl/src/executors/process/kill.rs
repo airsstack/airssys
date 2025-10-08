@@ -84,7 +84,9 @@ impl OSExecutor<ProcessKillOperation> for ProcessExecutor {
         // Validate PID is not 1 (init) on Unix
         #[cfg(unix)]
         if operation.pid == 1 {
-            return Err(OSError::execution_failed("Cannot kill init process (PID 1)"));
+            return Err(OSError::execution_failed(
+                "Cannot kill init process (PID 1)",
+            ));
         }
 
         Ok(())
@@ -123,10 +125,8 @@ mod tests {
         assert_eq!(result.get_metadata("user").unwrap(), "test-user");
 
         // Verify process is killed
-        let wait_result = tokio::time::timeout(
-            std::time::Duration::from_secs(1),
-            child.wait()
-        ).await;
+        let wait_result =
+            tokio::time::timeout(std::time::Duration::from_secs(1), child.wait()).await;
         assert!(wait_result.is_ok(), "Process should have been killed");
     }
 
@@ -138,7 +138,10 @@ mod tests {
 
         let result = executor.validate_operation(&operation, &context).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Cannot kill process with PID 0"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Cannot kill process with PID 0"));
     }
 
     #[cfg(unix)]
@@ -150,7 +153,10 @@ mod tests {
 
         let result = executor.validate_operation(&operation, &context).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Cannot kill init process"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Cannot kill init process"));
     }
 
     #[tokio::test]

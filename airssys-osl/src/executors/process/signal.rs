@@ -206,10 +206,8 @@ mod tests {
         assert_eq!(result.get_metadata("signal_name").unwrap(), "SIGTERM");
 
         // Verify process is terminated
-        let wait_result = tokio::time::timeout(
-            std::time::Duration::from_secs(1),
-            child.wait()
-        ).await;
+        let wait_result =
+            tokio::time::timeout(std::time::Duration::from_secs(1), child.wait()).await;
         assert!(wait_result.is_ok(), "Process should have been terminated");
     }
 
@@ -249,7 +247,10 @@ mod tests {
 
         let result = executor.validate_operation(&operation, &context).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Cannot send signal to process with PID 0"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Cannot send signal to process with PID 0"));
     }
 
     #[cfg(unix)]
@@ -261,7 +262,10 @@ mod tests {
 
         let result = executor.validate_operation(&operation, &context).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Cannot send signal to init process"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Cannot send signal to init process"));
     }
 
     #[cfg(unix)]
@@ -269,7 +273,7 @@ mod tests {
     async fn test_validate_invalid_signal_number() {
         let executor = ProcessExecutor::new("test-executor");
         let context = ExecutionContext::new(SecurityContext::new("test-user".to_string()));
-        
+
         // Test signal number too low
         let operation = ProcessSignalOperation::new(1000, 0);
         let result = executor.validate_operation(&operation, &context).await;
@@ -290,7 +294,10 @@ mod tests {
 
         let result = executor.validate_operation(&operation, &context).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("not supported on Windows"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("not supported on Windows"));
     }
 
     #[tokio::test]

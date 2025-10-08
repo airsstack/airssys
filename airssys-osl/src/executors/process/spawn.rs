@@ -47,15 +47,12 @@ impl OSExecutor<ProcessSpawnOperation> for ProcessExecutor {
 
         // Spawn the process
         let child = cmd.spawn().map_err(|e| {
-            OSError::process_error(
-                format!("spawn '{}'", operation.command),
-                e.to_string(),
-            )
+            OSError::process_error(format!("spawn '{}'", operation.command), e.to_string())
         })?;
 
-        let pid = child.id().ok_or_else(|| {
-            OSError::process_error("spawn", "Failed to get process ID")
-        })?;
+        let pid = child
+            .id()
+            .ok_or_else(|| OSError::process_error("spawn", "Failed to get process ID"))?;
 
         let completed_at = Utc::now();
 
@@ -128,9 +125,7 @@ mod tests {
     #[tokio::test]
     async fn test_spawn_with_args() {
         let executor = ProcessExecutor::new("test-executor");
-        let operation = ProcessSpawnOperation::new("echo")
-            .arg("hello")
-            .arg("world");
+        let operation = ProcessSpawnOperation::new("echo").arg("hello").arg("world");
         let context = ExecutionContext::new(SecurityContext::new("test-user".to_string()));
 
         let result = executor
@@ -146,8 +141,7 @@ mod tests {
     #[tokio::test]
     async fn test_spawn_with_env() {
         let executor = ProcessExecutor::new("test-executor");
-        let operation = ProcessSpawnOperation::new("printenv")
-            .env("TEST_VAR", "test_value");
+        let operation = ProcessSpawnOperation::new("printenv").env("TEST_VAR", "test_value");
         let context = ExecutionContext::new(SecurityContext::new("test-user".to_string()));
 
         let result = executor
@@ -184,14 +178,17 @@ mod tests {
 
         let result = executor.validate_operation(&operation, &context).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Command cannot be empty"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Command cannot be empty"));
     }
 
     #[tokio::test]
     async fn test_validate_nonexistent_working_dir() {
         let executor = ProcessExecutor::new("test-executor");
-        let operation = ProcessSpawnOperation::new("echo")
-            .working_dir("/nonexistent/directory/path");
+        let operation =
+            ProcessSpawnOperation::new("echo").working_dir("/nonexistent/directory/path");
         let context = ExecutionContext::new(SecurityContext::new("test-user".to_string()));
 
         let result = executor.validate_operation(&operation, &context).await;
@@ -203,10 +200,13 @@ mod tests {
     #[tokio::test]
     async fn test_validate_file_as_working_dir() {
         let executor = ProcessExecutor::new("test-executor");
-        
+
         // Create a temp file
         let temp_file = tempfile::NamedTempFile::new().expect("Failed to create temp file");
-        let file_path = temp_file.path().to_str().expect("Failed to get temp file path");
+        let file_path = temp_file
+            .path()
+            .to_str()
+            .expect("Failed to get temp file path");
 
         let operation = ProcessSpawnOperation::new("echo").working_dir(file_path);
         let context = ExecutionContext::new(SecurityContext::new("test-user".to_string()));
