@@ -784,7 +784,7 @@ mod tests {
 
         let result = expand(input);
         let output = result.unwrap().to_string();
-        
+
         assert!(
             output.contains("async_trait"),
             "Generated code should include #[async_trait::async_trait]"
@@ -803,7 +803,7 @@ mod tests {
 
         let result = expand(input);
         let output = result.unwrap().to_string();
-        
+
         assert!(
             output.contains("OSExecutor"),
             "Generated code should implement OSExecutor trait"
@@ -822,7 +822,7 @@ mod tests {
 
         let result = expand(input);
         let output = result.unwrap().to_string();
-        
+
         assert!(
             output.contains("process_spawn"),
             "Generated execute() should delegate to user's process_spawn method"
@@ -839,16 +839,16 @@ mod tests {
         let input = quote! {
             impl MyExecutor {
                 async fn network_connect(&self, operation: NetworkConnectOperation, context: &ExecutionContext)
-                    -> OSResult<ExecutionResult> { 
+                    -> OSResult<ExecutionResult> {
                     println!("Connecting...");
-                    todo!() 
+                    todo!()
                 }
             }
         };
 
         let result = expand(input);
         let output = result.unwrap().to_string();
-        
+
         assert!(
             output.contains("impl MyExecutor"),
             "Original impl block should be preserved"
@@ -881,8 +881,11 @@ mod tests {
             };
 
             let result = expand(input);
-            assert!(result.is_ok(), "Operation {method_name} should parse successfully");
-            
+            assert!(
+                result.is_ok(),
+                "Operation {method_name} should parse successfully"
+            );
+
             let output = result.unwrap().to_string();
             assert!(
                 output.contains(type_name),
