@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "airssys-osl", 
+    "airssys-osl-macros",
     "airssys-rt",
     "airssys-wasm",
     "airssys-wasm-component",
@@ -30,6 +31,7 @@ rust-version = "1.88"
 
 [workspace.dependencies]
 # Layer 1: AIRS Foundation Crates (MUST be at top)
+airssys-osl-macros = { path = "airssys-osl-macros" }
 
 # Layer 2: Core Runtime Dependencies
 tokio = { version = "1.47", features = ["full"] }
@@ -42,6 +44,11 @@ serde_json = { version = "1.0" }
 serde_urlencoded = { version = "0.7" }
 
 # Layer 4: External Dependencies (by category)
+# Proc-macro development tools
+syn = { version = "2.0", features = ["full", "visit", "visit-mut"] }
+quote = "1.0"
+proc-macro2 = "1.0"
+
 # Pattern matching for security policies (for airs-mcp-fs)
 globset = { version = "0.4" }
 
@@ -117,6 +124,8 @@ proptest = { version = "1.4" }
 criterion = { version = "0.7.0", features = ["html_reports"] }
 # CPU count detection for benchmarks
 num_cpus = { version = "1.16" }
+# UI testing for proc-macros
+trybuild = "1.0"
 
 # Testing utilities (latest stable)
 tempfile = { version = "3.20.0" }
