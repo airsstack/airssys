@@ -14,20 +14,20 @@ use syn::{parse2, Error, ImplItem, ImplItemFn, ItemImpl, Result};
 pub fn expand(input: TokenStream) -> Result<TokenStream> {
     // Parse the impl block
     let item_impl = parse2::<ItemImpl>(input)?;
-    
+
     // Extract executor type name (will be used in Phase 2 for code generation)
     let _executor_type = &item_impl.self_ty;
-    
+
     // Find operation methods (only methods matching operation names)
     let methods = extract_operation_methods(&item_impl)?;
-    
+
     if methods.is_empty() {
         return Err(Error::new_spanned(
             &item_impl,
             "No operation methods found. Expected methods named: file_read, file_write, file_delete, directory_create, directory_list, process_spawn, process_kill, process_signal, network_connect, network_listen, network_socket"
         ));
     }
-    
+
     // For Phase 1: Return original impl + placeholder comment
     // Phase 2 will add actual trait implementation generation
     Ok(quote! {
@@ -42,11 +42,11 @@ pub fn expand(input: TokenStream) -> Result<TokenStream> {
 /// Helper methods and other non-operation methods are ignored.
 fn extract_operation_methods(impl_block: &ItemImpl) -> Result<Vec<&ImplItemFn>> {
     let mut methods = Vec::new();
-    
+
     for item in &impl_block.items {
         if let ImplItem::Fn(method) = item {
             let method_name = method.sig.ident.to_string();
-            
+
             // Only process if method name matches an operation
             if crate::utils::is_operation_method(&method_name) {
                 // Validate the method signature
@@ -56,7 +56,7 @@ fn extract_operation_methods(impl_block: &ItemImpl) -> Result<Vec<&ImplItemFn>> 
             // Note: Non-operation methods are silently ignored (helper methods allowed)
         }
     }
-    
+
     Ok(methods)
 }
 
@@ -72,7 +72,7 @@ fn extract_operation_methods(impl_block: &ItemImpl) -> Result<Vec<&ImplItemFn>> 
 /// ```
 fn validate_method_signature(method: &ImplItemFn) -> Result<()> {
     let sig = &method.sig;
-    
+
     // 1. Must be async
     if sig.asyncness.is_none() {
         return Err(Error::new_spanned(
@@ -80,57 +80,62 @@ fn validate_method_signature(method: &ImplItemFn) -> Result<()> {
             format!(
                 "Operation method '{}' must be async. Add 'async' keyword.",
                 sig.ident
-            )
+            ),
         ));
     }
-    
+
     // 2. Must have &self receiver
     validate_receiver(sig)?;
-    
+
     // 3. Must have exactly 2 parameters with correct names
     validate_parameters(sig)?;
-    
+
     // 4. Must return OSResult<ExecutionResult>
     validate_return_type(sig)?;
-    
+
     Ok(())
 }
 
 /// Validates the receiver is &self (not &mut self, not self).
 fn validate_receiver(sig: &syn::Signature) -> Result<()> {
     use syn::FnArg;
-    
-    let receiver = sig.inputs.first()
-        .and_then(|arg| if let FnArg::Receiver(r) = arg { Some(r) } else { None })
-        .ok_or_else(|| Error::new_spanned(
-            sig,
-            "Operation methods must have a '&self' receiver"
-        ))?;
-    
+
+    let receiver = sig
+        .inputs
+        .first()
+        .and_then(|arg| {
+            if let FnArg::Receiver(r) = arg {
+                Some(r)
+            } else {
+                None
+            }
+        })
+        .ok_or_else(|| Error::new_spanned(sig, "Operation methods must have a '&self' receiver"))?;
+
     if receiver.mutability.is_some() {
         return Err(Error::new_spanned(
             receiver,
-            "Use '&self', not '&mut self'. Executors should be immutable."
+            "Use '&self', not '&mut self'. Executors should be immutable.",
         ));
     }
-    
+
     if receiver.reference.is_none() {
         return Err(Error::new_spanned(
             receiver,
-            "Use '&self', not 'self'. Executors should not be consumed."
+            "Use '&self', not 'self'. Executors should not be consumed.",
         ));
     }
-    
+
     Ok(())
 }
 
 /// Validates parameters are exactly: (operation: OpType, context: &ExecutionContext).
 fn validate_parameters(sig: &syn::Signature) -> Result<()> {
     use syn::{FnArg, Pat, PatType};
-    
+
     // Collect non-receiver parameters
     let params: Vec<&FnArg> = sig.inputs.iter().skip(1).collect();
-    
+
     if params.len() != 2 {
         return Err(Error::new_spanned(
             &sig.inputs,
@@ -140,7 +145,7 @@ fn validate_parameters(sig: &syn::Signature) -> Result<()> {
             )
         ));
     }
-    
+
     // Validate first parameter name is "operation"
     if let FnArg::Typed(PatType { pat, .. }) = params[0] {
         if let Pat::Ident(ident) = &**pat {
@@ -150,12 +155,12 @@ fn validate_parameters(sig: &syn::Signature) -> Result<()> {
                     format!(
                         "First parameter must be named 'operation', found '{}'",
                         ident.ident
-                    )
+                    ),
                 ));
             }
         }
     }
-    
+
     // Validate second parameter name is "context"
     if let FnArg::Typed(PatType { pat, .. }) = params[1] {
         if let Pat::Ident(ident) = &**pat {
@@ -165,28 +170,26 @@ fn validate_parameters(sig: &syn::Signature) -> Result<()> {
                     format!(
                         "Second parameter must be named 'context', found '{}'",
                         ident.ident
-                    )
+                    ),
                 ));
             }
         }
     }
-    
+
     // TODO: Validate parameter types in later phase if needed
-    
+
     Ok(())
 }
 
 /// Validates return type is OSResult<ExecutionResult> (or its FQN).
 fn validate_return_type(sig: &syn::Signature) -> Result<()> {
     use syn::ReturnType;
-    
+
     match &sig.output {
-        ReturnType::Default => {
-            Err(Error::new_spanned(
-                sig,
-                "Operation methods must return OSResult<ExecutionResult>"
-            ))
-        }
+        ReturnType::Default => Err(Error::new_spanned(
+            sig,
+            "Operation methods must return OSResult<ExecutionResult>",
+        )),
         ReturnType::Type(_, _) => {
             // For Phase 1, we accept any return type that looks reasonable
             // Stricter validation can be added in Phase 2 if needed
@@ -214,7 +217,7 @@ mod tests {
                 }
             }
         };
-        
+
         let result = expand(input);
         assert!(result.is_ok(), "Valid impl should parse successfully");
     }
@@ -232,12 +235,14 @@ mod tests {
                 }
             }
         };
-        
+
         let result = expand(input);
         assert!(result.is_err(), "Non-async method should be rejected");
         let err = result.unwrap_err();
-        assert!(err.to_string().contains("must be async"), 
-            "Error should mention async requirement");
+        assert!(
+            err.to_string().contains("must be async"),
+            "Error should mention async requirement"
+        );
     }
 
     #[test]
@@ -253,12 +258,14 @@ mod tests {
                 }
             }
         };
-        
+
         let result = expand(input);
         assert!(result.is_err(), "&mut self should be rejected");
         let err = result.unwrap_err();
-        assert!(err.to_string().contains("&mut self"), 
-            "Error should mention &mut self");
+        assert!(
+            err.to_string().contains("&mut self"),
+            "Error should mention &mut self"
+        );
     }
 
     #[test]
@@ -274,12 +281,14 @@ mod tests {
                 }
             }
         };
-        
+
         let result = expand(input);
         assert!(result.is_err(), "Owned self should be rejected");
         let err = result.unwrap_err();
-        assert!(err.to_string().contains("not 'self'"), 
-            "Error should mention owned self");
+        assert!(
+            err.to_string().contains("not 'self'"),
+            "Error should mention owned self"
+        );
     }
 
     #[test]
@@ -295,12 +304,14 @@ mod tests {
                 }
             }
         };
-        
+
         let result = expand(input);
         assert!(result.is_err(), "Wrong first param name should be rejected");
         let err = result.unwrap_err();
-        assert!(err.to_string().contains("'operation'"), 
-            "Error should mention 'operation' parameter name");
+        assert!(
+            err.to_string().contains("'operation'"),
+            "Error should mention 'operation' parameter name"
+        );
     }
 
     #[test]
@@ -316,12 +327,17 @@ mod tests {
                 }
             }
         };
-        
+
         let result = expand(input);
-        assert!(result.is_err(), "Wrong second param name should be rejected");
+        assert!(
+            result.is_err(),
+            "Wrong second param name should be rejected"
+        );
         let err = result.unwrap_err();
-        assert!(err.to_string().contains("'context'"), 
-            "Error should mention 'context' parameter name");
+        assert!(
+            err.to_string().contains("'context'"),
+            "Error should mention 'context' parameter name"
+        );
     }
 
     #[test]
@@ -336,12 +352,14 @@ mod tests {
                 }
             }
         };
-        
+
         let result = expand(input);
         assert!(result.is_err(), "Too few params should be rejected");
         let err = result.unwrap_err();
-        assert!(err.to_string().contains("exactly 2 parameters"), 
-            "Error should mention parameter count");
+        assert!(
+            err.to_string().contains("exactly 2 parameters"),
+            "Error should mention parameter count"
+        );
     }
 
     #[test]
@@ -358,12 +376,14 @@ mod tests {
                 }
             }
         };
-        
+
         let result = expand(input);
         assert!(result.is_err(), "Too many params should be rejected");
         let err = result.unwrap_err();
-        assert!(err.to_string().contains("exactly 2 parameters"), 
-            "Error should mention parameter count");
+        assert!(
+            err.to_string().contains("exactly 2 parameters"),
+            "Error should mention parameter count"
+        );
     }
 
     #[test]
@@ -379,12 +399,14 @@ mod tests {
                 }
             }
         };
-        
+
         let result = expand(input);
         assert!(result.is_err(), "Missing return type should be rejected");
         let err = result.unwrap_err();
-        assert!(err.to_string().contains("OSResult"), 
-            "Error should mention return type");
+        assert!(
+            err.to_string().contains("OSResult"),
+            "Error should mention return type"
+        );
     }
 
     #[test]
@@ -398,13 +420,13 @@ mod tests {
                 ) -> OSResult<ExecutionResult> {
                     todo!()
                 }
-                
+
                 fn validate_path(&self, path: &str) -> bool {
                     true
                 }
             }
         };
-        
+
         let result = expand(input);
         assert!(result.is_ok(), "Helper methods should be ignored");
     }
@@ -418,11 +440,16 @@ mod tests {
                 }
             }
         };
-        
+
         let result = expand(input);
-        assert!(result.is_err(), "Should error when no operation methods found");
+        assert!(
+            result.is_err(),
+            "Should error when no operation methods found"
+        );
         let err = result.unwrap_err();
-        assert!(err.to_string().contains("No operation methods found"), 
-            "Error should mention no operation methods");
+        assert!(
+            err.to_string().contains("No operation methods found"),
+            "Error should mention no operation methods"
+        );
     }
 }

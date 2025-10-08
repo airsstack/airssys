@@ -59,17 +59,17 @@ mod tests {
         assert!(is_operation_method("file_delete"));
         assert!(is_operation_method("directory_create"));
         assert!(is_operation_method("directory_list"));
-        
+
         // Process operations
         assert!(is_operation_method("process_spawn"));
         assert!(is_operation_method("process_kill"));
         assert!(is_operation_method("process_signal"));
-        
+
         // Network operations
         assert!(is_operation_method("network_connect"));
         assert!(is_operation_method("network_listen"));
         assert!(is_operation_method("network_socket"));
-        
+
         // Not an operation
         assert!(!is_operation_method("invalid_op"));
         assert!(!is_operation_method("helper_method"));
