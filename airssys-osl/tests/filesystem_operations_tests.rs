@@ -31,23 +31,23 @@ fn test_filesystem_operations_are_cloneable() {
 #[test]
 fn test_filesystem_operations_display() {
     let file_read = FileReadOperation::new("/tmp/test.txt");
-    assert_eq!(format!("{}", file_read), "FileRead(/tmp/test.txt)");
+    assert_eq!(format!("{file_read}"), "FileRead(/tmp/test.txt)");
 
-    let file_write = FileWriteOperation::new("/tmp/test.txt", vec![1, 2, 3]);
+    let file_write = FileWriteOperation::new("/tmp/test.txt", b"foo".to_vec());
     assert_eq!(
-        format!("{}", file_write),
+        format!("{file_write}"),
         "FileWrite(/tmp/test.txt, mode=write, 3 bytes)"
     );
 
     let dir_create = DirectoryCreateOperation::new("/tmp/dir").recursive();
     assert_eq!(
-        format!("{}", dir_create),
+        format!("{dir_create}"),
         "DirectoryCreate(/tmp/dir, mode=recursive)"
     );
 
     let dir_list = DirectoryListOperation::new("/tmp");
-    assert_eq!(format!("{}", dir_list), "DirectoryList(/tmp)");
+    assert_eq!(format!("{dir_list}"), "DirectoryList(/tmp)");
 
     let file_delete = FileDeleteOperation::new("/tmp/test.txt");
-    assert_eq!(format!("{}", file_delete), "FileDelete(/tmp/test.txt)");
+    assert_eq!(format!("{file_delete}"), "FileDelete(/tmp/test.txt)");
 }

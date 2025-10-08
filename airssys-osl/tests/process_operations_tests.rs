@@ -25,14 +25,14 @@ fn test_process_operations_are_cloneable() {
 #[test]
 fn test_process_operations_display() {
     let spawn = ProcessSpawnOperation::new("echo").arg("test");
-    assert!(format!("{}", spawn).contains("ProcessSpawn"));
-    assert!(format!("{}", spawn).contains("echo"));
+    assert!(format!("{spawn}").contains("ProcessSpawn"));
+    assert!(format!("{spawn}").contains("echo"));
 
     let kill = ProcessKillOperation::new(12345);
-    assert_eq!(format!("{}", kill), "ProcessKill(pid=12345)");
+    assert_eq!(format!("{kill}"), "ProcessKill(pid=12345)");
 
     let signal = ProcessSignalOperation::new(12345, 9);
-    assert_eq!(format!("{}", signal), "ProcessSignal(pid=12345, signal=9)");
+    assert_eq!(format!("{signal}"), "ProcessSignal(pid=12345, signal=9)");
 }
 
 /// Test that all process operations require elevated privileges
