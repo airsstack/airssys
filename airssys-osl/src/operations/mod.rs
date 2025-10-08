@@ -47,7 +47,7 @@
 // Filesystem operation types (modular structure)
 pub mod filesystem;
 
-// Process operation types
+// Process operation types (modular structure)
 pub mod process;
 
 // Network operation types
