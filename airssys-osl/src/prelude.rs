@@ -58,6 +58,17 @@ pub use crate::core::context::{ExecutionContext, SecurityContext};
 // Core operation types - foundation for all operations
 pub use crate::core::operation::{Operation, OperationType};
 
+// Concrete operation types - for advanced usage and testing
+pub use crate::operations::{
+    // Filesystem operations
+    DirectoryCreateOperation, DirectoryListOperation, FileDeleteOperation,
+    FileReadOperation, FileWriteOperation,
+    // Process operations
+    ProcessKillOperation, ProcessSignalOperation, ProcessSpawnOperation,
+    // Network operations
+    NetworkConnectOperation, NetworkListenOperation, NetworkSocketOperation,
+};
+
 // Middleware configuration - for Level 2 usage  
 pub use crate::middleware::logger::{LogLevel, LogFormat};
 

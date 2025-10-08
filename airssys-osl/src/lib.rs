@@ -166,6 +166,20 @@
 //!   - Structured error types with context
 //!   - Consistent result propagation patterns
 //!
+//! ## [`operations`] - Concrete Operation Type Implementations
+//!
+//! - **[`operations::filesystem`]** - Filesystem operation types
+//!   - File read, write, delete operations
+//!   - Directory creation and listing
+//!
+//! - **[`operations::process`]** - Process management operation types
+//!   - Process spawn, kill, and signal operations
+//!   - Implements elevated privilege requirements
+//!
+//! - **[`operations::network`]** - Network operation types
+//!   - Socket creation and connection operations
+//!   - Network listening operations
+//!
 //! ## [`middleware`] - Concrete Middleware Implementations
 //!
 //! - **[`middleware::logger`]** - Activity logging and audit trail middleware
@@ -199,3 +213,6 @@ pub mod prelude;
 // Public modules - Core API (Advanced)
 pub mod core;
 pub mod middleware;
+
+// Public modules - Concrete Operation Implementations
+pub mod operations;
