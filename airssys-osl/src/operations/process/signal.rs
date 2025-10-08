@@ -189,9 +189,9 @@ impl Operation for ProcessSignalOperation {
     }
 
     fn operation_id(&self) -> String {
-        self.operation_id.clone().unwrap_or_else(|| {
-            format!("{}:{}", self.operation_type().as_str(), Uuid::new_v4())
-        })
+        self.operation_id
+            .clone()
+            .unwrap_or_else(|| format!("{}:{}", self.operation_type().as_str(), Uuid::new_v4()))
     }
 
     fn requires_elevated_privileges(&self) -> bool {
@@ -251,8 +251,7 @@ mod tests {
 
     #[test]
     fn test_process_signal_with_custom_id() {
-        let op = ProcessSignalOperation::new(12345, 15)
-            .with_operation_id("custom-signal");
+        let op = ProcessSignalOperation::new(12345, 15).with_operation_id("custom-signal");
         assert_eq!(op.operation_id(), "custom-signal");
     }
 

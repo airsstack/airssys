@@ -124,9 +124,9 @@ impl Operation for ProcessKillOperation {
     }
 
     fn operation_id(&self) -> String {
-        self.operation_id.clone().unwrap_or_else(|| {
-            format!("{}:{}", self.operation_type().as_str(), Uuid::new_v4())
-        })
+        self.operation_id
+            .clone()
+            .unwrap_or_else(|| format!("{}:{}", self.operation_type().as_str(), Uuid::new_v4()))
     }
 
     fn requires_elevated_privileges(&self) -> bool {
@@ -167,8 +167,7 @@ mod tests {
 
     #[test]
     fn test_process_kill_with_custom_id() {
-        let op = ProcessKillOperation::new(12345)
-            .with_operation_id("custom-kill");
+        let op = ProcessKillOperation::new(12345).with_operation_id("custom-kill");
         assert_eq!(op.operation_id(), "custom-kill");
     }
 
