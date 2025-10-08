@@ -1,0 +1,28 @@
+[package]
+name = "airssys-osl-macros"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Procedural macros for airssys-osl core abstractions"
+keywords = ["os", "system", "macros", "proc-macro"]
+categories = ["os", "development-tools::procedural-macro-helpers"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = { workspace = true }
+quote = { workspace = true }
+proc-macro2 = { workspace = true }
+
+[dev-dependencies]
+airssys-osl = { path = "../airssys-osl" }
+async-trait = { workspace = true }
+tokio = { workspace = true }
+trybuild = { workspace = true }
+
+[lints]
+workspace = true
