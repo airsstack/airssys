@@ -17,13 +17,15 @@
 //!
 //! ## 2. Direct API (Current - Maximum Control)
 //!
-//! ```rust
+//! ```
 //! use airssys_osl::prelude::*;
+//! use airssys_osl::core::executor::OSExecutor;
+//! use airssys_osl::executors::FilesystemExecutor;
 //!
 //! # async fn example() -> OSResult<()> {
 //! // Direct executor usage
-//! let executor = crate::executors::FilesystemExecutor::new();
-//! let operation = FileReadOperation::new("/etc/hosts".into());
+//! let executor = FilesystemExecutor::new();
+//! let operation = FileReadOperation::new("/etc/hosts");
 //! let context = ExecutionContext::new(
 //!     SecurityContext::new("admin".to_string())
 //! );
