@@ -206,13 +206,10 @@
 //! - **Better IDE support**: Precise navigation and completion
 //! - **Maintainable architecture**: Explicit module boundaries prevent coupling
 
-// Public modules - Framework API (Primary)
-pub mod framework;
-pub mod prelude;
-
-// Public modules - Core API (Advanced)
+// Public modules - Core API (Primary)
 pub mod core;
 pub mod middleware;
+pub mod prelude;
 
 // Public modules - Concrete Operation Implementations
 pub mod operations;
