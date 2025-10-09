@@ -80,11 +80,7 @@ where
         self.executor.supported_operation_types()
     }
 
-    async fn execute(
-        &self,
-        operation: O,
-        context: &ExecutionContext,
-    ) -> OSResult<ExecutionResult> {
+    async fn execute(&self, operation: O, context: &ExecutionContext) -> OSResult<ExecutionResult> {
         // Check if middleware can process this operation
         if !self.middleware.can_process(&operation, context).await {
             // Middleware doesn't apply, execute directly
@@ -187,7 +183,7 @@ pub trait ExecutorExt: Sized {
 impl<E> ExecutorExt for E where E: Sized {}
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]  // Test code - unwrap is acceptable for test setup
+#[allow(clippy::unwrap_used)] // Test code - unwrap is acceptable for test setup
 mod tests {
     use super::*;
     use crate::core::context::SecurityContext;
@@ -220,14 +216,12 @@ mod tests {
 
         #[allow(dead_code)]
         fn was_before_called(&self) -> bool {
-            self.before_called
-                .load(std::sync::atomic::Ordering::SeqCst)
+            self.before_called.load(std::sync::atomic::Ordering::SeqCst)
         }
 
         #[allow(dead_code)]
         fn was_after_called(&self) -> bool {
-            self.after_called
-                .load(std::sync::atomic::Ordering::SeqCst)
+            self.after_called.load(std::sync::atomic::Ordering::SeqCst)
         }
     }
 
@@ -318,8 +312,8 @@ mod tests {
     #[tokio::test]
     async fn test_middleware_executor_calls_hooks() {
         // Test that middleware hooks are called during execution
-        use tempfile::NamedTempFile;
         use std::io::Write;
+        use tempfile::NamedTempFile;
 
         // Create a temporary file
         let mut temp_file = NamedTempFile::new().unwrap();

@@ -12,8 +12,8 @@
 // (none for this module)
 
 // Public middleware modules
-pub mod logger;
 pub mod ext;
+pub mod logger;
 
 // Re-export extension trait for ergonomic imports
 pub use ext::ExecutorExt;
