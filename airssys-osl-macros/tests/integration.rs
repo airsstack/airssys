@@ -17,7 +17,7 @@ fn test_macro_is_exported() {
 
     // This test passes if the macro is exported
     let _macro_exists = stringify!(executor);
-    assert!(_macro_exists.len() > 0);
+    assert!(!_macro_exists.is_empty());
 }
 
 // Note: Full integration tests with airssys-osl types will be added in MACROS-TASK-003

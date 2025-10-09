@@ -273,7 +273,7 @@ fn generate_single_trait_impl(
                 &self,
                 operation: #operation_type_path,
                 context: &airssys_osl::core::context::ExecutionContext,
-            ) -> airssys_osl::core::result::OSResult<airssys_osl::core::result::ExecutionResult> {
+            ) -> airssys_osl::core::result::OSResult<airssys_osl::core::executor::ExecutionResult> {
                 self.#method_name(operation, context).await
             }
         }

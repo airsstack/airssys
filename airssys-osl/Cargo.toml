@@ -7,7 +7,14 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 
+[features]
+default = ["macros"]
+macros = ["dep:airssys-osl-macros"]
+
 [dependencies]
+# Procedural macros for ergonomic implementations (optional feature)
+airssys-osl-macros = { workspace = true, optional = true }
+
 # Time handling (§3.2 workspace standard)
 chrono = { workspace = true }
 

@@ -35,22 +35,39 @@
 //! # Ok(())
 //! # }
 //! ```
+//!
+//! # Custom Executor with Macro (requires `macros` feature)
+//!
+//! ```rust,ignore
+//! use airssys_osl::prelude::*;
+//!
+//! #[derive(Debug)]
+//! struct MyExecutor;
+//!
+//! #[executor]
+//! impl MyExecutor {
+//!     async fn file_read(
+//!         &self,
+//!         operation: FileReadOperation,
+//!         context: &ExecutionContext,
+//!     ) -> OSResult<ExecutionResult> {
+//!         // Custom implementation
+//!         Ok(ExecutionResult::success(vec![]))
+//!     }
+//! }
+//! ```
 
 // Framework layer - primary API (80% of use cases)
-pub use crate::framework::{
-    OSLFramework, 
-    OSLFrameworkBuilder,
-};
+pub use crate::framework::{OSLFramework, OSLFrameworkBuilder};
 
 // Configuration system
-pub use crate::framework::config::{
-    OSLConfig,
-    OSLConfigBuilder,
-    SecurityConfig,
-};
+pub use crate::framework::config::{OSLConfig, OSLConfigBuilder, SecurityConfig};
 
 // Core result types - used across all levels
 pub use crate::core::result::{OSError, OSResult};
+
+// Core executor types - needed for custom executor implementations
+pub use crate::core::executor::ExecutionResult;
 
 // Core context types - needed for both framework and primitive usage
 pub use crate::core::context::{ExecutionContext, SecurityContext};
@@ -61,20 +78,31 @@ pub use crate::core::operation::{Operation, OperationType};
 // Concrete operation types - for advanced usage and testing
 pub use crate::operations::{
     // Filesystem operations
-    DirectoryCreateOperation, DirectoryListOperation, FileDeleteOperation,
-    FileReadOperation, FileWriteOperation,
-    // Process operations
-    ProcessKillOperation, ProcessSignalOperation, ProcessSpawnOperation,
+    DirectoryCreateOperation,
+    DirectoryListOperation,
+    FileDeleteOperation,
+    FileReadOperation,
+    FileWriteOperation,
     // Network operations
-    NetworkConnectOperation, NetworkListenOperation, NetworkSocketOperation,
+    NetworkConnectOperation,
+    NetworkListenOperation,
+    NetworkSocketOperation,
+    // Process operations
+    ProcessKillOperation,
+    ProcessSignalOperation,
+    ProcessSpawnOperation,
 };
 
-// Middleware configuration - for Level 2 usage  
-pub use crate::middleware::logger::{LogLevel, LogFormat};
+// Middleware configuration - for Level 2 usage
+pub use crate::middleware::logger::{LogFormat, LogLevel};
+
+// Procedural macros for ergonomic implementations (optional feature)
+#[cfg(feature = "macros")]
+pub use airssys_osl_macros::executor;
 
 // Standard library re-exports for convenience
-pub use std::time::Duration;
 pub use chrono::{DateTime, Utc};
+pub use std::time::Duration;
 
 // TODO: The following will be added in OSL-TASK-006:
 // - Operation builders (FilesystemBuilder, ProcessBuilder, NetworkBuilder)
