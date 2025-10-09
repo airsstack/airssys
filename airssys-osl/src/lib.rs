@@ -211,6 +211,9 @@ pub mod core;
 pub mod middleware;
 pub mod prelude;
 
+// Public modules - Helper Functions (Ergonomic)
+pub mod helpers;
+
 // Public modules - Concrete Operation Implementations
 pub mod operations;
 
