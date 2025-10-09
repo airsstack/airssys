@@ -3,28 +3,27 @@
 # airssys-osl Task Index
 
 **Sub-Project:** airssys-osl  
-**Last Updated:** 2025-10-08  
-**Total Tasks:** 8  
-**Active Tasks:** 1  
-**Completed Tasks:** 4  
+**Last Updated:** 2025-10-09  
+**Total Tasks:** 9  
+**Active Tasks:** 0  
+**Completed Tasks:** 6  
 
 ## Task Summary
 
 ### By Priority
 | Priority | Count | Status Distribution |
 |----------|-------|-------------------|
-| Critical | 3 | Pending: 1, Active: 0, Complete: 2 |
-| High | 5 | Pending: 1, Paused: 1, Complete: 3 |
+| Critical | 3 | Complete: 3 |
+| High | 6 | Pending: 1, Ready: 1, Complete: 4 |
 | Medium | 0 | - |
 | Low | 0 | - |
 
 ### By Status
 | Status | Count | Description |
 |--------|-------|-------------|
-| Complete | 4 | OSL-TASK-001, 002, 005, 007 |
-| In Progress | 1 | OSL-TASK-006 (Phase 4 restructured with 008) |
-| Pending | 1 | OSL-TASK-008 (next - ready to start) |
-| Blocked | 2 | OSL-TASK-003, 004 (waiting for 008) |
+| Complete | 6 | OSL-TASK-001, 002, 005, 006, 007, 008 |
+| Ready to Start | 1 | OSL-TASK-009 (next - unblocked) |
+| Blocked | 2 | OSL-TASK-003, 004 (waiting for 009) |
 
 ## Completed Tasks ✅
 
@@ -75,29 +74,33 @@
 - ✅ 242 tests passing (107 unit + 42 integration + 93 doc tests)
 - ✅ Zero warnings, full workspace standards compliance
 
-## Active/In Progress Tasks
+### OSL-TASK-006: Core Framework Implementation *(High, Complete)*
+**Status:** ✅ COMPLETED (2025-10-03, Phase 4 cancelled 2025-10-08)  
+**Actual Effort:** 2 days (Phases 1-3)  
+**Description:** Implemented framework foundation with builder patterns and configuration system.
 
-### OSL-TASK-006: Core Framework Implementation *(High, In Progress)*
-**Status:** 🔄 IN PROGRESS (Phases 1-3 ✅ complete, Phase 4 🚫 blocked)  
-**Progress:** 92% (3 of 3 completed phases, Phase 4 blocked by dependencies)  
-**Current State:** API skeleton complete, waiting for concrete types and executors  
-
-**Blocking Dependencies:**
-- 🚫 **Phase 4 BLOCKED BY:**
-  1. OSL-TASK-007 (Concrete Operations) - Must complete FIRST
-  2. OSL-TASK-008 (Platform Executors) - Must complete SECOND  
-  3. Then Phase 4 can proceed with final wiring
-
-**Completed Phases:**
+**Deliverables:**
 - ✅ Phase 1: Core Framework structure (registry, pipeline, framework, builder)
 - ✅ Phase 2: Pipeline Orchestration (name tracking, public modules)
 - ✅ Phase 3: Operation Builders (API skeleton with placeholders)
+- ❌ Phase 4: CANCELLED - Framework layer being removed in OSL-TASK-009
 
-**Blocked Phase:**
-- � **Phase 4: BLOCKED** - Cannot proceed until 007 & 008 complete
-  - ❌ Cannot wire framework.execute() without platform executors (need 008)
-  - ❌ Cannot wire middleware pipeline without concrete operations (need 007)
-  - ❌ Cannot run integration tests without real I/O (need 007 + 008)
+**Note:** Framework code serves as foundation for migration to helper-based architecture.
+
+### OSL-TASK-008: Platform Executors *(Critical, Complete)*
+**Status:** ✅ COMPLETED (2025-10-08)  
+**Actual Effort:** 3 days (Phases 1-4)  
+**Description:** Implemented platform-specific executor implementations with real tokio I/O operations.
+
+**Deliverables:**
+- ✅ Phase 1: FilesystemExecutor with 4 operation executors (6 tests)
+- ✅ Phase 2: Filesystem refactoring to modular architecture
+- ✅ Phase 3: ProcessExecutor with 3 operation executors (22 tests)
+- ✅ Phase 4: NetworkExecutor with 3 operation executors (28 tests)
+- ❌ Phases 5-7: CANCELLED - Registry integration abandoned per architecture refactoring
+- ✅ 165 total tests passing, all 3 platform executors production-ready
+
+**Note:** ExecutorRegistry pattern abandoned in favor of helper functions (OSL-TASK-009).
   - ❌ Cannot complete quality gates without end-to-end functionality
 
 **Phase 4 Deliverables (after 007/008):**
@@ -108,92 +111,65 @@
 
 ## Critical Path Tasks (Next Up)
 
-### OSL-TASK-008: Platform Executors *(Critical, Next)*
-**Status:** 🎯 NEXT - Ready to start (OSL-TASK-007 complete)  
-**Estimated Effort:** 3-4 days  
-**Dependencies:** ✅ OSL-TASK-007 (COMPLETE)  
-**Blocks:** OSL-TASK-006 Phase 4, OSL-TASK-003, OSL-TASK-004  
-**Priority:** CRITICAL - Unblocks all real execution  
-**Description:** Implement concrete operation types that properly implement the Operation trait for filesystem, process, and network operations.
+### OSL-TASK-009: Remove Framework and Add Helpers *(High, Ready)*
+**Status:** 🎯 READY TO START (unblocked 2025-10-09)  
+**Estimated Effort:** 2-3 days  
+**Dependencies:** ✅ OSL-TASK-008 (COMPLETE)  
+**Blocks:** OSL-TASK-003, OSL-TASK-004  
+**Priority:** HIGH - Architecture simplification  
+**Description:** Refactor airssys-osl by removing framework layer and replacing with helper functions and middleware extension traits.
 
 **Key Deliverables:**
-- Implement Operation trait for FileReadOperation, FileWriteOperation, etc.
-- Store actual operation data (paths, commands, addresses)
-- Define required permissions for security validation
-- Update framework builders to create concrete operations
-- Remove all `_` prefixed unused parameters
+- Remove ExecutorRegistry, OSLFramework, builders, pipeline
+- Add 10 helper functions (read_file, spawn_process, tcp_connect, etc.)
+- Add middleware extension trait for composition
+- Update all tests and documentation
+- Migration to simpler, YAGNI-compliant architecture
 
 **Blocks:** 
-- OSL-TASK-008 (Platform Executors)
-- OSL-TASK-006 final wiring
-- OSL-TASK-003 (Security Middleware)
-- OSL-TASK-004 (Pipeline Framework)
+- OSL-TASK-003 (Security Middleware - needs new helper-based architecture)
+- OSL-TASK-004 (Pipeline Framework - needs extension trait pattern)
 
-**Resolves:** DEBT-002 (Framework-Core Integration Gap, partial)
-
-### OSL-TASK-008: Platform Executors *(Critical, Pending)*
-**Status:** ⏳ AFTER 007  
-**Estimated Effort:** 3-4 days  
-**Dependencies:** OSL-TASK-007 (Concrete Operations)  
-**Priority:** CRITICAL - Enables real I/O  
-**Description:** Implement platform-specific executor implementations with real tokio I/O operations.
-
-**Key Deliverables:**
-- Implement OSExecutor trait for FilesystemExecutor, ProcessExecutor, NetworkExecutor
-- Real tokio::fs, tokio::process, tokio::net operations
-- Update ExecutorRegistry to store actual executors
-- Comprehensive error handling and resource management
-- Performance validation (<1ms file ops, <10ms process spawning)
-
-**Blocks:**
-- OSL-TASK-006 final wiring
-- Real operation execution
-- Integration testing
-- OSL-TASK-003 (Security Middleware)
-- OSL-TASK-004 (Pipeline Framework)
-
-**Resolves:** DEBT-002 (Framework-Core Integration Gap, complete)
+**Reference:** `.copilot/memory_bank/sub_projects/airssys-osl/docs/architecture-refactoring-plan-2025-10.md`
 
 ## Blocked Tasks
 
 ### OSL-TASK-003: Security Middleware Module *(High, Blocked)*
-**Status:** 🔒 BLOCKED (waiting for OSL-TASK-007, 008)  
+**Status:** 🔒 BLOCKED (waiting for OSL-TASK-009)  
 **Estimated Effort:** 2-3 days  
-**Dependencies:** OSL-TASK-007, 008 (needs concrete operations to validate)  
+**Dependencies:** OSL-TASK-009 (needs helper-based architecture)  
 **Description:** Implement security middleware with ACL, RBAC, and policy enforcement.
 
-**Why Blocked:** Needs concrete Operation trait implementations to validate permissions
+**Why Blocked:** Needs new helper-based architecture from OSL-TASK-009
 
 ### OSL-TASK-004: Middleware Pipeline Framework *(High, Blocked)*
-**Status:** 🔒 BLOCKED (waiting for OSL-TASK-007, 008)  
+**Status:** 🔒 BLOCKED (waiting for OSL-TASK-009)  
 **Estimated Effort:** 1-2 days  
-**Dependencies:** OSL-TASK-007, 008 (needs executors for orchestration)  
+**Dependencies:** OSL-TASK-009 (needs extension trait pattern)  
 **Description:** Implement middleware pipeline orchestration framework.
 
-**Why Blocked:** Needs executors to orchestrate the complete execution flow
+**Why Blocked:** Needs middleware extension trait pattern from OSL-TASK-009
 
 ## Task Dependencies
 
-### Updated Critical Path (2025-10-04)
+### Updated Critical Path (2025-10-09)
 ```
 OSL-TASK-001 ✅ (Core Foundation)
 ├── OSL-TASK-002 ✅ (Logger Middleware)
 ├── OSL-TASK-005 ✅ (API Ergonomics Foundation)
-└── OSL-TASK-006 ⏸️ (Framework Implementation, Phases 1-3 complete)
-    ├── OSL-TASK-007 ⏳ NEXT (Concrete Operations)
-    │   └── OSL-TASK-008 ⏳ (Platform Executors)
-    │       ├── OSL-TASK-006 Final Wiring (complete task)
-    │       ├── OSL-TASK-003 🔒 (Security Middleware)
-    │       └── OSL-TASK-004 🔒 (Pipeline Framework)
-    └── Full Integration & Production Ready
+├── OSL-TASK-006 ✅ (Framework Implementation, Phases 1-3, Phase 4 cancelled)
+└── OSL-TASK-007 ✅ (Concrete Operations)
+    └── OSL-TASK-008 ✅ (Platform Executors, Phases 1-4, Phases 5-7 cancelled)
+        └── OSL-TASK-009 🎯 NEXT (Remove Framework, Add Helpers)
+            ├── OSL-TASK-003 🔒 (Security Middleware)
+            └── OSL-TASK-004 🔒 (Pipeline Framework)
+                └── Production Ready 🎉
 ```
 
 ### Current Status
-- **✅ Complete:** Tasks 001, 002, 005, 006 (Phases 1-3)
-- **⏸️ Paused:** Task 006 Phase 4 (merged with 007/008)
-- **⏳ Ready to Start:** OSL-TASK-007 (NEXT - Critical path)
-- **⏳ Waiting:** OSL-TASK-008 (waiting for 007)
-- **🔒 Blocked:** Tasks 003, 004 (waiting for 007/008)
+- **✅ Complete:** Tasks 001, 002, 005, 006 (partial), 007, 008
+- **🎯 Ready to Start:** OSL-TASK-009 (architecture refactoring - next critical task)
+- **🔒 Blocked:** Tasks 003, 004 (waiting for 009)
 
-### Key Decision (2025-10-04)
-**Phase 4 of OSL-TASK-006 merged with OSL-TASK-007 and OSL-TASK-008** due to framework-core integration gaps. Cannot complete testing/polish without concrete operations and executors. See DEBT-002 and KNOW-004 for details.
+### Key Decision (2025-10-08)
+**Architecture Refactoring:** Framework layer (ExecutorRegistry, OSLFramework, builders) being removed in OSL-TASK-009 in favor of helper functions and macros. See `architecture-refactoring-plan-2025-10.md` for details.
