@@ -66,24 +66,76 @@ Add `airssys-osl` to your `Cargo.toml`:
 airssys-osl = { version = "0.1", features = ["macros"] }
 ```
 
-### Basic Usage
+### Basic Usage with Helper Functions
+
+The easiest way to use `airssys-osl` is through helper functions:
+
+```rust
+use airssys_osl::helpers::*;
+
+#[tokio::main]
+async fn main() -> Result<(), airssys_osl::core::result::OSError> {
+    // Read a file - simple API with security context
+    let content = read_file("/tmp/test.txt", "my-user").await?;
+    println!("Read {} bytes", content.len());
+    
+    // Write to a file
+    write_file("/tmp/output.txt", b"Hello, World!".to_vec(), "my-user").await?;
+    
+    // Spawn a process
+    let output = spawn_process("ls", vec!["-la".to_string()], "my-user").await?;
+    println!("Process output: {}", String::from_utf8_lossy(&output));
+    
+    // Connect to network
+    network_connect("127.0.0.1:8080", "my-user").await?;
+    
+    Ok(())
+}
+```
+
+### Advanced Usage with Direct Executors
+
+For more control, you can use executors directly:
 
 ```rust
 use airssys_osl::prelude::*;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create a file read operation
-    let operation = FileReadOperation::new("/tmp/test.txt");
-    
-    // Create execution context
+async fn main() -> Result<(), OSError> {
+    // Create operation and context
+    let operation = FileReadOperation::new("/tmp/test.txt".into());
     let context = ExecutionContext::default();
     
-    // Execute with default executor
-    let executor = DefaultExecutor;
+    // Execute with executor
+    let executor = FilesystemExecutor::default();
     let result = executor.execute(operation, context).await?;
     
-    println!("Read {} bytes", result.bytes_read);
+    println!("Read {} bytes", result.output.len());
+    Ok(())
+}
+```
+
+### Using Middleware with Extension Trait
+
+Add middleware capabilities to any executor using the extension trait:
+
+```rust
+use airssys_osl::prelude::*;
+
+#[tokio::main]
+async fn main() -> Result<(), OSError> {
+    // Create executor with logging middleware
+    let logger = ConsoleActivityLogger::default();
+    let middleware = LoggerMiddleware::new(logger);
+    
+    let executor = FilesystemExecutor::default()
+        .with_middleware(middleware);
+    
+    // Execute operation - automatically logs activity
+    let operation = FileReadOperation::new("/tmp/test.txt".into());
+    let context = ExecutionContext::default();
+    let result = executor.execute(operation, context).await?;
+    
     Ok(())
 }
 ```
@@ -103,39 +155,32 @@ impl MyCustomExecutor {
         &self,
         operation: FileReadOperation,
         _context: ExecutionContext,
-    ) -> Result<FileReadResult, ExecutionError> {
-        println!("Reading file: {}", operation.path);
+    ) -> Result<ExecutionResult, OSError> {
+        println!("Reading file: {}", operation.path());
         
         // Custom implementation
-        Ok(FileReadResult {
-            content: vec![],
-            bytes_read: 0,
-            completed_at: Utc::now(),
-        })
+        Ok(ExecutionResult::success(vec![]))
     }
     
     async fn execute_file_write(
         &self,
         operation: FileWriteOperation,
         _context: ExecutionContext,
-    ) -> Result<FileWriteResult, ExecutionError> {
-        println!("Writing {} bytes to: {}", operation.content.len(), operation.path);
+    ) -> Result<ExecutionResult, OSError> {
+        println!("Writing {} bytes to: {}", operation.content().len(), operation.path());
         
         // Custom implementation
-        Ok(FileWriteResult {
-            bytes_written: operation.content.len(),
-            completed_at: Utc::now(),
-        })
+        Ok(ExecutionResult::success(vec![]))
     }
-    
-    // Implement other filesystem operations...
 }
 ```
 
 For more details, see:
+- [Helper Functions Guide](docs/src/guides/helper-functions.md)
+- [Middleware Guide](docs/src/guides/middleware.md)
 - [Custom Executor Guide](docs/src/guides/custom-executors.md)
 - [Macros API Reference](docs/src/api/macros.md)
-- [Examples](examples/custom_executor_with_macro.rs)
+- [Examples](examples/)
 
 ## Features
 
