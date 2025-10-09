@@ -1,12 +1,12 @@
 # Current Context
 
 **Last Updated:** 2025-10-09  
-**Active Sub-Project:** airssys-osl-macros  
-**Status:** MACROS-TASK-003 Phase 2 Complete (90% complete)  
-**Current Phase:** Integration Tests Complete - Ready for Examples & Documentation
+**Active Sub-Project:** airssys-osl  
+**Status:** Foundation Complete (85% complete)  
+**Current Phase:** Ready for OSL-TASK-009 (Architecture Refactoring)
 
-**Context Switch:** airssys-osl → airssys-osl-macros  
-**Context Switch Reason:** Architecture refactoring decision - Create new proc-macro crate for ergonomic custom executor creation. Framework removal in favor of three-tier approach (low-level API, helpers, macros).
+**Context Switch:** airssys-osl-macros → airssys-osl  
+**Context Switch Reason:** MACROS-TASK-003 complete (100% - Foundation Phase). Switching back to airssys-osl for architecture refactoring and helper functions implementation.
 
 ---
 
@@ -47,37 +47,56 @@
 - ✅ Full integration with airssys-osl via prelude
 - ✅ Backward compatible auto-detection
 - ✅ 11 comprehensive integration tests covering all 11 operations
-- ✅ Helper method preservation validated
-- ✅ Custom configuration attributes tested (name and operations)
+---
 
-### MACROS-TASK-003 Progress (Phase 2 Complete)
-**Phase 1:** ✅ Configuration & API Surface (COMPLETE)
-**Phase 2:** ✅ Integration Tests (COMPLETE - 11/11 tests)
-- ✅ Single operation tests (filesystem, process, network)
-- ✅ Multiple filesystem operations test
-- ✅ Mixed operation types test
-- ✅ All 11 operations comprehensive test
-- ✅ Helper methods preservation test
-- ✅ Custom executor name test
-- ✅ Custom operations configuration tests (single & multiple)
-- ✅ Both custom name and operations test
+## airssys-osl - Current Focus 🎯
 
-**Phase 3:** ⏳ Examples & Documentation (NEXT)
-**Phase 4:** ⏳ Quality Validation & Finalization
+### Status: Foundation Complete - Ready for Architecture Refactoring
+- **Active Focus**: OSL-TASK-009 - Remove Framework and Add Helpers
+- **Project Type**: OS Abstraction Layer (system programming primitives)
+- **Project Priority**: Critical - Foundation for all AirsSys components
+- **Technology Stack**: Rust (async/await), Tokio runtime, platform-specific I/O
+- **Architecture Model**: Three-tier approach (low-level API, helpers, macros)
+- **Phase**: Foundation Complete (85%) - Ready for refactoring
+- **Total Tests**: 264 (165 OSL core + 37 macro + 62 integration)
+- **Quality Status**: All tests passing, zero warnings
 
-### Pending Actions
-- Commit MACROS-TASK-003 Phase 2 updates (4 new custom configuration tests)
-- Continue to Phase 3: Examples & Documentation
+### What's Been Done ✅
+1. ✅ **OSL-TASK-001**: Project Setup and Module Structure (Complete)
+2. ✅ **OSL-TASK-002**: Core Types and Error Handling (Complete)
+3. ✅ **OSL-TASK-003**: Core Trait Definitions (Complete)
+4. ✅ **OSL-TASK-006**: Framework API Skeleton (Phases 1-3, Phase 4 cancelled)
+5. ✅ **OSL-TASK-007**: All 11 Concrete Operations (Complete)
+6. ✅ **OSL-TASK-008**: All 3 Platform Executors (Phases 1-4, 5-7 cancelled)
+7. ✅ **airssys-osl-macros Integration**: Complete with #[executor] macro
+
+### Completed Components
+- ✅ **11 Operations**: 5 Filesystem, 3 Process, 3 Network (all with full Operation trait)
+- ✅ **3 Platform Executors**: FilesystemExecutor, ProcessExecutor, NetworkExecutor
+- ✅ **Core Framework**: OSExecutor trait, Middleware trait, ExecutionContext
+- ✅ **Security Model**: Permission system, elevation detection, security context
+- ✅ **Error Handling**: Structured OSError with rich context
+- ✅ **Proc-Macro Integration**: #[executor] macro via airssys-osl-macros
+- ✅ **Documentation**: mdBook docs with guides and API reference
+- ✅ **Testing**: 264 tests passing (100% coverage on core types)
+
+### Next Steps (OSL-TASK-009)
+⏳ **OSL-TASK-009: Remove Framework and Add Helpers** (High Priority, 2-3 days)
+- Remove ExecutorRegistry, OSLFramework, builders (~500 lines)
+- Add 10 helper functions for ergonomic APIs
+- Add middleware extension trait for composition
+- Update all tests and documentation
+- **Benefits**: ~30% code reduction, clearer architecture, better ergonomics
 
 ---
 
 ## Related Projects - Context
 
-### airssys-osl (Related - Architecture Refactoring)
-- **Status**: OSL-TASK-008 Phases 1-4 Complete (165 tests passing)
-- **Phase 5**: ❌ Abandoned - Registry integration replaced by new architecture
-- **OSL-TASK-009**: Pending - Remove framework and add helpers (2-3 days)
-- **Relationship**: airssys-osl-macros provides macros for airssys-osl custom executors
+### airssys-osl-macros (Recently Completed)
+- **Status**: MACROS-TASK-003 Complete (100% - Foundation Phase)
+- **Deliverables**: #[executor] macro, 11 integration tests, examples, documentation
+- **Relationship**: Provides proc-macros for airssys-osl custom executors
+- **Quality**: 264 total tests passing, zero warnings, production-ready
 
 ### Architecture Refactoring Plan (October 2025)
 **Three Usage Levels:**
@@ -93,11 +112,12 @@
 
 ---
 
-## STRATEGIC VISION - airssys-osl-macros 🎯
-- 🎯 **Developer Ergonomics**: Reduce ~85% of boilerplate for custom executors
-- 🎯 **Type Safety**: Compile-time checked trait implementations
-- 🎯 **Zero Runtime Cost**: Pure compile-time code generation
-- 🎯 **Clear Error Messages**: Actionable compile-time diagnostics
+## STRATEGIC VISION - airssys-osl 🎯
+- 🎯 **Cross-Platform**: Unified API for filesystem, process, network operations
+- 🎯 **Security-First**: Built-in permission system and security validation
+- 🎯 **Type Safety**: Compile-time guarantees with Rust type system
+- 🎯 **Performance**: Zero-cost abstractions with async/await
+- 🎯 **Ergonomics**: Simple helpers + powerful macros for all use cases
 - 🎯 **Activity Logging**: Detailed audit trails for all system operations
 - 🎯 **Middleware Pipeline**: Extensible pre/post operation processing
 - 🎯 **Performance Targets**: <1ms file operations, <10ms process spawning
