@@ -9,8 +9,7 @@
 use airssys_osl::core::executor::OSExecutor; // Import the executor trait
 use airssys_osl::executors::{FilesystemExecutor, ProcessExecutor};
 use airssys_osl::middleware::logger::{
-    ConsoleActivityLogger, FileActivityLogger, LogFormat, LoggerMiddleware,
-    TracingActivityLogger,
+    ConsoleActivityLogger, FileActivityLogger, LogFormat, LoggerMiddleware, TracingActivityLogger,
 };
 use airssys_osl::middleware::ExecutorExt; // Import the extension trait
 use airssys_osl::prelude::*;
@@ -110,7 +109,8 @@ async fn main() -> Result<(), OSError> {
     // Use middleware with filesystem operations
     println!("1. Filesystem operation with middleware:");
     let fs_executor = FilesystemExecutor::default().with_middleware(tracing_middleware1);
-    let read_op = FileReadOperation::new(temp_path.join("example1.txt").to_string_lossy().to_string());
+    let read_op =
+        FileReadOperation::new(temp_path.join("example1.txt").to_string_lossy().to_string());
     let security_context = SecurityContext::new("example-user".to_string());
     let context = ExecutionContext::new(security_context);
     let result = fs_executor.execute(read_op, &context).await?;
@@ -118,7 +118,8 @@ async fn main() -> Result<(), OSError> {
 
     // Use middleware with process operations
     println!("2. Process operation with middleware:");
-    let process_executor = ProcessExecutor::new("example-process-executor").with_middleware(tracing_middleware2);
+    let process_executor =
+        ProcessExecutor::new("example-process-executor").with_middleware(tracing_middleware2);
     let spawn_op = ProcessSpawnOperation::new("echo".to_string())
         .with_args(vec!["Middleware works!".to_string()]);
     let security_context = SecurityContext::new("example-user".to_string());

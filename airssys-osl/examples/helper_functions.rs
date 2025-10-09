@@ -40,10 +40,7 @@ async fn main() -> Result<(), OSError> {
     println!("2. Reading file: {:?}", file_path);
     let content = read_file(file_path.to_string_lossy().to_string(), "example-user").await?;
     println!("   ✓ Read {} bytes", content.len());
-    println!(
-        "   Content: {}",
-        String::from_utf8_lossy(&content)
-    );
+    println!("   Content: {}", String::from_utf8_lossy(&content));
     println!();
 
     // 3. Create a directory
