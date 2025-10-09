@@ -5,25 +5,88 @@
 
 use proc_macro2::TokenStream;
 use quote::quote;
+use syn::parse::Parse;
 use syn::{parse2, Error, ImplItem, ImplItemFn, ItemImpl, Result};
 
 use crate::utils::get_operation_info;
 
 /// Configuration options for the #[executor] macro.
-#[derive(Default)]
+#[derive(Debug, Default)]
 struct ExecutorConfig {
     /// Custom executor name (optional)
     name: Option<String>,
     /// Custom supported operation types (optional)
-    #[allow(dead_code)] // Will be used when we implement attribute parsing
     operations: Option<Vec<String>>,
 }
 
 /// Parses macro attributes into ExecutorConfig.
-fn parse_config(_attr: TokenStream) -> Result<ExecutorConfig> {
-    // For now, return default config
-    // TODO: Parse actual attributes in future enhancement
-    Ok(ExecutorConfig::default())
+///
+/// Supports the following syntax:
+/// - `name = "CustomName"` - Custom executor name
+/// - `operations = [Filesystem, Network, Process]` - Custom operation types
+///
+/// # Examples
+///
+/// ```ignore
+/// #[executor(name = "MyExecutor")]
+/// #[executor(operations = [Filesystem, Network])]
+/// #[executor(name = "Custom", operations = [Process])]
+/// ```
+fn parse_config(attr: TokenStream) -> Result<ExecutorConfig> {
+    // Empty attributes - use defaults
+    if attr.is_empty() {
+        return Ok(ExecutorConfig::default());
+    }
+
+    let mut config = ExecutorConfig::default();
+
+    // Parse attributes using syn's meta parser
+    let parser = syn::meta::parser(|meta| {
+        if meta.path.is_ident("name") {
+            // Parse: name = "value"
+            let value: syn::LitStr = meta.value()?.parse()?;
+            config.name = Some(value.value());
+            Ok(())
+        } else if meta.path.is_ident("operations") {
+            // Parse: operations = [Type1, Type2, ...]
+            let list_parser = meta.value()?;
+            let content;
+            syn::bracketed!(content in list_parser);
+            let ops: syn::punctuated::Punctuated<syn::Ident, syn::Token![,]> =
+                content.parse_terminated(syn::Ident::parse, syn::Token![,])?;
+
+            // Validate operation types
+            let mut valid_ops = Vec::new();
+            for op in &ops {
+                let op_str = op.to_string();
+                if !is_valid_operation_type(&op_str) {
+                    return Err(meta.error(format!(
+                        "Unknown operation type '{op_str}'. Valid types are: Filesystem, Process, Network"
+                    )));
+                }
+                valid_ops.push(op_str);
+            }
+
+            config.operations = Some(valid_ops);
+            Ok(())
+        } else {
+            Err(meta.error(format!(
+                "Unknown attribute '{}'. Valid attributes are: name, operations",
+                meta.path
+                    .get_ident()
+                    .map(|i| i.to_string())
+                    .unwrap_or_else(|| "?".to_string())
+            )))
+        }
+    });
+
+    syn::parse::Parser::parse2(parser, attr)?;
+    Ok(config)
+}
+
+/// Validates if a string is a known operation type.
+fn is_valid_operation_type(op: &str) -> bool {
+    matches!(op, "Filesystem" | "Process" | "Network")
 }
 
 /// Expands the #[executor] attribute macro.
@@ -33,13 +96,13 @@ fn parse_config(_attr: TokenStream) -> Result<ExecutorConfig> {
 pub fn expand(attr: TokenStream, input: TokenStream) -> Result<TokenStream> {
     // Parse configuration (if provided)
     let config = parse_config(attr)?;
-    
+
     // Parse the impl block
     let item_impl = parse2::<ItemImpl>(input)?;
 
     // Extract executor type name
     let executor_type = &item_impl.self_ty;
-    
+
     // Get executor name (from config or type name)
     let executor_name = config.name.clone().unwrap_or_else(|| {
         // Extract type name from self_ty
@@ -56,11 +119,19 @@ pub fn expand(attr: TokenStream, input: TokenStream) -> Result<TokenStream> {
         ));
     }
 
-    // Auto-detect supported operation types from methods
-    let operation_types = detect_operation_types(&methods);
+    // Determine operation types: use custom config if provided, otherwise auto-detect
+    let operation_types = if let Some(ref custom_ops) = config.operations {
+        // Use custom operation types from configuration
+        use quote::format_ident;
+        custom_ops.iter().map(|s| format_ident!("{}", s)).collect()
+    } else {
+        // Auto-detect from methods
+        detect_operation_types(&methods)
+    };
 
     // Generate OSExecutor trait implementations
-    let trait_impls = generate_trait_implementations(executor_type, &executor_name, &operation_types, &methods)?;
+    let trait_impls =
+        generate_trait_implementations(executor_type, &executor_name, &operation_types, &methods)?;
 
     // Return original impl + generated trait implementations
     Ok(quote! {
@@ -71,11 +142,11 @@ pub fn expand(attr: TokenStream, input: TokenStream) -> Result<TokenStream> {
 
 /// Detects unique operation types from method list.
 fn detect_operation_types(methods: &[&ImplItemFn]) -> Vec<syn::Ident> {
-    use std::collections::HashSet;
     use quote::format_ident;
-    
+    use std::collections::HashSet;
+
     let mut types = HashSet::new();
-    
+
     for method in methods {
         let method_name = method.sig.ident.to_string();
         if let Some(info) = get_operation_info(&method_name) {
@@ -89,7 +160,7 @@ fn detect_operation_types(methods: &[&ImplItemFn]) -> Vec<syn::Ident> {
             types.insert(op_type);
         }
     }
-    
+
     types.into_iter().map(|t| format_ident!("{}", t)).collect()
 }
 
@@ -307,7 +378,9 @@ fn generate_trait_implementations(
 ) -> Result<Vec<TokenStream>> {
     methods
         .iter()
-        .map(|method| generate_single_trait_impl(executor_type, executor_name, operation_types, method))
+        .map(|method| {
+            generate_single_trait_impl(executor_type, executor_name, operation_types, method)
+        })
         .collect()
 }
 
@@ -339,11 +412,11 @@ fn generate_single_trait_impl(
             fn name(&self) -> &str {
                 #executor_name
             }
-            
+
             fn supported_operation_types(&self) -> Vec<airssys_osl::core::operation::OperationType> {
                 vec![#(airssys_osl::core::operation::OperationType::#operation_types),*]
             }
-            
+
             async fn execute(
                 &self,
                 operation: #operation_type_path,
@@ -971,5 +1044,155 @@ mod tests {
                 "Generated code should contain module path {module} for {method_name}",
             );
         }
+    }
+
+    // ========================================================================
+    // Configuration Parsing Tests
+    // ========================================================================
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_parse_empty_config() {
+        let attr = TokenStream::new();
+        let config = parse_config(attr).unwrap();
+        assert!(config.name.is_none());
+        assert!(config.operations.is_none());
+    }
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_parse_name_attribute() {
+        let attr = quote! { name = "CustomExecutor" };
+        let config = parse_config(attr).unwrap();
+        assert_eq!(config.name, Some("CustomExecutor".to_string()));
+        assert!(config.operations.is_none());
+    }
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_parse_operations_attribute_single() {
+        let attr = quote! { operations = [Filesystem] };
+        let config = parse_config(attr).unwrap();
+        assert!(config.name.is_none());
+        assert_eq!(config.operations, Some(vec!["Filesystem".to_string()]));
+    }
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_parse_operations_attribute_multiple() {
+        let attr = quote! { operations = [Filesystem, Network, Process] };
+        let config = parse_config(attr).unwrap();
+        assert_eq!(
+            config.operations,
+            Some(vec![
+                "Filesystem".to_string(),
+                "Network".to_string(),
+                "Process".to_string()
+            ])
+        );
+    }
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_parse_both_attributes() {
+        let attr = quote! { name = "Custom", operations = [Process, Network] };
+        let config = parse_config(attr).unwrap();
+        assert_eq!(config.name, Some("Custom".to_string()));
+        assert_eq!(
+            config.operations,
+            Some(vec!["Process".to_string(), "Network".to_string()])
+        );
+    }
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_reject_unknown_operation_type() {
+        let attr = quote! { operations = [InvalidType] };
+        let result = parse_config(attr);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("Unknown operation type"));
+        assert!(err.to_string().contains("InvalidType"));
+    }
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_reject_unknown_attribute() {
+        let attr = quote! { unknown_attr = "value" };
+        let result = parse_config(attr);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("Unknown attribute"));
+    }
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_custom_executor_name_in_generated_code() {
+        let attr = quote! { name = "CustomExecutorName" };
+        let input = quote! {
+            impl MyExecutor {
+                async fn file_read(
+                    &self,
+                    operation: FileReadOperation,
+                    context: &ExecutionContext
+                ) -> OSResult<ExecutionResult> {
+                    todo!()
+                }
+            }
+        };
+
+        let result = expand(attr, input);
+        assert!(result.is_ok());
+        let output = result.unwrap().to_string();
+        assert!(output.contains("CustomExecutorName"));
+    }
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_custom_operations_in_generated_code() {
+        let attr = quote! { operations = [Filesystem, Network] };
+        let input = quote! {
+            impl MyExecutor {
+                async fn file_read(
+                    &self,
+                    operation: FileReadOperation,
+                    context: &ExecutionContext
+                ) -> OSResult<ExecutionResult> {
+                    todo!()
+                }
+            }
+        };
+
+        let result = expand(attr, input);
+        assert!(result.is_ok());
+        let output = result.unwrap().to_string();
+        // Should contain custom operation types
+        assert!(output.contains("Filesystem"));
+        assert!(output.contains("Network"));
+    }
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_custom_single_operation_type() {
+        let attr = quote! { operations = [Process] };
+        let input = quote! {
+            impl MyExecutor {
+                async fn process_spawn(
+                    &self,
+                    operation: ProcessSpawnOperation,
+                    context: &ExecutionContext
+                ) -> OSResult<ExecutionResult> {
+                    todo!()
+                }
+            }
+        };
+
+        let result = expand(attr, input);
+        assert!(result.is_ok());
+        let output = result.unwrap().to_string();
+        assert!(output.contains("Process"));
+        // Should not contain other types
+        assert!(!output.contains("Filesystem"));
+        assert!(!output.contains("Network"));
     }
 }
