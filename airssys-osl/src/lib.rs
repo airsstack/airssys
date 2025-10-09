@@ -18,36 +18,34 @@
 //!
 //! AirsSys OSL provides two API levels to meet different user needs:
 //!
-//! ## Primary API - Framework Builder (Recommended)
+//! ## Primary API - Helper Functions (Recommended)
 //!
-//! The framework API provides an ergonomic interface with automatic middleware
-//! orchestration and built-in best practices. This is the recommended API for
-//! most applications.
+//! The helper functions API provides ergonomic one-line operations with automatic
+//! security context management. This is the recommended API for most applications.
 //!
 //! ```rust,ignore
-//! // Note: This example will be functional after OSL-TASK-006 (Operation Builders) is complete
-//! use airssys_osl::prelude::*;
+//! use airssys_osl::helpers::*;
 //!
 //! #[tokio::main]
 //! async fn main() -> OSResult<()> {
-//!     let osl = OSLFramework::builder()
-//!         .with_default_security()
-//!         .with_security_logging(true)
-//!         .build().await?;
+//!     // Simple one-line file operations
+//!     let data = read_file("/etc/hosts", "admin").await?;
+//!     write_file("/tmp/output.txt", data, "admin").await?;
 //!     
-//!     let content = osl.filesystem()
-//!         .read_file("/etc/config.toml")
-//!         .execute().await?;
+//!     // Process management
+//!     let pid = spawn_process("ls", vec!["-la"], "admin").await?;
 //!     
-//!     println!("Config loaded successfully");
+//!     // Network operations
+//!     let response = network_connect("127.0.0.1:8080", "admin").await?;
+//!     
 //!     Ok(())
 //! }
 //! ```
 //!
-//! ## Advanced API - Direct Primitives
+//! ## Advanced API - Direct Executors with Middleware
 //!
-//! The core primitives API provides direct access to all framework components
-//! for advanced use cases requiring custom middleware, executors, or fine-grained control.
+//! The direct executor API provides full control over operation execution with
+//! optional middleware composition for advanced use cases.
 //!
 //! ```rust
 //! use airssys_osl::core::context::{SecurityContext, ExecutionContext};

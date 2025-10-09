@@ -6,18 +6,18 @@
 //!
 //! # Architecture
 //!
-//! The operations module follows the Builder-to-Operation Bridge pattern (KNOW-004):
+//! Operations are concrete types that implement the `Operation` trait:
 //!
 //! ```text
 //! User Code
-//!     ↓ (uses fluent API)
-//! FilesystemBuilder::read_file(path)
-//!     ↓ (creates wrapper)
-//! FileOperation<'a> { builder, path, ... }
-//!     ↓ (execute() method)
-//! ConcreteOperation (implements Operation trait)
-//!     ↓ (passed to framework)
-//! OSLFramework::execute(operation)
+//!     ↓ (uses helper functions)
+//! read_file("/path", "user")
+//!     ↓ (creates)
+//! FileReadOperation
+//!     ↓ (passed to)
+//! FilesystemExecutor::execute(operation, context)
+//!     ↓ (produces)
+//! ExecutionResult
 //! ```
 //!
 //! # Operation Categories

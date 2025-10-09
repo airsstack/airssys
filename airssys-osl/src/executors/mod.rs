@@ -14,7 +14,7 @@
 //!
 //! # Usage
 //!
-//! Executors are automatically initialized and managed by the `ExecutorRegistry`:
+//! Executors can be used directly or via helper functions:
 //!
 //! ```rust,no_run
 //! use airssys_osl::executors::{FilesystemExecutor, ProcessExecutor, NetworkExecutor};
