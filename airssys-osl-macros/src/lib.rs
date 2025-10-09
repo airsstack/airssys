@@ -141,9 +141,20 @@ mod utils;
 ///
 /// This attribute macro reduces boilerplate by automatically generating trait
 /// implementations from method names. See crate documentation for details.
+///
+/// # Configuration (Optional)
+///
+/// The macro accepts optional configuration:
+///
+/// ```rust,ignore
+/// #[executor(name = "MyExecutor", operations = [Filesystem, Process])]
+/// ```
+///
+/// - `name`: Custom executor name (default: type name)
+/// - `operations`: Supported operation types (default: auto-detected from methods)
 #[proc_macro_attribute]
-pub fn executor(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    executor::expand(item.into())
+pub fn executor(attr: TokenStream, item: TokenStream) -> TokenStream {
+    executor::expand(attr.into(), item.into())
         .unwrap_or_else(|err| err.to_compile_error())
         .into()
 }

@@ -7,16 +7,44 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{parse2, Error, ImplItem, ImplItemFn, ItemImpl, Result};
 
+use crate::utils::get_operation_info;
+
+/// Configuration options for the #[executor] macro.
+#[derive(Default)]
+struct ExecutorConfig {
+    /// Custom executor name (optional)
+    name: Option<String>,
+    /// Custom supported operation types (optional)
+    #[allow(dead_code)] // Will be used when we implement attribute parsing
+    operations: Option<Vec<String>>,
+}
+
+/// Parses macro attributes into ExecutorConfig.
+fn parse_config(_attr: TokenStream) -> Result<ExecutorConfig> {
+    // For now, return default config
+    // TODO: Parse actual attributes in future enhancement
+    Ok(ExecutorConfig::default())
+}
+
 /// Expands the #[executor] attribute macro.
 ///
 /// Parses an impl block, extracts operation methods, validates their signatures,
-/// and generates OSExecutor trait implementations.
-pub fn expand(input: TokenStream) -> Result<TokenStream> {
+/// and generates OSExecutor trait implementations with name() and supported_operation_types().
+pub fn expand(attr: TokenStream, input: TokenStream) -> Result<TokenStream> {
+    // Parse configuration (if provided)
+    let config = parse_config(attr)?;
+    
     // Parse the impl block
     let item_impl = parse2::<ItemImpl>(input)?;
 
     // Extract executor type name
     let executor_type = &item_impl.self_ty;
+    
+    // Get executor name (from config or type name)
+    let executor_name = config.name.clone().unwrap_or_else(|| {
+        // Extract type name from self_ty
+        quote!(#executor_type).to_string()
+    });
 
     // Find operation methods (only methods matching operation names)
     let methods = extract_operation_methods(&item_impl)?;
@@ -28,14 +56,41 @@ pub fn expand(input: TokenStream) -> Result<TokenStream> {
         ));
     }
 
+    // Auto-detect supported operation types from methods
+    let operation_types = detect_operation_types(&methods);
+
     // Generate OSExecutor trait implementations
-    let trait_impls = generate_trait_implementations(executor_type, &methods)?;
+    let trait_impls = generate_trait_implementations(executor_type, &executor_name, &operation_types, &methods)?;
 
     // Return original impl + generated trait implementations
     Ok(quote! {
         #item_impl
         #(#trait_impls)*
     })
+}
+
+/// Detects unique operation types from method list.
+fn detect_operation_types(methods: &[&ImplItemFn]) -> Vec<syn::Ident> {
+    use std::collections::HashSet;
+    use quote::format_ident;
+    
+    let mut types = HashSet::new();
+    
+    for method in methods {
+        let method_name = method.sig.ident.to_string();
+        if let Some(info) = get_operation_info(&method_name) {
+            // Map to OperationType enum variant
+            let op_type = match info.module_path {
+                "filesystem" => "Filesystem",
+                "process" => "Process",
+                "network" => "Network",
+                _ => continue,
+            };
+            types.insert(op_type);
+        }
+    }
+    
+    types.into_iter().map(|t| format_ident!("{}", t)).collect()
 }
 
 /// Extracts operation methods from an impl block.
@@ -230,6 +285,14 @@ fn validate_return_type(sig: &syn::Signature) -> Result<()> {
 /// ```rust,ignore
 /// #[async_trait::async_trait]
 /// impl OSExecutor<FileReadOperation> for MyExecutor {
+///     fn name(&self) -> &str {
+///         "MyExecutor"
+///     }
+///     
+///     fn supported_operation_types(&self) -> Vec<OperationType> {
+///         vec![OperationType::Filesystem]
+///     }
+///     
 ///     async fn execute(&self, operation: FileReadOperation, context: &ExecutionContext)
 ///         -> OSResult<ExecutionResult> {
 ///         self.file_read(operation, context).await
@@ -238,17 +301,21 @@ fn validate_return_type(sig: &syn::Signature) -> Result<()> {
 /// ```
 fn generate_trait_implementations(
     executor_type: &syn::Type,
+    executor_name: &str,
+    operation_types: &[syn::Ident],
     methods: &[&ImplItemFn],
 ) -> Result<Vec<TokenStream>> {
     methods
         .iter()
-        .map(|method| generate_single_trait_impl(executor_type, method))
+        .map(|method| generate_single_trait_impl(executor_type, executor_name, operation_types, method))
         .collect()
 }
 
 /// Generates a single OSExecutor trait implementation for one operation method.
 fn generate_single_trait_impl(
     executor_type: &syn::Type,
+    executor_name: &str,
+    operation_types: &[syn::Ident],
     method: &ImplItemFn,
 ) -> Result<TokenStream> {
     let method_name = &method.sig.ident;
@@ -265,10 +332,18 @@ fn generate_single_trait_impl(
     // Generate fully qualified path to operation type
     let operation_type_path = op_info.operation_path();
 
-    // Generate the trait implementation
+    // Generate the trait implementation with all required methods
     Ok(quote! {
         #[async_trait::async_trait]
         impl airssys_osl::core::executor::OSExecutor<#operation_type_path> for #executor_type {
+            fn name(&self) -> &str {
+                #executor_name
+            }
+            
+            fn supported_operation_types(&self) -> Vec<airssys_osl::core::operation::OperationType> {
+                vec![#(airssys_osl::core::operation::OperationType::#operation_types),*]
+            }
+            
             async fn execute(
                 &self,
                 operation: #operation_type_path,
@@ -299,7 +374,7 @@ mod tests {
             }
         };
 
-        let result = expand(input);
+        let result = expand(TokenStream::new(), input);
         assert!(result.is_ok(), "Valid impl should parse successfully");
     }
 
@@ -318,7 +393,7 @@ mod tests {
             }
         };
 
-        let result = expand(input);
+        let result = expand(TokenStream::new(), input);
         assert!(result.is_err(), "Non-async method should be rejected");
         let err = result.unwrap_err();
         assert!(
@@ -342,7 +417,7 @@ mod tests {
             }
         };
 
-        let result = expand(input);
+        let result = expand(TokenStream::new(), input);
         assert!(result.is_err(), "&mut self should be rejected");
         let err = result.unwrap_err();
         assert!(
@@ -366,7 +441,7 @@ mod tests {
             }
         };
 
-        let result = expand(input);
+        let result = expand(TokenStream::new(), input);
         assert!(result.is_err(), "Owned self should be rejected");
         let err = result.unwrap_err();
         assert!(
@@ -390,7 +465,7 @@ mod tests {
             }
         };
 
-        let result = expand(input);
+        let result = expand(TokenStream::new(), input);
         assert!(result.is_err(), "Wrong first param name should be rejected");
         let err = result.unwrap_err();
         assert!(
@@ -414,7 +489,7 @@ mod tests {
             }
         };
 
-        let result = expand(input);
+        let result = expand(TokenStream::new(), input);
         assert!(
             result.is_err(),
             "Wrong second param name should be rejected"
@@ -440,7 +515,7 @@ mod tests {
             }
         };
 
-        let result = expand(input);
+        let result = expand(TokenStream::new(), input);
         assert!(result.is_err(), "Too few params should be rejected");
         let err = result.unwrap_err();
         assert!(
@@ -465,7 +540,7 @@ mod tests {
             }
         };
 
-        let result = expand(input);
+        let result = expand(TokenStream::new(), input);
         assert!(result.is_err(), "Too many params should be rejected");
         let err = result.unwrap_err();
         assert!(
@@ -489,7 +564,7 @@ mod tests {
             }
         };
 
-        let result = expand(input);
+        let result = expand(TokenStream::new(), input);
         assert!(result.is_err(), "Missing return type should be rejected");
         let err = result.unwrap_err();
         assert!(
@@ -516,7 +591,7 @@ mod tests {
             }
         };
 
-        let result = expand(input);
+        let result = expand(TokenStream::new(), input);
         assert!(result.is_ok(), "Helper methods should be ignored");
     }
 
@@ -531,7 +606,7 @@ mod tests {
             }
         };
 
-        let result = expand(input);
+        let result = expand(TokenStream::new(), input);
         assert!(
             result.is_err(),
             "Should error when no operation methods found"
@@ -566,7 +641,7 @@ mod tests {
             }
         };
 
-        let result = expand(input);
+        let result = expand(TokenStream::new(), input);
         assert!(result.is_ok(), "Two operations should be accepted");
 
         let output = result.unwrap().to_string();
@@ -612,7 +687,7 @@ mod tests {
             }
         };
 
-        let result = expand(input);
+        let result = expand(TokenStream::new(), input);
         assert!(
             result.is_ok(),
             "Three operations from different modules should be accepted"
@@ -664,7 +739,7 @@ mod tests {
             }
         };
 
-        let result = expand(input);
+        let result = expand(TokenStream::new(), input);
         assert!(result.is_ok(), "All 11 operations should be accepted");
 
         let output = result.unwrap().to_string();
@@ -705,7 +780,7 @@ mod tests {
             }
         };
 
-        let result = expand(input);
+        let result = expand(TokenStream::new(), input);
         assert!(
             result.is_err(),
             "Duplicate operation methods should be rejected"
@@ -754,7 +829,7 @@ mod tests {
             }
         };
 
-        let result = expand(input);
+        let result = expand(TokenStream::new(), input);
         assert!(
             result.is_ok(),
             "Multiple operations with helper methods should be accepted"
@@ -782,7 +857,7 @@ mod tests {
             }
         };
 
-        let result = expand(input);
+        let result = expand(TokenStream::new(), input);
         let output = result.unwrap().to_string();
 
         assert!(
@@ -801,7 +876,7 @@ mod tests {
             }
         };
 
-        let result = expand(input);
+        let result = expand(TokenStream::new(), input);
         let output = result.unwrap().to_string();
 
         assert!(
@@ -820,7 +895,7 @@ mod tests {
             }
         };
 
-        let result = expand(input);
+        let result = expand(TokenStream::new(), input);
         let output = result.unwrap().to_string();
 
         assert!(
@@ -846,7 +921,7 @@ mod tests {
             }
         };
 
-        let result = expand(input);
+        let result = expand(TokenStream::new(), input);
         let output = result.unwrap().to_string();
 
         assert!(
@@ -880,7 +955,7 @@ mod tests {
                 }
             };
 
-            let result = expand(input);
+            let result = expand(TokenStream::new(), input);
             assert!(
                 result.is_ok(),
                 "Operation {method_name} should parse successfully"
