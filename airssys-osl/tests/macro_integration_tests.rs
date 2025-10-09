@@ -507,3 +507,210 @@ async fn test_helper_methods_preserved() {
         assert_eq!(exec_result.output, b"cached: /tmp/test.txt");
     }
 }
+
+// =============================================================================
+// Test 8: Custom Executor Name Configuration
+// =============================================================================
+
+#[derive(Debug)]
+struct MyCustomExecutor;
+
+#[executor(name = "SuperCustomExecutor")]
+impl MyCustomExecutor {
+    async fn file_read(
+        &self,
+        operation: FileReadOperation,
+        context: &ExecutionContext,
+    ) -> OSResult<ExecutionResult> {
+        let _ = (operation, context);
+        Ok(ExecutionResult::success(b"custom executor".to_vec()))
+    }
+}
+
+#[tokio::test]
+async fn test_custom_executor_name() {
+    let executor = MyCustomExecutor;
+    let context = ExecutionContext::new(SecurityContext::new("test-user".to_string()));
+
+    // Verify custom name is used instead of type name
+    assert_eq!(executor.name(), "SuperCustomExecutor");
+    assert_eq!(
+        executor.supported_operation_types(),
+        vec![OperationType::Filesystem]
+    );
+
+    // Verify execution still works
+    let operation = FileReadOperation::new("/tmp/test.txt");
+    let result = executor.execute(operation, &context).await;
+    assert!(result.is_ok(), "Custom named executor should work");
+}
+
+// =============================================================================
+// Test 9: Custom Operations Configuration (Single)
+// =============================================================================
+
+#[derive(Debug)]
+struct CustomOperationsExecutor;
+
+#[executor(operations = [Filesystem])]
+impl CustomOperationsExecutor {
+    async fn file_read(
+        &self,
+        operation: FileReadOperation,
+        context: &ExecutionContext,
+    ) -> OSResult<ExecutionResult> {
+        let _ = (operation, context);
+        Ok(ExecutionResult::success(b"filesystem only".to_vec()))
+    }
+}
+
+#[tokio::test]
+async fn test_custom_single_operation_configuration() {
+    let executor = CustomOperationsExecutor;
+    let context = ExecutionContext::new(SecurityContext::new("test-user".to_string()));
+
+    // Verify custom operations configuration
+    assert_eq!(executor.name(), "CustomOperationsExecutor");
+    assert_eq!(
+        executor.supported_operation_types(),
+        vec![OperationType::Filesystem]
+    );
+
+    // Verify execution works
+    let operation = FileReadOperation::new("/tmp/test.txt");
+    let result = executor.execute(operation, &context).await;
+    assert!(result.is_ok(), "Custom operations config should work");
+}
+
+// =============================================================================
+// Test 10: Custom Operations Configuration (Multiple)
+// =============================================================================
+
+#[derive(Debug)]
+struct MultiDomainExecutor;
+
+#[executor(operations = [Filesystem, Process, Network])]
+impl MultiDomainExecutor {
+    async fn file_read(
+        &self,
+        operation: FileReadOperation,
+        context: &ExecutionContext,
+    ) -> OSResult<ExecutionResult> {
+        let _ = (operation, context);
+        Ok(ExecutionResult::success(b"file".to_vec()))
+    }
+
+    async fn process_spawn(
+        &self,
+        operation: ProcessSpawnOperation,
+        context: &ExecutionContext,
+    ) -> OSResult<ExecutionResult> {
+        let _ = (operation, context);
+        Ok(ExecutionResult::success(b"process".to_vec()))
+    }
+
+    async fn network_connect(
+        &self,
+        operation: NetworkConnectOperation,
+        context: &ExecutionContext,
+    ) -> OSResult<ExecutionResult> {
+        let _ = (operation, context);
+        Ok(ExecutionResult::success(b"network".to_vec()))
+    }
+}
+
+#[tokio::test]
+async fn test_custom_multiple_operations_configuration() {
+    let executor = MultiDomainExecutor;
+    let context = ExecutionContext::new(SecurityContext::new("test-user".to_string()));
+
+    // Verify custom operations configuration with multiple types
+    assert_eq!(
+        <MultiDomainExecutor as OSExecutor<FileReadOperation>>::name(&executor),
+        "MultiDomainExecutor"
+    );
+    let supported_types =
+        <MultiDomainExecutor as OSExecutor<FileReadOperation>>::supported_operation_types(
+            &executor,
+        );
+    assert_eq!(supported_types.len(), 3);
+    assert!(supported_types.contains(&OperationType::Filesystem));
+    assert!(supported_types.contains(&OperationType::Process));
+    assert!(supported_types.contains(&OperationType::Network));
+
+    // Verify all operations work
+    let result = executor
+        .execute(FileReadOperation::new("/tmp/test.txt"), &context)
+        .await;
+    assert!(result.is_ok(), "Filesystem operation should work");
+
+    let result = executor
+        .execute(ProcessSpawnOperation::new("echo".to_string()), &context)
+        .await;
+    assert!(result.is_ok(), "Process operation should work");
+
+    let result = executor
+        .execute(
+            NetworkConnectOperation::new("127.0.0.1:8080".to_string()),
+            &context,
+        )
+        .await;
+    assert!(result.is_ok(), "Network operation should work");
+}
+
+// =============================================================================
+// Test 11: Both Custom Name and Operations Configuration
+// =============================================================================
+
+#[derive(Debug)]
+struct FullyCustomizedExecutor;
+
+#[executor(name = "MyAwesomeExecutor", operations = [Process])]
+impl FullyCustomizedExecutor {
+    async fn process_spawn(
+        &self,
+        operation: ProcessSpawnOperation,
+        context: &ExecutionContext,
+    ) -> OSResult<ExecutionResult> {
+        let _ = (operation, context);
+        Ok(ExecutionResult::success(b"fully customized".to_vec()))
+    }
+
+    async fn process_kill(
+        &self,
+        operation: ProcessKillOperation,
+        context: &ExecutionContext,
+    ) -> OSResult<ExecutionResult> {
+        let _ = (operation, context);
+        Ok(ExecutionResult::success(b"killed".to_vec()))
+    }
+}
+
+#[tokio::test]
+async fn test_both_custom_name_and_operations() {
+    let executor = FullyCustomizedExecutor;
+    let context = ExecutionContext::new(SecurityContext::new("test-user".to_string()));
+
+    // Verify both custom name and operations are applied
+    assert_eq!(
+        <FullyCustomizedExecutor as OSExecutor<ProcessSpawnOperation>>::name(&executor),
+        "MyAwesomeExecutor"
+    );
+    assert_eq!(
+        <FullyCustomizedExecutor as OSExecutor<ProcessSpawnOperation>>::supported_operation_types(
+            &executor
+        ),
+        vec![OperationType::Process]
+    );
+
+    // Verify operations work
+    let result = executor
+        .execute(ProcessSpawnOperation::new("test".to_string()), &context)
+        .await;
+    assert!(result.is_ok(), "process_spawn should work");
+
+    let result = executor
+        .execute(ProcessKillOperation::new(1234), &context)
+        .await;
+    assert!(result.is_ok(), "process_kill should work");
+}

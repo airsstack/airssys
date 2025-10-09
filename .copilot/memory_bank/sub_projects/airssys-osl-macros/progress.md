@@ -49,7 +49,7 @@
   - ✅ Feature flag configured (default = ["macros"])
   - ✅ Macro re-exported in airssys-osl/src/prelude.rs
   - ✅ ExecutionResult re-exported in prelude for ergonomic usage
-- ✅ Phase 2: Integration Tests (COMPLETE - 7/7 tests)
+- ✅ Phase 2: Integration Tests (COMPLETE - 11/11 tests)
   - ✅ Test 1: Single filesystem operation (file_read)
   - ✅ Test 2: Single process operation (process_spawn)
   - ✅ Test 3: Single network operation (network_connect)
@@ -57,8 +57,12 @@
   - ✅ Test 5: Mixed operation types (filesystem + process + network)
   - ✅ Test 6: All 11 operations comprehensive test
   - ✅ Test 7: Helper methods preserved
+  - ✅ Test 8: Custom executor name configuration
+  - ✅ Test 9: Custom operations configuration (single)
+  - ✅ Test 10: Custom operations configuration (multiple)
+  - ✅ Test 11: Both custom name and operations
   - ✅ Macro accessibility test
-  - ✅ All 260 tests passing (37 macro + 2 integration + 221 OSL)
+  - ✅ All 264 tests passing (37 macro + 2 integration + 225 OSL)
 - ⏳ Phase 3: Examples & Documentation (PENDING)
 - ⏳ Phase 4: Quality Validation & Finalization (PENDING)
 
@@ -74,12 +78,12 @@
 - ✅ 10 new unit tests for configuration parsing
 - ✅ 6 integration tests with custom configurations
 - ✅ Zero clippy warnings
-- ✅ All 260 tests passing (37 macro unit + 2 macro integration + 221 OSL)
+- ✅ All 264 tests passing (37 macro unit + 2 macro integration + 225 OSL)
 - ✅ Bug fix: Corrected ExecutionResult path in macro code generation
 - ✅ Accessibility test created and passing
 - ✅ Documentation example added to prelude
 - ✅ Zero compiler warnings
-- ✅ 7 comprehensive integration tests with all operation types
+- ✅ 11 comprehensive integration tests with all operation types and custom configurations
 
 ### 🎯 In Progress
 - **MACROS-TASK-003 Phase 3**: Examples & Documentation (Next)

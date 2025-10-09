@@ -18,8 +18,8 @@
 - **Project Priority**: High - Ergonomic layer for airssys-osl
 - **Technology Stack**: Rust proc-macro, syn v2, quote, proc-macro2
 - **Architecture Model**: Token-based code generation (zero runtime cost)
-- **Phase**: Phase 2 Complete - 7/7 Integration Tests Passing
-- **Total Tests**: 260 (37 macro unit + 2 macro integration + 221 OSL)
+- **Phase**: Phase 2 Complete - 11/11 Integration Tests Passing
+- **Total Tests**: 264 (37 macro unit + 2 macro integration + 225 OSL)
 - **Quality Status**: All tests passing, zero warnings, ready for Phase 3
 
 ### What's Been Done ✅
@@ -46,23 +46,27 @@
 - ✅ Comprehensive validation and error messages
 - ✅ Full integration with airssys-osl via prelude
 - ✅ Backward compatible auto-detection
-- ✅ 7 comprehensive integration tests covering all 11 operations
+- ✅ 11 comprehensive integration tests covering all 11 operations
 - ✅ Helper method preservation validated
+- ✅ Custom configuration attributes tested (name and operations)
 
 ### MACROS-TASK-003 Progress (Phase 2 Complete)
 **Phase 1:** ✅ Configuration & API Surface (COMPLETE)
-**Phase 2:** ✅ Integration Tests (COMPLETE - 7/7 tests)
+**Phase 2:** ✅ Integration Tests (COMPLETE - 11/11 tests)
 - ✅ Single operation tests (filesystem, process, network)
 - ✅ Multiple filesystem operations test
 - ✅ Mixed operation types test
 - ✅ All 11 operations comprehensive test
 - ✅ Helper methods preservation test
+- ✅ Custom executor name test
+- ✅ Custom operations configuration tests (single & multiple)
+- ✅ Both custom name and operations test
 
 **Phase 3:** ⏳ Examples & Documentation (NEXT)
 **Phase 4:** ⏳ Quality Validation & Finalization
 
 ### Pending Actions
-- Commit MACROS-TASK-003 Phase 2 implementation (7 new integration tests)
+- Commit MACROS-TASK-003 Phase 2 updates (4 new custom configuration tests)
 - Continue to Phase 3: Examples & Documentation
 
 ---
