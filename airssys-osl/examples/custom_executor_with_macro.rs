@@ -42,10 +42,10 @@ impl SimpleFileExecutor {
     ) -> OSResult<ExecutionResult> {
         let _ = context;
         println!("Reading file: {}", operation.path);
-        
+
         // Simulate reading file content
         let content = format!("Content of {}", operation.path);
-        
+
         Ok(ExecutionResult::success(content.into_bytes()))
     }
 }
@@ -77,7 +77,7 @@ impl FilesystemExecutor {
             "Reading file: {} (cache: {})",
             operation.path, self.cache_enabled
         );
-        
+
         let _ = context;
         let content = format!("File content from {}", operation.path);
         Ok(ExecutionResult::success(content.into_bytes()))
@@ -94,7 +94,7 @@ impl FilesystemExecutor {
             operation.content.len(),
             operation.path
         );
-        
+
         Ok(ExecutionResult::success(b"Write successful".to_vec()))
     }
 
@@ -104,7 +104,7 @@ impl FilesystemExecutor {
         context: &ExecutionContext,
     ) -> OSResult<ExecutionResult> {
         println!("Deleting file: {}", operation.path);
-        
+
         let _ = context;
         Ok(ExecutionResult::success(b"Delete successful".to_vec()))
     }
@@ -202,13 +202,13 @@ impl CachedFileExecutor {
         context: &ExecutionContext,
     ) -> OSResult<ExecutionResult> {
         let _ = context;
-        
+
         // Use helper method
         if let Some(cached) = self.get_from_cache(&operation.path) {
             println!("Cache hit for: {}", operation.path);
             return Ok(ExecutionResult::success(cached.clone()));
         }
-        
+
         println!("Cache miss for: {}", operation.path);
         let content = format!("Fresh content from {}", operation.path);
         Ok(ExecutionResult::success(content.into_bytes()))
@@ -237,7 +237,7 @@ async fn main() -> OSResult<()> {
     println!("--- Example 1: Simple Single-Operation Executor ---");
     let simple = SimpleFileExecutor;
     let context = ExecutionContext::new(SecurityContext::new("demo-user".to_string()));
-    
+
     let operation = FileReadOperation::new("/tmp/test.txt");
     let result = simple.execute(operation, &context).await?;
     println!("Result: {} bytes\n", result.output.len());
@@ -245,13 +245,13 @@ async fn main() -> OSResult<()> {
     // Example 2: Multi-operation executor
     println!("--- Example 2: Multi-Operation Executor ---");
     let fs_executor = FilesystemExecutor::new(true);
-    
+
     let read_op = FileReadOperation::new("/tmp/data.txt");
     fs_executor.execute(read_op, &context).await?;
-    
+
     let write_op = FileWriteOperation::new("/tmp/output.txt", b"Hello, World!".to_vec());
     fs_executor.execute(write_op, &context).await?;
-    
+
     let delete_op = FileDeleteOperation::new("/tmp/old.txt");
     fs_executor.execute(delete_op, &context).await?;
     println!();
@@ -261,24 +261,18 @@ async fn main() -> OSResult<()> {
     let custom = MyCustomExecutor;
     use airssys_osl::core::executor::OSExecutor;
     println!("Executor name: {}", custom.name());
-    println!(
-        "Supported types: {:?}",
-        custom.supported_operation_types()
-    );
+    println!("Supported types: {:?}", custom.supported_operation_types());
     println!();
 
     // Example 4: Cross-domain executor
     println!("--- Example 4: Cross-Domain Executor ---");
     let multi = MultiDomainExecutor;
-    
+
     multi
         .execute(FileReadOperation::new("/tmp/file.txt"), &context)
         .await?;
     multi
-        .execute(
-            ProcessSpawnOperation::new("echo".to_string()),
-            &context,
-        )
+        .execute(ProcessSpawnOperation::new("echo".to_string()), &context)
         .await?;
     multi
         .execute(
@@ -292,7 +286,7 @@ async fn main() -> OSResult<()> {
     println!("--- Example 5: Executor with Helper Methods ---");
     let cached = CachedFileExecutor::new();
     println!("Cache size: {}", cached.cache_size());
-    
+
     cached
         .execute(FileReadOperation::new("/tmp/cached.txt"), &context)
         .await?;
