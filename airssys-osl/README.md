@@ -56,3 +56,162 @@ The main purpose of the executor must be modular, meaning that we can customize 
 - Utils Executor
 
 And all of those executors must implement the same `Executor` trait, so the `OSL Framework` can call them in the same way.
+
+## Quick Start
+
+Add `airssys-osl` to your `Cargo.toml`:
+
+```toml
+[dependencies]
+airssys-osl = { version = "0.1", features = ["macros"] }
+```
+
+### Basic Usage
+
+```rust
+use airssys_osl::prelude::*;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create a file read operation
+    let operation = FileReadOperation::new("/tmp/test.txt");
+    
+    // Create execution context
+    let context = ExecutionContext::default();
+    
+    // Execute with default executor
+    let executor = DefaultExecutor;
+    let result = executor.execute(operation, context).await?;
+    
+    println!("Read {} bytes", result.bytes_read);
+    Ok(())
+}
+```
+
+### Creating Custom Executors with Macros
+
+The `#[executor]` macro simplifies creating custom executors by generating boilerplate code:
+
+```rust
+use airssys_osl::prelude::*;
+
+#[executor(operations = [Filesystem])]
+struct MyCustomExecutor;
+
+impl MyCustomExecutor {
+    async fn execute_file_read(
+        &self,
+        operation: FileReadOperation,
+        _context: ExecutionContext,
+    ) -> Result<FileReadResult, ExecutionError> {
+        println!("Reading file: {}", operation.path);
+        
+        // Custom implementation
+        Ok(FileReadResult {
+            content: vec![],
+            bytes_read: 0,
+            completed_at: Utc::now(),
+        })
+    }
+    
+    async fn execute_file_write(
+        &self,
+        operation: FileWriteOperation,
+        _context: ExecutionContext,
+    ) -> Result<FileWriteResult, ExecutionError> {
+        println!("Writing {} bytes to: {}", operation.content.len(), operation.path);
+        
+        // Custom implementation
+        Ok(FileWriteResult {
+            bytes_written: operation.content.len(),
+            completed_at: Utc::now(),
+        })
+    }
+    
+    // Implement other filesystem operations...
+}
+```
+
+For more details, see:
+- [Custom Executor Guide](docs/src/guides/custom-executors.md)
+- [Macros API Reference](docs/src/api/macros.md)
+- [Examples](examples/custom_executor_with_macro.rs)
+
+## Features
+
+### Core Features
+- **Cross-platform OS abstraction** - Unified interface for filesystem, process, and network operations
+- **Type-safe operations** - Strongly-typed operation definitions with compile-time guarantees
+- **Async/await support** - Built on Tokio for efficient async operations
+- **Middleware pipeline** - Extensible middleware for logging, security, and custom logic
+- **Security framework** - Built-in security policies and validation
+
+### Optional Features
+- `macros` - Procedural macros for simplified custom executor development
+
+## Examples
+
+The `examples/` directory contains comprehensive examples:
+
+- `basic_usage.rs` - Basic operation execution
+- `middleware_pipeline.rs` - Custom middleware creation
+- `logger_comprehensive.rs` - Advanced logging configuration
+- `custom_executor_with_macro.rs` - Creating custom executors with macros
+
+Run examples with:
+
+```bash
+cargo run --example custom_executor_with_macro --features macros
+```
+
+## Documentation
+
+Full documentation is available in the `docs/` directory and can be built with mdBook:
+
+```bash
+# Install mdBook (one-time)
+cargo install mdbook
+
+# Serve documentation locally
+mdbook serve airssys-osl/docs
+
+# Build documentation
+mdbook build airssys-osl/docs
+```
+
+## Development
+
+### Running Tests
+
+```bash
+# Run all tests
+cargo test --workspace
+
+# Run OSL tests only
+cargo test --package airssys-osl
+
+# Run with features
+cargo test --features macros
+```
+
+### Code Quality
+
+```bash
+# Check code
+cargo check --workspace
+
+# Run clippy
+cargo clippy --workspace --all-targets --all-features
+
+# Format code
+cargo fmt --all
+```
+
+## License
+
+Licensed under either of:
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](../LICENSE-APACHE))
+- MIT License ([LICENSE-MIT](../LICENSE-MIT))
+
+at your option.

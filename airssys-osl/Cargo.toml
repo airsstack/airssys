@@ -60,5 +60,9 @@ path = "examples/logger_comprehensive.rs"
 name = "middleware_pipeline"
 path = "examples/middleware_pipeline.rs"
 
+[[example]]
+name = "custom_executor_with_macro"
+path = "examples/custom_executor_with_macro.rs"
+
 [lints]
 workspace = true

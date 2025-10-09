@@ -15,10 +15,12 @@
 - [Process Management](./api/process.md)
 - [Security Framework](./api/security.md)
 - [Activity Logging](./api/logging.md)
+- [Macros](./api/macros.md)
 
 # User Guides
 - [Getting Started](./guides/README.md)
 - [Configuration](./guides/configuration.md)
+- [Custom Executors](./guides/custom-executors.md)
 - [Security Setup](./guides/security-setup.md)
 - [Logging Configuration](./guides/logging-config.md)
 - [Testing Guide](./guides/testing.md)
