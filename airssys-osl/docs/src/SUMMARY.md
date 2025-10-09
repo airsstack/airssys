@@ -20,6 +20,7 @@
 # User Guides
 - [Getting Started](./guides/README.md)
 - [Configuration](./guides/configuration.md)
+- [Middleware](./guides/middleware.md)
 - [Custom Executors](./guides/custom-executors.md)
 - [Security Setup](./guides/security-setup.md)
 - [Logging Configuration](./guides/logging-config.md)

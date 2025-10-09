@@ -121,20 +121,53 @@ Add middleware capabilities to any executor using the extension trait:
 
 ```rust
 use airssys_osl::prelude::*;
+use airssys_osl::middleware::ExecutorExt;
 
 #[tokio::main]
 async fn main() -> Result<(), OSError> {
     // Create executor with logging middleware
     let logger = ConsoleActivityLogger::default();
-    let middleware = LoggerMiddleware::new(logger);
+    let middleware = LoggerMiddleware::with_default_config(logger);
     
     let executor = FilesystemExecutor::default()
         .with_middleware(middleware);
     
     // Execute operation - automatically logs activity
-    let operation = FileReadOperation::new("/tmp/test.txt".into());
-    let context = ExecutionContext::default();
-    let result = executor.execute(operation, context).await?;
+    let operation = FileReadOperation::new("/tmp/test.txt".to_string());
+    let context = ExecutionContext::new(SecurityContext::new("user".to_string()));
+    let result = executor.execute(operation, &context).await?;
+    
+    Ok(())
+}
+```
+
+### Chaining Multiple Middleware
+
+You can chain multiple middleware together to create a processing pipeline:
+
+```rust
+use airssys_osl::prelude::*;
+use airssys_osl::middleware::logger::{ConsoleActivityLogger, FileActivityLogger, LoggerMiddleware};
+use airssys_osl::middleware::ExecutorExt;
+
+#[tokio::main]
+async fn main() -> Result<(), OSError> {
+    // Create multiple middleware instances
+    let console_logger = ConsoleActivityLogger::default();
+    let console_middleware = LoggerMiddleware::with_default_config(console_logger);
+    
+    let file_logger = FileActivityLogger::new("/tmp/ops.log").await?;
+    let file_middleware = LoggerMiddleware::with_default_config(file_logger);
+    
+    // Chain middleware together
+    let executor = FilesystemExecutor::default()
+        .with_middleware(console_middleware)  // Logs to console
+        .with_middleware(file_middleware);     // Also logs to file
+    
+    // Execute operation - both middleware will process it
+    let operation = FileReadOperation::new("/tmp/test.txt".to_string());
+    let context = ExecutionContext::new(SecurityContext::new("user".to_string()));
+    let result = executor.execute(operation, &context).await?;
     
     Ok(())
 }
