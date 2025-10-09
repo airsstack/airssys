@@ -122,3 +122,388 @@ async fn test_macro_with_network_connect_operation() {
     let result = executor.execute(operation, &context).await;
     assert!(result.is_ok(), "Network connect should succeed");
 }
+
+// =============================================================================
+// Test 4: Multiple Filesystem Operations
+// =============================================================================
+
+#[derive(Debug)]
+struct MultipleFilesystemExecutor;
+
+#[executor]
+impl MultipleFilesystemExecutor {
+    async fn file_read(
+        &self,
+        operation: FileReadOperation,
+        context: &ExecutionContext,
+    ) -> OSResult<ExecutionResult> {
+        let _ = (operation, context);
+        Ok(ExecutionResult::success(b"read content".to_vec()))
+    }
+
+    async fn file_write(
+        &self,
+        operation: FileWriteOperation,
+        context: &ExecutionContext,
+    ) -> OSResult<ExecutionResult> {
+        let _ = (operation, context);
+        Ok(ExecutionResult::success(b"written".to_vec()))
+    }
+
+    async fn file_delete(
+        &self,
+        operation: FileDeleteOperation,
+        context: &ExecutionContext,
+    ) -> OSResult<ExecutionResult> {
+        let _ = (operation, context);
+        Ok(ExecutionResult::success(b"deleted".to_vec()))
+    }
+}
+
+#[tokio::test]
+async fn test_macro_with_multiple_filesystem_operations() {
+    let executor = MultipleFilesystemExecutor;
+    let context = ExecutionContext::new(SecurityContext::new("test-user".to_string()));
+
+    // Verify trait methods using explicit type annotation
+    assert_eq!(
+        <MultipleFilesystemExecutor as OSExecutor<FileReadOperation>>::name(&executor),
+        "MultipleFilesystemExecutor"
+    );
+    assert_eq!(
+        <MultipleFilesystemExecutor as OSExecutor<FileReadOperation>>::supported_operation_types(
+            &executor
+        ),
+        vec![OperationType::Filesystem]
+    );
+
+    // Test file_read
+    let read_op = FileReadOperation::new("/tmp/test.txt");
+    let result = executor.execute(read_op, &context).await;
+    assert!(result.is_ok(), "File read should succeed");
+
+    // Test file_write
+    let write_op = FileWriteOperation::new("/tmp/test.txt", b"data".to_vec());
+    let result = executor.execute(write_op, &context).await;
+    assert!(result.is_ok(), "File write should succeed");
+
+    // Test file_delete
+    let delete_op = FileDeleteOperation::new("/tmp/test.txt");
+    let result = executor.execute(delete_op, &context).await;
+    assert!(result.is_ok(), "File delete should succeed");
+}
+
+// =============================================================================
+// Test 5: Mixed Operation Types (Cross-Domain)
+// =============================================================================
+
+#[derive(Debug)]
+struct MixedOperationExecutor;
+
+#[executor]
+impl MixedOperationExecutor {
+    async fn file_read(
+        &self,
+        operation: FileReadOperation,
+        context: &ExecutionContext,
+    ) -> OSResult<ExecutionResult> {
+        let _ = (operation, context);
+        Ok(ExecutionResult::success(b"file data".to_vec()))
+    }
+
+    async fn process_spawn(
+        &self,
+        operation: ProcessSpawnOperation,
+        context: &ExecutionContext,
+    ) -> OSResult<ExecutionResult> {
+        let _ = (operation, context);
+        Ok(ExecutionResult::success(b"process started".to_vec()))
+    }
+
+    async fn network_connect(
+        &self,
+        operation: NetworkConnectOperation,
+        context: &ExecutionContext,
+    ) -> OSResult<ExecutionResult> {
+        let _ = (operation, context);
+        Ok(ExecutionResult::success(b"connected".to_vec()))
+    }
+}
+
+#[tokio::test]
+async fn test_macro_with_mixed_operation_types() {
+    let executor = MixedOperationExecutor;
+    let context = ExecutionContext::new(SecurityContext::new("test-user".to_string()));
+
+    // Verify trait methods - should support all 3 operation types
+    // Use explicit type annotation for one of the operations
+    assert_eq!(
+        <MixedOperationExecutor as OSExecutor<FileReadOperation>>::name(&executor),
+        "MixedOperationExecutor"
+    );
+    let supported_types =
+        <MixedOperationExecutor as OSExecutor<FileReadOperation>>::supported_operation_types(
+            &executor,
+        );
+    assert_eq!(supported_types.len(), 3, "Should support 3 operation types");
+    assert!(supported_types.contains(&OperationType::Filesystem));
+    assert!(supported_types.contains(&OperationType::Process));
+    assert!(supported_types.contains(&OperationType::Network));
+
+    // Test filesystem operation
+    let file_op = FileReadOperation::new("/tmp/test.txt");
+    let result = executor.execute(file_op, &context).await;
+    assert!(result.is_ok(), "File operation should succeed");
+
+    // Test process operation
+    let process_op = ProcessSpawnOperation::new("echo".to_string());
+    let result = executor.execute(process_op, &context).await;
+    assert!(result.is_ok(), "Process operation should succeed");
+
+    // Test network operation
+    let network_op = NetworkConnectOperation::new("127.0.0.1:8080".to_string());
+    let result = executor.execute(network_op, &context).await;
+    assert!(result.is_ok(), "Network operation should succeed");
+}
+
+// =============================================================================
+// Test 6: All 11 Operations (Comprehensive)
+// =============================================================================
+
+#[derive(Debug)]
+struct ComprehensiveExecutor;
+
+#[executor]
+impl ComprehensiveExecutor {
+    // Filesystem operations (3)
+    async fn file_read(
+        &self,
+        operation: FileReadOperation,
+        context: &ExecutionContext,
+    ) -> OSResult<ExecutionResult> {
+        let _ = (operation, context);
+        Ok(ExecutionResult::success(b"read".to_vec()))
+    }
+
+    async fn file_write(
+        &self,
+        operation: FileWriteOperation,
+        context: &ExecutionContext,
+    ) -> OSResult<ExecutionResult> {
+        let _ = (operation, context);
+        Ok(ExecutionResult::success(b"written".to_vec()))
+    }
+
+    async fn file_delete(
+        &self,
+        operation: FileDeleteOperation,
+        context: &ExecutionContext,
+    ) -> OSResult<ExecutionResult> {
+        let _ = (operation, context);
+        Ok(ExecutionResult::success(b"deleted".to_vec()))
+    }
+
+    // Process operations (3)
+    async fn process_spawn(
+        &self,
+        operation: ProcessSpawnOperation,
+        context: &ExecutionContext,
+    ) -> OSResult<ExecutionResult> {
+        let _ = (operation, context);
+        Ok(ExecutionResult::success(b"spawned".to_vec()))
+    }
+
+    async fn process_kill(
+        &self,
+        operation: ProcessKillOperation,
+        context: &ExecutionContext,
+    ) -> OSResult<ExecutionResult> {
+        let _ = (operation, context);
+        Ok(ExecutionResult::success(b"killed".to_vec()))
+    }
+
+    async fn process_signal(
+        &self,
+        operation: ProcessSignalOperation,
+        context: &ExecutionContext,
+    ) -> OSResult<ExecutionResult> {
+        let _ = (operation, context);
+        Ok(ExecutionResult::success(b"signaled".to_vec()))
+    }
+
+    // Network operations (3)
+    async fn network_connect(
+        &self,
+        operation: NetworkConnectOperation,
+        context: &ExecutionContext,
+    ) -> OSResult<ExecutionResult> {
+        let _ = (operation, context);
+        Ok(ExecutionResult::success(b"connected".to_vec()))
+    }
+
+    async fn network_listen(
+        &self,
+        operation: NetworkListenOperation,
+        context: &ExecutionContext,
+    ) -> OSResult<ExecutionResult> {
+        let _ = (operation, context);
+        Ok(ExecutionResult::success(b"listening".to_vec()))
+    }
+
+    async fn network_socket(
+        &self,
+        operation: NetworkSocketOperation,
+        context: &ExecutionContext,
+    ) -> OSResult<ExecutionResult> {
+        let _ = (operation, context);
+        Ok(ExecutionResult::success(b"socket created".to_vec()))
+    }
+}
+
+#[tokio::test]
+async fn test_macro_with_all_operations() {
+    let executor = ComprehensiveExecutor;
+    let context = ExecutionContext::new(SecurityContext::new("test-user".to_string()));
+
+    // Verify trait methods using explicit type annotation
+    assert_eq!(
+        <ComprehensiveExecutor as OSExecutor<FileReadOperation>>::name(&executor),
+        "ComprehensiveExecutor"
+    );
+    let supported_types =
+        <ComprehensiveExecutor as OSExecutor<FileReadOperation>>::supported_operation_types(
+            &executor,
+        );
+    assert_eq!(
+        supported_types.len(),
+        3,
+        "Should support 3 unique operation types"
+    );
+    assert!(supported_types.contains(&OperationType::Filesystem));
+    assert!(supported_types.contains(&OperationType::Process));
+    assert!(supported_types.contains(&OperationType::Network));
+
+    // Test filesystem operations
+    let result = executor
+        .execute(FileReadOperation::new("/tmp/test.txt"), &context)
+        .await;
+    assert!(result.is_ok(), "file_read should succeed");
+
+    let result = executor
+        .execute(
+            FileWriteOperation::new("/tmp/test.txt", b"data".to_vec()),
+            &context,
+        )
+        .await;
+    assert!(result.is_ok(), "file_write should succeed");
+
+    let result = executor
+        .execute(FileDeleteOperation::new("/tmp/test.txt"), &context)
+        .await;
+    assert!(result.is_ok(), "file_delete should succeed");
+
+    // Test process operations
+    let result = executor
+        .execute(ProcessSpawnOperation::new("echo".to_string()), &context)
+        .await;
+    assert!(result.is_ok(), "process_spawn should succeed");
+
+    let result = executor
+        .execute(ProcessKillOperation::new(1234), &context)
+        .await;
+    assert!(result.is_ok(), "process_kill should succeed");
+
+    let result = executor
+        .execute(ProcessSignalOperation::new(1234, 15), &context)
+        .await;
+    assert!(result.is_ok(), "process_signal should succeed");
+
+    // Test network operations
+    let result = executor
+        .execute(
+            NetworkConnectOperation::new("127.0.0.1:8080".to_string()),
+            &context,
+        )
+        .await;
+    assert!(result.is_ok(), "network_connect should succeed");
+
+    let result = executor
+        .execute(
+            NetworkListenOperation::new("127.0.0.1:8080".to_string()),
+            &context,
+        )
+        .await;
+    assert!(result.is_ok(), "network_listen should succeed");
+
+    let result = executor
+        .execute(NetworkSocketOperation::new("tcp".to_string()), &context)
+        .await;
+    assert!(result.is_ok(), "network_socket should succeed");
+}
+
+// =============================================================================
+// Test 7: Helper Methods Preserved
+// =============================================================================
+
+#[derive(Debug)]
+struct ExecutorWithHelpers;
+
+#[executor]
+impl ExecutorWithHelpers {
+    // Operation method - should be detected
+    async fn file_read(
+        &self,
+        operation: FileReadOperation,
+        context: &ExecutionContext,
+    ) -> OSResult<ExecutionResult> {
+        let content = self.read_from_cache(&operation.path);
+        let _ = context;
+        Ok(ExecutionResult::success(content))
+    }
+
+    // Helper method - should be preserved, not treated as operation
+    fn read_from_cache(&self, path: &str) -> Vec<u8> {
+        format!("cached: {path}").into_bytes()
+    }
+
+    // Another helper - different signature
+    fn log_access(&self, user: &str) {
+        println!("Access by: {user}");
+    }
+
+    // Async helper - not matching operation signature
+    async fn validate_path(&self, path: &str) -> bool {
+        !path.is_empty()
+    }
+}
+
+#[tokio::test]
+async fn test_helper_methods_preserved() {
+    let executor = ExecutorWithHelpers;
+    let context = ExecutionContext::new(SecurityContext::new("test-user".to_string()));
+
+    // Verify only file_read was detected as an operation
+    assert_eq!(executor.name(), "ExecutorWithHelpers");
+    assert_eq!(
+        executor.supported_operation_types(),
+        vec![OperationType::Filesystem]
+    );
+
+    // Verify helper methods are still accessible
+    let cached = executor.read_from_cache("/tmp/test.txt");
+    assert_eq!(cached, b"cached: /tmp/test.txt");
+
+    executor.log_access("test-user");
+
+    let is_valid = executor.validate_path("/tmp/test.txt").await;
+    assert!(is_valid, "Path validation should work");
+
+    // Verify operation still works
+    let operation = FileReadOperation::new("/tmp/test.txt");
+    let result = executor.execute(operation, &context).await;
+    assert!(result.is_ok(), "File read should succeed");
+
+    if let Ok(exec_result) = result {
+        assert_eq!(exec_result.output, b"cached: /tmp/test.txt");
+    }
+}
