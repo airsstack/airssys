@@ -1,9 +1,12 @@
 # airssys-osl Progress
 
 ## Current Status
-**Phase:** OSL-TASK-003 Phase 2 COMPLETE - Security Middleware Policy Evaluation Complete
-**Overall Progress:** 92%  
+**Phase:** OSL-TASK-003 Phase 2 COMPLETE - Security Policy Architecture Simplified
+**Overall Progress:** 93%  
 **Last Updated:** 2025-10-10
+
+## Recent Achievement
+**Security Policy Refactoring** (2025-10-10): Successfully simplified security policy architecture by removing redundant `SecurityPolicyDispatcher` trait and generic parameters, resulting in ~165 lines of code reduction and significantly improved API ergonomics for third-party developers. All 206 tests passing with zero warnings.
 
 ## What Works
 ### ✅ Completed Components
@@ -533,26 +536,44 @@
     - Module structure: Production-ready for Phase 2 implementation
   
   **Phase 2 - Core Security Policy Evaluation** ✅ COMPLETED (2025-10-10)
-  - **SecurityPolicyDispatcher Trait**: Type-erased trait for heterogeneous policy storage
-    - ✅ Documented dyn pattern exception (workspace standard §6.2)
-    - ✅ evaluate_any() method using std::any::Any for operation downcasting
-    - ✅ description() and scope() methods for policy introspection
-  - **SecurityMiddleware::before_execution**: Full policy evaluation implementation
+  - **Architecture Simplification**: Removed redundant SecurityPolicyDispatcher trait
+    - ✅ Removed generic parameter from SecurityPolicy trait (was `SecurityPolicy<O: Operation>`)
+    - ✅ Simplified to `SecurityPolicy` with context-only evaluation
+    - ✅ Changed signature: `fn evaluate(&self, context: &SecurityContext) -> PolicyDecision`
+    - ✅ Removed entire SecurityPolicyDispatcher trait (~70 lines of duplicate code)
+    - ✅ Context-driven design: All resource info flows through `SecurityContext.attributes`
+  - **Code Reduction**: Eliminated duplicate implementations
+    - ✅ Removed duplicate SecurityPolicyDispatcher implementation from AccessControlList (~45 lines)
+    - ✅ Removed duplicate SecurityPolicyDispatcher implementation from RoleBasedAccessControl (~50 lines)
+    - ✅ Net reduction: ~165 lines of duplicate/unnecessary code removed
+  - **SecurityMiddleware Implementation**: Full policy evaluation with simplified API
+    - ✅ Changed policy storage: `Vec<Box<dyn SecurityPolicy>>` (no more Dispatcher)
+    - ✅ Policy evaluation: Direct `.evaluate(&context.security_context)` calls
     - ✅ Deny-by-default: No policies configured = immediate deny
     - ✅ Policy evaluation loop: Iterate all policies, ANY deny = deny overall
     - ✅ Auth requirements: Collect and log (future: attach to operation metadata)
     - ✅ Comprehensive error messages with policy name and reason
-  - **SecurityPolicyDispatcher Implementations**:
-    - ✅ AccessControlList: Identity-based access control with wildcard matching
-    - ✅ RoleBasedAccessControl: Role-based authorization (placeholder permission resolution)
+  - **Enhanced Documentation**: Updated to explain simplified design
+    - ✅ SecurityPolicy trait docs: Context-driven evaluation philosophy
+    - ✅ Design principles: YAGNI (§6.1), Avoid dyn (§6.2), Simple abstractions (Microsoft M-SIMPLE-ABSTRACTIONS)
+    - ✅ Usage examples: Simplified third-party implementation patterns
   - **Security Audit Logging**: All policy decisions logged
     - ✅ SecurityAuditLog created for every policy evaluation
     - ✅ Event types: AccessGranted, AccessDenied, AuthenticationRequired, PolicyEvaluated
+    - ✅ Comprehensive audit trail with timestamps and security context
     - ✅ Comprehensive context: operation_id, principal, session_id, decision, policy_applied
   - **Builder Pattern Enhancement**:
-    - ✅ add_policy() method for adding policies to SecurityMiddlewareBuilder
+    - ✅ add_policy() method for adding policies to SecurityMiddlewareBuilder  
     - ✅ Fluent API: Chain multiple add_policy() calls
-    - ✅ Policy storage in Vec<Box<dyn SecurityPolicyDispatcher>>
+    - ✅ Simplified policy storage: `Vec<Box<dyn SecurityPolicy>>` (no dispatcher indirection)
+  - **Test Configuration**: Added clippy allow directives for test files
+    - ✅ `#![allow(clippy::expect_used)]` in security_middleware_tests.rs
+    - ✅ `#![allow(clippy::unwrap_used)]` in security_middleware_tests.rs
+    - ✅ Enables clean test code while maintaining zero-warning policy for library
+  - **Example Code Cleanup**: Auto-fixed format string warnings
+    - ✅ Fixed 8 format string warnings in helper_functions.rs example
+    - ✅ Fixed 2 format string warnings in middleware_extension.rs example
+    - ✅ Used `cargo clippy --fix --allow-dirty --allow-staged --examples`
   - **Integration Tests (8 tests)**:
     - ✅ test_security_middleware_deny_by_default
     - ✅ test_security_middleware_with_acl_allow
@@ -563,15 +584,22 @@
     - ✅ test_security_middleware_any_deny_blocks
     - ✅ test_security_middleware_policy_count
   - **Quality Validation**:
-    - ✅ All 206 tests passing (198 existing + 8 new integration tests)
+    - ✅ All 206 tests passing (198 library + 8 integration)
     - ✅ Zero compiler warnings
-    - ✅ Zero clippy warnings (strict mode with --all-targets --all-features)
-    - ✅ Full workspace standards compliance
+    - ✅ Zero clippy warnings (strict mode with --all-targets)
+    - ✅ Full workspace standards compliance (§2.1, §3.2, §4.3, §6.1, §6.2)
+    - ✅ Microsoft Rust Guidelines compliance (M-SIMPLE-ABSTRACTIONS, M-DI-HIERARCHY)
+  - **Code Quality Metrics**:
+    - Net code reduction: ~165 lines removed (eliminated duplication)
+    - Simpler API: Single SecurityPolicy trait (not two)
+    - Better extensibility: Third-party developers implement one simple trait
+    - Context-driven: More flexible than operation-based policies
   - **Phase 2 Completion Status**: ✅ 100% Complete
-    - Total lines added: ~497 lines (policy dispatcher + middleware logic + tests)
-    - Total tests added: 8 comprehensive integration tests
+    - Architecture refactoring: Simplified from dual-trait to single-trait design
+    - Total net change: ~330 lines added, ~165 lines removed (policy logic + tests - duplicates)
+    - Total tests: 8 comprehensive integration tests (all passing)
     - Production-ready: Full policy evaluation with deny-by-default enforcement
-    - Git commit: 62ec0a4
+    - Git commits: 62ec0a4 (Phase 2 implementation), b70006e (memory bank docs), [refactoring commit TBD]
 
 
 #### ✅ COMPLETED - PRODUCTION READY
