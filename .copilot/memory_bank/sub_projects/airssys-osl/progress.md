@@ -1,12 +1,12 @@
 # airssys-osl Progress
 
 ## Current Status
-**Phase:** OSL-TASK-003 Phase 3 COMPLETE - ACL Implementation with Glob Patterns  
-**Overall Progress:** 94%  
+**Phase:** OSL-TASK-003 Phase 4 COMPLETE - RBAC Implementation  
+**Overall Progress:** 95%  
 **Last Updated:** 2025-10-10
 
 ## Recent Achievement
-**ACL Glob Pattern Implementation** (2025-10-10): Completed full ACL implementation with glob-based pattern matching for resources and permissions. Implemented string-based permissions (ADR-028), context attribute extraction, and comprehensive evaluation logic. Added 14 new tests (20 total ACL tests), zero warnings, all doc tests passing. Breaking API changes properly documented.
+**RBAC Implementation** (2025-10-10): Completed full Role-Based Access Control implementation with role hierarchy resolution, circular dependency detection, and permission inheritance. Implemented ATTR_REQUIRED_PERMISSION constant, resolve_roles() with HashSet-based cycle detection, resolve_role_recursive() with stack traversal, and collect_permissions() for aggregation. Added 10 comprehensive tests (16 total RBAC tests), covering all scenarios: no roles, single/multiple roles, inheritance (1-level, multi-level), circular dependencies, diamond patterns. Zero warnings, all doc tests passing.
 
 ## What Works
 ### ✅ Completed Components
