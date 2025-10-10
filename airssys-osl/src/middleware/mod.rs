@@ -5,7 +5,8 @@
 //!
 //! # Available Middleware
 //!
-//! - **[`logger`]** - Activity logging and audit trail middleware
+//! - **[`security`]** - Security policy enforcement and access control (Priority 100)
+//! - **[`logger`]** - Activity logging and audit trail middleware (Priority 200)
 //! - **[`ext`]** - Extension trait for ergonomic middleware composition
 
 // Layer 3: Internal module imports
@@ -14,6 +15,7 @@
 // Public middleware modules
 pub mod ext;
 pub mod logger;
+pub mod security;
 
 // Re-export extension trait for ergonomic imports
 pub use ext::ExecutorExt;
