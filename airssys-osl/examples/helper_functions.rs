@@ -15,7 +15,7 @@ async fn main() -> Result<(), OSError> {
 
     // Create temporary directory for examples
     let temp_dir = TempDir::new().map_err(|e| {
-        OSError::execution_failed(format!("Failed to create temp directory: {}", e))
+        OSError::execution_failed(format!("Failed to create temp directory: {e}"))
     })?;
     let temp_path = temp_dir.path();
 
@@ -27,7 +27,7 @@ async fn main() -> Result<(), OSError> {
 
     // 1. Write a file
     let file_path = temp_path.join("test.txt");
-    println!("1. Writing file: {:?}", file_path);
+    println!("1. Writing file: {file_path:?}");
     write_file(
         file_path.to_string_lossy().to_string(),
         b"Hello, AirsSys OSL!".to_vec(),
@@ -37,7 +37,7 @@ async fn main() -> Result<(), OSError> {
     println!("   ✓ File written successfully\n");
 
     // 2. Read the file
-    println!("2. Reading file: {:?}", file_path);
+    println!("2. Reading file: {file_path:?}");
     let content = read_file(file_path.to_string_lossy().to_string(), "example-user").await?;
     println!("   ✓ Read {} bytes", content.len());
     println!("   Content: {}", String::from_utf8_lossy(&content));
@@ -45,13 +45,13 @@ async fn main() -> Result<(), OSError> {
 
     // 3. Create a directory
     let dir_path = temp_path.join("subdir");
-    println!("3. Creating directory: {:?}", dir_path);
+    println!("3. Creating directory: {dir_path:?}");
     create_directory(dir_path.to_string_lossy().to_string(), "example-user").await?;
     println!("   ✓ Directory created successfully\n");
 
     // 4. Create a file in the subdirectory
     let nested_file = dir_path.join("nested.txt");
-    println!("4. Creating nested file: {:?}", nested_file);
+    println!("4. Creating nested file: {nested_file:?}");
     write_file(
         nested_file.to_string_lossy().to_string(),
         b"Nested file content".to_vec(),
@@ -61,7 +61,7 @@ async fn main() -> Result<(), OSError> {
     println!("   ✓ Nested file created successfully\n");
 
     // 5. Delete a file
-    println!("5. Deleting file: {:?}", nested_file);
+    println!("5. Deleting file: {nested_file:?}");
     delete_file(nested_file.to_string_lossy().to_string(), "example-user").await?;
     println!("   ✓ File deleted successfully\n");
 
@@ -101,7 +101,7 @@ async fn main() -> Result<(), OSError> {
     let listener_result = network_listen("127.0.0.1:0".to_string(), "example-user").await;
     match listener_result {
         Ok(_) => println!("   ✓ Listener created successfully\n"),
-        Err(e) => println!("   ⚠ Listener creation (expected in example): {}\n", e),
+        Err(e) => println!("   ⚠ Listener creation (expected in example): {e}\n"),
     }
 
     // 3. Connect to a network address (will fail in this example)
@@ -109,7 +109,7 @@ async fn main() -> Result<(), OSError> {
     let connect_result = network_connect("127.0.0.1:8080".to_string(), "example-user").await;
     match connect_result {
         Ok(_) => println!("   ✓ Connected successfully\n"),
-        Err(e) => println!("   ⚠ Connection failed (expected in example): {}\n", e),
+        Err(e) => println!("   ⚠ Connection failed (expected in example): {e}\n"),
     }
 
     // ==========================================

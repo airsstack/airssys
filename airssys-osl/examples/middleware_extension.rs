@@ -24,7 +24,7 @@ async fn main() -> Result<(), OSError> {
 
     // Create temporary directory for examples
     let temp_dir = TempDir::new().map_err(|e| {
-        OSError::execution_failed(format!("Failed to create temp directory: {}", e))
+        OSError::execution_failed(format!("Failed to create temp directory: {e}"))
     })?;
     let temp_path = temp_dir.path();
 
@@ -89,8 +89,7 @@ async fn main() -> Result<(), OSError> {
     let _result = executor.execute(operation, &context).await?;
     println!("✓ Operation completed successfully");
     println!(
-        "✓ Logs written to both console and file: {:?}\n",
-        log_file_path
+        "✓ Logs written to both console and file: {log_file_path:?}\n"
     );
 
     // ==========================================
