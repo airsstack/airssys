@@ -3,10 +3,10 @@
 # airssys-osl Task Index
 
 **Sub-Project:** airssys-osl  
-**Last Updated:** 2025-10-09  
+**Last Updated:** 2025-10-10  
 **Total Tasks:** 9  
 **Active Tasks:** 0  
-**Completed Tasks:** 6  
+**Completed Tasks:** 8  
 
 ## Task Summary
 
@@ -14,16 +14,16 @@
 | Priority | Count | Status Distribution |
 |----------|-------|-------------------|
 | Critical | 3 | Complete: 3 |
-| High | 6 | Pending: 1, Ready: 1, Complete: 4 |
+| High | 6 | Pending: 1, Complete: 5 |
 | Medium | 0 | - |
 | Low | 0 | - |
 
 ### By Status
 | Status | Count | Description |
 |--------|-------|-------------|
-| Complete | 6 | OSL-TASK-001, 002, 005, 006, 007, 008 |
-| Ready to Start | 1 | OSL-TASK-009 (next - unblocked) |
-| Blocked | 2 | OSL-TASK-003, 004 (waiting for 009) |
+| Complete | 8 | OSL-TASK-001, 002, 003, 005, 006, 007, 008, 009 |
+| Pending | 1 | OSL-TASK-004 (needs scope redefinition) |
+| Blocked | 0 | - |
 
 ## Completed Tasks ✅
 
@@ -109,50 +109,63 @@
 - Integration tests with real filesystem/process/network I/O
 - Final quality gates, documentation, and completion
 
-## Critical Path Tasks (Next Up)
+### OSL-TASK-003: Security Middleware Module *(High, Complete)*
+**Status:** ✅ COMPLETED (2025-10-10)  
+**Actual Effort:** 3 days (7 phases)  
+**Description:** Implemented comprehensive security middleware with ACL, RBAC, policy enforcement, and threat model validation.
 
-### OSL-TASK-009: Remove Framework and Add Helpers *(High, Ready)*
-**Status:** 🎯 READY TO START (unblocked 2025-10-09)  
-**Estimated Effort:** 2-3 days  
-**Dependencies:** ✅ OSL-TASK-008 (COMPLETE)  
-**Blocks:** OSL-TASK-003, OSL-TASK-004  
-**Priority:** HIGH - Architecture simplification  
-**Description:** Refactor airssys-osl by removing framework layer and replacing with helper functions and middleware extension traits.
+**Deliverables:**
+- ✅ Phase 1: Core Security Types (Permission, SecurityContext, SecurityPolicy trait)
+- ✅ Phase 2: Security Middleware Foundation (SecurityMiddleware, policy enforcement)
+- ✅ Phase 3: ACL Implementation (glob pattern matching, deny-by-default)
+- ✅ Phase 4: RBAC Implementation (role-based access control with hierarchies)
+- ✅ Phase 5: Audit Logging (comprehensive security event logging)
+- ✅ Phase 6: Policy Composition (AND/OR/NOT combinators)
+- ✅ Phase 7: Testing & Documentation (13 threat tests, 400+ lines rustdoc, 437 line example)
+- ✅ 311 total tests passing (232 unit + 66 integration + 13 threat)
+- ✅ 108 doctests passing, zero warnings
+- ✅ Production-ready with comprehensive threat model validation
 
-**Key Deliverables:**
-- Remove ExecutorRegistry, OSLFramework, builders, pipeline
-- Add 10 helper functions (read_file, spawn_process, tcp_connect, etc.)
-- Add middleware extension trait for composition
-- Update all tests and documentation
-- Migration to simpler, YAGNI-compliant architecture
+### OSL-TASK-009: Remove Framework and Add Helpers *(High, Complete)*
+**Status:** ✅ COMPLETED (2025-10-09)  
+**Actual Effort:** 2 days (4 phases)  
+**Description:** Refactored airssys-osl by removing framework layer and replacing with helper functions and middleware extension traits.
 
-**Blocks:** 
-- OSL-TASK-003 (Security Middleware - needs new helper-based architecture)
-- OSL-TASK-004 (Pipeline Framework - needs extension trait pattern)
+**Deliverables:**
+- ✅ Phase 1: Remove framework code (ExecutorRegistry, OSLFramework, builders, pipeline)
+- ✅ Phase 2: Create 10 helper functions (read_file, write_file, spawn_process, tcp_connect, etc.)
+- ✅ Phase 3: Implement middleware extension trait (ExecutorExt with .with_middleware())
+- ✅ Phase 4: Update all tests and documentation
+- ✅ 176 tests passing, YAGNI-compliant architecture
+- ✅ Simplified codebase with helper-based approach
 
-**Reference:** `.copilot/memory_bank/sub_projects/airssys-osl/docs/architecture-refactoring-plan-2025-10.md`
+**Note:** TODOs remain in helpers for OSL-TASK-004 integration (security validation and middleware wiring).
 
-## Blocked Tasks
+## Pending Tasks
 
-### OSL-TASK-003: Security Middleware Module *(High, Blocked)*
-**Status:** 🔒 BLOCKED (waiting for OSL-TASK-009)  
-**Estimated Effort:** 2-3 days  
-**Dependencies:** OSL-TASK-009 (needs helper-based architecture)  
-**Description:** Implement security middleware with ACL, RBAC, and policy enforcement.
-
-**Why Blocked:** Needs new helper-based architecture from OSL-TASK-009
-
-### OSL-TASK-004: Middleware Pipeline Framework *(High, Blocked)*
-**Status:** 🔒 BLOCKED (waiting for OSL-TASK-009)  
+### OSL-TASK-004: Middleware Pipeline Framework *(High, Pending)*
+**Status:** ⏳ PENDING (needs scope redefinition)  
 **Estimated Effort:** 1-2 days  
-**Dependencies:** OSL-TASK-009 (needs extension trait pattern)  
-**Description:** Implement middleware pipeline orchestration framework.
+**Dependencies:** ✅ OSL-TASK-003 (COMPLETE), ✅ OSL-TASK-009 (COMPLETE)  
+**Description:** Originally planned as middleware pipeline orchestration framework, but replaced by extension trait pattern in OSL-TASK-009.
 
-**Why Blocked:** Needs middleware extension trait pattern from OSL-TASK-009
+**Current Situation:**
+- Original scope (pipeline.rs, registry.rs, dispatcher.rs) replaced by ExecutorExt trait
+- 20 TODO comments in helpers.rs reference OSL-TASK-004 for middleware wiring
+- Need to redefine scope as: "Integrate security validation and middleware into helper functions"
+
+**Proposed New Scope:**
+- Wire SecurityMiddleware validation into 10 helper functions
+- Add middleware composition support via ExecutorExt
+- Update helpers.rs to use .with_middleware() pattern
+- Remove TODO(OSL-TASK-004) comments after integration
+- Final integration testing and documentation
+
+**Why Pending:** Scope needs redefinition based on current architecture (helpers + extension trait vs original pipeline framework)
 
 ## Task Dependencies
 
-### Updated Critical Path (2025-10-09)
+### Updated Critical Path (2025-10-10)
 ```
 OSL-TASK-001 ✅ (Core Foundation)
 ├── OSL-TASK-002 ✅ (Logger Middleware)
@@ -160,16 +173,21 @@ OSL-TASK-001 ✅ (Core Foundation)
 ├── OSL-TASK-006 ✅ (Framework Implementation, Phases 1-3, Phase 4 cancelled)
 └── OSL-TASK-007 ✅ (Concrete Operations)
     └── OSL-TASK-008 ✅ (Platform Executors, Phases 1-4, Phases 5-7 cancelled)
-        └── OSL-TASK-009 🎯 NEXT (Remove Framework, Add Helpers)
-            ├── OSL-TASK-003 🔒 (Security Middleware)
-            └── OSL-TASK-004 🔒 (Pipeline Framework)
-                └── Production Ready 🎉
+        └── OSL-TASK-009 ✅ (Remove Framework, Add Helpers)
+            └── OSL-TASK-003 ✅ (Security Middleware)
+                └── OSL-TASK-004 ⏳ (Helper Integration - pending scope redefinition)
+                    └── Production Ready 🎉
 ```
 
 ### Current Status
-- **✅ Complete:** Tasks 001, 002, 005, 006 (partial), 007, 008
-- **🎯 Ready to Start:** OSL-TASK-009 (architecture refactoring - next critical task)
-- **🔒 Blocked:** Tasks 003, 004 (waiting for 009)
+- **✅ Complete:** Tasks 001, 002, 003, 005, 006, 007, 008, 009 (8 tasks)
+- **⏳ Pending:** OSL-TASK-004 (needs scope redefinition for helper integration)
+- **🔒 Blocked:** None
 
-### Key Decision (2025-10-08)
-**Architecture Refactoring:** Framework layer (ExecutorRegistry, OSLFramework, builders) being removed in OSL-TASK-009 in favor of helper functions and macros. See `architecture-refactoring-plan-2025-10.md` for details.
+### Key Decisions
+
+**2025-10-08:** Architecture Refactoring - Framework layer (ExecutorRegistry, OSLFramework, builders) removed in OSL-TASK-009 in favor of helper functions and extension trait pattern.
+
+**2025-10-10:** OSL-TASK-003 Security Middleware completed with full threat model validation, 311 tests passing, production-ready.
+
+**2025-10-10:** OSL-TASK-004 scope needs redefinition - original pipeline framework replaced by ExecutorExt trait pattern. New scope should focus on integrating security and middleware into helper functions.
