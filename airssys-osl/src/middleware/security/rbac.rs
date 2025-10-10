@@ -348,8 +348,7 @@ impl SecurityPolicy for RoleBasedAccessControl {
             PolicyDecision::Allow
         } else {
             PolicyDecision::Deny(format!(
-                "User '{principal}' with roles {:?} does not have required permission '{required_perm}'",
-                effective_roles
+                "User '{principal}' with roles {effective_roles:?} does not have required permission '{required_perm}'"
             ))
         }
     }
@@ -365,6 +364,10 @@ impl SecurityPolicy for RoleBasedAccessControl {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::panic)]
+    #![allow(clippy::unwrap_used)]
+    #![allow(clippy::uninlined_format_args)]
+
     use super::*;
 
     #[test]

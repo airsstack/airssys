@@ -170,6 +170,9 @@ impl SecurityAuditLogger for ConsoleSecurityAuditLogger {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::panic)]
+    #![allow(clippy::unwrap_used)]
+
     use super::*;
     use crate::middleware::security::policy::AuthRequirement;
 

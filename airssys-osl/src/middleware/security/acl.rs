@@ -493,6 +493,10 @@ impl SecurityPolicy for AccessControlList {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::panic)]
+    #![allow(clippy::unwrap_used)]
+    #![allow(clippy::uninlined_format_args)]
+
     use super::*;
 
     #[test]
