@@ -281,9 +281,25 @@ pub trait SecurityAuditLogger: Debug + Send + Sync + 'static {
 - Performance is important but secondary to security
 
 ## Cross-References
+
+### Architecture Decision Records
+- **ADR-028**: ACL Permission Model and Glob Pattern Matching (2025-10-10)
+  - String-based permissions with glob pattern matching
+  - Context attributes: ATTR_RESOURCE and ATTR_PERMISSION
+  - Permission semantics and matching strategy
+  - glob crate dependency for pattern matching
+
+### Related Documentation
 - Core Architecture: 001-core-architecture-foundations.md
 - Workspace Standards: §2.1, §3.2, §4.3, §6.1, §6.2, §6.3
 - Microsoft Guidelines: M-ERRORS-CANONICAL-STRUCTS, M-DI-HIERARCHY
-- Related Task: OSL-TASK-001 (Core Module Foundation)  
-- Related Task: OSL-TASK-002 (Logger Middleware) - for audit integration
+- Development Plan: OSL-TASK-003-DEVELOPMENT-PLAN.md (Phases 1-7)
+
+### Related Tasks
+- **Blocked by**: OSL-TASK-001 (Core Module Foundation) ✅ COMPLETE
+- **Related**: OSL-TASK-002 (Logger Middleware) ✅ COMPLETE - for audit integration
+- **Blocks**: Executor implementations and high-level API development
+
+### Project Context
 - Security Requirements: Project Brief security section
+- Progress Tracking: progress.md (OSL-TASK-003 Phase 2 COMPLETE - 92%)

@@ -1,9 +1,9 @@
 # airssys-osl Architecture Decision Records Index
 
 **Sub-Project:** airssys-osl  
-**Last Updated:** 2025-10-03  
-**Total ADRs:** 3  
-**Active ADRs:** 3  
+**Last Updated:** 2025-10-10  
+**Total ADRs:** 4  
+**Active ADRs:** 4  
 
 ## ADR Summary
 
@@ -11,7 +11,7 @@
 | Status | Count | Description |
 |--------|-------|-------------|
 | Proposed | 0 | Decisions under consideration |
-| Accepted | 3 | Active architectural decisions |
+| Accepted | 4 | Active architectural decisions |
 | Deprecated | 0 | Decisions no longer applicable |
 | Superseded | 0 | Decisions replaced by newer ones |
 
@@ -20,7 +20,7 @@
 |----------|-------|-------------|
 | Technology Selection | 0 | Framework, library, and tool choices |
 | Architecture Patterns | 3 | System design and structural decisions |
-| Security | 0 | Security model and implementation decisions |
+| Security | 1 | Security model and implementation decisions |
 | Performance | 0 | Performance optimization and target decisions |
 | Integration | 0 | Integration approaches with other components |
 | Platform | 0 | Cross-platform strategy decisions |
@@ -60,6 +60,22 @@
 - MiddlewarePipeline handles automatic middleware execution
 - ExecutorRegistry provides automatic executor selection
 - Three complexity levels: Simple (80%) → Custom (15%) → Advanced (5%)
+
+### Security Category
+
+#### ADR-028: ACL Permission Model and Glob Pattern Matching *(Accepted)*
+**Date**: 2025-10-10  
+**Status**: Accepted  
+**Summary**: Defines ACL permission model using string-based permissions with glob pattern matching for flexible and extensible access control.
+
+**Key Decisions**:
+- String-based permissions (`Vec<String>`) instead of enum for maximum flexibility
+- glob crate (v0.3) for resource and permission pattern matching
+- Standardized context attributes: `ATTR_RESOURCE` and `ATTR_PERMISSION` constants
+- Clear permission semantics: empty=none, "*"=all, glob patterns supported
+- Accept breaking API changes in Phase 3 for correctness
+
+**Related**: OSL-TASK-003 Phase 3 - ACL Implementation
 
 ## Planned Architecture Decision Records
 
