@@ -423,6 +423,46 @@ The project uses a comprehensive technical documentation framework:
 4. **Update documentation**: Memory bank files must be updated with any significant changes
 5. **Validate compliance**: Ensure zero warnings and standards compliance before completion
 
+### PRIMARY DEVELOPMENT BEHAVIOR RULES (CRITICAL)
+
+**⚠️ MANDATORY: These rules MUST be followed before ANY code implementation work:**
+
+#### 🚫 Rule 1: DO NOT USE ASSUMPTIONS
+- **Never assume** architecture patterns, implementation approaches, or technical decisions
+- **Always verify** by reading memory bank documentation, ADRs, and knowledge base
+- **Always reference** documented patterns, decisions, and constraints
+- **Evidence-based only**: All implementation decisions must be backed by documented sources
+
+#### 🚫 Rule 2: DO NOT SKIP ISSUES OR PROBLEMS - DISCUSS FIRST
+- **Never ignore** compiler warnings, test failures, or integration issues
+- **Never bypass** problems with temporary workarounds without discussion
+- **Always discuss** architectural uncertainties, design tradeoffs, or implementation challenges
+- **Seek clarification** when requirements are ambiguous or constraints conflict
+- **Document problems**: Create technical debt entries for known issues requiring future resolution
+
+#### 📚 Rule 3: ALWAYS REFER TO MEMORY BANK KNOWLEDGE
+- **Knowledge directory**: Review all relevant knowledge documentation before implementation
+- **ADR directory**: Check Architecture Decision Records for established patterns and constraints
+- **Task detail directory**: Read task specifications, requirements, and implementation guidance
+- **Related directories**: Explore technical debt, system patterns, and progress context
+- **Cross-reference**: Link related documentation to understand complete context
+
+#### ✅ Rule 4: ALWAYS FOLLOW TECHNICAL STANDARDS
+- **Workspace standards**: Strict compliance with §2.1-§5.1 shared patterns (imports, modules, dependencies)
+- **Microsoft Rust Guidelines**: Follow complete guidelines in `workspace/microsoft_rust_guidelines.md`
+- **Code quality**: Zero warnings, comprehensive testing, proper error handling
+- **Documentation**: Accurate, professional, sourced technical documentation
+- **Security**: Security-first development with comprehensive logging and validation
+
+#### 💬 Rule 5: ASK WHEN UNCONFIDENT
+- **Architectural decisions**: Request guidance for significant architectural choices
+- **Performance tradeoffs**: Discuss performance vs. maintainability decisions
+- **Security implications**: Confirm security-sensitive implementation approaches
+- **Breaking changes**: Verify API changes and backward compatibility concerns
+- **Uncertainty resolution**: Always prefer asking over guessing or assuming
+
+**These rules serve as PRIMARY GUIDELINES for AI models before detail code implementation work. Violating these rules may result in incorrect implementations, technical debt, or architectural inconsistencies.**
+
 ### Knowledge Base Exploration Protocol (MANDATORY)
 
 **For ANY task, MUST review these knowledge sources in order:**
