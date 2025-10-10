@@ -131,17 +131,17 @@
 //! // Define roles with permissions
 //! rbac = rbac.add_role(
 //!     Role::new("admin".to_string(), "System Administrator".to_string())
-//!         .add_permission("system:*".to_string())
+//!         .with_permission("system:*".to_string())
 //! );
 //! rbac = rbac.add_role(
 //!     Role::new("operator".to_string(), "System Operator".to_string())
-//!         .add_permission("process:spawn".to_string())
-//!         .add_permission("process:kill".to_string())
+//!         .with_permission("process:spawn".to_string())
+//!         .with_permission("process:kill".to_string())
 //!         .inherits_from("user".to_string())  // Role inheritance
 //! );
 //! rbac = rbac.add_role(
 //!     Role::new("user".to_string(), "Regular User".to_string())
-//!         .add_permission("file:read".to_string())
+//!         .with_permission("file:read".to_string())
 //! );
 //!
 //! // Assign roles to principals
@@ -180,7 +180,7 @@
 //! let mut rbac = RoleBasedAccessControl::new();
 //! rbac = rbac.add_role(
 //!     Role::new("admin".to_string(), "Admin".to_string())
-//!         .add_permission("system:*".to_string())
+//!         .with_permission("system:*".to_string())
 //! );
 //! rbac = rbac.assign_roles("alice".to_string(), vec!["admin".to_string()]);
 //!
@@ -232,24 +232,22 @@
 //!
 //! ## Audit Log Consumption
 //!
-//! ```rust,no_run
-//! use airssys_osl::middleware::security::{SecurityAuditLogger, SecurityEventType};
-//! use chrono::Utc;
+//! Audit logs are automatically generated during security policy evaluation.
+//! The logs can be consumed from the standard output or integrated with
+//! external logging systems.
 //!
-//! # async fn example() {
-//! let logger = SecurityAuditLogger::new();
-//!
-//! // Query recent access denials
-//! let denials = logger.query_events(
-//!     Utc::now() - chrono::Duration::hours(24),  // Last 24 hours
-//!     Some(SecurityEventType::AccessDenied),
-//! );
-//!
-//! for event in denials {
-//!     println!("DENIED: {} tried to {} on {}",
-//!         event.principal, event.permission, event.resource);
+//! Example audit log output:
+//! ```text
+//! [SECURITY AUDIT] {
+//!   "timestamp": "2025-10-10T10:30:45.123456Z",
+//!   "event_type": "AccessDenied",
+//!   "operation_id": "filesystem:abc123",
+//!   "principal": "bob",
+//!   "session_id": "sess_xyz",
+//!   "decision": "Deny: ACL default policy denies access",
+//!   "policy_applied": "Access Control List (ACL) Policy",
+//!   "metadata": null
 //! }
-//! # }
 //! ```
 //!
 //! # Threat Model and Security Boundaries
@@ -419,44 +417,36 @@
 //! Implement custom security policies for domain-specific requirements:
 //!
 //! ```rust,no_run
-//! use airssys_osl::middleware::security::policy::{SecurityPolicy, PolicyDecision};
-//! use airssys_osl::core::context::ExecutionContext;
-//! use std::collections::HashMap;
-//! use async_trait::async_trait;
+//! use airssys_osl::middleware::security::policy::{SecurityPolicy, PolicyDecision, PolicyScope};
+//! use airssys_osl::core::context::SecurityContext;
 //!
 //! /// Time-based access control policy (e.g., business hours only)
+//! #[derive(Debug)]
 //! pub struct TimeBasedPolicy {
 //!     allowed_hours: (u32, u32),  // (start_hour, end_hour)
 //! }
 //!
-//! #[async_trait]
 //! impl SecurityPolicy for TimeBasedPolicy {
-//!     async fn evaluate(
-//!         &self,
-//!         _context: &ExecutionContext,
-//!         _attributes: &HashMap<String, String>,
-//!     ) -> PolicyDecision {
+//!     fn evaluate(&self, _context: &SecurityContext) -> PolicyDecision {
 //!         use chrono::Timelike;
 //!         let now = chrono::Utc::now();
 //!         let hour = now.hour();
 //!
 //!         if hour >= self.allowed_hours.0 && hour < self.allowed_hours.1 {
-//!             PolicyDecision {
-//!                 allowed: true,
-//!                 reason: format!("Access within business hours ({}:00-{}:00)",
-//!                     self.allowed_hours.0, self.allowed_hours.1),
-//!             }
+//!             PolicyDecision::Allow
 //!         } else {
-//!             PolicyDecision {
-//!                 allowed: false,
-//!                 reason: format!("Access outside business hours (current: {}:00)",
-//!                     hour),
-//!             }
+//!             PolicyDecision::Deny(
+//!                 format!("Access outside business hours (current: {}:00)", hour)
+//!             )
 //!         }
 //!     }
 //!
-//!     fn name(&self) -> &str {
-//!         "TimeBasedPolicy"
+//!     fn description(&self) -> &str {
+//!         "Time-Based Access Control Policy"
+//!     }
+//!
+//!     fn scope(&self) -> PolicyScope {
+//!         PolicyScope::All
 //!     }
 //! }
 //!
