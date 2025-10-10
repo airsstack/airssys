@@ -2,8 +2,8 @@
 
 **Sub-Project:** airssys-osl  
 **Last Updated:** 2025-10-10  
-**Total ADRs:** 4  
-**Active ADRs:** 4  
+**Total ADRs:** 5  
+**Active ADRs:** 5  
 
 ## ADR Summary
 
@@ -11,7 +11,7 @@
 | Status | Count | Description |
 |--------|-------|-------------|
 | Proposed | 0 | Decisions under consideration |
-| Accepted | 4 | Active architectural decisions |
+| Accepted | 5 | Active architectural decisions |
 | Deprecated | 0 | Decisions no longer applicable |
 | Superseded | 0 | Decisions replaced by newer ones |
 
@@ -21,6 +21,7 @@
 | Technology Selection | 0 | Framework, library, and tool choices |
 | Architecture Patterns | 3 | System design and structural decisions |
 | Security | 1 | Security model and implementation decisions |
+| Task Management | 1 | Task lifecycle and scope decisions |
 | Performance | 0 | Performance optimization and target decisions |
 | Integration | 0 | Integration approaches with other components |
 | Platform | 0 | Cross-platform strategy decisions |
@@ -76,6 +77,27 @@
 - Accept breaking API changes in Phase 3 for correctness
 
 **Related**: OSL-TASK-003 Phase 3 - ACL Implementation
+
+### Task Management Category
+
+#### ADR-029: Abandon OSL-TASK-004 and Create OSL-TASK-010 *(Accepted)*
+**Date**: 2025-10-10  
+**Status**: Accepted  
+**Summary**: Abandons OSL-TASK-004 (Middleware Pipeline Framework) due to architectural obsolescence and creates OSL-TASK-010 (Helper Middleware Integration) with accurate scope.
+
+**Key Decisions**:
+- OSL-TASK-004 abandoned (centralized pipeline framework obsolete)
+- ExecutorExt trait pattern (OSL-TASK-009) replaced pipeline need
+- OSL-TASK-010 created for actual remaining work (helper integration)
+- Clear historical record of architectural evolution maintained
+- Task specifications remain accurate to original intent
+
+**Impact**:
+- Total tasks: 9 → 10 (8 complete + 1 abandoned + 1 ready)
+- OSL-TASK-010 is final task before 100% production-ready
+- Clear documentation of architecture decision rationale
+
+**Related**: OSL-TASK-004 (abandoned), OSL-TASK-009 (ExecutorExt), OSL-TASK-010 (new)
 
 ## Planned Architecture Decision Records
 

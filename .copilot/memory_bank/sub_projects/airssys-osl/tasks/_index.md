@@ -4,9 +4,11 @@
 
 **Sub-Project:** airssys-osl  
 **Last Updated:** 2025-10-10  
-**Total Tasks:** 9  
+**Total Tasks:** 10  
 **Active Tasks:** 0  
 **Completed Tasks:** 8  
+**Abandoned Tasks:** 1  
+**Ready Tasks:** 1  
 
 ## Task Summary
 
@@ -14,7 +16,7 @@
 | Priority | Count | Status Distribution |
 |----------|-------|-------------------|
 | Critical | 3 | Complete: 3 |
-| High | 6 | Pending: 1, Complete: 5 |
+| High | 7 | Complete: 5, Abandoned: 1, Ready: 1 |
 | Medium | 0 | - |
 | Low | 0 | - |
 
@@ -22,8 +24,8 @@
 | Status | Count | Description |
 |--------|-------|-------------|
 | Complete | 8 | OSL-TASK-001, 002, 003, 005, 006, 007, 008, 009 |
-| Pending | 1 | OSL-TASK-004 (needs scope redefinition) |
-| Blocked | 0 | - |
+| Ready to Start | 1 | OSL-TASK-010 (helper middleware integration) |
+| Abandoned | 1 | OSL-TASK-004 (obsolete - replaced by ExecutorExt) |
 
 ## Completed Tasks ✅
 
@@ -143,46 +145,105 @@
 
 ## Pending Tasks
 
-### OSL-TASK-004: Middleware Pipeline Framework *(High, Pending)*
-**Status:** ⏳ PENDING (needs scope redefinition)  
+### OSL-TASK-010: Helper Function Middleware Integration *(High, Ready)*
+**Status:** 🎯 READY TO START  
 **Estimated Effort:** 1-2 days  
 **Dependencies:** ✅ OSL-TASK-003 (COMPLETE), ✅ OSL-TASK-009 (COMPLETE)  
-**Description:** Originally planned as middleware pipeline orchestration framework, but replaced by extension trait pattern in OSL-TASK-009.
+**Replaces:** OSL-TASK-004 (abandoned)
+**Description:** Integrate security validation and audit logging into all 10 helper functions using ExecutorExt middleware composition pattern.
 
 **Current Situation:**
-- Original scope (pipeline.rs, registry.rs, dispatcher.rs) replaced by ExecutorExt trait
-- 20 TODO comments in helpers.rs reference OSL-TASK-004 for middleware wiring
-- Need to redefine scope as: "Integrate security validation and middleware into helper functions"
+- 10 helper functions bypass security middleware (direct executor calls)
+- 20 TODO comments reference OSL-TASK-003/004 for integration
+- Security enforcement missing from convenience APIs
 
-**Proposed New Scope:**
-- Wire SecurityMiddleware validation into 10 helper functions
-- Add middleware composition support via ExecutorExt
-- Update helpers.rs to use .with_middleware() pattern
-- Remove TODO(OSL-TASK-004) comments after integration
-- Final integration testing and documentation
+**Proposed Scope:**
+- Wire SecurityMiddleware into all 10 helpers via `.with_middleware()`
+- Add default middleware stack (ACL + RBAC + audit)
+- Provide both simple API and advanced variant with custom middleware
+- Remove all 20 TODO comments
+- Add 50+ integration tests (security + audit)
+- Update documentation with security examples
 
-**Why Pending:** Scope needs redefinition based on current architecture (helpers + extension trait vs original pipeline framework)
+**Deliverables:**
+- ✅ All 10 helpers use ExecutorExt middleware composition
+- ✅ Default security enforcement (ACL + RBAC + audit)
+- ✅ Custom middleware variant for advanced users
+- ✅ 50+ new integration tests
+- ✅ Comprehensive security documentation
+- ✅ Zero warnings, production-ready quality
+
+**Upon Completion:** airssys-osl reaches 100% production-ready status! 🎉
+
+## Abandoned Tasks
+
+### OSL-TASK-004: Middleware Pipeline Framework *(High, Abandoned)*
+**Status:** ❌ ABANDONED (2025-10-10)  
+**Original Estimated Effort:** 1-2 days  
+**Created:** 2025-09-27  
+**Abandoned:** 2025-10-10  
+**Replaced By:** OSL-TASK-010 (Helper Middleware Integration)  
+**Reference:** ADR-029
+
+**Abandonment Reason:**
+Architectural decision (OSL-TASK-009, completed 2025-10-09) replaced centralized pipeline framework with ExecutorExt trait pattern. Original scope (pipeline.rs, registry.rs, dispatcher.rs) is architecturally obsolete.
+
+**Why Abandoned:**
+1. **Architecture Evolution:** OSL-TASK-009 implemented ExecutorExt trait with `.with_middleware()` method, making centralized orchestration unnecessary
+2. **Simpler Solution:** Extension trait pattern provides type-safe middleware composition without pipeline complexity
+3. **YAGNI Compliance:** Centralized framework was over-engineered for current needs
+4. **Actual Need:** Integration of middleware into helpers (now OSL-TASK-010), not pipeline infrastructure
+
+**What Replaced It:**
+- **OSL-TASK-009:** ExecutorExt trait implementation (completed)
+- **OSL-TASK-010:** Helper middleware integration (ready to start)
+
+**Original Scope (Historical Reference):**
+- ❌ MiddlewarePipeline with type-erased dispatch
+- ❌ MiddlewareRegistry for dynamic registration
+- ❌ Pipeline orchestration (before/after/error hooks)
+- ❌ Priority-based middleware ordering
+- ❌ Metrics and monitoring infrastructure
+
+**Files That Won't Be Created:**
+- `src/middleware/pipeline.rs`
+- `src/middleware/registry.rs`
+- `src/middleware/dispatcher.rs`
 
 ## Task Dependencies
 
 ### Updated Critical Path (2025-10-10)
 ```
-OSL-TASK-001 ✅ (Core Foundation)
-├── OSL-TASK-002 ✅ (Logger Middleware)
-├── OSL-TASK-005 ✅ (API Ergonomics Foundation)
-├── OSL-TASK-006 ✅ (Framework Implementation, Phases 1-3, Phase 4 cancelled)
-└── OSL-TASK-007 ✅ (Concrete Operations)
-    └── OSL-TASK-008 ✅ (Platform Executors, Phases 1-4, Phases 5-7 cancelled)
-        └── OSL-TASK-009 ✅ (Remove Framework, Add Helpers)
-            └── OSL-TASK-003 ✅ (Security Middleware)
-                └── OSL-TASK-004 ⏳ (Helper Integration - pending scope redefinition)
-                    └── Production Ready 🎉
+OSL-TASK-001 ✅ Core Foundation
+├── OSL-TASK-002 ✅ Logger Middleware
+├── OSL-TASK-005 ✅ API Ergonomics Foundation
+├── OSL-TASK-006 ✅ Framework Implementation (Phases 1-3, Phase 4 cancelled)
+└── OSL-TASK-007 ✅ Concrete Operations
+    └── OSL-TASK-008 ✅ Platform Executors (Phases 1-4, Phases 5-7 cancelled)
+        └── OSL-TASK-009 ✅ Remove Framework, Add Helpers
+            └── OSL-TASK-003 ✅ Security Middleware
+                └── OSL-TASK-010 🎯 Helper Middleware Integration (FINAL TASK)
+                    └── 🎉 Production Ready (100%)
+
+ABANDONED:
+└── OSL-TASK-004 ❌ Middleware Pipeline Framework
+    ├─ Reason: Replaced by ExecutorExt trait pattern (OSL-TASK-009)
+    └─ Reference: ADR-029
 ```
 
 ### Current Status
-- **✅ Complete:** Tasks 001, 002, 003, 005, 006, 007, 008, 009 (8 tasks)
-- **⏳ Pending:** OSL-TASK-004 (needs scope redefinition for helper integration)
+- **✅ Complete:** Tasks 001, 002, 003, 005, 006, 007, 008, 009 (8 tasks - 80%)
+- **🎯 Ready to Start:** OSL-TASK-010 (Helper Integration - final 10%)
+- **❌ Abandoned:** OSL-TASK-004 (Pipeline Framework - obsolete)
 - **🔒 Blocked:** None
+
+### Task Statistics
+| Category | Count | Percentage |
+|----------|-------|------------|
+| Completed | 8/10 | 80% |
+| Ready | 1/10 | 10% |
+| Abandoned | 1/10 | 10% |
+| **Effective Progress** | **8/9** | **89%** (excluding abandoned) |
 
 ### Key Decisions
 
@@ -190,4 +251,6 @@ OSL-TASK-001 ✅ (Core Foundation)
 
 **2025-10-10:** OSL-TASK-003 Security Middleware completed with full threat model validation, 311 tests passing, production-ready.
 
-**2025-10-10:** OSL-TASK-004 scope needs redefinition - original pipeline framework replaced by ExecutorExt trait pattern. New scope should focus on integrating security and middleware into helper functions.
+**2025-10-10:** OSL-TASK-004 abandoned - Original pipeline framework scope obsolete after ExecutorExt trait implementation. Replaced by OSL-TASK-010 (Helper Middleware Integration). See ADR-029 for full rationale.
+
+**2025-10-10:** OSL-TASK-010 created - Clean task specification for integrating security middleware into helper functions using ExecutorExt pattern. Final task before 100% production-ready status.
