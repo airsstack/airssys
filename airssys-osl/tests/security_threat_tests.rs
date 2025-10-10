@@ -53,10 +53,7 @@ async fn threat_permission_escalation_attempt() {
     let result = middleware.before_execution(operation, &context).await;
 
     // Validation: Should be denied (identity mismatch: regular_user vs admin)
-    assert!(
-        result.is_err(),
-        "Permission escalation should be blocked"
-    );
+    assert!(result.is_err(), "Permission escalation should be blocked");
 }
 
 // ================================================================================================
@@ -203,18 +200,16 @@ async fn threat_wildcard_pattern_exploitation() {
     // Attack 1: Trying to access file starting with 's' (pattern excludes it)
     let operation = FileReadOperation::new("/public/secret.txt".to_string());
     let mut context = ExecutionContext::new(SecurityContext::new("user".to_string()));
-    context.security_context.attributes.insert(
-        "resource".to_string(),
-        "/public/secret.txt".to_string(),
-    );
+    context
+        .security_context
+        .attributes
+        .insert("resource".to_string(), "/public/secret.txt".to_string());
     context
         .security_context
         .attributes
         .insert("permission".to_string(), "file:read".to_string());
 
-    let result = middleware
-        .before_execution(operation, &context)
-        .await;
+    let result = middleware.before_execution(operation, &context).await;
     assert!(result.is_err(), "File starting with 's' should be blocked");
 
     // Attack 2: Trying to access non-.txt file
@@ -251,10 +246,8 @@ async fn threat_permission_string_manipulation() {
         .expect("Failed to build middleware");
 
     // Attack: Trying to use modified permission string
-    let operation = FileWriteOperation::new(
-        "/data/file.txt".to_string(),
-        "data".as_bytes().to_vec(),
-    );
+    let operation =
+        FileWriteOperation::new("/data/file.txt".to_string(), "data".as_bytes().to_vec());
     let mut context = ExecutionContext::new(SecurityContext::new("user".to_string()));
     context
         .security_context
@@ -340,16 +333,13 @@ async fn threat_circular_role_dependency_dos() {
 
     // Create circular dependency: role_a -> role_c -> role_b -> role_a
     rbac = rbac.add_role(
-        Role::new("role_a".to_string(), "Role A".to_string())
-            .inherits_from("role_c".to_string()),
+        Role::new("role_a".to_string(), "Role A".to_string()).inherits_from("role_c".to_string()),
     );
     rbac = rbac.add_role(
-        Role::new("role_b".to_string(), "Role B".to_string())
-            .inherits_from("role_a".to_string()),
+        Role::new("role_b".to_string(), "Role B".to_string()).inherits_from("role_a".to_string()),
     );
     rbac = rbac.add_role(
-        Role::new("role_c".to_string(), "Role C".to_string())
-            .inherits_from("role_b".to_string()),
+        Role::new("role_c".to_string(), "Role C".to_string()).inherits_from("role_b".to_string()),
     );
 
     rbac = rbac.assign_roles("user".to_string(), vec!["role_a".to_string()]);
@@ -500,7 +490,7 @@ async fn threat_process_spawn_privilege_escalation() {
 async fn threat_acl_default_policy_override() {
     // Scenario: Attacker hoping default Allow policy overrides explicit Deny
     // Expected: Explicit Deny always wins
-    
+
     let acl = AccessControlList::new()
         .with_default_policy(AclPolicy::Allow)
         .add_entry(AclEntry::new(
@@ -508,7 +498,8 @@ async fn threat_acl_default_policy_override() {
             "/secret/*".to_string(),
             vec!["*".to_string()],
             AclPolicy::Deny, // Explicit deny
-        ));    let middleware = SecurityMiddlewareBuilder::new()
+        ));
+    let middleware = SecurityMiddlewareBuilder::new()
         .with_config(SecurityConfig::default())
         .add_policy(Box::new(acl))
         .build()
@@ -558,10 +549,8 @@ async fn threat_permission_wildcard_confusion() {
         .expect("Failed to build middleware");
 
     // Attack: Requesting with wildcard permission
-    let operation = FileWriteOperation::new(
-        "/data/file.txt".to_string(),
-        "data".as_bytes().to_vec(),
-    );
+    let operation =
+        FileWriteOperation::new("/data/file.txt".to_string(), "data".as_bytes().to_vec());
     let mut context = ExecutionContext::new(SecurityContext::new("user".to_string()));
     context
         .security_context
