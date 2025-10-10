@@ -30,6 +30,9 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 uuid = { workspace = true }
 
+# Pattern matching (for ACL security policies)
+glob = { workspace = true }
+
 # Logging integration
 tracing = { workspace = true }
 

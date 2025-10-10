@@ -1,12 +1,12 @@
 # airssys-osl Progress
 
 ## Current Status
-**Phase:** OSL-TASK-003 Phase 2 COMPLETE - Security Policy Architecture Simplified
-**Overall Progress:** 93%  
+**Phase:** OSL-TASK-003 Phase 3 COMPLETE - ACL Implementation with Glob Patterns  
+**Overall Progress:** 94%  
 **Last Updated:** 2025-10-10
 
 ## Recent Achievement
-**Security Policy Refactoring** (2025-10-10): Successfully simplified security policy architecture by removing redundant `SecurityPolicyDispatcher` trait and generic parameters, resulting in ~165 lines of code reduction and significantly improved API ergonomics for third-party developers. All 206 tests passing with zero warnings.
+**ACL Glob Pattern Implementation** (2025-10-10): Completed full ACL implementation with glob-based pattern matching for resources and permissions. Implemented string-based permissions (ADR-028), context attribute extraction, and comprehensive evaluation logic. Added 14 new tests (20 total ACL tests), zero warnings, all doc tests passing. Breaking API changes properly documented.
 
 ## What Works
 ### ✅ Completed Components
@@ -600,6 +600,19 @@
     - Total tests: 8 comprehensive integration tests (all passing)
     - Production-ready: Full policy evaluation with deny-by-default enforcement
     - Git commits: 62ec0a4 (Phase 2 implementation), b70006e (memory bank docs), [refactoring commit TBD]
+
+  **Phase 3 - ACL Implementation** ✅ COMPLETED (2025-10-10)
+    - String-based permissions with Vec<String> field (ADR-028)
+    - glob crate v0.3 integration for pattern matching
+    - Context attribute constants: ATTR_RESOURCE, ATTR_PERMISSION
+    - Resource matching with glob patterns (*, ?, [...])
+    - Permission matching with glob support and wildcard semantics
+    - Full evaluate() implementation with first-match semantics
+    - Breaking API changes: AclEntry::new() requires permissions parameter
+    - Tests: 20 unit tests passing (6 existing + 14 new comprehensive tests)
+    - Documentation: Complete rustdoc with glob pattern examples, all doc tests passing
+    - Quality: Zero warnings, zero clippy issues
+    - ADR: ADR-028 - ACL Permission Model and Glob Pattern Matching
 
 
 #### ✅ COMPLETED - PRODUCTION READY
