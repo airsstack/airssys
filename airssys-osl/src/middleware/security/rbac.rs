@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 
 // Layer 3: Internal module imports
 use crate::core::context::SecurityContext;
-use crate::core::operation::Operation;
 use crate::middleware::security::policy::{PolicyDecision, PolicyScope, SecurityPolicy};
 
 /// Type alias for user identifiers.
@@ -156,44 +155,8 @@ impl Default for RoleBasedAccessControl {
     }
 }
 
-impl<O: Operation> SecurityPolicy<O> for RoleBasedAccessControl {
-    fn evaluate(&self, _operation: &O, context: &SecurityContext) -> PolicyDecision {
-        let principal = &context.principal;
-
-        // Get user's roles
-        let user_roles = self.get_user_roles(principal);
-
-        if user_roles.is_empty() {
-            return PolicyDecision::Deny(format!("No roles assigned to user '{principal}'"));
-        }
-
-        // TODO: Implement permission resolution with role inheritance
-        // For now, if user has any roles, allow (placeholder)
-        PolicyDecision::Allow
-    }
-
-    fn description(&self) -> &str {
-        "Role-Based Access Control (RBAC) Policy"
-    }
-
-    fn scope(&self) -> PolicyScope {
-        PolicyScope::All
-    }
-}
-
-/// Implementation of SecurityPolicyDispatcher for RoleBasedAccessControl.
-///
-/// This allows RBAC policies to be used in the SecurityMiddleware's
-/// type-erased policy storage.
-impl crate::middleware::security::policy::SecurityPolicyDispatcher for RoleBasedAccessControl {
-    fn evaluate_any(
-        &self,
-        _operation: &dyn std::any::Any,
-        context: &SecurityContext,
-    ) -> PolicyDecision {
-        // RBAC policies work with any operation type, evaluating based on
-        // user roles rather than specific operation details
-        
+impl SecurityPolicy for RoleBasedAccessControl {
+    fn evaluate(&self, context: &SecurityContext) -> PolicyDecision {
         let principal = &context.principal;
 
         // Get user's roles

@@ -16,7 +16,7 @@ use crate::core::middleware::{Middleware, MiddlewareError, MiddlewareResult};
 use crate::core::operation::Operation;
 use crate::core::security::SecurityConfig;
 use crate::middleware::security::audit::{ConsoleSecurityAuditLogger, SecurityAuditLogger};
-use crate::middleware::security::policy::SecurityPolicyDispatcher;
+use crate::middleware::security::policy::SecurityPolicy;
 
 /// SecurityMiddleware for policy-based access control.
 ///
@@ -54,7 +54,7 @@ use crate::middleware::security::policy::SecurityPolicyDispatcher;
 pub struct SecurityMiddleware {
     config: SecurityConfig,
     audit_logger: Arc<dyn SecurityAuditLogger>,
-    policies: Vec<Box<dyn SecurityPolicyDispatcher>>,
+    policies: Vec<Box<dyn SecurityPolicy>>,
 }
 
 impl SecurityMiddleware {
@@ -136,7 +136,7 @@ impl<O: Operation> Middleware<O> for SecurityMiddleware {
         // If no policies configured, deny by default (secure default)
         if self.policies.is_empty() {
             let reason = "No security policies configured - deny by default".to_string();
-            
+
             // Log security denial
             let log = SecurityAuditLog::new(
                 SecurityEventType::AccessDenied,
@@ -145,38 +145,40 @@ impl<O: Operation> Middleware<O> for SecurityMiddleware {
                 &PolicyDecision::Deny(reason.clone()),
                 "deny-by-default",
             );
-            
+
             if let Err(e) = self.audit_logger.log_security_event(log).await {
                 eprintln!("Failed to log security denial: {e}");
             }
-            
+
             return Err(MiddlewareError::SecurityViolation(reason));
         }
 
         // Evaluate all policies - deny if ANY policy denies
         let mut auth_requirements = Vec::new();
-        
+
         for policy in &self.policies {
-            // Use type-erased evaluation via Any trait
-            let decision = policy.evaluate_any(&operation as &dyn std::any::Any, &context.security_context);
-            
+            // Evaluate policy using only SecurityContext
+            let decision = policy.evaluate(&context.security_context);
+
             // Log the policy decision
             let log = SecurityAuditLog::new(
                 match &decision {
                     PolicyDecision::Allow => SecurityEventType::AccessGranted,
                     PolicyDecision::Deny(_) => SecurityEventType::AccessDenied,
-                    PolicyDecision::RequireAdditionalAuth(_) => SecurityEventType::AuthenticationRequired,
+                    PolicyDecision::RequireAdditionalAuth(_) => {
+                        SecurityEventType::AuthenticationRequired
+                    }
                 },
                 operation.operation_id().to_string(),
                 &context.security_context,
                 &decision,
                 policy.description(),
             );
-            
+
             if let Err(e) = self.audit_logger.log_security_event(log).await {
                 eprintln!("Failed to log policy decision: {e}");
             }
-            
+
             // Process the decision
             match decision {
                 PolicyDecision::Allow => {
@@ -202,9 +204,7 @@ impl<O: Operation> Middleware<O> for SecurityMiddleware {
         // For now, we'll just log them (future: could attach to operation metadata)
         if !auth_requirements.is_empty() {
             for (policy_name, auth_req) in auth_requirements {
-                eprintln!(
-                    "Policy '{policy_name}' requires additional auth: {auth_req:?}"
-                );
+                eprintln!("Policy '{policy_name}' requires additional auth: {auth_req:?}");
             }
             // TODO: Future enhancement - attach auth requirements to operation
             // For now, we allow the operation to proceed (logged for awareness)
@@ -220,11 +220,11 @@ impl<O: Operation> Middleware<O> for SecurityMiddleware {
             &PolicyDecision::Allow,
             &policy_count_msg,
         );
-        
+
         if let Err(e) = self.audit_logger.log_security_event(log).await {
             eprintln!("Failed to log policy approval: {e}");
         }
-        
+
         Ok(Some(operation))
     }
 }
@@ -237,7 +237,7 @@ impl<O: Operation> Middleware<O> for SecurityMiddleware {
 pub struct SecurityMiddlewareBuilder {
     config: SecurityConfig,
     audit_logger: Option<Arc<dyn SecurityAuditLogger>>,
-    policies: Vec<Box<dyn SecurityPolicyDispatcher>>,
+    policies: Vec<Box<dyn SecurityPolicy>>,
 }
 
 impl SecurityMiddlewareBuilder {
@@ -287,7 +287,7 @@ impl SecurityMiddlewareBuilder {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn add_policy(mut self, policy: Box<dyn SecurityPolicyDispatcher>) -> Self {
+    pub fn add_policy(mut self, policy: Box<dyn SecurityPolicy>) -> Self {
         self.policies.push(policy);
         self
     }
@@ -329,18 +329,14 @@ mod tests {
             <SecurityMiddleware as Middleware<FileReadOperation>>::priority(&middleware),
             100
         );
-        assert!(<SecurityMiddleware as Middleware<FileReadOperation>>::is_enabled(
-            &middleware
-        ));
+        assert!(<SecurityMiddleware as Middleware<FileReadOperation>>::is_enabled(&middleware));
     }
 
     #[test]
     fn test_security_middleware_with_config() {
         let config = SecurityConfig::without_logging();
         let middleware = SecurityMiddleware::with_config(config);
-        assert!(!<SecurityMiddleware as Middleware<FileReadOperation>>::is_enabled(
-            &middleware
-        ));
+        assert!(!<SecurityMiddleware as Middleware<FileReadOperation>>::is_enabled(&middleware));
     }
 
     #[test]
@@ -355,9 +351,7 @@ mod tests {
                 <SecurityMiddleware as Middleware<FileReadOperation>>::priority(&middleware),
                 100
             );
-            assert!(<SecurityMiddleware as Middleware<FileReadOperation>>::is_enabled(
-                &middleware
-            ));
+            assert!(<SecurityMiddleware as Middleware<FileReadOperation>>::is_enabled(&middleware));
         }
     }
 
@@ -368,8 +362,6 @@ mod tests {
             <SecurityMiddleware as Middleware<FileReadOperation>>::name(&middleware),
             "security"
         );
-        assert!(<SecurityMiddleware as Middleware<FileReadOperation>>::is_enabled(
-            &middleware
-        ));
+        assert!(<SecurityMiddleware as Middleware<FileReadOperation>>::is_enabled(&middleware));
     }
 }

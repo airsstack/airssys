@@ -11,7 +11,6 @@ use serde::{Deserialize, Serialize};
 
 // Layer 3: Internal module imports
 use crate::core::context::SecurityContext;
-use crate::core::operation::Operation;
 use crate::middleware::security::policy::{PolicyDecision, PolicyScope, SecurityPolicy};
 
 /// ACL policy action for entries.
@@ -111,53 +110,8 @@ impl Default for AccessControlList {
     }
 }
 
-impl<O: Operation> SecurityPolicy<O> for AccessControlList {
-    fn evaluate(&self, _operation: &O, context: &SecurityContext) -> PolicyDecision {
-        let principal = &context.principal;
-
-        // Evaluate entries in order
-        for entry in &self.entries {
-            if entry.matches_identity(principal) {
-                return match entry.policy {
-                    AclPolicy::Allow => PolicyDecision::Allow,
-                    AclPolicy::Deny => {
-                        PolicyDecision::Deny(format!("ACL policy denies access for '{principal}'"))
-                    }
-                };
-            }
-        }
-
-        // No matching entry - apply default policy
-        match self.default_policy {
-            AclPolicy::Allow => PolicyDecision::Allow,
-            AclPolicy::Deny => PolicyDecision::Deny(format!(
-                "ACL default policy denies access for '{principal}'"
-            )),
-        }
-    }
-
-    fn description(&self) -> &str {
-        "Access Control List (ACL) Policy"
-    }
-
-    fn scope(&self) -> PolicyScope {
-        PolicyScope::All
-    }
-}
-
-/// Implementation of SecurityPolicyDispatcher for AccessControlList.
-///
-/// This allows ACL policies to be used in the SecurityMiddleware's
-/// type-erased policy storage.
-impl crate::middleware::security::policy::SecurityPolicyDispatcher for AccessControlList {
-    fn evaluate_any(
-        &self,
-        _operation: &dyn std::any::Any,
-        context: &SecurityContext,
-    ) -> PolicyDecision {
-        // ACL policies work with any operation type, so we can evaluate directly
-        // without type downcasting (we only need the security context)
-        
+impl SecurityPolicy for AccessControlList {
+    fn evaluate(&self, context: &SecurityContext) -> PolicyDecision {
         let principal = &context.principal;
 
         // Evaluate entries in order

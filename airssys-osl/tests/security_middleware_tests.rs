@@ -1,5 +1,8 @@
 //! Integration tests for SecurityMiddleware with policy evaluation.
 
+#![allow(clippy::expect_used)]
+#![allow(clippy::unwrap_used)]
+
 use airssys_osl::core::context::{ExecutionContext, SecurityContext};
 use airssys_osl::core::middleware::Middleware;
 use airssys_osl::core::security::SecurityConfig;

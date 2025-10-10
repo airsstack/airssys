@@ -4,7 +4,6 @@
 //! evaluation framework for the security middleware.
 
 // Layer 1: Standard library imports
-use std::any::Any;
 use std::fmt::Debug;
 
 // Layer 2: Third-party crate imports
@@ -12,7 +11,6 @@ use std::fmt::Debug;
 
 // Layer 3: Internal module imports
 use crate::core::context::SecurityContext;
-use crate::core::operation::Operation;
 
 /// Security policy evaluation result.
 ///
@@ -73,16 +71,20 @@ pub enum PolicyScope {
 /// a decision on whether the operation should be allowed, denied, or require
 /// additional authentication.
 ///
-/// # Generic Parameters
+/// # Design Philosophy
 ///
-/// * `O` - The operation type this policy can evaluate
+/// This trait uses `SecurityContext` exclusively for policy evaluation.
+/// All resource information (file paths, network endpoints, etc.) should
+/// be passed through `SecurityContext.attributes` by middleware before
+/// policy evaluation.
 ///
 /// # Design Principles
 ///
-/// - **Generic-first design** (§6.2): Uses generic constraints for type safety
+/// - **Simple design** (§6.1 YAGNI, §6.2): No generic parameters, straightforward evaluation
 /// - **Deny-by-default**: Policies should deny unless explicitly allowed
 /// - **Stateless evaluation**: Policy evaluation should be deterministic
 /// - **Clear decisions**: Return explicit Allow/Deny with reasons
+/// - **Context-driven**: All information flows through SecurityContext for maximum flexibility
 ///
 /// # Example Implementation
 ///
@@ -90,18 +92,22 @@ pub enum PolicyScope {
 /// use airssys_osl::middleware::security::policy::{
 ///     SecurityPolicy, PolicyDecision, PolicyScope
 /// };
-/// use airssys_osl::core::{context::SecurityContext, operation::Operation};
+/// use airssys_osl::core::context::SecurityContext;
 ///
 /// #[derive(Debug)]
-/// struct AlwaysAllowPolicy;
+/// struct AdminOnlyPolicy;
 ///
-/// impl<O: Operation> SecurityPolicy<O> for AlwaysAllowPolicy {
-///     fn evaluate(&self, _operation: &O, _context: &SecurityContext) -> PolicyDecision {
-///         PolicyDecision::Allow
+/// impl SecurityPolicy for AdminOnlyPolicy {
+///     fn evaluate(&self, context: &SecurityContext) -> PolicyDecision {
+///         if context.is_admin() {
+///             PolicyDecision::Allow
+///         } else {
+///             PolicyDecision::Deny("Admin privileges required".to_string())
+///         }
 ///     }
 ///
 ///     fn description(&self) -> &str {
-///         "Always allow policy (for testing only)"
+///         "Admin-only access policy"
 ///     }
 ///
 ///     fn scope(&self) -> PolicyScope {
@@ -114,22 +120,26 @@ pub enum PolicyScope {
 ///
 /// Implementations must be thread-safe (Send + Sync) as policies may be
 /// evaluated concurrently from multiple threads.
-pub trait SecurityPolicy<O>: Debug + Send + Sync + 'static
-where
-    O: Operation,
-{
-    /// Evaluate if the operation is permitted.
+pub trait SecurityPolicy: Debug + Send + Sync + 'static {
+    /// Evaluate if the operation is permitted based on security context.
     ///
     /// # Arguments
     ///
-    /// * `operation` - The operation to evaluate
-    /// * `context` - The security context of the requester
+    /// * `context` - The security context containing principal, session, and attributes
     ///
     /// # Returns
     ///
     /// Returns a `PolicyDecision` indicating whether the operation should
     /// be allowed, denied, or requires additional authentication.
-    fn evaluate(&self, operation: &O, context: &SecurityContext) -> PolicyDecision;
+    ///
+    /// # Context Attributes
+    ///
+    /// Policies can access operation details through `context.attributes`:
+    /// - `resource_type`: Type of resource (e.g., "file", "network", "process")
+    /// - `resource_path`: Resource identifier (e.g., file path, URL)
+    /// - `action`: Operation action (e.g., "read", "write", "execute")
+    /// - Custom attributes: Application-specific context
+    fn evaluate(&self, context: &SecurityContext) -> PolicyDecision;
 
     /// Get human-readable policy description.
     ///
@@ -141,72 +151,6 @@ where
     ///
     /// Defines which operation types this policy applies to. Policies with
     /// more specific scopes may be evaluated before broader policies.
-    fn scope(&self) -> PolicyScope;
-}
-
-/// Type-erased security policy dispatcher.
-///
-/// This trait enables storing heterogeneous policy types in a single collection
-/// by providing type erasure for security policy evaluation.
-///
-/// # Design Rationale
-///
-/// This is a **documented exception** to workspace standard §6.2 (avoid dyn patterns).
-/// Type erasure is necessary here because:
-/// - SecurityMiddleware needs to store policies that work with different operation types
-/// - Generic constraints cannot express "policy for any operation type"
-/// - Alternative designs would require complex type-level programming
-///
-/// # Implementation
-///
-/// Concrete policy types (ACL, RBAC) implement this trait directly to handle
-/// type erasure for their specific evaluation logic.
-///
-/// # Example
-///
-/// ```rust,no_run
-/// use airssys_osl::middleware::security::policy::{
-///     SecurityPolicyDispatcher, PolicyDecision, PolicyScope
-/// };
-/// use airssys_osl::core::context::SecurityContext;
-/// use std::any::Any;
-///
-/// #[derive(Debug)]
-/// struct MyPolicy;
-///
-/// impl SecurityPolicyDispatcher for MyPolicy {
-///     fn evaluate_any(
-///         &self,
-///         _operation: &dyn Any,
-///         _context: &SecurityContext,
-///     ) -> PolicyDecision {
-///         PolicyDecision::Allow
-///     }
-///     fn description(&self) -> &str { "My Policy" }
-///     fn scope(&self) -> PolicyScope { PolicyScope::All }
-/// }
-/// ```
-pub trait SecurityPolicyDispatcher: Debug + Send + Sync + 'static {
-    /// Evaluate policy for any operation type.
-    ///
-    /// This method uses dynamic dispatch and type downcasting to evaluate
-    /// a policy against an operation of unknown type at compile time.
-    ///
-    /// # Arguments
-    ///
-    /// * `operation` - Reference to the operation (type-erased via Any trait)
-    /// * `context` - The security context
-    ///
-    /// # Returns
-    ///
-    /// Returns the policy decision. If the operation type is not supported
-    /// by this policy, it should return `PolicyDecision::Allow` (no opinion).
-    fn evaluate_any(&self, operation: &dyn Any, context: &SecurityContext) -> PolicyDecision;
-
-    /// Get human-readable policy description.
-    fn description(&self) -> &str;
-
-    /// Get the scope of this policy.
     fn scope(&self) -> PolicyScope;
 }
 
