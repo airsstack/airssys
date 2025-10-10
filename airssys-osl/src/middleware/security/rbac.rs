@@ -274,12 +274,7 @@ impl RoleBasedAccessControl {
         // Recursively resolve inherited roles
         if let Some(role) = self.roles.get(role_id) {
             for inherited_role_id in &role.inherits_from {
-                self.resolve_role_recursive(
-                    inherited_role_id,
-                    effective_roles,
-                    visited,
-                    stack,
-                )?;
+                self.resolve_role_recursive(inherited_role_id, effective_roles, visited, stack)?;
             }
         }
 
@@ -711,8 +706,8 @@ mod tests {
         //  left  right
         //    \   /
         //    bottom
-        let top_role = Role::new("top".to_string(), "Top".to_string())
-            .with_permission("top_perm".to_string());
+        let top_role =
+            Role::new("top".to_string(), "Top".to_string()).with_permission("top_perm".to_string());
 
         let left_role = Role::new("left".to_string(), "Left".to_string())
             .with_permission("left_perm".to_string())
@@ -736,10 +731,7 @@ mod tests {
 
         // Request top permission (should be available through both paths)
         let mut attributes = HashMap::new();
-        attributes.insert(
-            ATTR_REQUIRED_PERMISSION.to_string(),
-            "top_perm".to_string(),
-        );
+        attributes.insert(ATTR_REQUIRED_PERMISSION.to_string(), "top_perm".to_string());
 
         let context = SecurityContext {
             principal: "alice".to_string(),
