@@ -40,7 +40,7 @@ pub enum SecurityEventType {
 /// compliance reporting.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityAuditLog {
-    /// When the event occurred (§3.2 - chrono DateTime<Utc>)
+    /// When the event occurred (§3.2 - chrono `DateTime<Utc>`)
     pub timestamp: DateTime<Utc>,
 
     /// Type of security event
