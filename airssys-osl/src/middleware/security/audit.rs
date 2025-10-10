@@ -171,11 +171,18 @@ impl SecurityAuditLogger for ConsoleSecurityAuditLogger {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::middleware::security::policy::AuthRequirement;
 
     #[test]
     fn test_security_event_type_equality() {
-        assert_eq!(SecurityEventType::AccessGranted, SecurityEventType::AccessGranted);
-        assert_ne!(SecurityEventType::AccessGranted, SecurityEventType::AccessDenied);
+        assert_eq!(
+            SecurityEventType::AccessGranted,
+            SecurityEventType::AccessGranted
+        );
+        assert_ne!(
+            SecurityEventType::AccessGranted,
+            SecurityEventType::AccessDenied
+        );
     }
 
     #[test]
@@ -232,5 +239,165 @@ mod tests {
 
         let result = logger.log_security_event(log).await;
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_audit_log_serialization() {
+        let context = SecurityContext::new("test-user".to_string());
+        let decision = PolicyDecision::Allow;
+
+        let log = SecurityAuditLog::new(
+            SecurityEventType::AccessGranted,
+            "op-123".to_string(),
+            &context,
+            &decision,
+            "test-policy",
+        );
+
+        // Test JSON serialization
+        let json = serde_json::to_string(&log);
+        assert!(json.is_ok());
+
+        // Test deserialization
+        let json_str = json.unwrap();
+        let deserialized: Result<SecurityAuditLog, _> = serde_json::from_str(&json_str);
+        assert!(deserialized.is_ok());
+
+        let log2 = deserialized.unwrap();
+        assert_eq!(log.event_type, log2.event_type);
+        assert_eq!(log.operation_id, log2.operation_id);
+        assert_eq!(log.principal, log2.principal);
+    }
+
+    #[test]
+    fn test_audit_log_with_metadata() {
+        let context = SecurityContext::new("test-user".to_string());
+        let decision = PolicyDecision::Allow;
+
+        let metadata = serde_json::json!({
+            "resource": "/etc/passwd",
+            "action": "read"
+        });
+
+        let log = SecurityAuditLog::new(
+            SecurityEventType::AccessGranted,
+            "op-123".to_string(),
+            &context,
+            &decision,
+            "test-policy",
+        )
+        .with_metadata(metadata.clone());
+
+        assert_eq!(log.metadata, metadata);
+    }
+
+    #[test]
+    fn test_security_violation_logging() {
+        let context = SecurityContext::new("malicious-user".to_string());
+        let decision = PolicyDecision::Deny("Security violation detected".to_string());
+
+        let log = SecurityAuditLog::new(
+            SecurityEventType::SecurityViolation,
+            "op-666".to_string(),
+            &context,
+            &decision,
+            "security-policy",
+        );
+
+        assert_eq!(log.event_type, SecurityEventType::SecurityViolation);
+        assert!(log.decision.contains("Security violation"));
+    }
+
+    #[test]
+    fn test_authentication_required_logging() {
+        let context = SecurityContext::new("test-user".to_string());
+        let decision = PolicyDecision::RequireAdditionalAuth(AuthRequirement::Custom(
+            "MFA required".to_string(),
+        ));
+
+        let log = SecurityAuditLog::new(
+            SecurityEventType::AuthenticationRequired,
+            "op-999".to_string(),
+            &context,
+            &decision,
+            "mfa-policy",
+        );
+
+        assert_eq!(log.event_type, SecurityEventType::AuthenticationRequired);
+        assert_eq!(log.decision, "RequireAuth");
+    }
+
+    #[test]
+    fn test_audit_log_timestamp_uses_utc() {
+        let context = SecurityContext::new("test-user".to_string());
+        let decision = PolicyDecision::Allow;
+
+        let before = Utc::now();
+        let log = SecurityAuditLog::new(
+            SecurityEventType::AccessGranted,
+            "op-time".to_string(),
+            &context,
+            &decision,
+            "test-policy",
+        );
+        let after = Utc::now();
+
+        // Verify timestamp is between before and after (§3.2 compliance)
+        assert!(log.timestamp >= before);
+        assert!(log.timestamp <= after);
+    }
+
+    #[tokio::test]
+    async fn test_console_logger_with_deny() {
+        let logger = ConsoleSecurityAuditLogger::new();
+        let context = SecurityContext::new("unauthorized-user".to_string());
+        let decision = PolicyDecision::Deny("Access denied".to_string());
+
+        let log = SecurityAuditLog::new(
+            SecurityEventType::AccessDenied,
+            "op-deny".to_string(),
+            &context,
+            &decision,
+            "acl-policy",
+        );
+
+        let result = logger.log_security_event(log).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_console_logger_flush() {
+        let logger = ConsoleSecurityAuditLogger::new();
+        let result = logger.flush().await;
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_policy_evaluated_event() {
+        let context = SecurityContext::new("test-user".to_string());
+        let decision = PolicyDecision::Allow;
+
+        let log = SecurityAuditLog::new(
+            SecurityEventType::PolicyEvaluated,
+            "op-eval".to_string(),
+            &context,
+            &decision,
+            "combined-policy",
+        );
+
+        assert_eq!(log.event_type, SecurityEventType::PolicyEvaluated);
+        assert_eq!(log.policy_applied, "combined-policy");
+    }
+
+    #[test]
+    fn test_audit_error_types() {
+        // Test IoError variant
+        let io_err = std::io::Error::new(std::io::ErrorKind::PermissionDenied, "Access denied");
+        let audit_err: AuditError = io_err.into();
+        assert!(audit_err.to_string().contains("Audit I/O error"));
+
+        // Test Custom variant
+        let custom_err = AuditError::Custom("Test error".to_string());
+        assert!(custom_err.to_string().contains("Test error"));
     }
 }
