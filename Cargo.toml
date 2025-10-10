@@ -49,8 +49,12 @@ syn = { version = "2.0", features = ["full", "visit", "visit-mut"] }
 quote = "1.0"
 proc-macro2 = "1.0"
 
-# Pattern matching for security policies (for airs-mcp-fs)
+# Pattern matching for security policies
 globset = { version = "0.4" }
+glob = { version = "0.3" }
+
+# Unix process signals (Unix-only, for process operations)
+nix = { version = "0.30.1", features = ["signal", "process"] }
 
 # Concurrent collections for request correlation
 dashmap = { version = "6.1.0" }
@@ -149,7 +153,6 @@ toml = { version = "0.9.7" }
 
 # Path and filesystem utilities (latest stable - for airs-mcp-fs)
 path-clean = { version = "1.0" }
-glob = { version = "0.3" }
 
 # Additional testing utilities (for airs-mcp-fs)
 assert_fs = { version = "1.1" }

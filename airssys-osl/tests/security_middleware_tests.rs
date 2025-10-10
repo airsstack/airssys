@@ -38,6 +38,7 @@ async fn test_security_middleware_with_acl_allow() {
     let acl = AccessControlList::new().add_entry(AclEntry::new(
         "testuser".to_string(),
         "*".to_string(),
+        vec!["*".to_string()], // Allow all permissions
         AclPolicy::Allow,
     ));
 
@@ -62,6 +63,7 @@ async fn test_security_middleware_with_acl_deny() {
     let acl = AccessControlList::new().add_entry(AclEntry::new(
         "testuser".to_string(),
         "*".to_string(),
+        vec!["*".to_string()], // Deny all permissions
         AclPolicy::Deny,
     ));
 
@@ -133,6 +135,7 @@ async fn test_security_middleware_multiple_policies() {
     let acl = AccessControlList::new().add_entry(AclEntry::new(
         "testuser".to_string(),
         "*".to_string(),
+        vec!["*".to_string()], // Allow all permissions
         AclPolicy::Allow,
     ));
 
@@ -162,6 +165,7 @@ async fn test_security_middleware_any_deny_blocks() {
     let acl = AccessControlList::new().add_entry(AclEntry::new(
         "testuser".to_string(),
         "*".to_string(),
+        vec!["*".to_string()], // Allow all permissions
         AclPolicy::Allow,
     ));
 

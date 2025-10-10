@@ -38,17 +38,17 @@ tracing = { workspace = true }
 
 # Unix process signals (Unix-only)
 [target.'cfg(unix)'.dependencies]
-nix = { version = "0.29", features = ["signal", "process"] }
+nix = { workspace = true }
 
 [dev-dependencies]
 # Property-based testing
 proptest = { workspace = true }
 
 # Testing utilities
-tempfile = "3.8"
+tempfile = { workspace = true }
 
 # Tracing subscriber for examples
-tracing-subscriber = "0.3"
+tracing-subscriber = { workspace = true }
 
 # Example configurations
 [[example]]
