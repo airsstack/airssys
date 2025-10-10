@@ -181,6 +181,42 @@ impl<O: Operation> SecurityPolicy<O> for RoleBasedAccessControl {
     }
 }
 
+/// Implementation of SecurityPolicyDispatcher for RoleBasedAccessControl.
+///
+/// This allows RBAC policies to be used in the SecurityMiddleware's
+/// type-erased policy storage.
+impl crate::middleware::security::policy::SecurityPolicyDispatcher for RoleBasedAccessControl {
+    fn evaluate_any(
+        &self,
+        _operation: &dyn std::any::Any,
+        context: &SecurityContext,
+    ) -> PolicyDecision {
+        // RBAC policies work with any operation type, evaluating based on
+        // user roles rather than specific operation details
+        
+        let principal = &context.principal;
+
+        // Get user's roles
+        let user_roles = self.get_user_roles(principal);
+
+        if user_roles.is_empty() {
+            return PolicyDecision::Deny(format!("No roles assigned to user '{principal}'"));
+        }
+
+        // TODO: Implement permission resolution with role inheritance
+        // For now, if user has any roles, allow (placeholder)
+        PolicyDecision::Allow
+    }
+
+    fn description(&self) -> &str {
+        "Role-Based Access Control (RBAC) Policy"
+    }
+
+    fn scope(&self) -> PolicyScope {
+        PolicyScope::All
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

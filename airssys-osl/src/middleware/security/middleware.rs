@@ -12,10 +12,11 @@ use async_trait::async_trait;
 
 // Layer 3: Internal module imports
 use crate::core::context::ExecutionContext;
-use crate::core::middleware::{Middleware, MiddlewareResult};
+use crate::core::middleware::{Middleware, MiddlewareError, MiddlewareResult};
 use crate::core::operation::Operation;
 use crate::core::security::SecurityConfig;
 use crate::middleware::security::audit::{ConsoleSecurityAuditLogger, SecurityAuditLogger};
+use crate::middleware::security::policy::SecurityPolicyDispatcher;
 
 /// SecurityMiddleware for policy-based access control.
 ///
@@ -53,6 +54,7 @@ use crate::middleware::security::audit::{ConsoleSecurityAuditLogger, SecurityAud
 pub struct SecurityMiddleware {
     config: SecurityConfig,
     audit_logger: Arc<dyn SecurityAuditLogger>,
+    policies: Vec<Box<dyn SecurityPolicyDispatcher>>,
 }
 
 impl SecurityMiddleware {
@@ -61,6 +63,7 @@ impl SecurityMiddleware {
         Self {
             config: SecurityConfig::default(),
             audit_logger: Arc::new(ConsoleSecurityAuditLogger::new()),
+            policies: Vec::new(),
         }
     }
 
@@ -69,6 +72,7 @@ impl SecurityMiddleware {
         Self {
             config,
             audit_logger: Arc::new(ConsoleSecurityAuditLogger::new()),
+            policies: Vec::new(),
         }
     }
 
@@ -80,6 +84,7 @@ impl SecurityMiddleware {
         Self {
             config,
             audit_logger,
+            policies: Vec::new(),
         }
     }
 
@@ -91,6 +96,11 @@ impl SecurityMiddleware {
     /// Get reference to the audit logger.
     pub fn audit_logger(&self) -> &Arc<dyn SecurityAuditLogger> {
         &self.audit_logger
+    }
+
+    /// Get the number of policies configured.
+    pub fn policy_count(&self) -> usize {
+        self.policies.len()
     }
 }
 
@@ -118,10 +128,103 @@ impl<O: Operation> Middleware<O> for SecurityMiddleware {
     async fn before_execution(
         &self,
         operation: O,
-        _context: &ExecutionContext,
+        context: &ExecutionContext,
     ) -> MiddlewareResult<Option<O>> {
-        // TODO: Phase 2 will implement policy evaluation
-        // For Phase 1, just a placeholder that allows all operations
+        use crate::middleware::security::audit::{SecurityAuditLog, SecurityEventType};
+        use crate::middleware::security::policy::PolicyDecision;
+
+        // If no policies configured, deny by default (secure default)
+        if self.policies.is_empty() {
+            let reason = "No security policies configured - deny by default".to_string();
+            
+            // Log security denial
+            let log = SecurityAuditLog::new(
+                SecurityEventType::AccessDenied,
+                operation.operation_id().to_string(),
+                &context.security_context,
+                &PolicyDecision::Deny(reason.clone()),
+                "deny-by-default",
+            );
+            
+            if let Err(e) = self.audit_logger.log_security_event(log).await {
+                eprintln!("Failed to log security denial: {e}");
+            }
+            
+            return Err(MiddlewareError::SecurityViolation(reason));
+        }
+
+        // Evaluate all policies - deny if ANY policy denies
+        let mut auth_requirements = Vec::new();
+        
+        for policy in &self.policies {
+            // Use type-erased evaluation via Any trait
+            let decision = policy.evaluate_any(&operation as &dyn std::any::Any, &context.security_context);
+            
+            // Log the policy decision
+            let log = SecurityAuditLog::new(
+                match &decision {
+                    PolicyDecision::Allow => SecurityEventType::AccessGranted,
+                    PolicyDecision::Deny(_) => SecurityEventType::AccessDenied,
+                    PolicyDecision::RequireAdditionalAuth(_) => SecurityEventType::AuthenticationRequired,
+                },
+                operation.operation_id().to_string(),
+                &context.security_context,
+                &decision,
+                policy.description(),
+            );
+            
+            if let Err(e) = self.audit_logger.log_security_event(log).await {
+                eprintln!("Failed to log policy decision: {e}");
+            }
+            
+            // Process the decision
+            match decision {
+                PolicyDecision::Allow => {
+                    // Policy allows - continue to next policy
+                    continue;
+                }
+                PolicyDecision::Deny(reason) => {
+                    // ANY deny decision blocks the operation immediately
+                    return Err(MiddlewareError::SecurityViolation(format!(
+                        "Policy '{}' denied: {}",
+                        policy.description(),
+                        reason
+                    )));
+                }
+                PolicyDecision::RequireAdditionalAuth(auth_req) => {
+                    // Collect auth requirements (will be processed after all policies)
+                    auth_requirements.push((policy.description().to_string(), auth_req));
+                }
+            }
+        }
+
+        // If we have auth requirements, we should handle them
+        // For now, we'll just log them (future: could attach to operation metadata)
+        if !auth_requirements.is_empty() {
+            for (policy_name, auth_req) in auth_requirements {
+                eprintln!(
+                    "Policy '{policy_name}' requires additional auth: {auth_req:?}"
+                );
+            }
+            // TODO: Future enhancement - attach auth requirements to operation
+            // For now, we allow the operation to proceed (logged for awareness)
+        }
+
+        // All policies passed (or only required additional auth)
+        // Log overall approval
+        let policy_count_msg = format!("{} policies evaluated", self.policies.len());
+        let log = SecurityAuditLog::new(
+            SecurityEventType::PolicyEvaluated,
+            operation.operation_id().to_string(),
+            &context.security_context,
+            &PolicyDecision::Allow,
+            &policy_count_msg,
+        );
+        
+        if let Err(e) = self.audit_logger.log_security_event(log).await {
+            eprintln!("Failed to log policy approval: {e}");
+        }
+        
         Ok(Some(operation))
     }
 }
@@ -134,6 +237,7 @@ impl<O: Operation> Middleware<O> for SecurityMiddleware {
 pub struct SecurityMiddlewareBuilder {
     config: SecurityConfig,
     audit_logger: Option<Arc<dyn SecurityAuditLogger>>,
+    policies: Vec<Box<dyn SecurityPolicyDispatcher>>,
 }
 
 impl SecurityMiddlewareBuilder {
@@ -142,6 +246,7 @@ impl SecurityMiddlewareBuilder {
         Self {
             config: SecurityConfig::default(),
             audit_logger: None,
+            policies: Vec::new(),
         }
     }
 
@@ -157,6 +262,36 @@ impl SecurityMiddlewareBuilder {
         self
     }
 
+    /// Add a security policy.
+    ///
+    /// Policies are evaluated in the order they are added. If any policy
+    /// denies an operation, the operation is immediately denied.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use airssys_osl::middleware::security::{
+    ///     SecurityMiddlewareBuilder, AccessControlList, RoleBasedAccessControl,
+    /// };
+    /// use airssys_osl::core::security::SecurityConfig;
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let acl = AccessControlList::new();
+    /// let rbac = RoleBasedAccessControl::new();
+    ///
+    /// let middleware = SecurityMiddlewareBuilder::new()
+    ///     .with_config(SecurityConfig::default())
+    ///     .add_policy(Box::new(acl))
+    ///     .add_policy(Box::new(rbac))
+    ///     .build()?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn add_policy(mut self, policy: Box<dyn SecurityPolicyDispatcher>) -> Self {
+        self.policies.push(policy);
+        self
+    }
+
     /// Build the SecurityMiddleware.
     pub fn build(self) -> Result<SecurityMiddleware, String> {
         let audit_logger = self
@@ -166,6 +301,7 @@ impl SecurityMiddlewareBuilder {
         Ok(SecurityMiddleware {
             config: self.config,
             audit_logger,
+            policies: self.policies,
         })
     }
 }
@@ -214,15 +350,15 @@ mod tests {
             .build();
 
         assert!(result.is_ok());
-        let middleware = result.unwrap();
-
-        assert_eq!(
-            <SecurityMiddleware as Middleware<FileReadOperation>>::priority(&middleware),
-            100
-        );
-        assert!(<SecurityMiddleware as Middleware<FileReadOperation>>::is_enabled(
-            &middleware
-        ));
+        if let Ok(middleware) = result {
+            assert_eq!(
+                <SecurityMiddleware as Middleware<FileReadOperation>>::priority(&middleware),
+                100
+            );
+            assert!(<SecurityMiddleware as Middleware<FileReadOperation>>::is_enabled(
+                &middleware
+            ));
+        }
     }
 
     #[test]

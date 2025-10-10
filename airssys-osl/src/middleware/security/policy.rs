@@ -4,6 +4,7 @@
 //! evaluation framework for the security middleware.
 
 // Layer 1: Standard library imports
+use std::any::Any;
 use std::fmt::Debug;
 
 // Layer 2: Third-party crate imports
@@ -140,6 +141,72 @@ where
     ///
     /// Defines which operation types this policy applies to. Policies with
     /// more specific scopes may be evaluated before broader policies.
+    fn scope(&self) -> PolicyScope;
+}
+
+/// Type-erased security policy dispatcher.
+///
+/// This trait enables storing heterogeneous policy types in a single collection
+/// by providing type erasure for security policy evaluation.
+///
+/// # Design Rationale
+///
+/// This is a **documented exception** to workspace standard §6.2 (avoid dyn patterns).
+/// Type erasure is necessary here because:
+/// - SecurityMiddleware needs to store policies that work with different operation types
+/// - Generic constraints cannot express "policy for any operation type"
+/// - Alternative designs would require complex type-level programming
+///
+/// # Implementation
+///
+/// Concrete policy types (ACL, RBAC) implement this trait directly to handle
+/// type erasure for their specific evaluation logic.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use airssys_osl::middleware::security::policy::{
+///     SecurityPolicyDispatcher, PolicyDecision, PolicyScope
+/// };
+/// use airssys_osl::core::context::SecurityContext;
+/// use std::any::Any;
+///
+/// #[derive(Debug)]
+/// struct MyPolicy;
+///
+/// impl SecurityPolicyDispatcher for MyPolicy {
+///     fn evaluate_any(
+///         &self,
+///         _operation: &dyn Any,
+///         _context: &SecurityContext,
+///     ) -> PolicyDecision {
+///         PolicyDecision::Allow
+///     }
+///     fn description(&self) -> &str { "My Policy" }
+///     fn scope(&self) -> PolicyScope { PolicyScope::All }
+/// }
+/// ```
+pub trait SecurityPolicyDispatcher: Debug + Send + Sync + 'static {
+    /// Evaluate policy for any operation type.
+    ///
+    /// This method uses dynamic dispatch and type downcasting to evaluate
+    /// a policy against an operation of unknown type at compile time.
+    ///
+    /// # Arguments
+    ///
+    /// * `operation` - Reference to the operation (type-erased via Any trait)
+    /// * `context` - The security context
+    ///
+    /// # Returns
+    ///
+    /// Returns the policy decision. If the operation type is not supported
+    /// by this policy, it should return `PolicyDecision::Allow` (no opinion).
+    fn evaluate_any(&self, operation: &dyn Any, context: &SecurityContext) -> PolicyDecision;
+
+    /// Get human-readable policy description.
+    fn description(&self) -> &str;
+
+    /// Get the scope of this policy.
     fn scope(&self) -> PolicyScope;
 }
 
