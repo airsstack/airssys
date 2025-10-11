@@ -202,11 +202,6 @@ pub(crate) mod simple; // Phase 2-4: Simple helper functions (NOW ADDED)
 // Re-exports (will be populated in later phases)
 // ============================================================================
 
-// Re-export middleware factories for internal use
-pub(crate) use self::factories::{
-    default_acl_policy, default_rbac_policy, default_security_middleware,
-};
-
 // Re-export simple helpers (Level 1 & 2) - NOW AVAILABLE
 pub use self::simple::*;
 
