@@ -1,9 +1,9 @@
 # airssys-rt Architecture Decision Records Index
 
 **Sub-Project:** airssys-rt  
-**Last Updated:** 2025-10-07  
-**Total ADRs:** 5  
-**Active ADRs:** 5  
+**Last Updated:** 2025-10-11  
+**Total ADRs:** 6  
+**Active ADRs:** 6  
 
 ## Active ADRs
 
@@ -92,6 +92,33 @@ Simplifies backpressure strategies from four to three by removing misleading `Dr
 - ActorSystem implementation pattern (RT-TASK-006)
 - Enables distributed brokers (Redis, NATS) without changing actors
 - Natural extensibility hooks for logging, metrics, persistence
+
+---
+
+### ADR-RT-007: Hierarchical Supervisor Architecture for OSL Integration ⭐ **NEW**
+**Status**: Accepted | **Date**: 2025-10-11  
+**File**: [adr_rt_007_hierarchical_supervisor_architecture.md](./adr_rt_007_hierarchical_supervisor_architecture.md)
+
+**CRITICAL ARCHITECTURE DECISION**: Establishes service-oriented architecture with dedicated `OSLSupervisor` managing specialized OSL integration actors, providing clean separation between infrastructure and application concerns.
+
+**Key Decisions**:
+- Hierarchical supervisor structure: RootSupervisor → OSLSupervisor + ApplicationSupervisor
+- Three core OSL actors: FileSystemActor, ProcessActor, NetworkActor
+- Message-based communication across supervisor boundaries (no special handling required)
+- Independent failure domains with supervisor-level fault isolation
+- YAGNI-compliant: Focus on in-memory actors, defer process group management
+
+**Impact**:
+- RT-TASK-009 implementation pattern (OSL Integration)
+- Clean fault isolation: OSL failures don't cascade to application actors
+- Superior testability: Mock OSL actors in tests
+- Centralized management: Single source of truth for OS operations
+- Performance opportunities: Connection pooling, request batching, rate limiting
+- Future extensibility: Easy to add DatabaseActor, CryptoActor, etc.
+
+**Related Knowledge Docs**:
+- KNOWLEDGE-RT-016: Process Group Management - Future Considerations (deferred features)
+- KNOWLEDGE-RT-017: OSL Integration Actors Pattern (recommended implementation)
 
 ---
 

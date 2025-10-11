@@ -1,9 +1,9 @@
 # airssys-rt Knowledge Documentation Index
 
 **Sub-Project:** airssys-rt  
-**Last Updated:** 2025-10-08  
-**Total Knowledge Docs:** 15  
-**Active Knowledge Docs:** 15  
+**Last Updated:** 2025-10-11  
+**Total Knowledge Docs:** 17  
+**Active Knowledge Docs:** 17  
 
 ## Active Knowledge Documentation
 
@@ -69,6 +69,14 @@
 - **[KNOWLEDGE-RT-015](knowledge_rt_015_supervisor_builder_pattern.md)**: Supervisor Builder Pattern Design & Implementation Guide ⭐ **NEW**
   - *Status*: active | *Created*: 2025-10-08
   - *Summary*: **ERGONOMIC BUILDER PATTERNS**: Complete design guide for supervisor builder patterns with three-layer API (manual ChildSpec, SingleChildBuilder, ChildrenBatchBuilder), modular file structure, fluent API design, shared defaults with per-child overrides, return type analysis (Vec vs HashMap), performance considerations, migration guide, common patterns, and troubleshooting. **REQUIRED READING BEFORE RT-TASK-013**
+
+- **[KNOWLEDGE-RT-016](knowledge_rt_016_process_group_future_considerations.md)**: Process Group Management - Future Considerations 🔮 **NEW**
+  - *Status*: deferred | *Created*: 2025-10-11
+  - *Summary*: **DEFERRED FEATURE DOCUMENTATION**: Comprehensive analysis of zombie process risk, process group management solution (setpgid/killpg on Linux/macOS, Job Objects on Windows), YAGNI decision rationale, alternative OSL integration actors pattern, and implementation plan for future when proven use case emerges. **Documents architectural decision to defer complex process lifecycle management in favor of in-memory actors.**
+
+- **[KNOWLEDGE-RT-017](knowledge_rt_017_osl_integration_actors.md)**: OSL Integration Actors Pattern ⭐ **NEW**
+  - *Status*: active | *Created*: 2025-10-11
+  - *Summary*: **RECOMMENDED OSL INTEGRATION PATTERN**: Service-oriented architecture with dedicated OSL actors (FileSystemActor, ProcessActor, NetworkActor) managed by separate OSLSupervisor, message-based communication across supervisor boundaries, centralized OS operation management, superior testability with mock actors, process lifecycle safety, performance optimization opportunities (pooling, batching), and migration guide from direct OSL helpers. **REQUIRED READING BEFORE RT-TASK-009**
 
 ## Planned Knowledge Documentation
 
