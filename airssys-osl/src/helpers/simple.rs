@@ -1,7 +1,9 @@
 //! Simple helper functions (Level 1 & 2 API).
 //!
-//! This module contains the basic helper functions with direct executor calls.
-//! These will be enhanced with middleware integration in Phase 2-4.
+//! This module contains the basic helper functions that enforce security
+//! via middleware integration. Each function has two variants:
+//! - Simple: Uses default security middleware (Level 1 API)
+//! - With middleware: Accepts custom middleware (Level 2 API)
 
 // Layer 1: Standard library imports
 use std::path::Path;
@@ -11,10 +13,12 @@ use std::path::Path;
 // Layer 3: Internal module imports
 use crate::core::context::{ExecutionContext, SecurityContext};
 use crate::core::executor::OSExecutor;
+use crate::core::middleware::Middleware;
 use crate::core::result::OSResult;
 use crate::executors::filesystem::FilesystemExecutor;
 use crate::executors::network::NetworkExecutor;
 use crate::executors::process::ProcessExecutor;
+use crate::middleware::ext::ExecutorExt;
 use crate::operations::filesystem::{
     DirectoryCreateOperation, FileDeleteOperation, FileReadOperation, FileWriteOperation,
 };
@@ -25,19 +29,24 @@ use crate::operations::process::{
     ProcessKillOperation, ProcessSignalOperation, ProcessSpawnOperation,
 };
 
+// Import factory functions
+use super::factories::default_security_middleware;
+
 // ============================================================================
-// Filesystem Helpers (4 functions)
+// Filesystem Helpers (4 functions × 2 variants = 8 total)
 // ============================================================================
 
-/// Read file contents with security context.
+/// Read file contents with default security middleware.
 ///
-/// # Current Implementation
-/// Direct executor call for simplicity.
+/// This function enforces deny-by-default security via [`default_security_middleware()`],
+/// which includes ACL policy, RBAC policy, and audit logging.
 ///
-/// # Future Integration (OSL-TASK-010)
-/// - TODO: Add security policy validation
-/// - TODO: Wire through middleware pipeline
-/// - TODO: Support optional middleware composition
+/// # Security
+///
+/// - **ACL**: Admin user has full access by default
+/// - **RBAC**: Role-based permissions enforced
+/// - **Audit**: All operations logged to console
+/// - **Deny-by-default**: Operations denied unless explicitly allowed
 ///
 /// # Example
 ///
@@ -50,25 +59,81 @@ use crate::operations::process::{
 /// # Ok(())
 /// # }
 /// ```
+///
+/// # Custom Security
+///
+/// For custom middleware, use [`read_file_with_middleware()`].
 pub async fn read_file<P: AsRef<Path>>(path: P, user: impl Into<String>) -> OSResult<Vec<u8>> {
-    // TODO(OSL-TASK-010): Add security validation here
-    // TODO(OSL-TASK-010): Wire through middleware pipeline
     let path_str = path.as_ref().display().to_string();
     let operation = FileReadOperation::new(path_str);
     let context = ExecutionContext::new(SecurityContext::new(user.into()));
-    let executor = FilesystemExecutor::new();
+
+    // Wire through default security middleware
+    let executor = FilesystemExecutor::new().with_middleware(default_security_middleware());
+
     let result = executor.execute(operation, &context).await?;
     Ok(result.output)
 }
 
-/// Write data to file with security context.
+/// Read file contents with custom middleware.
 ///
-/// # Current Implementation
-/// Direct executor call for simplicity.
+/// This variant accepts custom middleware for advanced use cases like
+/// custom ACL/RBAC policies, rate limiting, caching, or metrics collection.
 ///
-/// # Future Integration (OSL-TASK-010)
-/// - TODO: Add security policy validation
-/// - TODO: Wire through middleware pipeline
+/// # Example
+///
+/// ```rust,no_run
+/// use airssys_osl::helpers::*;
+/// use airssys_osl::middleware::security::*;
+///
+/// # async fn example() -> airssys_osl::core::result::OSResult<()> {
+/// // Custom ACL policy
+/// let acl = AccessControlList::new()
+///     .add_entry(AclEntry::new(
+///         "alice".to_string(),
+///         "/data/*".to_string(),
+///         vec!["read".to_string()],
+///         AclPolicy::Allow
+///     ));
+///
+/// let security = SecurityMiddlewareBuilder::new()
+///     .add_policy(Box::new(acl))
+///     .build();
+///
+/// let data = read_file_with_middleware("/data/file.txt", "alice", security).await?;
+/// # Ok(())
+/// # }
+/// ```
+pub async fn read_file_with_middleware<P, M>(
+    path: P,
+    user: impl Into<String>,
+    middleware: M,
+) -> OSResult<Vec<u8>>
+where
+    P: AsRef<Path>,
+    M: Middleware<FileReadOperation>,
+{
+    let path_str = path.as_ref().display().to_string();
+    let operation = FileReadOperation::new(path_str);
+    let context = ExecutionContext::new(SecurityContext::new(user.into()));
+
+    let executor = FilesystemExecutor::new().with_middleware(middleware);
+
+    let result = executor.execute(operation, &context).await?;
+    Ok(result.output)
+}
+
+/// Write data to file with default security middleware.
+///
+/// This function enforces deny-by-default security via [`default_security_middleware()`],
+/// which includes ACL policy, RBAC policy, and audit logging.
+///
+/// # Security
+///
+/// - **ACL**: Admin user has full access by default
+/// - **RBAC**: Role-based permissions enforced
+/// - **Audit**: All operations logged to console
+/// - **Deny-by-default**: Operations denied unless explicitly allowed
 ///
 /// # Example
 ///
@@ -81,29 +146,77 @@ pub async fn read_file<P: AsRef<Path>>(path: P, user: impl Into<String>) -> OSRe
 /// # Ok(())
 /// # }
 /// ```
+///
+/// # Custom Security
+///
+/// For custom middleware, use [`write_file_with_middleware()`].
 pub async fn write_file<P: AsRef<Path>>(
     path: P,
     data: Vec<u8>,
     user: impl Into<String>,
 ) -> OSResult<()> {
-    // TODO(OSL-TASK-010): Add security validation
-    // TODO(OSL-TASK-010): Wire through middleware pipeline
     let path_str = path.as_ref().display().to_string();
     let operation = FileWriteOperation::new(path_str, data);
     let context = ExecutionContext::new(SecurityContext::new(user.into()));
-    let executor = FilesystemExecutor::new();
+
+    // Wire through default security middleware
+    let executor = FilesystemExecutor::new().with_middleware(default_security_middleware());
+
     executor.execute(operation, &context).await?;
     Ok(())
 }
 
-/// Delete file with security context.
+/// Write data to file with custom middleware.
 ///
-/// # Current Implementation
-/// Direct executor call for simplicity.
+/// This variant accepts custom middleware for advanced use cases like
+/// custom ACL/RBAC policies, rate limiting, or metrics collection.
 ///
-/// # Future Integration (OSL-TASK-010)
-/// - TODO: Add security policy validation
-/// - TODO: Wire through middleware pipeline
+/// # Example
+///
+/// ```rust,no_run
+/// use airssys_osl::helpers::*;
+/// use airssys_osl::middleware::security::*;
+///
+/// # async fn example() -> airssys_osl::core::result::OSResult<()> {
+/// let security = SecurityMiddlewareBuilder::new()
+///     .build();
+///
+/// let data = b"Hello, World!".to_vec();
+/// write_file_with_middleware("/tmp/test.txt", data, "admin", security).await?;
+/// # Ok(())
+/// # }
+/// ```
+pub async fn write_file_with_middleware<P, M>(
+    path: P,
+    data: Vec<u8>,
+    user: impl Into<String>,
+    middleware: M,
+) -> OSResult<()>
+where
+    P: AsRef<Path>,
+    M: Middleware<FileWriteOperation>,
+{
+    let path_str = path.as_ref().display().to_string();
+    let operation = FileWriteOperation::new(path_str, data);
+    let context = ExecutionContext::new(SecurityContext::new(user.into()));
+
+    let executor = FilesystemExecutor::new().with_middleware(middleware);
+
+    executor.execute(operation, &context).await?;
+    Ok(())
+}
+
+/// Delete file with default security middleware.
+///
+/// This function enforces deny-by-default security via [`default_security_middleware()`],
+/// which includes ACL policy, RBAC policy, and audit logging.
+///
+/// # Security
+///
+/// - **ACL**: Admin user has full access by default
+/// - **RBAC**: Role-based permissions enforced
+/// - **Audit**: All operations logged to console
+/// - **Deny-by-default**: Operations denied unless explicitly allowed
 ///
 /// # Example
 ///
@@ -115,25 +228,71 @@ pub async fn write_file<P: AsRef<Path>>(
 /// # Ok(())
 /// # }
 /// ```
+///
+/// # Custom Security
+///
+/// For custom middleware, use [`delete_file_with_middleware()`].
 pub async fn delete_file<P: AsRef<Path>>(path: P, user: impl Into<String>) -> OSResult<()> {
-    // TODO(OSL-TASK-010): Add security validation
-    // TODO(OSL-TASK-010): Wire through middleware pipeline
     let path_str = path.as_ref().display().to_string();
     let operation = FileDeleteOperation::new(path_str);
     let context = ExecutionContext::new(SecurityContext::new(user.into()));
-    let executor = FilesystemExecutor::new();
+
+    // Wire through default security middleware
+    let executor = FilesystemExecutor::new().with_middleware(default_security_middleware());
+
     executor.execute(operation, &context).await?;
     Ok(())
 }
 
-/// Create directory with security context.
+/// Delete file with custom middleware.
 ///
-/// # Current Implementation
-/// Direct executor call for simplicity.
+/// This variant accepts custom middleware for advanced use cases like
+/// custom ACL/RBAC policies or audit logging.
 ///
-/// # Future Integration (OSL-TASK-010)
-/// - TODO: Add security policy validation
-/// - TODO: Wire through middleware pipeline
+/// # Example
+///
+/// ```rust,no_run
+/// use airssys_osl::helpers::*;
+/// use airssys_osl::middleware::security::*;
+///
+/// # async fn example() -> airssys_osl::core::result::OSResult<()> {
+/// let security = SecurityMiddlewareBuilder::new()
+///     .build();
+///
+/// delete_file_with_middleware("/tmp/test.txt", "admin", security).await?;
+/// # Ok(())
+/// # }
+/// ```
+pub async fn delete_file_with_middleware<P, M>(
+    path: P,
+    user: impl Into<String>,
+    middleware: M,
+) -> OSResult<()>
+where
+    P: AsRef<Path>,
+    M: Middleware<FileDeleteOperation>,
+{
+    let path_str = path.as_ref().display().to_string();
+    let operation = FileDeleteOperation::new(path_str);
+    let context = ExecutionContext::new(SecurityContext::new(user.into()));
+
+    let executor = FilesystemExecutor::new().with_middleware(middleware);
+
+    executor.execute(operation, &context).await?;
+    Ok(())
+}
+
+/// Create directory with default security middleware.
+///
+/// This function enforces deny-by-default security via [`default_security_middleware()`],
+/// which includes ACL policy, RBAC policy, and audit logging.
+///
+/// # Security
+///
+/// - **ACL**: Admin user has full access by default
+/// - **RBAC**: Role-based permissions enforced
+/// - **Audit**: All operations logged to console
+/// - **Deny-by-default**: Operations denied unless explicitly allowed
 ///
 /// # Example
 ///
@@ -145,13 +304,56 @@ pub async fn delete_file<P: AsRef<Path>>(path: P, user: impl Into<String>) -> OS
 /// # Ok(())
 /// # }
 /// ```
+///
+/// # Custom Security
+///
+/// For custom middleware, use [`create_directory_with_middleware()`].
 pub async fn create_directory<P: AsRef<Path>>(path: P, user: impl Into<String>) -> OSResult<()> {
-    // TODO(OSL-TASK-010): Add security validation
-    // TODO(OSL-TASK-010): Wire through middleware pipeline
     let path_str = path.as_ref().display().to_string();
     let operation = DirectoryCreateOperation::new(path_str);
     let context = ExecutionContext::new(SecurityContext::new(user.into()));
-    let executor = FilesystemExecutor::new();
+
+    // Wire through default security middleware
+    let executor = FilesystemExecutor::new().with_middleware(default_security_middleware());
+
+    executor.execute(operation, &context).await?;
+    Ok(())
+}
+
+/// Create directory with custom middleware.
+///
+/// This variant accepts custom middleware for advanced use cases like
+/// custom ACL/RBAC policies or audit logging.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use airssys_osl::helpers::*;
+/// use airssys_osl::middleware::security::*;
+///
+/// # async fn example() -> airssys_osl::core::result::OSResult<()> {
+/// let security = SecurityMiddlewareBuilder::new()
+///     .build();
+///
+/// create_directory_with_middleware("/tmp/test_dir", "admin", security).await?;
+/// # Ok(())
+/// # }
+/// ```
+pub async fn create_directory_with_middleware<P, M>(
+    path: P,
+    user: impl Into<String>,
+    middleware: M,
+) -> OSResult<()>
+where
+    P: AsRef<Path>,
+    M: Middleware<DirectoryCreateOperation>,
+{
+    let path_str = path.as_ref().display().to_string();
+    let operation = DirectoryCreateOperation::new(path_str);
+    let context = ExecutionContext::new(SecurityContext::new(user.into()));
+
+    let executor = FilesystemExecutor::new().with_middleware(middleware);
+
     executor.execute(operation, &context).await?;
     Ok(())
 }
@@ -372,8 +574,8 @@ mod tests {
         // Write test data first
         std::fs::write(&file_path, b"test data").expect("Failed to write test file");
 
-        // Test helper function
-        let result = read_file(&file_path, "test_user").await;
+        // Test helper function (using "admin" user allowed by default ACL)
+        let result = read_file(&file_path, "admin").await;
         assert!(result.is_ok());
         assert_eq!(result.expect("Should have result"), b"test data");
     }
@@ -384,8 +586,8 @@ mod tests {
         let temp_dir = TempDir::new().expect("Failed to create temp dir");
         let file_path = temp_dir.path().join("write_test.txt");
 
-        // Test helper function
-        let result = write_file(&file_path, b"hello world".to_vec(), "test_user").await;
+        // Test helper function (using "admin" user allowed by default ACL)
+        let result = write_file(&file_path, b"hello world".to_vec(), "admin").await;
         assert!(result.is_ok());
 
         // Verify file was written
@@ -403,8 +605,8 @@ mod tests {
         std::fs::write(&file_path, b"delete me").expect("Failed to write test file");
         assert!(file_path.exists());
 
-        // Test helper function
-        let result = delete_file(&file_path, "test_user").await;
+        // Test helper function (using "admin" user allowed by default ACL)
+        let result = delete_file(&file_path, "admin").await;
         assert!(result.is_ok());
 
         // Verify file was deleted
@@ -417,8 +619,8 @@ mod tests {
         let temp_dir = TempDir::new().expect("Failed to create temp dir");
         let dir_path = temp_dir.path().join("new_dir");
 
-        // Test helper function
-        let result = create_directory(&dir_path, "test_user").await;
+        // Test helper function (using "admin" user allowed by default ACL)
+        let result = create_directory(&dir_path, "admin").await;
         assert!(result.is_ok());
 
         // Verify directory was created
