@@ -469,6 +469,41 @@
   - ✅ All 236 tests passing, zero warnings
   - ✅ Production-ready codebase at 95% completion
 
+**OSL-TASK-010: Helper Function Middleware Integration** 🔄 IN PROGRESS (Started 2025-10-11)
+
+**Phase 1: Design & Architecture Decisions** ✅ COMPLETE (2025-10-11)
+- **Phase 1.1 - File Organization Decision**: ✅ COMPLETE
+  - **Decision**: Option B (helpers/ module structure) selected
+  - **Rationale**: Better separation of concerns, follows §4.3 Module Architecture and M-SMALLER-CRATES guideline
+  - **Structure**: `mod.rs` (docs+re-exports), `simple.rs` (20 helpers), `composition.rs` (trait layer - future)
+  - **Avoids**: 1500-line single file monolith (current 503 lines + ~1000 new lines)
+  
+- **Phase 1.2 - Middleware Factory Functions**: ✅ COMPLETE
+  - **Created `helpers/factories.rs`** (~223 lines):
+    - `default_security_middleware()`: SecurityMiddleware with ACL and RBAC policies
+    - `default_acl_policy()`: Permissive ACL for development (admin has full access)
+    - `default_rbac_policy()`: Empty RBAC (operations controlled by ACL)
+  - **Migration to Module Structure**:
+    - Moved all 10 helper functions from `helpers.rs` to `helpers/simple.rs` (473 lines)
+    - Updated `helpers/mod.rs` to follow §4.3 (ONLY declarations and re-exports, NO implementation)
+    - Deleted old `helpers.rs` file after successful migration
+  - **Module Compliance**:
+    - ✅ §4.3 Module Architecture: mod.rs contains ONLY module declarations and re-exports
+    - ✅ §2.1 3-Layer Imports: All files follow standard import organization
+    - ✅ Factory functions with comprehensive rustdoc and production warnings
+  - **Build Status**:
+    - ✅ `cargo check` passes successfully
+    - ✅ Only expected "unused function" warnings (will be resolved in Phase 2-4)
+    - ✅ All existing 311 tests still passing
+  - **Files Created**:
+    - `helpers/mod.rs`: 30 lines (module declarations only)
+    - `helpers/factories.rs`: 223 lines (factory implementations)
+    - `helpers/simple.rs`: 473 lines (migrated helpers + tests)
+  - **Files Deleted**: `helpers.rs` (503 lines - migrated to module structure)
+
+**Next Steps**: Phase 1.3 (Module-Level Documentation) and Phase 1.4 (KNOW-013 Review)
+
+
 
 #### 🔄 IN PROGRESS - Security Middleware Module
 - **OSL-TASK-003**: Security Middleware Module (High Priority, 2-3 days estimated)

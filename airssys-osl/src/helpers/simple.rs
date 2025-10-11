@@ -1,15 +1,7 @@
-//! High-level convenience functions for common OS operations.
+//! Simple helper functions (Level 1 & 2 API).
 //!
-//! # Security and Middleware Integration
-//!
-//! **Current Implementation:** These helpers use direct executor calls for simplicity.
-//!
-//! **Future Enhancement (OSL-TASK-003, OSL-TASK-004):**
-//! - Security policy validation will be integrated
-//! - Middleware pipeline support will be added
-//! - APIs will remain backward compatible
-//!
-//! See: OSL-TASK-003 (Security Middleware), OSL-TASK-004 (Middleware Pipeline)
+//! This module contains the basic helper functions with direct executor calls.
+//! These will be enhanced with middleware integration in Phase 2-4.
 
 // Layer 1: Standard library imports
 use std::path::Path;
@@ -42,7 +34,7 @@ use crate::operations::process::{
 /// # Current Implementation
 /// Direct executor call for simplicity.
 ///
-/// # Future Integration (OSL-TASK-003, OSL-TASK-004)
+/// # Future Integration (OSL-TASK-010)
 /// - TODO: Add security policy validation
 /// - TODO: Wire through middleware pipeline
 /// - TODO: Support optional middleware composition
@@ -59,8 +51,8 @@ use crate::operations::process::{
 /// # }
 /// ```
 pub async fn read_file<P: AsRef<Path>>(path: P, user: impl Into<String>) -> OSResult<Vec<u8>> {
-    // TODO(OSL-TASK-003): Add security validation here
-    // TODO(OSL-TASK-004): Wire through middleware pipeline
+    // TODO(OSL-TASK-010): Add security validation here
+    // TODO(OSL-TASK-010): Wire through middleware pipeline
     let path_str = path.as_ref().display().to_string();
     let operation = FileReadOperation::new(path_str);
     let context = ExecutionContext::new(SecurityContext::new(user.into()));
@@ -74,7 +66,7 @@ pub async fn read_file<P: AsRef<Path>>(path: P, user: impl Into<String>) -> OSRe
 /// # Current Implementation
 /// Direct executor call for simplicity.
 ///
-/// # Future Integration (OSL-TASK-003, OSL-TASK-004)
+/// # Future Integration (OSL-TASK-010)
 /// - TODO: Add security policy validation
 /// - TODO: Wire through middleware pipeline
 ///
@@ -94,8 +86,8 @@ pub async fn write_file<P: AsRef<Path>>(
     data: Vec<u8>,
     user: impl Into<String>,
 ) -> OSResult<()> {
-    // TODO(OSL-TASK-003): Add security validation
-    // TODO(OSL-TASK-004): Wire through middleware pipeline
+    // TODO(OSL-TASK-010): Add security validation
+    // TODO(OSL-TASK-010): Wire through middleware pipeline
     let path_str = path.as_ref().display().to_string();
     let operation = FileWriteOperation::new(path_str, data);
     let context = ExecutionContext::new(SecurityContext::new(user.into()));
@@ -109,7 +101,7 @@ pub async fn write_file<P: AsRef<Path>>(
 /// # Current Implementation
 /// Direct executor call for simplicity.
 ///
-/// # Future Integration (OSL-TASK-003, OSL-TASK-004)
+/// # Future Integration (OSL-TASK-010)
 /// - TODO: Add security policy validation
 /// - TODO: Wire through middleware pipeline
 ///
@@ -124,8 +116,8 @@ pub async fn write_file<P: AsRef<Path>>(
 /// # }
 /// ```
 pub async fn delete_file<P: AsRef<Path>>(path: P, user: impl Into<String>) -> OSResult<()> {
-    // TODO(OSL-TASK-003): Add security validation
-    // TODO(OSL-TASK-004): Wire through middleware pipeline
+    // TODO(OSL-TASK-010): Add security validation
+    // TODO(OSL-TASK-010): Wire through middleware pipeline
     let path_str = path.as_ref().display().to_string();
     let operation = FileDeleteOperation::new(path_str);
     let context = ExecutionContext::new(SecurityContext::new(user.into()));
@@ -139,7 +131,7 @@ pub async fn delete_file<P: AsRef<Path>>(path: P, user: impl Into<String>) -> OS
 /// # Current Implementation
 /// Direct executor call for simplicity.
 ///
-/// # Future Integration (OSL-TASK-003, OSL-TASK-004)
+/// # Future Integration (OSL-TASK-010)
 /// - TODO: Add security policy validation
 /// - TODO: Wire through middleware pipeline
 ///
@@ -154,8 +146,8 @@ pub async fn delete_file<P: AsRef<Path>>(path: P, user: impl Into<String>) -> OS
 /// # }
 /// ```
 pub async fn create_directory<P: AsRef<Path>>(path: P, user: impl Into<String>) -> OSResult<()> {
-    // TODO(OSL-TASK-003): Add security validation
-    // TODO(OSL-TASK-004): Wire through middleware pipeline
+    // TODO(OSL-TASK-010): Add security validation
+    // TODO(OSL-TASK-010): Wire through middleware pipeline
     let path_str = path.as_ref().display().to_string();
     let operation = DirectoryCreateOperation::new(path_str);
     let context = ExecutionContext::new(SecurityContext::new(user.into()));
@@ -175,7 +167,7 @@ pub async fn create_directory<P: AsRef<Path>>(path: P, user: impl Into<String>) 
 /// # Current Implementation
 /// Direct executor call for simplicity. Returns PID immediately without waiting.
 ///
-/// # Future Integration (OSL-TASK-003, OSL-TASK-004)
+/// # Future Integration (OSL-TASK-010)
 /// - TODO: Add security policy validation
 /// - TODO: Wire through middleware pipeline
 ///
@@ -196,8 +188,8 @@ pub async fn spawn_process(
     args: Vec<String>,
     user: impl Into<String>,
 ) -> OSResult<Vec<u8>> {
-    // TODO(OSL-TASK-003): Add security validation
-    // TODO(OSL-TASK-004): Wire through middleware pipeline
+    // TODO(OSL-TASK-010): Add security validation
+    // TODO(OSL-TASK-010): Wire through middleware pipeline
     let operation = ProcessSpawnOperation::new(program).with_args(args);
     let context = ExecutionContext::new(SecurityContext::new(user.into()));
     let executor = ProcessExecutor::new("helper_executor");
@@ -210,7 +202,7 @@ pub async fn spawn_process(
 /// # Current Implementation
 /// Direct executor call for simplicity.
 ///
-/// # Future Integration (OSL-TASK-003, OSL-TASK-004)
+/// # Future Integration (OSL-TASK-010)
 /// - TODO: Add security policy validation
 /// - TODO: Wire through middleware pipeline
 ///
@@ -225,8 +217,8 @@ pub async fn spawn_process(
 /// # }
 /// ```
 pub async fn kill_process(pid: u32, user: impl Into<String>) -> OSResult<()> {
-    // TODO(OSL-TASK-003): Add security validation
-    // TODO(OSL-TASK-004): Wire through middleware pipeline
+    // TODO(OSL-TASK-010): Add security validation
+    // TODO(OSL-TASK-010): Wire through middleware pipeline
     let operation = ProcessKillOperation::new(pid);
     let context = ExecutionContext::new(SecurityContext::new(user.into()));
     let executor = ProcessExecutor::new("helper_executor");
@@ -239,7 +231,7 @@ pub async fn kill_process(pid: u32, user: impl Into<String>) -> OSResult<()> {
 /// # Current Implementation
 /// Direct executor call for simplicity.
 ///
-/// # Future Integration (OSL-TASK-003, OSL-TASK-004)
+/// # Future Integration (OSL-TASK-010)
 /// - TODO: Add security policy validation
 /// - TODO: Wire through middleware pipeline
 ///
@@ -254,8 +246,8 @@ pub async fn kill_process(pid: u32, user: impl Into<String>) -> OSResult<()> {
 /// # }
 /// ```
 pub async fn send_signal(pid: u32, signal: i32, user: impl Into<String>) -> OSResult<()> {
-    // TODO(OSL-TASK-003): Add security validation
-    // TODO(OSL-TASK-004): Wire through middleware pipeline
+    // TODO(OSL-TASK-010): Add security validation
+    // TODO(OSL-TASK-010): Wire through middleware pipeline
     let operation = ProcessSignalOperation::new(pid, signal);
     let context = ExecutionContext::new(SecurityContext::new(user.into()));
     let executor = ProcessExecutor::new("helper_executor");
@@ -272,7 +264,7 @@ pub async fn send_signal(pid: u32, signal: i32, user: impl Into<String>) -> OSRe
 /// # Current Implementation
 /// Direct executor call for simplicity.
 ///
-/// # Future Integration (OSL-TASK-003, OSL-TASK-004)
+/// # Future Integration (OSL-TASK-010)
 /// - TODO: Add security policy validation
 /// - TODO: Wire through middleware pipeline
 ///
@@ -290,8 +282,8 @@ pub async fn network_connect(
     addr: impl Into<String>,
     user: impl Into<String>,
 ) -> OSResult<Vec<u8>> {
-    // TODO(OSL-TASK-003): Add security validation
-    // TODO(OSL-TASK-004): Wire through middleware pipeline
+    // TODO(OSL-TASK-010): Add security validation
+    // TODO(OSL-TASK-010): Wire through middleware pipeline
     let operation = NetworkConnectOperation::new(addr.into());
     let context = ExecutionContext::new(SecurityContext::new(user.into()));
     let executor = NetworkExecutor::new("helper_executor");
@@ -304,7 +296,7 @@ pub async fn network_connect(
 /// # Current Implementation
 /// Direct executor call for simplicity.
 ///
-/// # Future Integration (OSL-TASK-003, OSL-TASK-004)
+/// # Future Integration (OSL-TASK-010)
 /// - TODO: Add security policy validation
 /// - TODO: Wire through middleware pipeline
 ///
@@ -319,8 +311,8 @@ pub async fn network_connect(
 /// # }
 /// ```
 pub async fn network_listen(addr: impl Into<String>, user: impl Into<String>) -> OSResult<Vec<u8>> {
-    // TODO(OSL-TASK-003): Add security validation
-    // TODO(OSL-TASK-004): Wire through middleware pipeline
+    // TODO(OSL-TASK-010): Add security validation
+    // TODO(OSL-TASK-010): Wire through middleware pipeline
     let operation = NetworkListenOperation::new(addr.into());
     let context = ExecutionContext::new(SecurityContext::new(user.into()));
     let executor = NetworkExecutor::new("helper_executor");
@@ -333,7 +325,7 @@ pub async fn network_listen(addr: impl Into<String>, user: impl Into<String>) ->
 /// # Current Implementation
 /// Direct executor call for simplicity.
 ///
-/// # Future Integration (OSL-TASK-003, OSL-TASK-004)
+/// # Future Integration (OSL-TASK-010)
 /// - TODO: Add security policy validation
 /// - TODO: Wire through middleware pipeline
 ///
@@ -351,8 +343,8 @@ pub async fn create_socket(
     socket_type: impl Into<String>,
     user: impl Into<String>,
 ) -> OSResult<Vec<u8>> {
-    // TODO(OSL-TASK-003): Add security validation
-    // TODO(OSL-TASK-004): Wire through middleware pipeline
+    // TODO(OSL-TASK-010): Add security validation
+    // TODO(OSL-TASK-010): Wire through middleware pipeline
     let operation = NetworkSocketOperation::new(socket_type.into());
     let context = ExecutionContext::new(SecurityContext::new(user.into()));
     let executor = NetworkExecutor::new("helper_executor");
