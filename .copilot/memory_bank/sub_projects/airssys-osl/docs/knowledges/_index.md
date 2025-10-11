@@ -1,9 +1,9 @@
 # airssys-osl Knowledge Documentation Index
 
 **Sub-Project:** airssys-osl  
-**Last Updated:** 2025-10-08  
-**Total Knowledge Docs:** 6  
-**Active Knowledge Docs:** 6  
+**Last Updated:** 2025-10-11  
+**Total Knowledge Docs:** 7  
+**Active Knowledge Docs:** 7  
 
 ## Knowledge Summary
 
@@ -12,7 +12,7 @@
 |----------|-------|----------|--------------|
 | Architecture | 2 | Draft | 2025-10-04 |
 | Standards | 1 | Draft | 2025-09-27 |
-| Patterns | 2 | Draft | 2025-10-04 |
+| Patterns | 3 | Draft | 2025-10-11 |
 | System Programming | 1 | Draft | 2025-10-08 |
 | Performance | 0 | N/A | N/A |
 | Integration | 0 | N/A | N/A |
@@ -22,7 +22,7 @@
 ### By Maturity
 | Maturity | Count | Description |
 |----------|-------|-------------|
-| Draft | 6 | Under development, may change significantly |
+| Draft | 7 | Under development, may change significantly |
 | Stable | 0 | Proven patterns, ready for use |
 | Deprecated | 0 | No longer recommended, kept for reference |
 
@@ -143,6 +143,29 @@
 - Workspace Standards: §6.1 YAGNI Principles (why deferred)
 - POSIX setpgid: https://pubs.opengroup.org/onlinepubs/9699919799/functions/setpgid.html
 - Windows Job Objects: https://docs.microsoft.com/en-us/windows/win32/procthread/job-objects
+
+#### 013-helper-composition-strategies.md *(Draft)*
+**Purpose:** Technical analysis and design patterns for functional composition in helper functions  
+**Last Updated:** 2025-10-11  
+**Key Topics:**
+- Trait-based composition pattern with HelperPipeline trait
+- Pipeline macro composition with `|>` operator syntax
+- Type system compatibility analysis and verification
+- Comparison matrix: traits vs. macros across 14 dimensions
+- Hybrid API strategy: simple functions + trait composition + optional macros
+- Implementation estimates and phased rollout strategy
+- Microsoft Rust Guidelines alignment analysis
+- Reusable pipeline patterns and functional programming integration
+
+**Cross-References:**
+- OSL-TASK-010: Helper Middleware Integration (current task)
+- OSL-TASK-011: Helper Composition Implementation (future)
+- OSL-TASK-009: ExecutorExt Middleware Extension Pattern
+- ADR-029: Abandon OSL-TASK-004 and Create OSL-TASK-010
+- Microsoft Rust Guidelines: M-SIMPLE-ABSTRACTIONS, M-DESIGN-FOR-AI
+- Workspace Standards: §6.1 YAGNI Principles, §6.2 Avoid dyn Patterns
+- Tower Middleware: Inspiration for composition patterns
+- Functional Programming: Elixir/F# pipeline operators
 
 ## Planned Knowledge Documentation
 
