@@ -63,13 +63,19 @@ use crate::middleware::security::{SecurityMiddleware, SecurityMiddlewareBuilder}
 ///
 /// # async fn example() -> airssys_osl::core::result::OSResult<()> {
 /// let acl = AccessControlList::new()
-///     .with_entry(AclEntry::allow("alice", "/data/*", vec!["read".to_string()]));
+///     .add_entry(AclEntry::new(
+///         "alice".to_string(),
+///         "/data/*".to_string(),
+///         vec!["read".to_string()],
+///         AclPolicy::Allow
+///     ));
 ///
-/// let security = SecurityMiddleware::builder()
-///     .with_acl_policy(acl)
+/// let security = SecurityMiddlewareBuilder::new()
+///     .add_policy(Box::new(acl))
 ///     .build();
 ///
-/// let data = read_file_with_middleware("/data/file.txt", "alice", security).await?;
+/// // Phase 2-4: Implementation pending
+/// // let data = read_file_with_middleware("/data/file.txt", "alice", security).await?;
 /// # Ok(())
 /// # }
 /// ```
@@ -116,14 +122,39 @@ pub(crate) fn default_security_middleware() -> SecurityMiddleware {
 /// // Example: Application-specific ACL policy
 /// let production_acl = AccessControlList::new()
 ///     // Allow app user to read/write application data
-///     .with_entry(AclEntry::allow("app_user", "/app/data/*", vec!["read", "write"]))
+///     .add_entry(AclEntry::new(
+///         "app_user".to_string(),
+///         "/app/data/*".to_string(),
+///         vec!["read".to_string(), "write".to_string()],
+///         AclPolicy::Allow
+///     ))
 ///     // Deny app user from modifying configuration
-///     .with_entry(AclEntry::deny("app_user", "/app/config/*", vec!["write"]))
+///     .add_entry(AclEntry::new(
+///         "app_user".to_string(),
+///         "/app/config/*".to_string(),
+///         vec!["write".to_string()],
+///         AclPolicy::Deny
+///     ))
 ///     // Allow admin full access to application directory
-///     .with_entry(AclEntry::allow("admin", "/app/*", vec!["*"]))
+///     .add_entry(AclEntry::new(
+///         "admin".to_string(),
+///         "/app/*".to_string(),
+///         vec!["*".to_string()],
+///         AclPolicy::Allow
+///     ))
 ///     // Deny everyone from accessing system files
-///     .with_entry(AclEntry::deny("*", "/etc/*", vec!["*"]))
-///     .with_entry(AclEntry::deny("*", "/sys/*", vec!["*"]));
+///     .add_entry(AclEntry::new(
+///         "*".to_string(),
+///         "/etc/*".to_string(),
+///         vec!["*".to_string()],
+///         AclPolicy::Deny
+///     ))
+///     .add_entry(AclEntry::new(
+///         "*".to_string(),
+///         "/sys/*".to_string(),
+///         vec!["*".to_string()],
+///         AclPolicy::Deny
+///     ));
 /// ```
 ///
 /// # Pattern Matching
