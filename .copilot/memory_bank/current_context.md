@@ -1,26 +1,69 @@
 # Current Context
 
-**Last Updated:** 2025-10-10  
+**Last Updated:** 2025-10-11  
 **Active Sub-Project:** airssys-osl  
-**Status:** OSL-TASK-003 COMPLETE ✅ (100% complete)  
-**Current Phase:** Security Middleware Complete - All 7 Phases Done - Production Ready
+**Status:** OSL-TASK-003 COMPLETE ✅ - Ready for Next Phase  
+**Current Phase:** Core Implementation Complete - Helper Integration Pending
 
-**Context:** OSL-TASK-003 Security Middleware 100% complete with all 311 tests passing
-**Phase Status:** All phases complete - Production-ready security middleware delivered
+**Context:** Switching focus from airssys-osl-macros to airssys-osl main project
+**Phase Status:** 8 of 9 tasks complete - OSL-TASK-004 needs scope redefinition
 
 ---
 
-## airssys-osl-macros - Current Focus 🎯
+## airssys-osl - Current Focus 🎯
 
-### Status: MACROS-TASK-003 Phase 2 Complete ✅
-- **Active Focus**: Integration Testing with airssys-osl
+### Status: Core Complete - Helper Integration Next
+- **Active Focus**: OSL-TASK-004 Scope Redefinition & Helper Integration
+- **Project Type**: OS Abstraction Layer (system programming primitives)
+- **Project Priority**: Critical - Foundation for all AirsSys components
+- **Technology Stack**: Rust (async/await), Tokio runtime, platform-specific I/O
+- **Architecture Model**: Three-tier approach (low-level API, helpers, macros)
+- **Phase**: 8 of 9 tasks complete (OSL-TASK-004 needs redefinition)
+- **Total Tests**: 311 (232 unit + 66 integration + 13 threat) + 108 doctests
+- **Quality Status**: All tests passing, zero warnings, production-ready core
+
+### What's Been Done ✅
+1. ✅ **OSL-TASK-001**: Core Module Foundation (Complete)
+2. ✅ **OSL-TASK-002**: Logger Middleware Module (Complete)
+3. ✅ **OSL-TASK-003**: Security Middleware Module (Complete - All 7 phases)
+4. ✅ **OSL-TASK-005**: API Ergonomics Foundation (Complete)
+5. ✅ **OSL-TASK-006**: Framework Implementation (Phases 1-3, Phase 4 cancelled)
+6. ✅ **OSL-TASK-007**: All 11 Concrete Operations (Complete)
+7. ✅ **OSL-TASK-008**: All 3 Platform Executors (Phases 1-4, 5-7 cancelled)
+8. ✅ **OSL-TASK-009**: Remove Framework and Add Helpers (Complete - All 4 phases)
+9. ✅ **airssys-osl-macros Integration**: Complete with #[executor] macro
+
+### Immediate Next Steps 🎯
+⏳ **OSL-TASK-004: Helper Integration** (Scope redefinition needed)
+- Original scope: Pipeline framework (replaced by ExecutorExt trait)
+- Current situation: 20 TODO comments in helpers.rs for security/middleware
+- New scope needed: Wire SecurityMiddleware and logger into helper functions
+- Strategy decision: Determine helper function integration approach
+- Estimate: 1-2 days implementation
+
+### Recent Context: airssys-osl-macros Switch
+Previous focus was on airssys-osl-macros (proc-macro crate) which is now complete:
+- ✅ MACROS-TASK-003 Phase 2 Complete
+- ✅ 264 tests passing (37 macro unit + 2 macro integration + 225 OSL)
+- ✅ #[executor] macro fully functional with airssys-osl integration
+
+---
+
+## airssys-osl-macros - Related Context
+
+---
+
+## airssys-osl-macros - Related Context
+
+### Status: MACROS-TASK-003 Phase 2 Complete ✅ (Foundation Phase)
 - **Project Type**: Proc-Macro Crate (compile-time code generation)
 - **Project Priority**: High - Ergonomic layer for airssys-osl
 - **Technology Stack**: Rust proc-macro, syn v2, quote, proc-macro2
 - **Architecture Model**: Token-based code generation (zero runtime cost)
 - **Phase**: Phase 2 Complete - 11/11 Integration Tests Passing
 - **Total Tests**: 264 (37 macro unit + 2 macro integration + 225 OSL)
-- **Quality Status**: All tests passing, zero warnings, ready for Phase 3
+- **Quality Status**: All tests passing, zero warnings, production-ready
+- **Note**: Focus switched to airssys-osl main project
 
 ### What's Been Done ✅
 1. ✅ **Memory Bank Structure**: Complete sub-project documentation created
