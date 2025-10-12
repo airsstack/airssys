@@ -44,11 +44,11 @@ async fn threat_permission_escalation_attempt() {
     context
         .security_context
         .attributes
-        .insert("resource".to_string(), "/admin/secrets.txt".to_string());
+        .insert("acl.resource".to_string(), "/admin/secrets.txt".to_string());
     context
         .security_context
         .attributes
-        .insert("permission".to_string(), "file:read".to_string());
+        .insert("acl.permission".to_string(), "file:read".to_string());
 
     let result = middleware.before_execution(operation, &context).await;
 
@@ -84,11 +84,11 @@ async fn threat_resource_access_bypass() {
     context
         .security_context
         .attributes
-        .insert("resource".to_string(), "/private/data.txt".to_string());
+        .insert("acl.resource".to_string(), "/private/data.txt".to_string());
     context
         .security_context
         .attributes
-        .insert("permission".to_string(), "file:read".to_string());
+        .insert("acl.permission".to_string(), "file:read".to_string());
 
     let result = middleware.before_execution(operation, &context).await;
 
@@ -160,11 +160,11 @@ async fn threat_identity_spoofing_empty_principal() {
     context
         .security_context
         .attributes
-        .insert("resource".to_string(), "/data/file.txt".to_string());
+        .insert("acl.resource".to_string(), "/data/file.txt".to_string());
     context
         .security_context
         .attributes
-        .insert("permission".to_string(), "file:read".to_string());
+        .insert("acl.permission".to_string(), "file:read".to_string());
 
     let result = middleware.before_execution(operation, &context).await;
 
@@ -203,11 +203,11 @@ async fn threat_wildcard_pattern_exploitation() {
     context
         .security_context
         .attributes
-        .insert("resource".to_string(), "/public/secret.txt".to_string());
+        .insert("acl.resource".to_string(), "/public/secret.txt".to_string());
     context
         .security_context
         .attributes
-        .insert("permission".to_string(), "file:read".to_string());
+        .insert("acl.permission".to_string(), "file:read".to_string());
 
     let result = middleware.before_execution(operation, &context).await;
     assert!(result.is_err(), "File starting with 's' should be blocked");
@@ -217,7 +217,7 @@ async fn threat_wildcard_pattern_exploitation() {
     context
         .security_context
         .attributes
-        .insert("resource".to_string(), "/public/binary.exe".to_string());
+        .insert("acl.resource".to_string(), "/public/binary.exe".to_string());
 
     let result2 = middleware.before_execution(operation2, &context).await;
     assert!(result2.is_err(), "Non-.txt file should be blocked");
@@ -252,11 +252,11 @@ async fn threat_permission_string_manipulation() {
     context
         .security_context
         .attributes
-        .insert("resource".to_string(), "/data/file.txt".to_string());
+        .insert("acl.resource".to_string(), "/data/file.txt".to_string());
     context
         .security_context
         .attributes
-        .insert("permission".to_string(), "file:write".to_string());
+        .insert("acl.permission".to_string(), "file:write".to_string());
 
     let result = middleware.before_execution(operation, &context).await;
 
@@ -301,15 +301,15 @@ async fn threat_multi_policy_conflict_exploitation() {
     context
         .security_context
         .attributes
-        .insert("resource".to_string(), "/data/file.txt".to_string());
+        .insert("acl.resource".to_string(), "/data/file.txt".to_string());
     context
         .security_context
         .attributes
-        .insert("permission".to_string(), "file:read".to_string());
-    context
-        .security_context
-        .attributes
-        .insert("required_permission".to_string(), "file:read".to_string());
+        .insert("acl.permission".to_string(), "file:read".to_string());
+    context.security_context.attributes.insert(
+        "rbac.required_permission".to_string(),
+        "file:read".to_string(),
+    );
 
     let result = middleware.before_execution(operation, &context).await;
 
@@ -356,7 +356,7 @@ async fn threat_circular_role_dependency_dos() {
     context
         .security_context
         .attributes
-        .insert("required_permission".to_string(), "perm_a".to_string());
+        .insert("rbac.required_permission".to_string(), "perm_a".to_string());
 
     let result = middleware.before_execution(operation, &context).await;
 
@@ -387,11 +387,11 @@ async fn threat_default_policy_bypass() {
     context
         .security_context
         .attributes
-        .insert("resource".to_string(), "/etc/passwd".to_string());
+        .insert("acl.resource".to_string(), "/etc/passwd".to_string());
     context
         .security_context
         .attributes
-        .insert("permission".to_string(), "file:read".to_string());
+        .insert("acl.permission".to_string(), "file:read".to_string());
 
     let result = middleware.before_execution(operation, &context).await;
 
@@ -430,11 +430,11 @@ async fn threat_network_socket_type_confusion() {
     context
         .security_context
         .attributes
-        .insert("resource".to_string(), "127.0.0.1:8080".to_string());
+        .insert("acl.resource".to_string(), "127.0.0.1:8080".to_string());
     context
         .security_context
         .attributes
-        .insert("permission".to_string(), "network:listen".to_string());
+        .insert("acl.permission".to_string(), "network:listen".to_string());
 
     let result = middleware.before_execution(operation, &context).await;
 
@@ -469,7 +469,7 @@ async fn threat_process_spawn_privilege_escalation() {
     let operation = ProcessSpawnOperation::new("/usr/bin/sudo".to_string());
     let mut context = ExecutionContext::new(SecurityContext::new("regular_user".to_string()));
     context.security_context.attributes.insert(
-        "required_permission".to_string(),
+        "rbac.required_permission".to_string(),
         "process:spawn:privileged".to_string(),
     );
 
@@ -511,11 +511,11 @@ async fn threat_acl_default_policy_override() {
     context
         .security_context
         .attributes
-        .insert("resource".to_string(), "/secret/data.txt".to_string());
+        .insert("acl.resource".to_string(), "/secret/data.txt".to_string());
     context
         .security_context
         .attributes
-        .insert("permission".to_string(), "file:read".to_string());
+        .insert("acl.permission".to_string(), "file:read".to_string());
 
     let result = middleware.before_execution(operation, &context).await;
 
@@ -555,11 +555,11 @@ async fn threat_permission_wildcard_confusion() {
     context
         .security_context
         .attributes
-        .insert("resource".to_string(), "/data/file.txt".to_string());
+        .insert("acl.resource".to_string(), "/data/file.txt".to_string());
     context
         .security_context
         .attributes
-        .insert("permission".to_string(), "*".to_string());
+        .insert("acl.permission".to_string(), "*".to_string());
 
     let result = middleware.before_execution(operation, &context).await;
 

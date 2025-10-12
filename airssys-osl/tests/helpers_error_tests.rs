@@ -15,11 +15,11 @@
 #![allow(clippy::expect_used)]
 #![allow(clippy::unwrap_used)]
 
-use airssys_osl::core::error::OSError;
+use airssys_osl::core::result::OSError;
 use airssys_osl::helpers::*;
 use airssys_osl::middleware::security::acl::{AccessControlList, AclEntry, AclPolicy};
 use airssys_osl::middleware::security::middleware::SecurityMiddlewareBuilder;
-use airssys_osl::middleware::security::rbac::RoleBasedAccessControl;
+use airssys_osl::middleware::security::rbac::{Permission, Role, RoleBasedAccessControl};
 
 // ============================================================================
 // Security Error Tests
@@ -43,29 +43,53 @@ async fn test_security_violation_error_on_acl_deny() {
     // Test: Attempt forbidden operation
     let result = read_file_with_middleware("/forbidden/secret.txt", "blocked_user", security).await;
 
-    // Verify: Returns MiddlewareFailed error (wrapping security violation)
+    // Verify: Returns error indicating ACL denial
     assert!(result.is_err(), "Expected error for ACL denial");
 
     match result.unwrap_err() {
-        OSError::MiddlewareFailed { source, .. } => {
-            let error_msg = format!("{source:?}");
+        OSError::MiddlewareFailed { reason, .. } => {
             assert!(
-                error_msg.contains("ACL")
-                    || error_msg.contains("Deny")
-                    || error_msg.contains("security"),
-                "Expected ACL denial in error message, got: {error_msg}"
+                reason.contains("ACL")
+                    || reason.contains("Deny")
+                    || reason.contains("security")
+                    || reason.contains("policy"),
+                "Expected ACL denial in error message, got: {reason}"
             );
         }
-        other => panic!("Expected MiddlewareFailed error, got: {:?}", other),
+        OSError::SecurityViolation { reason } => {
+            assert!(
+                reason.contains("ACL") || reason.contains("Deny"),
+                "Expected ACL denial in error message, got: {reason}"
+            );
+        }
+        OSError::ExecutionFailed { reason } => {
+            assert!(
+                reason.contains("ACL")
+                    || reason.contains("Deny")
+                    || reason.contains("SecurityViolation"),
+                "Expected ACL denial in error message, got: {reason}"
+            );
+        }
+        other => panic!("Expected security-related error, got: {:?}", other),
     }
 }
 
 #[tokio::test]
 async fn test_permission_denied_error_on_rbac_violation() {
     // Setup: RBAC policy without proper role
+    let permission = Permission::new(
+        "file:write".to_string(),
+        "Write File".to_string(),
+        "Allows writing files".to_string(),
+    );
+
+    let role = Role::new("writer".to_string(), "Writer Role".to_string())
+        .with_permission("file:write".to_string());
+
     let mut rbac = RoleBasedAccessControl::new();
     rbac = rbac
-        .add_role("writer".to_string(), vec!["file:write".to_string()])
+        .add_permission(permission)
+        .add_role(role)
         .assign_roles("authorized_user".to_string(), vec!["writer".to_string()]);
     // Note: unauthorized_user has no roles
 
@@ -87,16 +111,30 @@ async fn test_permission_denied_error_on_rbac_violation() {
     assert!(result.is_err(), "Expected permission denied error");
 
     match result.unwrap_err() {
-        OSError::MiddlewareFailed { source, .. } => {
-            let error_msg = format!("{source:?}");
+        OSError::MiddlewareFailed { reason, .. } => {
             assert!(
-                error_msg.contains("RBAC")
-                    || error_msg.contains("role")
-                    || error_msg.contains("permission"),
-                "Expected RBAC/permission error, got: {error_msg}"
+                reason.contains("RBAC")
+                    || reason.contains("role")
+                    || reason.contains("permission")
+                    || reason.contains("policy"),
+                "Expected RBAC/permission error, got: {reason}"
             );
         }
-        other => panic!("Expected MiddlewareFailed error, got: {:?}", other),
+        OSError::SecurityViolation { reason } => {
+            assert!(
+                reason.contains("RBAC") || reason.contains("permission"),
+                "Expected RBAC/permission error, got: {reason}"
+            );
+        }
+        OSError::ExecutionFailed { reason } => {
+            assert!(
+                reason.contains("RBAC")
+                    || reason.contains("role")
+                    || reason.contains("SecurityViolation"),
+                "Expected RBAC/permission error, got: {reason}"
+            );
+        }
+        other => panic!("Expected security-related error, got: {:?}", other),
     }
 }
 
@@ -156,18 +194,23 @@ async fn test_read_file_not_found_error() {
     let non_existent_path = "/tmp/this_file_definitely_does_not_exist_12345.txt";
     let result = read_file_with_middleware(non_existent_path, "user", security).await;
 
-    // Verify: Returns NotFound or IOError
+    // Verify: Returns FilesystemError or ExecutionFailed
     assert!(result.is_err(), "Expected error for non-existent file");
 
     match result.unwrap_err() {
-        OSError::NotFound { resource, .. } => {
+        OSError::FilesystemError { path, reason, .. } => {
             assert!(
-                resource.contains("this_file_definitely_does_not_exist"),
-                "Expected resource path in NotFound error"
+                path.contains("this_file_definitely_does_not_exist")
+                    || reason.contains("not found")
+                    || reason.contains("No such file"),
+                "Expected file not found error"
             );
         }
-        OSError::IOError { .. } => {
-            // Also acceptable - OS-level file not found
+        OSError::ExecutionFailed { reason } => {
+            assert!(
+                reason.contains("not found") || reason.contains("No such file"),
+                "Expected 'not found' error, got: {reason}"
+            );
         }
         other => {
             // May also get middleware or execution errors depending on implementation
@@ -206,11 +249,14 @@ async fn test_write_file_io_error_propagation() {
     // (May succeed in some test environments, so we only verify if it fails)
     if result.is_err() {
         match result.unwrap_err() {
-            OSError::IOError { .. } | OSError::PermissionDenied { .. } => {
-                // Expected error types for system-level permission issues
+            OSError::FilesystemError { .. } => {
+                // Expected error type for filesystem permission issues
             }
             OSError::ExecutionFailed { .. } | OSError::MiddlewareFailed { .. } => {
                 // Also acceptable depending on executor implementation
+            }
+            OSError::SecurityViolation { .. } => {
+                // May occur if security policy catches permission issues
             }
             other => {
                 panic!("Unexpected error type for IO failure: {:?}", other);
@@ -245,10 +291,8 @@ async fn test_kill_process_invalid_pid_error() {
     );
 
     match result.unwrap_err() {
-        OSError::NotFound { .. }
-        | OSError::InvalidInput { .. }
-        | OSError::ExecutionFailed { .. } => {
-            // Any of these are acceptable for invalid PID
+        OSError::ProcessError { .. } | OSError::ExecutionFailed { .. } => {
+            // Expected error types for invalid PID
         }
         other => {
             let error_msg = format!("{other:?}");
@@ -287,13 +331,10 @@ async fn test_empty_file_path_error() {
     // Verify: Returns error for empty path
     assert!(result.is_err(), "Expected error for empty file path");
 
-    // Error type may vary - InvalidInput, NotFound, or IOError all acceptable
+    // Error type may vary - FilesystemError, ExecutionFailed all acceptable
     match result.unwrap_err() {
-        OSError::InvalidInput { .. }
-        | OSError::NotFound { .. }
-        | OSError::IOError { .. }
-        | OSError::ExecutionFailed { .. } => {
-            // All acceptable error types
+        OSError::FilesystemError { .. } | OSError::ExecutionFailed { .. } => {
+            // Expected error types
         }
         other => {
             let error_msg = format!("{other:?}");
@@ -327,18 +368,16 @@ async fn test_process_spawn_empty_command_error() {
     assert!(result.is_err(), "Expected error for empty command");
 
     match result.unwrap_err() {
-        OSError::InvalidInput { .. } | OSError::ExecutionFailed { .. } => {
+        OSError::ProcessError { .. } | OSError::ExecutionFailed { .. } => {
             // Expected error types
-        }
-        OSError::NotFound { .. } => {
-            // Also acceptable - command not found
         }
         other => {
             let error_msg = format!("{other:?}");
             assert!(
                 error_msg.contains("command")
                     || error_msg.contains("empty")
-                    || error_msg.contains("invalid"),
+                    || error_msg.contains("invalid")
+                    || error_msg.contains("process"),
                 "Expected command-related error, got: {error_msg}"
             );
         }
@@ -371,9 +410,7 @@ async fn test_network_connect_invalid_address_error() {
     );
 
     match result.unwrap_err() {
-        OSError::InvalidInput { .. }
-        | OSError::NetworkError { .. }
-        | OSError::ExecutionFailed { .. } => {
+        OSError::NetworkError { .. } | OSError::ExecutionFailed { .. } => {
             // Expected error types
         }
         other => {
@@ -453,11 +490,8 @@ async fn test_error_can_be_downcast_and_analyzed() {
     if let Err(error) = result {
         // Verify: Can match on error variants
         match error {
-            OSError::NotFound { .. } => {
-                // Successfully matched NotFound variant
-            }
-            OSError::IOError { .. } => {
-                // Also acceptable for missing file
+            OSError::FilesystemError { .. } => {
+                // Successfully matched FilesystemError variant
             }
             OSError::ExecutionFailed { .. } => {
                 // May wrap the underlying error

@@ -15,8 +15,8 @@
 //! # Context Attribute Keys
 //!
 //! ACL evaluation uses these standardized context attribute keys:
-//! - [`ATTR_RESOURCE`]: The resource being accessed (e.g., file path, API endpoint)
-//! - [`ATTR_PERMISSION`]: The permission being requested (e.g., "read", "write", "execute")
+//! - [`ATTR_ACL_RESOURCE`]: The resource being accessed (e.g., file path, API endpoint)
+//! - [`ATTR_ACL_PERMISSION`]: The permission being requested (e.g., "read", "write", "execute")
 //!
 //! # Examples
 //!
@@ -24,7 +24,7 @@
 //!
 //! ```rust
 //! use airssys_osl::middleware::security::acl::{
-//!     AccessControlList, AclEntry, AclPolicy, ATTR_RESOURCE, ATTR_PERMISSION
+//!     AccessControlList, AclEntry, AclPolicy, ATTR_ACL_RESOURCE, ATTR_ACL_PERMISSION
 //! };
 //! use airssys_osl::middleware::security::policy::SecurityPolicy;
 //! use airssys_osl::core::context::SecurityContext;
@@ -44,8 +44,8 @@
 //!
 //! // Create security context with resource and permission attributes
 //! let mut attributes = HashMap::new();
-//! attributes.insert(ATTR_RESOURCE.to_string(), "/home/alice/file.txt".to_string());
-//! attributes.insert(ATTR_PERMISSION.to_string(), "read".to_string());
+//! attributes.insert(ATTR_ACL_RESOURCE.to_string(), "/home/alice/file.txt".to_string());
+//! attributes.insert(ATTR_ACL_PERMISSION.to_string(), "read".to_string());
 //!
 //! let context = SecurityContext {
 //!     principal: "alice".to_string(),
@@ -107,31 +107,33 @@ use crate::middleware::security::policy::{PolicyDecision, PolicyScope, SecurityP
 
 /// Context attribute key for resource path/identifier.
 ///
+/// Uses `acl.` prefix to prevent conflicts with other security modules.
 /// Used to extract the resource being accessed from `SecurityContext.attributes`.
 ///
 /// # Example
 /// ```
 /// use std::collections::HashMap;
-/// use airssys_osl::middleware::security::acl::ATTR_RESOURCE;
+/// use airssys_osl::middleware::security::acl::ATTR_ACL_RESOURCE;
 ///
 /// let mut attributes = HashMap::new();
-/// attributes.insert(ATTR_RESOURCE.to_string(), "/etc/passwd".to_string());
+/// attributes.insert(ATTR_ACL_RESOURCE.to_string(), "/etc/passwd".to_string());
 /// ```
-pub const ATTR_RESOURCE: &str = "resource";
+pub const ATTR_ACL_RESOURCE: &str = "acl.resource";
 
 /// Context attribute key for required permission/action.
 ///
+/// Uses `acl.` prefix to prevent conflicts with other security modules.
 /// Used to extract the required permission from `SecurityContext.attributes`.
 ///
 /// # Example
 /// ```
 /// use std::collections::HashMap;
-/// use airssys_osl::middleware::security::acl::ATTR_PERMISSION;
+/// use airssys_osl::middleware::security::acl::ATTR_ACL_PERMISSION;
 ///
 /// let mut attributes = HashMap::new();
-/// attributes.insert(ATTR_PERMISSION.to_string(), "read".to_string());
+/// attributes.insert(ATTR_ACL_PERMISSION.to_string(), "read".to_string());
 /// ```
-pub const ATTR_PERMISSION: &str = "permission";
+pub const ATTR_ACL_PERMISSION: &str = "acl.permission";
 
 /// ACL policy action for entries.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -417,14 +419,14 @@ impl SecurityPolicy for AccessControlList {
         // 1. Extract resource from context.attributes
         let resource = context
             .attributes
-            .get(ATTR_RESOURCE)
+            .get(ATTR_ACL_RESOURCE)
             .map(|s| s.as_str())
             .unwrap_or("");
 
         // 2. Extract required permission from context.attributes
         let permission = context
             .attributes
-            .get(ATTR_PERMISSION)
+            .get(ATTR_ACL_PERMISSION)
             .map(|s| s.as_str())
             .unwrap_or("");
 
@@ -489,6 +491,102 @@ impl SecurityPolicy for AccessControlList {
     fn scope(&self) -> PolicyScope {
         PolicyScope::All
     }
+}
+
+/// Build ACL-specific attributes from operation permissions.
+///
+/// Extracts resource path and permission type from Permission enum variants
+/// to populate SecurityContext attributes required by ACL policy evaluation.
+///
+/// This function maintains separation of concerns: operations declare what
+/// permissions they need, and this function interprets those permissions into
+/// ACL-specific attributes.
+///
+/// # Arguments
+///
+/// * `permissions` - Slice of Permission enum variants from an Operation
+///
+/// # Returns
+///
+/// HashMap with ACL attribute keys:
+/// - [`ATTR_ACL_RESOURCE`]: The resource being accessed (path, endpoint, etc.)
+/// - [`ATTR_ACL_PERMISSION`]: The permission type (read, write, execute, etc.)
+///
+/// # Examples
+///
+/// ```
+/// use airssys_osl::middleware::security::acl::build_acl_attributes;
+/// use airssys_osl::core::operation::Permission;
+///
+/// let perms = vec![Permission::FilesystemRead("/tmp/file.txt".to_string())];
+/// let attrs = build_acl_attributes(&perms);
+///
+/// assert_eq!(attrs.get("acl.resource"), Some(&"/tmp/file.txt".to_string()));
+/// assert_eq!(attrs.get("acl.permission"), Some(&"read".to_string()));
+/// ```
+///
+/// # Permission Mapping
+///
+/// - `FilesystemRead(path)` → `{ "acl.resource": path, "acl.permission": "read" }`
+/// - `FilesystemWrite(path)` → `{ "acl.resource": path, "acl.permission": "write" }`
+/// - `FilesystemExecute(path)` → `{ "acl.resource": path, "acl.permission": "execute" }`
+/// - `ProcessSpawn` → `{ "acl.resource": "process", "acl.permission": "spawn" }`
+/// - `ProcessManage` → `{ "acl.resource": "process", "acl.permission": "manage" }`
+/// - `NetworkSocket` → `{ "acl.resource": "network", "acl.permission": "socket" }`
+/// - `NetworkConnect(endpoint)` → `{ "acl.resource": endpoint, "acl.permission": "connect" }`
+/// - `UtilityExecute(utility)` → `{ "acl.resource": utility, "acl.permission": "execute" }`
+///
+/// # Notes
+///
+/// - Returns empty HashMap if permissions slice is empty
+/// - For multiple permissions, last one wins (current operations have single permission)
+/// - Future compound operations may require different strategy (documented in ADR-030)
+pub fn build_acl_attributes(
+    permissions: &[crate::core::operation::Permission],
+) -> std::collections::HashMap<String, String> {
+    use crate::core::operation::Permission;
+    use std::collections::HashMap;
+
+    let mut attributes = HashMap::new();
+
+    for perm in permissions {
+        match perm {
+            Permission::FilesystemRead(path) => {
+                attributes.insert(ATTR_ACL_RESOURCE.to_string(), path.clone());
+                attributes.insert(ATTR_ACL_PERMISSION.to_string(), "read".to_string());
+            }
+            Permission::FilesystemWrite(path) => {
+                attributes.insert(ATTR_ACL_RESOURCE.to_string(), path.clone());
+                attributes.insert(ATTR_ACL_PERMISSION.to_string(), "write".to_string());
+            }
+            Permission::FilesystemExecute(path) => {
+                attributes.insert(ATTR_ACL_RESOURCE.to_string(), path.clone());
+                attributes.insert(ATTR_ACL_PERMISSION.to_string(), "execute".to_string());
+            }
+            Permission::ProcessSpawn => {
+                attributes.insert(ATTR_ACL_RESOURCE.to_string(), "process".to_string());
+                attributes.insert(ATTR_ACL_PERMISSION.to_string(), "spawn".to_string());
+            }
+            Permission::ProcessManage => {
+                attributes.insert(ATTR_ACL_RESOURCE.to_string(), "process".to_string());
+                attributes.insert(ATTR_ACL_PERMISSION.to_string(), "manage".to_string());
+            }
+            Permission::NetworkSocket => {
+                attributes.insert(ATTR_ACL_RESOURCE.to_string(), "network".to_string());
+                attributes.insert(ATTR_ACL_PERMISSION.to_string(), "socket".to_string());
+            }
+            Permission::NetworkConnect(endpoint) => {
+                attributes.insert(ATTR_ACL_RESOURCE.to_string(), endpoint.clone());
+                attributes.insert(ATTR_ACL_PERMISSION.to_string(), "connect".to_string());
+            }
+            Permission::UtilityExecute(utility) => {
+                attributes.insert(ATTR_ACL_RESOURCE.to_string(), utility.clone());
+                attributes.insert(ATTR_ACL_PERMISSION.to_string(), "execute".to_string());
+            }
+        }
+    }
+
+    attributes
 }
 
 #[cfg(test)]
@@ -674,10 +772,10 @@ mod tests {
 
         let mut attributes = HashMap::new();
         attributes.insert(
-            ATTR_RESOURCE.to_string(),
+            ATTR_ACL_RESOURCE.to_string(),
             "/home/alice/file.txt".to_string(),
         );
-        attributes.insert(ATTR_PERMISSION.to_string(), "read".to_string());
+        attributes.insert(ATTR_ACL_PERMISSION.to_string(), "read".to_string());
 
         let context = SecurityContext {
             principal: "alice".to_string(),
@@ -711,10 +809,10 @@ mod tests {
 
         let mut attributes = HashMap::new();
         attributes.insert(
-            ATTR_RESOURCE.to_string(),
+            ATTR_ACL_RESOURCE.to_string(),
             "/home/alice/file.txt".to_string(),
         );
-        attributes.insert(ATTR_PERMISSION.to_string(), "write".to_string());
+        attributes.insert(ATTR_ACL_PERMISSION.to_string(), "write".to_string());
 
         let context = SecurityContext {
             principal: "alice".to_string(),
@@ -747,8 +845,11 @@ mod tests {
         use uuid::Uuid;
 
         let mut attributes = HashMap::new();
-        attributes.insert(ATTR_RESOURCE.to_string(), "/home/bob/file.txt".to_string());
-        attributes.insert(ATTR_PERMISSION.to_string(), "read".to_string());
+        attributes.insert(
+            ATTR_ACL_RESOURCE.to_string(),
+            "/home/bob/file.txt".to_string(),
+        );
+        attributes.insert(ATTR_ACL_PERMISSION.to_string(), "read".to_string());
 
         let context = SecurityContext {
             principal: "alice".to_string(),
@@ -781,8 +882,8 @@ mod tests {
         use uuid::Uuid;
 
         let mut attributes = HashMap::new();
-        attributes.insert(ATTR_RESOURCE.to_string(), "/data/file.txt".to_string());
-        attributes.insert(ATTR_PERMISSION.to_string(), "read".to_string());
+        attributes.insert(ATTR_ACL_RESOURCE.to_string(), "/data/file.txt".to_string());
+        attributes.insert(ATTR_ACL_PERMISSION.to_string(), "read".to_string());
 
         let context = SecurityContext {
             principal: "alice".to_string(),
@@ -823,8 +924,8 @@ mod tests {
         use uuid::Uuid;
 
         let mut attributes = HashMap::new();
-        attributes.insert(ATTR_RESOURCE.to_string(), "/etc/shadow".to_string());
-        attributes.insert(ATTR_PERMISSION.to_string(), "read".to_string());
+        attributes.insert(ATTR_ACL_RESOURCE.to_string(), "/etc/shadow".to_string());
+        attributes.insert(ATTR_ACL_PERMISSION.to_string(), "read".to_string());
 
         let context = SecurityContext {
             principal: "alice".to_string(),
@@ -857,8 +958,11 @@ mod tests {
         use uuid::Uuid;
 
         let mut attributes = HashMap::new();
-        attributes.insert(ATTR_RESOURCE.to_string(), "/random/file.txt".to_string());
-        attributes.insert(ATTR_PERMISSION.to_string(), "read".to_string());
+        attributes.insert(
+            ATTR_ACL_RESOURCE.to_string(),
+            "/random/file.txt".to_string(),
+        );
+        attributes.insert(ATTR_ACL_PERMISSION.to_string(), "read".to_string());
 
         let context = SecurityContext {
             principal: "bob".to_string(), // No entries for bob
@@ -892,7 +996,10 @@ mod tests {
         use uuid::Uuid;
 
         let mut attributes = HashMap::new();
-        attributes.insert(ATTR_RESOURCE.to_string(), "/public/file.txt".to_string());
+        attributes.insert(
+            ATTR_ACL_RESOURCE.to_string(),
+            "/public/file.txt".to_string(),
+        );
         // No permission attribute - skip permission check
 
         let context = SecurityContext {

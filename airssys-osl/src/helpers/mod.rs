@@ -192,6 +192,7 @@
 // Module Declarations (§4.3 Module Architecture - MANDATORY)
 // ============================================================================
 
+pub(crate) mod context; // Security context building utilities
 pub(crate) mod factories;
 
 // Module declarations for simple helpers and composition

@@ -13,13 +13,13 @@
 //! # Context Attribute Keys
 //!
 //! RBAC evaluation uses these standardized context attribute keys:
-//! - [`ATTR_REQUIRED_PERMISSION`]: The permission being requested (e.g., "read_file", "write_file")
+//! - [`ATTR_RBAC_REQUIRED_PERMISSION`]: The permission being requested (e.g., "read_file", "write_file")
 //!
 //! # Examples
 //!
 //! ```rust
 //! use airssys_osl::middleware::security::rbac::{
-//!     RoleBasedAccessControl, Role, Permission, ATTR_REQUIRED_PERMISSION
+//!     RoleBasedAccessControl, Role, Permission, ATTR_RBAC_REQUIRED_PERMISSION
 //! };
 //! use airssys_osl::middleware::security::policy::SecurityPolicy;
 //! use airssys_osl::core::context::SecurityContext;
@@ -46,7 +46,7 @@
 //!
 //! // Create security context with required permission
 //! let mut attributes = HashMap::new();
-//! attributes.insert(ATTR_REQUIRED_PERMISSION.to_string(), "read_file".to_string());
+//! attributes.insert(ATTR_RBAC_REQUIRED_PERMISSION.to_string(), "read_file".to_string());
 //!
 //! let context = SecurityContext {
 //!     principal: "alice".to_string(),
@@ -72,17 +72,89 @@ use crate::middleware::security::policy::{PolicyDecision, PolicyScope, SecurityP
 
 /// Context attribute key for required permission.
 ///
+/// Uses `rbac.` prefix to prevent conflicts with other security modules.
 /// Used to extract the required permission from `SecurityContext.attributes`.
 ///
 /// # Example
 /// ```
 /// use std::collections::HashMap;
-/// use airssys_osl::middleware::security::rbac::ATTR_REQUIRED_PERMISSION;
+/// use airssys_osl::middleware::security::rbac::ATTR_RBAC_REQUIRED_PERMISSION;
 ///
 /// let mut attributes = HashMap::new();
-/// attributes.insert(ATTR_REQUIRED_PERMISSION.to_string(), "read_file".to_string());
+/// attributes.insert(ATTR_RBAC_REQUIRED_PERMISSION.to_string(), "read_file".to_string());
 /// ```
-pub const ATTR_REQUIRED_PERMISSION: &str = "required_permission";
+pub const ATTR_RBAC_REQUIRED_PERMISSION: &str = "rbac.required_permission";
+
+/// Builds RBAC attributes from operation permissions.
+///
+/// This function maps operation permissions to RBAC permission names,
+/// returning attributes suitable for populating a `SecurityContext`.
+///
+/// # Permission Mapping
+///
+/// The function maps `Permission` enum variants to RBAC permission names:
+/// - `FilesystemRead(_)` → `"file:read"`
+/// - `FilesystemWrite(_)` → `"file:write"`
+/// - `FilesystemExecute(_)` → `"file:execute"`
+/// - `ProcessSpawn` → `"process:spawn"`
+/// - `ProcessManage` → `"process:manage"`
+/// - `NetworkSocket` → `"network:socket"`
+/// - `NetworkConnect(_)` → `"network:connect"`
+/// - `UtilityExecute(_)` → `"utility:execute"`
+///
+/// # Arguments
+///
+/// * `permissions` - Slice of `Permission` enum values from an operation
+///
+/// # Returns
+///
+/// HashMap containing RBAC attributes:
+/// - Key: [`ATTR_RBAC_REQUIRED_PERMISSION`] = `"rbac.required_permission"`
+/// - Value: The RBAC permission name (e.g., `"file:read"`)
+///
+/// # Priority
+///
+/// When multiple permissions are provided, the **first permission** is used.
+/// This follows the architectural decision (ADR-030) that operations should
+/// declare their primary permission first.
+///
+/// # Example
+///
+/// ```
+/// use airssys_osl::core::operation::Permission;
+/// use airssys_osl::middleware::security::rbac::{build_rbac_attributes, ATTR_RBAC_REQUIRED_PERMISSION};
+///
+/// let permissions = vec![Permission::FilesystemRead("/etc/passwd".to_string())];
+/// let attrs = build_rbac_attributes(&permissions);
+///
+/// assert_eq!(attrs.get(ATTR_RBAC_REQUIRED_PERMISSION), Some(&"file:read".to_string()));
+/// ```
+pub fn build_rbac_attributes(
+    permissions: &[crate::core::operation::Permission],
+) -> std::collections::HashMap<String, String> {
+    use crate::core::operation::Permission;
+    let mut attributes = std::collections::HashMap::new();
+
+    if let Some(first_permission) = permissions.first() {
+        let permission_name = match first_permission {
+            Permission::FilesystemRead(_) => "file:read",
+            Permission::FilesystemWrite(_) => "file:write",
+            Permission::FilesystemExecute(_) => "file:execute",
+            Permission::ProcessSpawn => "process:spawn",
+            Permission::ProcessManage => "process:manage",
+            Permission::NetworkSocket => "network:socket",
+            Permission::NetworkConnect(_) => "network:connect",
+            Permission::UtilityExecute(_) => "utility:execute",
+        };
+
+        attributes.insert(
+            ATTR_RBAC_REQUIRED_PERMISSION.to_string(),
+            permission_name.to_string(),
+        );
+    }
+
+    attributes
+}
 
 /// Type alias for user identifiers.
 pub type UserId = String;
@@ -332,7 +404,7 @@ impl SecurityPolicy for RoleBasedAccessControl {
         // 3. Extract required permission from context attributes
         let required_permission = context
             .attributes
-            .get(ATTR_REQUIRED_PERMISSION)
+            .get(ATTR_RBAC_REQUIRED_PERMISSION)
             .map(|s| s.as_str());
 
         // If no permission is required, allow (user has valid roles)
@@ -473,7 +545,7 @@ mod tests {
         // Create context with required permission
         let mut attributes = HashMap::new();
         attributes.insert(
-            ATTR_REQUIRED_PERMISSION.to_string(),
+            ATTR_RBAC_REQUIRED_PERMISSION.to_string(),
             "read_file".to_string(),
         );
 
@@ -509,7 +581,7 @@ mod tests {
         // Request write permission (not granted)
         let mut attributes = HashMap::new();
         attributes.insert(
-            ATTR_REQUIRED_PERMISSION.to_string(),
+            ATTR_RBAC_REQUIRED_PERMISSION.to_string(),
             "write_file".to_string(),
         );
 
@@ -552,7 +624,7 @@ mod tests {
         // Request write permission (granted by writer role)
         let mut attributes = HashMap::new();
         attributes.insert(
-            ATTR_REQUIRED_PERMISSION.to_string(),
+            ATTR_RBAC_REQUIRED_PERMISSION.to_string(),
             "write_file".to_string(),
         );
 
@@ -593,7 +665,7 @@ mod tests {
         // Request read permission (inherited from user role)
         let mut attributes = HashMap::new();
         attributes.insert(
-            ATTR_REQUIRED_PERMISSION.to_string(),
+            ATTR_RBAC_REQUIRED_PERMISSION.to_string(),
             "read_file".to_string(),
         );
 
@@ -640,7 +712,7 @@ mod tests {
         // Request read permission (inherited through admin from user)
         let mut attributes = HashMap::new();
         attributes.insert(
-            ATTR_REQUIRED_PERMISSION.to_string(),
+            ATTR_RBAC_REQUIRED_PERMISSION.to_string(),
             "read_file".to_string(),
         );
 
@@ -734,7 +806,10 @@ mod tests {
 
         // Request top permission (should be available through both paths)
         let mut attributes = HashMap::new();
-        attributes.insert(ATTR_REQUIRED_PERMISSION.to_string(), "top_perm".to_string());
+        attributes.insert(
+            ATTR_RBAC_REQUIRED_PERMISSION.to_string(),
+            "top_perm".to_string(),
+        );
 
         let context = SecurityContext {
             principal: "alice".to_string(),

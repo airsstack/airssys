@@ -18,7 +18,7 @@ use airssys_osl::helpers::*;
 use airssys_osl::middleware::security::acl::{AccessControlList, AclEntry, AclPolicy};
 use airssys_osl::middleware::security::audit::{AuditError, SecurityAuditLog, SecurityAuditLogger};
 use airssys_osl::middleware::security::middleware::SecurityMiddlewareBuilder;
-use airssys_osl::middleware::security::rbac::RoleBasedAccessControl;
+use airssys_osl::middleware::security::rbac::{Permission, Role, RoleBasedAccessControl};
 use async_trait::async_trait;
 use std::sync::{Arc, Mutex};
 
@@ -139,13 +139,29 @@ async fn test_spawn_process_successful_operation_logged() {
 
     let acl = AccessControlList::new().add_entry(AclEntry::new(
         "operator".to_string(),
-        "echo".to_string(),
+        "process".to_string(), // ProcessSpawn operations use "process" as resource
         vec!["spawn".to_string()],
         AclPolicy::Allow,
     ));
 
+    // Add RBAC policy with process:spawn permission
+    let permission = Permission::new(
+        "process:spawn".to_string(),
+        "Spawn Process".to_string(),
+        "Allows spawning processes".to_string(),
+    );
+
+    let role = Role::new("operator_role".to_string(), "Operator Role".to_string())
+        .with_permission("process:spawn".to_string());
+
+    let rbac = RoleBasedAccessControl::new()
+        .add_permission(permission)
+        .add_role(role)
+        .assign_roles("operator".to_string(), vec!["operator_role".to_string()]);
+
     let security = SecurityMiddlewareBuilder::new()
         .add_policy(Box::new(acl))
+        .add_policy(Box::new(rbac))
         .with_audit_logger(test_logger.clone())
         .build()
         .expect("Failed to build security middleware");
@@ -156,6 +172,9 @@ async fn test_spawn_process_successful_operation_logged() {
             .await;
 
     // Verify: Operation succeeded
+    if let Err(e) = &result {
+        eprintln!("Spawn process error: {:?}", e);
+    }
     assert!(result.is_ok(), "Expected spawn to succeed");
 
     // Verify: Audit log was created
@@ -272,9 +291,19 @@ async fn test_permission_denied_logged_with_reason() {
     // Setup: RBAC policy that denies user without proper role
     let test_logger = Arc::new(TestSecurityAuditLogger::new());
 
+    let permission = Permission::new(
+        "file:write".to_string(),
+        "Write File".to_string(),
+        "Allows writing files".to_string(),
+    );
+
+    let role = Role::new("admin_role".to_string(), "Admin Role".to_string())
+        .with_permission("file:write".to_string());
+
     let mut rbac = RoleBasedAccessControl::new();
     rbac = rbac
-        .add_role("admin_role".to_string(), vec!["file:write".to_string()])
+        .add_permission(permission)
+        .add_role(role)
         .assign_roles("admin".to_string(), vec!["admin_role".to_string()]);
     // Note: "guest" has no roles
 
@@ -363,7 +392,13 @@ async fn test_multiple_operations_generate_separate_audit_logs() {
         AclPolicy::Allow,
     ));
 
-    let security = SecurityMiddlewareBuilder::new()
+    let security1 = SecurityMiddlewareBuilder::new()
+        .add_policy(Box::new(acl.clone()))
+        .with_audit_logger(test_logger.clone())
+        .build()
+        .expect("Failed to build security middleware");
+
+    let security2 = SecurityMiddlewareBuilder::new()
         .add_policy(Box::new(acl))
         .with_audit_logger(test_logger.clone())
         .build()
@@ -376,8 +411,8 @@ async fn test_multiple_operations_generate_separate_audit_logs() {
     std::fs::write(test_path2, b"test2").expect("Failed to create test file 2");
 
     // Test: Perform multiple operations
-    let _ = read_file_with_middleware(test_path1, "user", security.clone()).await;
-    let _ = read_file_with_middleware(test_path2, "user", security).await;
+    let _ = read_file_with_middleware(test_path1, "user", security1).await;
+    let _ = read_file_with_middleware(test_path2, "user", security2).await;
 
     // Cleanup
     let _ = std::fs::remove_file(test_path1);

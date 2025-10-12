@@ -210,7 +210,7 @@ async fn test_security_middleware_policy_count() {
 
 #[tokio::test]
 async fn test_acl_with_specific_resource_path() {
-    use airssys_osl::middleware::security::acl::ATTR_RESOURCE;
+    use airssys_osl::middleware::security::acl::ATTR_ACL_RESOURCE;
     use std::collections::HashMap;
 
     // ACL that only allows access to /tmp/* files
@@ -229,7 +229,7 @@ async fn test_acl_with_specific_resource_path() {
 
     // Test with matching resource
     let mut attributes = HashMap::new();
-    attributes.insert(ATTR_RESOURCE.to_string(), "/tmp/test.txt".to_string());
+    attributes.insert(ATTR_ACL_RESOURCE.to_string(), "/tmp/test.txt".to_string());
     attributes.insert("permission".to_string(), "read".to_string());
 
     let mut security_context = SecurityContext::new("testuser".to_string());
@@ -244,7 +244,7 @@ async fn test_acl_with_specific_resource_path() {
 
 #[tokio::test]
 async fn test_acl_with_non_matching_resource() {
-    use airssys_osl::middleware::security::acl::ATTR_RESOURCE;
+    use airssys_osl::middleware::security::acl::ATTR_ACL_RESOURCE;
     use std::collections::HashMap;
 
     // ACL that only allows access to /tmp/* files
@@ -263,7 +263,7 @@ async fn test_acl_with_non_matching_resource() {
 
     // Test with non-matching resource
     let mut attributes = HashMap::new();
-    attributes.insert(ATTR_RESOURCE.to_string(), "/etc/passwd".to_string());
+    attributes.insert(ATTR_ACL_RESOURCE.to_string(), "/etc/passwd".to_string());
     attributes.insert("permission".to_string(), "read".to_string());
 
     let mut security_context = SecurityContext::new("testuser".to_string());
@@ -278,7 +278,9 @@ async fn test_acl_with_non_matching_resource() {
 
 #[tokio::test]
 async fn test_rbac_with_role_inheritance() {
-    use airssys_osl::middleware::security::rbac::{Permission, Role, ATTR_REQUIRED_PERMISSION};
+    use airssys_osl::middleware::security::rbac::{
+        Permission, Role, ATTR_RBAC_REQUIRED_PERMISSION,
+    };
     use std::collections::HashMap;
 
     // Create role hierarchy: admin -> user
@@ -309,7 +311,7 @@ async fn test_rbac_with_role_inheritance() {
     // Alice has admin role, which inherits read_file from user role
     let mut attributes = HashMap::new();
     attributes.insert(
-        ATTR_REQUIRED_PERMISSION.to_string(),
+        ATTR_RBAC_REQUIRED_PERMISSION.to_string(),
         "read_file".to_string(),
     );
 
@@ -328,7 +330,9 @@ async fn test_rbac_with_role_inheritance() {
 
 #[tokio::test]
 async fn test_rbac_without_required_permission() {
-    use airssys_osl::middleware::security::rbac::{Permission, Role, ATTR_REQUIRED_PERMISSION};
+    use airssys_osl::middleware::security::rbac::{
+        Permission, Role, ATTR_RBAC_REQUIRED_PERMISSION,
+    };
     use std::collections::HashMap;
 
     // User has read permission but not write
@@ -355,7 +359,7 @@ async fn test_rbac_without_required_permission() {
     // Request write permission (not granted)
     let mut attributes = HashMap::new();
     attributes.insert(
-        ATTR_REQUIRED_PERMISSION.to_string(),
+        ATTR_RBAC_REQUIRED_PERMISSION.to_string(),
         "write_file".to_string(),
     );
 
@@ -374,8 +378,10 @@ async fn test_rbac_without_required_permission() {
 
 #[tokio::test]
 async fn test_combined_acl_and_rbac_both_allow() {
-    use airssys_osl::middleware::security::acl::{ATTR_PERMISSION, ATTR_RESOURCE};
-    use airssys_osl::middleware::security::rbac::{Permission, Role, ATTR_REQUIRED_PERMISSION};
+    use airssys_osl::middleware::security::acl::{ATTR_ACL_PERMISSION, ATTR_ACL_RESOURCE};
+    use airssys_osl::middleware::security::rbac::{
+        Permission, Role, ATTR_RBAC_REQUIRED_PERMISSION,
+    };
     use std::collections::HashMap;
 
     // ACL allows access to /tmp/* for testuser
@@ -410,10 +416,10 @@ async fn test_combined_acl_and_rbac_both_allow() {
 
     // Populate context attributes for both policies
     let mut attributes = HashMap::new();
-    attributes.insert(ATTR_RESOURCE.to_string(), "/tmp/test.txt".to_string());
-    attributes.insert(ATTR_PERMISSION.to_string(), "read".to_string());
+    attributes.insert(ATTR_ACL_RESOURCE.to_string(), "/tmp/test.txt".to_string());
+    attributes.insert(ATTR_ACL_PERMISSION.to_string(), "read".to_string());
     attributes.insert(
-        ATTR_REQUIRED_PERMISSION.to_string(),
+        ATTR_RBAC_REQUIRED_PERMISSION.to_string(),
         "read_file".to_string(),
     );
 
@@ -432,8 +438,8 @@ async fn test_combined_acl_and_rbac_both_allow() {
 
 #[tokio::test]
 async fn test_combined_acl_allows_rbac_denies() {
-    use airssys_osl::middleware::security::acl::{ATTR_PERMISSION, ATTR_RESOURCE};
-    use airssys_osl::middleware::security::rbac::ATTR_REQUIRED_PERMISSION;
+    use airssys_osl::middleware::security::acl::{ATTR_ACL_PERMISSION, ATTR_ACL_RESOURCE};
+    use airssys_osl::middleware::security::rbac::ATTR_RBAC_REQUIRED_PERMISSION;
     use std::collections::HashMap;
 
     // ACL allows
@@ -455,10 +461,10 @@ async fn test_combined_acl_allows_rbac_denies() {
         .expect("Failed to build middleware");
 
     let mut attributes = HashMap::new();
-    attributes.insert(ATTR_RESOURCE.to_string(), "/tmp/test.txt".to_string());
-    attributes.insert(ATTR_PERMISSION.to_string(), "read".to_string());
+    attributes.insert(ATTR_ACL_RESOURCE.to_string(), "/tmp/test.txt".to_string());
+    attributes.insert(ATTR_ACL_PERMISSION.to_string(), "read".to_string());
     attributes.insert(
-        ATTR_REQUIRED_PERMISSION.to_string(),
+        ATTR_RBAC_REQUIRED_PERMISSION.to_string(),
         "read_file".to_string(),
     );
 

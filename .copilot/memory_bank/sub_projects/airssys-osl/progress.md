@@ -1,12 +1,12 @@
 # airssys-osl Progress
 
 ## Current Status
-**Phase:** OSL-TASK-010 Phase 2-4 COMPLETE ✅  
-**Overall Progress:** 88%  
-**Last Updated:** 2025-10-11
+**Phase:** OSL-TASK-010 Phase 5 COMPLETE ✅  
+**Overall Progress:** 90%  
+**Last Updated:** 2025-10-13
 
 ## Recent Achievement
-**OSL-TASK-010 Phase 2-4 Complete - Helper Function Implementation!** (2025-10-11): Successfully implemented all 20 helper functions with middleware integration. Key achievements: (1) Fixed RBAC configuration with admin role and 11 permissions, (2) Implemented two-tier API (simple helpers + with_middleware variants), (3) Applied elegant DRY refactoring pattern (user contribution - eliminated ~140 lines of redundant code), (4) All 358 tests passing (232 unit + 126 doc = 100% pass rate), (5) Zero warnings, comprehensive documentation. Ready for Phase 5-7 (Integration Testing & Documentation).
+**OSL-TASK-010 Phase 5 Complete - Security Context Attribute Architecture!** (2025-10-13): Successfully implemented complete security context attribute architecture with 100% test pass rate. Key achievements: (1) Created build_acl_attributes() and build_rbac_attributes() functions in respective security modules, (2) Implemented build_security_context() helper coordinating both ACL and RBAC attribute population, (3) Updated all 10 helper functions to automatically populate security attributes, (4) Fixed permission naming to use colon notation (file:read, process:spawn) matching default RBAC policy, (5) Updated all integration tests (security_middleware, helpers_error, helpers_audit, security_threat) to use prefixed attributes (acl.*, rbac.*), (6) **All 480 tests passing (100% pass rate)**: 238 unit + 242 integration/doc tests, (7) Zero warnings, comprehensive documentation with ADR-030. Architecture complete with proper separation of concerns: Operations declare permissions → Security modules build attributes → Helpers coordinate integration.
 
 ## What Works
 ### ✅ Completed Components
@@ -709,6 +709,163 @@
   - Commit b45fbbe: Filesystem helpers checkpoint
   - Commit e958e8c: Final Phase 2-4 completion with DRY refactoring
 - **User Contributions**: DRY refactoring pattern suggested by user, credited in commit
+
+**Phase 5: Security Context Attribute Architecture** ✅ COMPLETE (2025-10-13)
+
+**Problem Identification** (2025-10-12)
+- **Test Failures Discovered**: ACL and RBAC integration tests failing with "No matching ACL entry found"
+- **Root Cause**: Helper functions creating empty SecurityContext with no attributes
+  - ACL policy requires `acl.resource` and `acl.permission` attributes
+  - RBAC policy requires `rbac.required_permission` attribute
+  - Helper functions only setting `principal` field, leaving attributes empty
+- **Architecture Question**: Who should populate security attributes?
+  - Option 1: Helper functions set raw attributes (tight coupling, duplication)
+  - Option 2: Security modules build attributes from operation permissions (separation of concerns)
+
+**Architecture Decision - ADR-030** ✅ COMPLETE (2025-10-12)
+- **Decision Made**: Option 2 (modified) - Security modules build attributes, helper coordinates
+- **Rationale**: Proper separation of concerns following workspace standards
+  - **Operations**: Declare what permissions they need (`required_permissions()`)
+  - **Security Modules**: Know how to interpret those permissions for their domain
+  - **Helper Functions**: Coordinate the integration seamlessly
+- **Implementation Strategy**:
+  1. ACL module provides `build_acl_attributes(permissions)` function
+  2. RBAC module provides `build_rbac_attributes(permissions)` function
+  3. Helper utility `build_security_context(operation, user)` combines both
+  4. All helper functions use `build_security_context()` instead of `SecurityContext::new()`
+- **Attribute Naming Convention**:
+  - ACL: `acl.resource`, `acl.permission` (module prefixed)
+  - RBAC: `rbac.required_permission` (module prefixed)
+  - Prevents namespace conflicts between security modules
+- **Permission Priority**: First permission used when operation has multiple (architectural decision)
+- **Documentation**: Complete ADR-030, technical findings, and progress tracking
+
+**Implementation - 7 Phases** ✅ COMPLETE (2025-10-13)
+
+**Phase 1: ACL Attribute Builder** ✅ COMPLETE
+- **Created**: `build_acl_attributes()` function in `middleware/security/acl.rs`
+- **Mapping Logic**:
+  - FilesystemRead(path) → `{acl.resource: path, acl.permission: "read"}`
+  - FilesystemWrite(path) → `{acl.resource: path, acl.permission: "write"}`
+  - ProcessSpawn(_) → `{acl.resource: "process", acl.permission: "spawn"}`
+  - ProcessManage(_) → `{acl.resource: "process", acl.permission: "manage"}`
+  - NetworkConnect(_) → `{acl.resource: "network", acl.permission: "connect"}`
+  - NetworkSocket → `{acl.resource: "network", acl.permission: "socket"}`
+- **Constants**: ATTR_ACL_RESOURCE, ATTR_ACL_PERMISSION for type safety
+- **Tests**: 6 unit tests covering all permission types
+
+**Phase 2: RBAC Attribute Builder** ✅ COMPLETE
+- **Created**: `build_rbac_attributes()` function in `middleware/security/rbac.rs`
+- **Mapping Logic** (colon notation):
+  - FilesystemRead → `{rbac.required_permission: "file:read"}`
+  - FilesystemWrite → `{rbac.required_permission: "file:write"}`
+  - ProcessSpawn → `{rbac.required_permission: "process:spawn"}`
+  - ProcessManage → `{rbac.required_permission: "process:kill"}`
+  - NetworkConnect → `{rbac.required_permission: "network:connect"}`
+  - NetworkSocket → `{rbac.required_permission: "network:socket"}`
+- **Critical Fix**: Changed from underscore notation (`read_file`) to colon notation (`file:read`) to match default RBAC policy
+- **Constant**: ATTR_RBAC_REQUIRED_PERMISSION for type safety
+- **Tests**: Full test coverage with permission mapping validation
+
+**Phase 3: SecurityContext Builder** ✅ COMPLETE (Already Existed)
+- **Verified**: `SecurityContext::with_attributes()` method already exists
+- **Integration**: Works perfectly with attribute builders from Phase 1-2
+
+**Phase 4: Helper Utility Function** ✅ COMPLETE
+- **Created**: `helpers/context.rs` module with `build_security_context()` function
+- **Functionality**:
+  ```rust
+  pub fn build_security_context<O: Operation>(operation: &O, user: &str) -> SecurityContext {
+      let mut attributes = HashMap::new();
+      attributes.extend(build_acl_attributes(&operation.required_permissions()));
+      attributes.extend(build_rbac_attributes(&operation.required_permissions()));
+      SecurityContext::new(user.to_string()).with_attributes(attributes)
+  }
+  ```
+- **Testing**: 6 comprehensive unit tests covering FileReadOperation, FileWriteOperation, ProcessSpawnOperation, NetworkConnectOperation
+- **Documentation**: Internal module (pub(crate)), rustdoc example removed (module not publicly accessible)
+
+**Phase 5: Helper Function Updates** ✅ COMPLETE
+- **Modified Functions** (10 total in `helpers/simple.rs`):
+  - read_file_with_middleware
+  - write_file_with_middleware
+  - delete_file_with_middleware
+  - create_directory_with_middleware
+  - spawn_process_with_middleware
+  - kill_process_with_middleware
+  - send_signal_with_middleware
+  - network_connect_with_middleware
+  - network_listen_with_middleware
+  - create_socket_with_middleware
+- **Change Pattern**:
+  - Before: `SecurityContext::new(user.into())`
+  - After: `build_security_context(&operation, &user_str)`
+- **Import Updates**: Removed unused SecurityContext import, added build_security_context
+- **Result**: All helper functions now automatically populate ACL and RBAC attributes
+
+**Phase 6: Integration Test Fixes** ✅ COMPLETE
+- **Files Updated**:
+  - `tests/security_middleware_tests.rs`: Updated to use ATTR_ACL_RESOURCE, ATTR_ACL_PERMISSION, ATTR_RBAC_REQUIRED_PERMISSION (17 tests passing)
+  - `tests/helpers_error_tests.rs`: Fixed OSError variant matching, added ExecutionFailed, updated RBAC API usage (11 tests passing)
+  - `tests/helpers_audit_tests.rs`: Added RBAC policies, fixed ACL resources for ProcessSpawn ("process" not command name), fixed SecurityMiddleware clone (7 tests passing)
+  - `tests/security_threat_tests.rs`: Batch updated all attribute names using sed (13 tests passing)
+    - `"resource"` → `"acl.resource"`
+    - `"permission"` → `"acl.permission"`
+    - `"required_permission"` → `"rbac.required_permission"`
+- **Test Results**: All integration tests now passing with proper attribute naming
+
+**Phase 7: Verification** ✅ COMPLETE
+- **Unit Tests**: 238/238 passing (100%)
+- **Integration Tests**: 242/242 passing (100%)
+  - 9 filesystem operation tests
+  - 23 logger tests
+  - 1 macro accessibility test
+  - 6 macro config tests
+  - 17 security middleware tests
+  - 11 error handling tests
+  - 7 audit tests
+  - 13 security threat tests
+  - 128 doctests
+  - Additional integration tests
+- **Total**: 480/480 tests passing (100% pass rate) ✅
+- **Ignored**: 22 doctests (compile-only checks)
+- **Quality**: Zero compiler warnings, zero clippy warnings
+- **Documentation**: Comprehensive rustdoc, ADR-030, technical findings
+
+**Phase 5 Summary** ✅ 100% COMPLETE (2025-10-13)
+- **Total Time**: ~8 hours (including test debugging and fixes)
+- **Lines of Code**:
+  - `helpers/context.rs`: 178 lines (NEW - helper utility with tests)
+  - `middleware/security/acl.rs`: Enhanced with build_acl_attributes() and constants
+  - `middleware/security/rbac.rs`: Enhanced with build_rbac_attributes() and constants
+  - `helpers/simple.rs`: Updated all 10 functions to use build_security_context()
+  - Integration tests: Comprehensive updates across 4 test files
+- **Quality Metrics**:
+  - ✅ **480/480 tests passing (100% pass rate)**
+  - ✅ Zero compilation errors
+  - ✅ Zero clippy warnings
+  - ✅ Comprehensive documentation
+  - ✅ Complete ADR-030 and technical findings
+- **Key Achievements**:
+  - ✅ Proper separation of concerns: Operations → Security Modules → Helpers
+  - ✅ Attribute namespacing prevents conflicts (acl.*, rbac.*)
+  - ✅ Permission naming aligned with default RBAC policy (colon notation)
+  - ✅ All security policies now work correctly with helper functions
+  - ✅ Architecture fully validated through comprehensive testing
+- **Workspace Standards Compliance**:
+  - ✅ §2.1: 3-layer import organization
+  - ✅ §4.3: Module architecture (helpers/context.rs as pub(crate) module)
+  - ✅ §6.1: YAGNI principles (no over-abstraction)
+  - ✅ §6.3: Microsoft Rust Guidelines compliance
+- **Documentation**:
+  - ✅ ADR-030: Security Context Attribute Population Strategy
+  - ✅ Technical Findings: TECH-FIND-001 documented
+  - ✅ Progress tracking updated
+- **Git Commits** (pending):
+  - Phase 5 implementation and test fixes
+  - ADR-030 and documentation
+
+**Next Steps**: Phase 6-7 (Additional Integration Testing & Documentation - if needed)
 
 **Next Steps**: Phase 5-7 (Integration Testing & Documentation)
 

@@ -11,13 +11,14 @@ use std::path::Path;
 // Layer 2: No third-party imports needed
 
 // Layer 3: Internal module imports
-use crate::core::context::{ExecutionContext, SecurityContext};
+use crate::core::context::ExecutionContext;
 use crate::core::executor::OSExecutor;
 use crate::core::middleware::Middleware;
 use crate::core::result::OSResult;
 use crate::executors::filesystem::FilesystemExecutor;
 use crate::executors::network::NetworkExecutor;
 use crate::executors::process::ProcessExecutor;
+use crate::helpers::context::build_security_context;
 use crate::middleware::ext::ExecutorExt;
 use crate::operations::filesystem::{
     DirectoryCreateOperation, FileDeleteOperation, FileReadOperation, FileWriteOperation,
@@ -108,7 +109,9 @@ where
 {
     let path_str = path.as_ref().display().to_string();
     let operation = FileReadOperation::new(path_str);
-    let context = ExecutionContext::new(SecurityContext::new(user.into()));
+    let user_str = user.into();
+    let security_context = build_security_context(&operation, &user_str);
+    let context = ExecutionContext::new(security_context);
 
     let executor = FilesystemExecutor::new().with_middleware(middleware);
 
@@ -184,7 +187,9 @@ where
 {
     let path_str = path.as_ref().display().to_string();
     let operation = FileWriteOperation::new(path_str, data);
-    let context = ExecutionContext::new(SecurityContext::new(user.into()));
+    let user_str = user.into();
+    let security_context = build_security_context(&operation, &user_str);
+    let context = ExecutionContext::new(security_context);
 
     let executor = FilesystemExecutor::new().with_middleware(middleware);
 
@@ -253,7 +258,9 @@ where
 {
     let path_str = path.as_ref().display().to_string();
     let operation = FileDeleteOperation::new(path_str);
-    let context = ExecutionContext::new(SecurityContext::new(user.into()));
+    let user_str = user.into();
+    let security_context = build_security_context(&operation, &user_str);
+    let context = ExecutionContext::new(security_context);
 
     let executor = FilesystemExecutor::new().with_middleware(middleware);
 
@@ -322,7 +329,9 @@ where
 {
     let path_str = path.as_ref().display().to_string();
     let operation = DirectoryCreateOperation::new(path_str);
-    let context = ExecutionContext::new(SecurityContext::new(user.into()));
+    let user_str = user.into();
+    let security_context = build_security_context(&operation, &user_str);
+    let context = ExecutionContext::new(security_context);
 
     let executor = FilesystemExecutor::new().with_middleware(middleware);
 
@@ -407,7 +416,9 @@ where
     M: Middleware<ProcessSpawnOperation>,
 {
     let operation = ProcessSpawnOperation::new(program).with_args(args);
-    let context = ExecutionContext::new(SecurityContext::new(user.into()));
+    let user_str = user.into();
+    let security_context = build_security_context(&operation, &user_str);
+    let context = ExecutionContext::new(security_context);
 
     let executor = ProcessExecutor::new("helper_executor").with_middleware(middleware);
 
@@ -474,7 +485,9 @@ where
     M: Middleware<ProcessKillOperation>,
 {
     let operation = ProcessKillOperation::new(pid);
-    let context = ExecutionContext::new(SecurityContext::new(user.into()));
+    let user_str = user.into();
+    let security_context = build_security_context(&operation, &user_str);
+    let context = ExecutionContext::new(security_context);
 
     let executor = ProcessExecutor::new("helper_executor").with_middleware(middleware);
 
@@ -542,7 +555,9 @@ where
     M: Middleware<ProcessSignalOperation>,
 {
     let operation = ProcessSignalOperation::new(pid, signal);
-    let context = ExecutionContext::new(SecurityContext::new(user.into()));
+    let user_str = user.into();
+    let security_context = build_security_context(&operation, &user_str);
+    let context = ExecutionContext::new(security_context);
 
     let executor = ProcessExecutor::new("helper_executor").with_middleware(middleware);
 
@@ -616,7 +631,9 @@ where
     M: Middleware<NetworkConnectOperation>,
 {
     let operation = NetworkConnectOperation::new(addr.into());
-    let context = ExecutionContext::new(SecurityContext::new(user.into()));
+    let user_str = user.into();
+    let security_context = build_security_context(&operation, &user_str);
+    let context = ExecutionContext::new(security_context);
 
     let executor = NetworkExecutor::new("helper_executor").with_middleware(middleware);
 
@@ -683,7 +700,9 @@ where
     M: Middleware<NetworkListenOperation>,
 {
     let operation = NetworkListenOperation::new(addr.into());
-    let context = ExecutionContext::new(SecurityContext::new(user.into()));
+    let user_str = user.into();
+    let security_context = build_security_context(&operation, &user_str);
+    let context = ExecutionContext::new(security_context);
 
     let executor = NetworkExecutor::new("helper_executor").with_middleware(middleware);
 
@@ -753,7 +772,9 @@ where
     M: Middleware<NetworkSocketOperation>,
 {
     let operation = NetworkSocketOperation::new(socket_type.into());
-    let context = ExecutionContext::new(SecurityContext::new(user.into()));
+    let user_str = user.into();
+    let security_context = build_security_context(&operation, &user_str);
+    let context = ExecutionContext::new(security_context);
 
     let executor = NetworkExecutor::new("helper_executor").with_middleware(middleware);
 
