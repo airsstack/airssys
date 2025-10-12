@@ -1,9 +1,9 @@
 # airssys-osl Architecture Decision Records Index
 
 **Sub-Project:** airssys-osl  
-**Last Updated:** 2025-10-10  
-**Total ADRs:** 5  
-**Active ADRs:** 5  
+**Last Updated:** 2025-10-12  
+**Total ADRs:** 6  
+**Active ADRs:** 6  
 
 ## ADR Summary
 
@@ -11,7 +11,7 @@
 | Status | Count | Description |
 |--------|-------|-------------|
 | Proposed | 0 | Decisions under consideration |
-| Accepted | 5 | Active architectural decisions |
+| Accepted | 6 | Active architectural decisions |
 | Deprecated | 0 | Decisions no longer applicable |
 | Superseded | 0 | Decisions replaced by newer ones |
 
@@ -20,7 +20,7 @@
 |----------|-------|-------------|
 | Technology Selection | 0 | Framework, library, and tool choices |
 | Architecture Patterns | 3 | System design and structural decisions |
-| Security | 1 | Security model and implementation decisions |
+| Security | 2 | Security model and implementation decisions |
 | Task Management | 1 | Task lifecycle and scope decisions |
 | Performance | 0 | Performance optimization and target decisions |
 | Integration | 0 | Integration approaches with other components |
@@ -77,6 +77,31 @@
 - Accept breaking API changes in Phase 3 for correctness
 
 **Related**: OSL-TASK-003 Phase 3 - ACL Implementation
+
+#### ADR-030: Security Context Attributes Architecture for Helper Functions *(Accepted)*
+**Date**: 2025-10-12  
+**Status**: Accepted  
+**Summary**: Establishes architecture for building SecurityContext attributes from Operation permissions, maintaining separation between operations domain and security domain.
+
+**Key Decisions**:
+- Security modules (ACL, RBAC) provide `build_*_attributes()` functions
+- Helper utility `build_security_context()` combines all security attributes
+- Use module prefixes for attribute keys (`acl.resource`, `rbac.required_permission`)
+- Permission priority: use first permission (works for current single-permission operations)
+- No re-export of security builders from `security/mod.rs`
+
+**Architecture**:
+- Operations: Declare `required_permissions()` only (no security logic)
+- Security modules: Interpret permissions → attributes (domain expertise)
+- Helpers: Call `build_security_context()` utility (orchestration)
+
+**Impact**:
+- All 10 helper functions updated to use `build_security_context()`
+- ACL/RBAC evaluation updated to use prefixed attribute keys
+- Phase 5 integration tests will pass after implementation
+- Extensible for future security policies (rate limiting, quotas, etc.)
+
+**Related**: OSL-TASK-010 Phase 5 - Integration Testing
 
 ### Task Management Category
 
