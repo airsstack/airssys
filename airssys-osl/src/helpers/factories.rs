@@ -93,13 +93,17 @@ use crate::middleware::security::{SecurityMiddleware, SecurityMiddlewareBuilder}
 /// - [`default_rbac_policy()`]: Default RBAC policy configuration
 /// - [`SecurityMiddleware`]: Security middleware implementation
 pub(crate) fn default_security_middleware() -> SecurityMiddleware {
+    // SAFETY: This construction uses only valid default configurations and cannot fail.
+    // The builder only returns an error if policies are misconfigured, which is not
+    // possible with our default ACL and RBAC policies.
+    #[allow(clippy::expect_used)]
     SecurityMiddlewareBuilder::new()
         .with_config(SecurityConfig::default())
         .with_audit_logger(Arc::new(ConsoleSecurityAuditLogger::new()))
         .add_policy(Box::new(default_acl_policy()))
         .add_policy(Box::new(default_rbac_policy()))
         .build()
-        .expect("Failed to build default security middleware")
+        .expect("Default security middleware construction should never fail with valid defaults")
 }
 
 /// Default ACL policy for development/testing.

@@ -14,6 +14,7 @@
 
 #![allow(clippy::expect_used)]
 #![allow(clippy::unwrap_used)]
+#![allow(clippy::panic)]
 
 use airssys_osl::core::result::OSError;
 use airssys_osl::helpers::*;
@@ -70,7 +71,7 @@ async fn test_security_violation_error_on_acl_deny() {
                 "Expected ACL denial in error message, got: {reason}"
             );
         }
-        other => panic!("Expected security-related error, got: {:?}", other),
+        other => panic!("Expected security-related error, got: {other:?}"),
     }
 }
 
@@ -134,7 +135,7 @@ async fn test_permission_denied_error_on_rbac_violation() {
                 "Expected RBAC/permission error, got: {reason}"
             );
         }
-        other => panic!("Expected security-related error, got: {:?}", other),
+        other => panic!("Expected security-related error, got: {other:?}"),
     }
 }
 
@@ -259,7 +260,7 @@ async fn test_write_file_io_error_propagation() {
                 // May occur if security policy catches permission issues
             }
             other => {
-                panic!("Unexpected error type for IO failure: {:?}", other);
+                panic!("Unexpected error type for IO failure: {other:?}");
             }
         }
     }

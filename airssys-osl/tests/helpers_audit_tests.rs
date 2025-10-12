@@ -13,6 +13,7 @@
 
 #![allow(clippy::expect_used)]
 #![allow(clippy::unwrap_used)]
+#![allow(clippy::clone_on_ref_ptr)]
 
 use airssys_osl::helpers::*;
 use airssys_osl::middleware::security::acl::{AccessControlList, AclEntry, AclPolicy};
@@ -119,16 +120,14 @@ async fn test_read_file_successful_operation_logged() {
     let has_correct_user = events.iter().any(|e| e.principal == "admin");
     assert!(
         has_correct_user,
-        "Expected audit log with principal 'admin', got events: {:?}",
-        events
+        "Expected audit log with principal 'admin', got events: {events:?}"
     );
 
     // Verify: Event indicates access was granted
     let has_allow_decision = events.iter().any(|e| e.decision.contains("Allow"));
     assert!(
         has_allow_decision,
-        "Expected 'Allow' decision in audit log, got events: {:?}",
-        events
+        "Expected 'Allow' decision in audit log, got events: {events:?}"
     );
 }
 
@@ -173,7 +172,7 @@ async fn test_spawn_process_successful_operation_logged() {
 
     // Verify: Operation succeeded
     if let Err(e) = &result {
-        eprintln!("Spawn process error: {:?}", e);
+        eprintln!("Spawn process error: {e:?}");
     }
     assert!(result.is_ok(), "Expected spawn to succeed");
 
@@ -185,8 +184,7 @@ async fn test_spawn_process_successful_operation_logged() {
     let has_operator = events.iter().any(|e| e.principal == "operator");
     assert!(
         has_operator,
-        "Expected audit log for 'operator' user, got: {:?}",
-        events
+        "Expected audit log for 'operator' user, got: {events:?}"
     );
 }
 
@@ -332,8 +330,7 @@ async fn test_permission_denied_logged_with_reason() {
     let has_deny_reason = events.iter().any(|e| e.decision.contains("Deny"));
     assert!(
         has_deny_reason,
-        "Expected denial reason in audit log, got: {:?}",
-        events
+        "Expected denial reason in audit log, got: {events:?}"
     );
 }
 
@@ -422,7 +419,6 @@ async fn test_multiple_operations_generate_separate_audit_logs() {
     let event_count = test_logger.event_count();
     assert!(
         event_count >= 2,
-        "Expected at least 2 audit events, got: {}",
-        event_count
+        "Expected at least 2 audit events, got: {event_count}"
     );
 }
