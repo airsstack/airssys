@@ -500,12 +500,14 @@ where
     ///
     /// # Example
     ///
-    /// ```rust,no_run
+    /// ```rust,ignore
+    /// // Note: FileHelper::builder() currently returns FileReadOperation helper.
+    /// // This example demonstrates planned API once writer() builder is implemented.
     /// use airssys_osl::helpers::composition::*;
     /// use airssys_osl::middleware::security::SecurityMiddleware;
     ///
     /// # async fn example() -> airssys_osl::core::result::OSResult<()> {
-    /// let writer = FileHelper::builder()
+    /// let writer = FileHelper::writer()  // Planned: separate builder for write operations
     ///     .with_security(SecurityMiddleware::default());
     ///
     /// let result = writer.write("/tmp/test.txt", b"data".to_vec(), "admin").await?;
@@ -550,12 +552,14 @@ where
     ///
     /// # Example
     ///
-    /// ```rust,no_run
+    /// ```rust,ignore
+    /// // Note: FileHelper::builder() currently returns FileReadOperation helper.
+    /// // This example demonstrates planned API once creator() builder is implemented.
     /// use airssys_osl::helpers::composition::*;
     /// use airssys_osl::middleware::security::SecurityMiddleware;
     ///
     /// # async fn example() -> airssys_osl::core::result::OSResult<()> {
-    /// let creator = FileHelper::builder()
+    /// let creator = FileHelper::creator()  // Planned: separate builder for create operations
     ///     .with_security(SecurityMiddleware::default());
     ///
     /// creator.create("/tmp/newdir", "admin").await?;
@@ -599,12 +603,14 @@ where
     ///
     /// # Example
     ///
-    /// ```rust,no_run
+    /// ```rust,ignore
+    /// // Note: FileHelper::builder() currently returns FileReadOperation helper.
+    /// // This example demonstrates planned API once deleter() builder is implemented.
     /// use airssys_osl::helpers::composition::*;
     /// use airssys_osl::middleware::security::SecurityMiddleware;
     ///
     /// # async fn example() -> airssys_osl::core::result::OSResult<()> {
-    /// let deleter = FileHelper::builder()
+    /// let deleter = FileHelper::deleter()  // Planned: separate builder for delete operations
     ///     .with_security(SecurityMiddleware::default());
     ///
     /// deleter.delete("/tmp/oldfile.txt", "admin").await?;
@@ -703,12 +709,14 @@ where
     ///
     /// # Example
     ///
-    /// ```rust,no_run
+    /// ```rust,ignore
+    /// // Note: ProcessHelper::builder() currently returns ProcessSpawnOperation helper.
+    /// // This example demonstrates planned API once killer() builder is implemented.
     /// use airssys_osl::helpers::composition::*;
     /// use airssys_osl::middleware::security::SecurityMiddleware;
     ///
     /// # async fn example() -> airssys_osl::core::result::OSResult<()> {
-    /// let killer = ProcessHelper::builder()
+    /// let killer = ProcessHelper::killer()  // Planned: separate builder for kill operations
     ///     .with_security(SecurityMiddleware::default());
     ///
     /// killer.kill(1234, "admin").await?;
@@ -748,12 +756,14 @@ where
     ///
     /// # Example
     ///
-    /// ```rust,no_run
+    /// ```rust,ignore
+    /// // Note: ProcessHelper::builder() currently returns ProcessSpawnOperation helper.
+    /// // This example demonstrates planned API once signaler() builder is implemented.
     /// use airssys_osl::helpers::composition::*;
     /// use airssys_osl::middleware::security::SecurityMiddleware;
     ///
     /// # async fn example() -> airssys_osl::core::result::OSResult<()> {
-    /// let signaler = ProcessHelper::builder()
+    /// let signaler = ProcessHelper::signaler()  // Planned: separate builder for signal operations
     ///     .with_security(SecurityMiddleware::default());
     ///
     /// signaler.send_signal(1234, 15, "admin").await?; // SIGTERM
@@ -849,12 +859,14 @@ where
     ///
     /// # Example
     ///
-    /// ```rust,no_run
+    /// ```rust,ignore
+    /// // Note: NetworkHelper::builder() currently returns NetworkConnectOperation helper.
+    /// // This example demonstrates planned API once listener() builder is implemented.
     /// use airssys_osl::helpers::composition::*;
     /// use airssys_osl::middleware::security::SecurityMiddleware;
     ///
     /// # async fn example() -> airssys_osl::core::result::OSResult<()> {
-    /// let listener = NetworkHelper::builder()
+    /// let listener = NetworkHelper::listener()  // Planned: separate builder for listen operations
     ///     .with_security(SecurityMiddleware::default());
     ///
     /// let socket = listener.listen("0.0.0.0:8080", "admin").await?;
@@ -897,12 +909,14 @@ where
     ///
     /// # Example
     ///
-    /// ```rust,no_run
+    /// ```rust,ignore
+    /// // Note: NetworkHelper::builder() currently returns NetworkConnectOperation helper.
+    /// // This example demonstrates planned API once socket_creator() builder is implemented.
     /// use airssys_osl::helpers::composition::*;
     /// use airssys_osl::middleware::security::SecurityMiddleware;
     ///
     /// # async fn example() -> airssys_osl::core::result::OSResult<()> {
-    /// let socket_creator = NetworkHelper::builder()
+    /// let socket_creator = NetworkHelper::socket_creator()  // Planned: separate builder for socket operations
     ///     .with_security(SecurityMiddleware::default());
     ///
     /// let socket = socket_creator.create_socket("udp", "admin").await?;
