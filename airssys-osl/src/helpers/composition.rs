@@ -126,6 +126,7 @@ use std::marker::PhantomData;
 use crate::core::executor::OSExecutor;
 use crate::core::middleware::Middleware;
 use crate::core::operation::Operation;
+use crate::core::result::OSResult;
 use crate::middleware::ext::ExecutorExt;
 
 /// Trait for composable helper pipelines.
@@ -433,5 +434,530 @@ impl NetworkHelper {
         ComposedHelper::new(crate::executors::network::NetworkExecutor::new(
             "composition_helper",
         ))
+    }
+}
+
+// ============================================================================
+// Execution Methods - Filesystem Operations
+// ============================================================================
+
+/// Execution methods for file read operations.
+impl<E> ComposedHelper<crate::operations::filesystem::FileReadOperation, E>
+where
+    E: OSExecutor<crate::operations::filesystem::FileReadOperation> + Send + Sync + std::fmt::Debug,
+{
+    /// Read file contents.
+    ///
+    /// # Arguments
+    ///
+    /// - `path`: File path to read
+    /// - `user`: User identity for security context
+    ///
+    /// # Returns
+    ///
+    /// File contents as bytes
+    ///
+    /// # Errors
+    ///
+    /// - `OSError::SecurityViolation`: Security policy denied access
+    /// - `OSError::NotFound`: File does not exist
+    /// - `OSError::PermissionDenied`: OS-level permission denied
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use airssys_osl::helpers::composition::*;
+    /// use airssys_osl::middleware::security::SecurityMiddleware;
+    ///
+    /// # async fn example() -> airssys_osl::core::result::OSResult<()> {
+    /// let reader = FileHelper::builder()
+    ///     .with_security(SecurityMiddleware::default());
+    ///
+    /// let data = reader.read("/etc/hosts", "admin").await?;
+    /// println!("Read {} bytes", data.len());
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn read<P: AsRef<std::path::Path>>(
+        &self,
+        path: P,
+        user: impl Into<String>,
+    ) -> OSResult<Vec<u8>> {
+        use crate::core::context::{ExecutionContext, SecurityContext};
+
+        let path_str = path.as_ref().display().to_string();
+        let operation = crate::operations::filesystem::FileReadOperation::new(path_str);
+        let context = ExecutionContext::new(SecurityContext::new(user.into()));
+        let result = self.executor.execute(operation, &context).await?;
+        Ok(result.output)
+    }
+}
+
+/// Execution methods for file write operations.
+impl<E> ComposedHelper<crate::operations::filesystem::FileWriteOperation, E>
+where
+    E: OSExecutor<crate::operations::filesystem::FileWriteOperation> + Send + Sync + std::fmt::Debug,
+{
+    /// Write data to file.
+    ///
+    /// # Arguments
+    ///
+    /// - `path`: File path to write
+    /// - `data`: Data to write (bytes)
+    /// - `user`: User identity for security context
+    ///
+    /// # Returns
+    ///
+    /// Number of bytes written (as bytes)
+    ///
+    /// # Errors
+    ///
+    /// - `OSError::SecurityViolation`: Security policy denied access
+    /// - `OSError::PermissionDenied`: OS-level permission denied
+    /// - `OSError::IoError`: I/O error during write
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use airssys_osl::helpers::composition::*;
+    /// use airssys_osl::middleware::security::SecurityMiddleware;
+    ///
+    /// # async fn example() -> airssys_osl::core::result::OSResult<()> {
+    /// let writer = FileHelper::builder()
+    ///     .with_security(SecurityMiddleware::default());
+    ///
+    /// let result = writer.write("/tmp/test.txt", b"data".to_vec(), "admin").await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn write<P: AsRef<std::path::Path>>(
+        &self,
+        path: P,
+        data: Vec<u8>,
+        user: impl Into<String>,
+    ) -> OSResult<Vec<u8>> {
+        use crate::core::context::{ExecutionContext, SecurityContext};
+
+        let path_str = path.as_ref().display().to_string();
+        let operation = crate::operations::filesystem::FileWriteOperation::new(path_str, data);
+        let context = ExecutionContext::new(SecurityContext::new(user.into()));
+        let result = self.executor.execute(operation, &context).await?;
+        Ok(result.output)
+    }
+}
+
+/// Execution methods for directory creation operations.
+impl<E> ComposedHelper<crate::operations::filesystem::DirectoryCreateOperation, E>
+where
+    E: OSExecutor<crate::operations::filesystem::DirectoryCreateOperation>
+        + Send
+        + Sync
+        + std::fmt::Debug,
+{
+    /// Create a new directory.
+    ///
+    /// # Arguments
+    ///
+    /// - `path`: Directory path to create
+    /// - `user`: User identity for security context
+    ///
+    /// # Returns
+    ///
+    /// Unit on successful creation
+    ///
+    /// # Errors
+    ///
+    /// - `OSError::SecurityViolation`: Security policy denied access
+    /// - `OSError::AlreadyExists`: Directory already exists
+    /// - `OSError::PermissionDenied`: OS-level permission denied
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use airssys_osl::helpers::composition::*;
+    /// use airssys_osl::middleware::security::SecurityMiddleware;
+    ///
+    /// # async fn example() -> airssys_osl::core::result::OSResult<()> {
+    /// let creator = FileHelper::builder()
+    ///     .with_security(SecurityMiddleware::default());
+    ///
+    /// creator.create("/tmp/newdir", "admin").await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn create<P: AsRef<std::path::Path>>(
+        &self,
+        path: P,
+        user: impl Into<String>,
+    ) -> OSResult<()> {
+        use crate::core::context::{ExecutionContext, SecurityContext};
+
+        let path_str = path.as_ref().display().to_string();
+        let operation = crate::operations::filesystem::DirectoryCreateOperation::new(path_str);
+        let context = ExecutionContext::new(SecurityContext::new(user.into()));
+        self.executor.execute(operation, &context).await?;
+        Ok(())
+    }
+}
+
+/// Execution methods for file deletion operations.
+impl<E> ComposedHelper<crate::operations::filesystem::FileDeleteOperation, E>
+where
+    E: OSExecutor<crate::operations::filesystem::FileDeleteOperation> + Send + Sync + std::fmt::Debug,
+{
+    /// Delete a file.
+    ///
+    /// # Arguments
+    ///
+    /// - `path`: File path to delete
+    /// - `user`: User identity for security context
+    ///
+    /// # Returns
+    ///
+    /// Unit on successful deletion
+    ///
+    /// # Errors
+    ///
+    /// - `OSError::SecurityViolation`: Security policy denied access
+    /// - `OSError::NotFound`: File does not exist
+    /// - `OSError::PermissionDenied`: OS-level permission denied
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use airssys_osl::helpers::composition::*;
+    /// use airssys_osl::middleware::security::SecurityMiddleware;
+    ///
+    /// # async fn example() -> airssys_osl::core::result::OSResult<()> {
+    /// let deleter = FileHelper::builder()
+    ///     .with_security(SecurityMiddleware::default());
+    ///
+    /// deleter.delete("/tmp/oldfile.txt", "admin").await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn delete<P: AsRef<std::path::Path>>(
+        &self,
+        path: P,
+        user: impl Into<String>,
+    ) -> OSResult<()> {
+        use crate::core::context::{ExecutionContext, SecurityContext};
+
+        let path_str = path.as_ref().display().to_string();
+        let operation = crate::operations::filesystem::FileDeleteOperation::new(path_str);
+        let context = ExecutionContext::new(SecurityContext::new(user.into()));
+        self.executor.execute(operation, &context).await?;
+        Ok(())
+    }
+}
+
+// ============================================================================
+// Execution Methods - Process Operations
+// ============================================================================
+
+/// Execution methods for process spawn operations.
+impl<E> ComposedHelper<crate::operations::process::ProcessSpawnOperation, E>
+where
+    E: OSExecutor<crate::operations::process::ProcessSpawnOperation> + Send + Sync + std::fmt::Debug,
+{
+    /// Spawn a new process.
+    ///
+    /// # Arguments
+    ///
+    /// - `command`: Command to execute
+    /// - `args`: Command arguments
+    /// - `user`: User identity for security context
+    ///
+    /// # Returns
+    ///
+    /// Process ID as bytes (use `String::from_utf8_lossy()` to convert)
+    ///
+    /// # Errors
+    ///
+    /// - `OSError::SecurityViolation`: Security policy denied access
+    /// - `OSError::NotFound`: Command not found
+    /// - `OSError::PermissionDenied`: OS-level permission denied
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use airssys_osl::helpers::composition::*;
+    /// use airssys_osl::middleware::security::SecurityMiddleware;
+    ///
+    /// # async fn example() -> airssys_osl::core::result::OSResult<()> {
+    /// let spawner = ProcessHelper::builder()
+    ///     .with_security(SecurityMiddleware::default());
+    ///
+    /// let pid = spawner.spawn("ls", vec!["-la".to_string()], "admin").await?;
+    /// println!("Spawned process PID: {}", String::from_utf8_lossy(&pid));
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn spawn(
+        &self,
+        command: impl Into<String>,
+        args: Vec<String>,
+        user: impl Into<String>,
+    ) -> OSResult<Vec<u8>> {
+        use crate::core::context::{ExecutionContext, SecurityContext};
+
+        let operation = crate::operations::process::ProcessSpawnOperation::new(command.into())
+            .with_args(args);
+        let context = ExecutionContext::new(SecurityContext::new(user.into()));
+        let result = self.executor.execute(operation, &context).await?;
+        Ok(result.output)
+    }
+}
+
+/// Execution methods for process kill operations.
+impl<E> ComposedHelper<crate::operations::process::ProcessKillOperation, E>
+where
+    E: OSExecutor<crate::operations::process::ProcessKillOperation> + Send + Sync + std::fmt::Debug,
+{
+    /// Kill a process by PID.
+    ///
+    /// # Arguments
+    ///
+    /// - `pid`: Process ID to kill
+    /// - `user`: User identity for security context
+    ///
+    /// # Returns
+    ///
+    /// Unit on successful termination
+    ///
+    /// # Errors
+    ///
+    /// - `OSError::SecurityViolation`: Security policy denied access
+    /// - `OSError::NotFound`: Process not found
+    /// - `OSError::PermissionDenied`: OS-level permission denied
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use airssys_osl::helpers::composition::*;
+    /// use airssys_osl::middleware::security::SecurityMiddleware;
+    ///
+    /// # async fn example() -> airssys_osl::core::result::OSResult<()> {
+    /// let killer = ProcessHelper::builder()
+    ///     .with_security(SecurityMiddleware::default());
+    ///
+    /// killer.kill(1234, "admin").await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn kill(&self, pid: u32, user: impl Into<String>) -> OSResult<()> {
+        use crate::core::context::{ExecutionContext, SecurityContext};
+
+        let operation = crate::operations::process::ProcessKillOperation::new(pid);
+        let context = ExecutionContext::new(SecurityContext::new(user.into()));
+        self.executor.execute(operation, &context).await?;
+        Ok(())
+    }
+}
+
+/// Execution methods for process signal operations.
+impl<E> ComposedHelper<crate::operations::process::ProcessSignalOperation, E>
+where
+    E: OSExecutor<crate::operations::process::ProcessSignalOperation> + Send + Sync + std::fmt::Debug,
+{
+    /// Send a signal to a process.
+    ///
+    /// # Arguments
+    ///
+    /// - `pid`: Process ID to signal
+    /// - `signal`: Signal number to send
+    /// - `user`: User identity for security context
+    ///
+    /// # Returns
+    ///
+    /// Unit on successful signal delivery
+    ///
+    /// # Errors
+    ///
+    /// - `OSError::SecurityViolation`: Security policy denied access
+    /// - `OSError::NotFound`: Process not found
+    /// - `OSError::PermissionDenied`: OS-level permission denied
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use airssys_osl::helpers::composition::*;
+    /// use airssys_osl::middleware::security::SecurityMiddleware;
+    ///
+    /// # async fn example() -> airssys_osl::core::result::OSResult<()> {
+    /// let signaler = ProcessHelper::builder()
+    ///     .with_security(SecurityMiddleware::default());
+    ///
+    /// signaler.send_signal(1234, 15, "admin").await?; // SIGTERM
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn send_signal(&self, pid: u32, signal: i32, user: impl Into<String>) -> OSResult<()> {
+        use crate::core::context::{ExecutionContext, SecurityContext};
+
+        let operation = crate::operations::process::ProcessSignalOperation::new(pid, signal);
+        let context = ExecutionContext::new(SecurityContext::new(user.into()));
+        self.executor.execute(operation, &context).await?;
+        Ok(())
+    }
+}
+
+// ============================================================================
+// Execution Methods - Network Operations
+// ============================================================================
+
+/// Execution methods for network connect operations.
+impl<E> ComposedHelper<crate::operations::network::NetworkConnectOperation, E>
+where
+    E: OSExecutor<crate::operations::network::NetworkConnectOperation>
+        + Send
+        + Sync
+        + std::fmt::Debug,
+{
+    /// Connect to a remote network endpoint.
+    ///
+    /// # Arguments
+    ///
+    /// - `address`: Remote address to connect to (e.g., "127.0.0.1:8080")
+    /// - `user`: User identity for security context
+    ///
+    /// # Returns
+    ///
+    /// Socket file descriptor as bytes
+    ///
+    /// # Errors
+    ///
+    /// - `OSError::SecurityViolation`: Security policy denied access
+    /// - `OSError::ConnectionRefused`: Connection refused by remote
+    /// - `OSError::NetworkError`: Network error during connection
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use airssys_osl::helpers::composition::*;
+    /// use airssys_osl::middleware::security::SecurityMiddleware;
+    ///
+    /// # async fn example() -> airssys_osl::core::result::OSResult<()> {
+    /// let connector = NetworkHelper::builder()
+    ///     .with_security(SecurityMiddleware::default());
+    ///
+    /// let socket = connector.connect("127.0.0.1:8080", "admin").await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn connect(
+        &self,
+        address: impl Into<String>,
+        user: impl Into<String>,
+    ) -> OSResult<Vec<u8>> {
+        use crate::core::context::{ExecutionContext, SecurityContext};
+
+        let operation = crate::operations::network::NetworkConnectOperation::new(address.into());
+        let context = ExecutionContext::new(SecurityContext::new(user.into()));
+        let result = self.executor.execute(operation, &context).await?;
+        Ok(result.output)
+    }
+}
+
+/// Execution methods for network listen operations.
+impl<E> ComposedHelper<crate::operations::network::NetworkListenOperation, E>
+where
+    E: OSExecutor<crate::operations::network::NetworkListenOperation>
+        + Send
+        + Sync
+        + std::fmt::Debug,
+{
+    /// Listen on a local network endpoint.
+    ///
+    /// # Arguments
+    ///
+    /// - `address`: Local address to bind to (e.g., "0.0.0.0:8080")
+    /// - `user`: User identity for security context
+    ///
+    /// # Returns
+    ///
+    /// Listening socket file descriptor as bytes
+    ///
+    /// # Errors
+    ///
+    /// - `OSError::SecurityViolation`: Security policy denied access
+    /// - `OSError::AddressInUse`: Address already in use
+    /// - `OSError::NetworkError`: Network error during bind
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use airssys_osl::helpers::composition::*;
+    /// use airssys_osl::middleware::security::SecurityMiddleware;
+    ///
+    /// # async fn example() -> airssys_osl::core::result::OSResult<()> {
+    /// let listener = NetworkHelper::builder()
+    ///     .with_security(SecurityMiddleware::default());
+    ///
+    /// let socket = listener.listen("0.0.0.0:8080", "admin").await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn listen(
+        &self,
+        address: impl Into<String>,
+        user: impl Into<String>,
+    ) -> OSResult<Vec<u8>> {
+        use crate::core::context::{ExecutionContext, SecurityContext};
+
+        let operation = crate::operations::network::NetworkListenOperation::new(address.into());
+        let context = ExecutionContext::new(SecurityContext::new(user.into()));
+        let result = self.executor.execute(operation, &context).await?;
+        Ok(result.output)
+    }
+}
+
+/// Execution methods for network socket creation operations.
+impl<E> ComposedHelper<crate::operations::network::NetworkSocketOperation, E>
+where
+    E: OSExecutor<crate::operations::network::NetworkSocketOperation> + Send + Sync + std::fmt::Debug,
+{
+    /// Create a network socket.
+    ///
+    /// # Arguments
+    ///
+    /// - `socket_type`: Socket type ("tcp", "udp", etc.)
+    /// - `user`: User identity for security context
+    ///
+    /// # Returns
+    ///
+    /// Created socket file descriptor as bytes
+    ///
+    /// # Errors
+    ///
+    /// - `OSError::SecurityViolation`: Security policy denied access
+    /// - `OSError::InvalidInput`: Invalid socket type
+    /// - `OSError::NetworkError`: Error creating socket
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use airssys_osl::helpers::composition::*;
+    /// use airssys_osl::middleware::security::SecurityMiddleware;
+    ///
+    /// # async fn example() -> airssys_osl::core::result::OSResult<()> {
+    /// let socket_creator = NetworkHelper::builder()
+    ///     .with_security(SecurityMiddleware::default());
+    ///
+    /// let socket = socket_creator.create_socket("udp", "admin").await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn create_socket(
+        &self,
+        socket_type: impl Into<String>,
+        user: impl Into<String>,
+    ) -> OSResult<Vec<u8>> {
+        use crate::core::context::{ExecutionContext, SecurityContext};
+
+        let operation = crate::operations::network::NetworkSocketOperation::new(socket_type.into());
+        let context = ExecutionContext::new(SecurityContext::new(user.into()));
+        let result = self.executor.execute(operation, &context).await?;
+        Ok(result.output)
     }
 }
