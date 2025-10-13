@@ -196,8 +196,8 @@ pub(crate) mod context; // Security context building utilities
 pub(crate) mod factories;
 
 // Module declarations for simple helpers and composition
-pub(crate) mod simple; // Phase 2-4: Simple helper functions
-pub mod composition; // Phase 8: Trait-based composition layer
+pub mod composition;
+pub(crate) mod simple; // Phase 2-4: Simple helper functions // Phase 8: Trait-based composition layer
 
 // ============================================================================
 // Re-exports (will be populated in later phases)
