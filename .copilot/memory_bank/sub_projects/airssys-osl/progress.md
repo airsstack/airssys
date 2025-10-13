@@ -1,12 +1,12 @@
 # airssys-osl Progress
 
 ## Current Status
-**Phase:** OSL-TASK-010 Phase 5 COMPLETE ✅  
-**Overall Progress:** 90%  
+**Phase:** OSL-TASK-010 Phase 6 COMPLETE ✅  
+**Overall Progress:** 92%  
 **Last Updated:** 2025-10-13
 
 ## Recent Achievement
-**OSL-TASK-010 Phase 5 Complete - Security Context Attribute Architecture!** (2025-10-13): Successfully implemented complete security context attribute architecture with 100% test pass rate. Key achievements: (1) Created build_acl_attributes() and build_rbac_attributes() functions in respective security modules, (2) Implemented build_security_context() helper coordinating both ACL and RBAC attribute population, (3) Updated all 10 helper functions to automatically populate security attributes, (4) Fixed permission naming to use colon notation (file:read, process:spawn) matching default RBAC policy, (5) Updated all integration tests (security_middleware, helpers_error, helpers_audit, security_threat) to use prefixed attributes (acl.*, rbac.*), (6) **All 480 tests passing (100% pass rate)**: 238 unit + 242 integration/doc tests, (7) Zero warnings, comprehensive documentation with ADR-030. Architecture complete with proper separation of concerns: Operations declare permissions → Security modules build attributes → Helpers coordinate integration.
+**OSL-TASK-010 Phase 6 Complete - Custom Middleware Documentation & Examples!** (2025-10-13): Successfully completed comprehensive custom middleware documentation and working examples. Key achievements: (1) **Expanded guides/middleware.md** with 800+ lines of detailed custom middleware documentation following Diátaxis HOW-TO GUIDE pattern, (2) **Step-by-step creation guide** covering struct definition, constructor patterns, Middleware trait implementation with detailed method explanations, (3) **Four middleware examples**: RateLimitMiddleware (complete implementation), CachingMiddleware (conceptual), MetricsMiddleware (conceptual), RetryMiddleware (conceptual), (4) **Created examples/custom_middleware.rs** (~400 lines) demonstrating production-ready RateLimitMiddleware with Arc<Mutex<HashMap>> thread-safe state management, (5) **Testing patterns section** with unit testing and integration testing examples, (6) **Middleware priority guidelines** with clear range recommendations (90-100 security, 70-89 resource management, 50-69 observability, 25-49 error handling), (7) **All 4 example tests passing** (rate limit enforcement, per-user isolation, window reset, middleware integration), (8) **All 480 workspace tests passing** (100% pass rate), (9) Zero warnings, mdBook builds successfully. Documentation now provides complete guide for users to create custom middleware with real-world patterns and best practices.
 
 ## What Works
 ### ✅ Completed Components

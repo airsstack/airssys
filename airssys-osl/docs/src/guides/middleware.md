@@ -203,33 +203,268 @@ async fn main() -> Result<(), OSError> {
 
 ## Creating Custom Middleware
 
-You can create custom middleware to implement your own cross-cutting concerns:
+Custom middleware allows you to implement your own cross-cutting concerns like rate limiting, caching, metrics collection, retry logic, and more. This section provides a comprehensive guide to creating production-ready custom middleware.
+
+### Step-by-Step Guide
+
+#### 1. Define Your Middleware Struct
+
+Create a struct to hold your middleware state and configuration:
 
 ```rust
-use airssys_osl::prelude::*;
-use airssys_osl::core::middleware::{Middleware, MiddlewareResult, ErrorAction};
-use async_trait::async_trait;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+use std::collections::HashMap;
+use tokio::time::{Duration, Instant};
 
-#[derive(Debug)]
-struct MetricsMiddleware {
-    // Your metrics collector
+#[derive(Debug, Clone)]
+pub struct RateLimitMiddleware {
+    /// Maximum operations allowed per second
+    max_ops_per_second: u32,
+    /// Shared state tracking operation timestamps
+    state: Arc<Mutex<RateLimitState>>,
 }
 
+#[derive(Debug)]
+struct RateLimitState {
+    /// Track timestamps of recent operations per user
+    operation_times: HashMap<String, Vec<Instant>>,
+}
+```
+
+**Key Points:**
+- Use `#[derive(Debug, Clone)]` for middleware that will be shared across executors
+- Use `Arc<Mutex<T>>` for thread-safe shared state
+- Separate state into its own struct for clarity
+
+#### 2. Implement the Constructor
+
+Provide a clear API for creating your middleware:
+
+```rust
+impl RateLimitMiddleware {
+    /// Create a new rate limiter with specified operations per second limit.
+    pub fn new(max_ops_per_second: u32) -> Self {
+        Self {
+            max_ops_per_second,
+            state: Arc::new(Mutex::new(RateLimitState {
+                operation_times: HashMap::new(),
+            })),
+        }
+    }
+}
+```
+
+#### 3. Implement the Middleware Trait
+
+Implement the `Middleware<O>` trait for your middleware:
+
+```rust
+use airssys_osl::core::middleware::{Middleware, MiddlewareResult, MiddlewareError, ErrorAction};
+use airssys_osl::core::operation::Operation;
+use airssys_osl::core::context::ExecutionContext;
+use airssys_osl::core::result::OSResult;
+use async_trait::async_trait;
+
 #[async_trait]
-impl<O> Middleware<O> for MetricsMiddleware
-where
-    O: Operation + Send + Sync + std::fmt::Debug,
-{
+impl<O: Operation> Middleware<O> for RateLimitMiddleware {
     fn name(&self) -> &str {
-        "metrics_middleware"
+        "rate_limiter"
     }
     
     fn priority(&self) -> u32 {
-        100
+        // High priority (75) - run before most middleware but after security (100)
+        75
     }
     
     async fn can_process(&self, _operation: &O, _context: &ExecutionContext) -> bool {
-        true  // Process all operations
+        // Process all operations
+        true
+    }
+    
+    async fn before_execution(
+        &self,
+        operation: O,
+        context: &ExecutionContext,
+    ) -> MiddlewareResult<Option<O>> {
+        let user = &context.security_context.principal;
+        
+        // Check rate limit
+        if self.check_rate_limit(user).await {
+            // Under limit - allow operation
+            Ok(Some(operation))
+        } else {
+            // Rate limit exceeded - reject operation
+            Err(MiddlewareError::NonFatal(format!(
+                "Rate limit exceeded for user '{}': max {} operations per second",
+                user, self.max_ops_per_second
+            )))
+        }
+    }
+    
+    async fn after_execution(
+        &self,
+        _context: &ExecutionContext,
+        _result: &OSResult<airssys_osl::core::executor::ExecutionResult>,
+    ) -> MiddlewareResult<()> {
+        // No post-processing needed for rate limiting
+        Ok(())
+    }
+    
+    async fn handle_error(
+        &self,
+        _error: OSError,
+        _context: &ExecutionContext,
+    ) -> ErrorAction {
+        // Let errors propagate
+        ErrorAction::Stop
+    }
+}
+```
+
+**Trait Method Guide:**
+
+- **`name()`**: Unique identifier for your middleware (used in logging and debugging)
+- **`priority()`**: Determines execution order (0-100, higher = outer layer)
+  - 100: Security middleware
+  - 75: Rate limiting, caching
+  - 50: Metrics, logging
+  - 25: Retry logic
+- **`can_process()`**: Filter which operations this middleware handles (return false to skip)
+- **`before_execution()`**: Validate, transform, or reject operations before execution
+  - Return `Ok(Some(operation))` to continue
+  - Return `Ok(None)` to short-circuit (cached result, etc.)
+  - Return `Err(...)` to reject the operation
+- **`after_execution()`**: Process results, update metrics, log outcomes
+- **`handle_error()`**: Custom error handling
+  - `ErrorAction::Stop`: Propagate error immediately
+  - `ErrorAction::Continue`: Log and continue
+  - `ErrorAction::Retry`: Attempt to retry operation
+
+#### 4. Implement Helper Methods
+
+Add helper methods for your middleware logic:
+
+```rust
+impl RateLimitMiddleware {
+    /// Check if the user has exceeded their rate limit.
+    async fn check_rate_limit(&self, user: &str) -> bool {
+        let mut state = self.state.lock().await;
+        let now = Instant::now();
+        let one_second_ago = now - Duration::from_secs(1);
+        
+        // Get or create user's operation history
+        let times = state
+            .operation_times
+            .entry(user.to_string())
+            .or_insert_with(Vec::new);
+        
+        // Remove operations older than 1 second (sliding window)
+        times.retain(|&time| time > one_second_ago);
+        
+        // Check if under limit
+        if times.len() < self.max_ops_per_second as usize {
+            // Record this operation
+            times.push(now);
+            true
+        } else {
+            false
+        }
+    }
+}
+```
+
+### Real-World Middleware Examples
+
+#### Example 1: Rate Limiting (Complete Implementation)
+
+See the complete working example in [`examples/custom_middleware.rs`](../../../examples/custom_middleware.rs) which demonstrates:
+
+- Thread-safe state management with `Arc<Mutex<HashMap>>`
+- Per-user rate tracking with sliding window
+- Configurable operations per second limit
+- Integration with ExecutorExt and helper functions
+
+**Usage:**
+
+```rust
+use airssys_osl::middleware::ext::ExecutorExt;
+
+// Create rate limiter: 100 operations per second
+let rate_limiter = RateLimitMiddleware::new(100);
+
+// Use with executor
+let executor = FilesystemExecutor::default()
+    .with_middleware(rate_limiter);
+
+// Or use with helper functions
+let data = read_file_with_middleware(
+    "/path/to/file",
+    "user",
+    RateLimitMiddleware::new(50)
+).await?;
+```
+
+#### Example 2: Caching Middleware (Conceptual)
+
+```rust
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use std::collections::HashMap;
+use tokio::time::{Duration, Instant};
+
+#[derive(Debug, Clone)]
+pub struct CachingMiddleware {
+    cache: Arc<RwLock<HashMap<String, CachedResult>>>,
+    ttl: Duration,
+}
+
+#[derive(Debug, Clone)]
+struct CachedResult {
+    data: Vec<u8>,
+    cached_at: Instant,
+}
+
+impl CachingMiddleware {
+    pub fn new(ttl: Duration) -> Self {
+        Self {
+            cache: Arc::new(RwLock::new(HashMap::new())),
+            ttl,
+        }
+    }
+    
+    async fn get_cached(&self, key: &str) -> Option<Vec<u8>> {
+        let cache = self.cache.read().await;
+        if let Some(entry) = cache.get(key) {
+            if entry.cached_at.elapsed() < self.ttl {
+                return Some(entry.data.clone());
+            }
+        }
+        None
+    }
+    
+    async fn set_cached(&self, key: String, data: Vec<u8>) {
+        let mut cache = self.cache.write().await;
+        cache.insert(key, CachedResult {
+            data,
+            cached_at: Instant::now(),
+        });
+    }
+}
+
+#[async_trait]
+impl<O: Operation> Middleware<O> for CachingMiddleware {
+    fn name(&self) -> &str {
+        "caching"
+    }
+    
+    fn priority(&self) -> u32 {
+        75 // High priority to check cache early
+    }
+    
+    async fn can_process(&self, operation: &O, _context: &ExecutionContext) -> bool {
+        // Only cache read operations
+        operation.operation_type() == OperationType::Filesystem
     }
     
     async fn before_execution(
@@ -237,8 +472,17 @@ where
         operation: O,
         _context: &ExecutionContext,
     ) -> MiddlewareResult<Option<O>> {
-        // Record operation start time
-        Ok(Some(operation))
+        // Check cache - if hit, return None to skip execution
+        let cache_key = format!("{:?}", operation);
+        
+        if self.get_cached(&cache_key).await.is_some() {
+            // Cache hit - skip execution (would need to return cached result)
+            // Note: This is simplified - real implementation needs result injection
+            Ok(None)
+        } else {
+            // Cache miss - continue to executor
+            Ok(Some(operation))
+        }
     }
     
     async fn after_execution(
@@ -246,11 +490,10 @@ where
         _context: &ExecutionContext,
         result: &OSResult<ExecutionResult>,
     ) -> MiddlewareResult<()> {
-        // Record operation completion and metrics
-        if result.is_ok() {
-            // Record success metric
-        } else {
-            // Record failure metric
+        // Cache successful results
+        if let Ok(exec_result) = result {
+            let cache_key = format!("{}", exec_result.operation_id);
+            self.set_cached(cache_key, exec_result.output.clone()).await;
         }
         Ok(())
     }
@@ -264,6 +507,338 @@ where
     }
 }
 ```
+
+**Usage:**
+
+```rust
+// Cache file reads for 60 seconds
+let caching = CachingMiddleware::new(Duration::from_secs(60));
+
+let executor = FilesystemExecutor::default()
+    .with_middleware(caching);
+```
+
+#### Example 3: Metrics Collection Middleware (Conceptual)
+
+```rust
+use std::sync::Arc;
+use tokio::sync::Mutex;
+use std::collections::HashMap;
+
+#[derive(Debug, Clone)]
+pub struct MetricsMiddleware {
+    metrics: Arc<Mutex<OperationMetrics>>,
+}
+
+#[derive(Debug, Default)]
+struct OperationMetrics {
+    total_ops: u64,
+    successful_ops: u64,
+    failed_ops: u64,
+    total_duration_ms: u64,
+}
+
+impl MetricsMiddleware {
+    pub fn new() -> Self {
+        Self {
+            metrics: Arc::new(Mutex::new(OperationMetrics::default())),
+        }
+    }
+    
+    pub async fn get_stats(&self) -> OperationMetrics {
+        self.metrics.lock().await.clone()
+    }
+}
+
+#[async_trait]
+impl<O: Operation> Middleware<O> for MetricsMiddleware {
+    fn name(&self) -> &str {
+        "metrics"
+    }
+    
+    fn priority(&self) -> u32 {
+        50 // Medium priority
+    }
+    
+    async fn can_process(&self, _operation: &O, _context: &ExecutionContext) -> bool {
+        true // Collect metrics for all operations
+    }
+    
+    async fn before_execution(
+        &self,
+        operation: O,
+        _context: &ExecutionContext,
+    ) -> MiddlewareResult<Option<O>> {
+        let mut metrics = self.metrics.lock().await;
+        metrics.total_ops += 1;
+        Ok(Some(operation))
+    }
+    
+    async fn after_execution(
+        &self,
+        _context: &ExecutionContext,
+        result: &OSResult<ExecutionResult>,
+    ) -> MiddlewareResult<()> {
+        let mut metrics = self.metrics.lock().await;
+        
+        match result {
+            Ok(exec_result) => {
+                metrics.successful_ops += 1;
+                metrics.total_duration_ms += exec_result.duration.as_millis() as u64;
+            }
+            Err(_) => {
+                metrics.failed_ops += 1;
+            }
+        }
+        
+        Ok(())
+    }
+    
+    async fn handle_error(
+        &self,
+        _error: OSError,
+        _context: &ExecutionContext,
+    ) -> ErrorAction {
+        ErrorAction::Continue
+    }
+}
+```
+
+**Usage:**
+
+```rust
+let metrics = MetricsMiddleware::new();
+
+let executor = FilesystemExecutor::default()
+    .with_middleware(metrics.clone());
+
+// ... perform operations ...
+
+// Get statistics
+let stats = metrics.get_stats().await;
+println!("Total operations: {}", stats.total_ops);
+println!("Success rate: {:.2}%", 
+    (stats.successful_ops as f64 / stats.total_ops as f64) * 100.0);
+```
+
+#### Example 4: Retry Middleware (Conceptual)
+
+```rust
+#[derive(Debug, Clone)]
+pub struct RetryMiddleware {
+    max_attempts: u32,
+    backoff_ms: u64,
+}
+
+impl RetryMiddleware {
+    pub fn new(max_attempts: u32, backoff_ms: u64) -> Self {
+        Self { max_attempts, backoff_ms }
+    }
+}
+
+#[async_trait]
+impl<O: Operation> Middleware<O> for RetryMiddleware {
+    fn name(&self) -> &str {
+        "retry"
+    }
+    
+    fn priority(&self) -> u32 {
+        25 // Low priority - retry failed operations
+    }
+    
+    async fn can_process(&self, _operation: &O, _context: &ExecutionContext) -> bool {
+        true
+    }
+    
+    async fn before_execution(
+        &self,
+        operation: O,
+        _context: &ExecutionContext,
+    ) -> MiddlewareResult<Option<O>> {
+        Ok(Some(operation))
+    }
+    
+    async fn after_execution(
+        &self,
+        _context: &ExecutionContext,
+        _result: &OSResult<ExecutionResult>,
+    ) -> MiddlewareResult<()> {
+        Ok(())
+    }
+    
+    async fn handle_error(
+        &self,
+        error: OSError,
+        _context: &ExecutionContext,
+    ) -> ErrorAction {
+        // Retry on transient errors
+        match error {
+            OSError::NetworkError { .. } | OSError::Timeout { .. } => {
+                ErrorAction::Retry
+            }
+            _ => ErrorAction::Stop
+        }
+    }
+}
+```
+
+### Testing Custom Middleware
+
+#### Unit Testing
+
+Test your middleware in isolation:
+
+```rust
+#[tokio::test]
+async fn test_rate_limit_enforcement() {
+    let limiter = RateLimitMiddleware::new(2); // 2 ops/sec
+    
+    // First two operations should succeed
+    assert!(limiter.check_rate_limit("testuser").await);
+    assert!(limiter.check_rate_limit("testuser").await);
+    
+    // Third operation should fail
+    assert!(!limiter.check_rate_limit("testuser").await);
+}
+
+#[tokio::test]
+async fn test_rate_limit_per_user() {
+    let limiter = RateLimitMiddleware::new(1); // 1 op/sec
+    
+    // Different users have separate limits
+    assert!(limiter.check_rate_limit("user1").await);
+    assert!(limiter.check_rate_limit("user2").await);
+    
+    // Same user should be limited
+    assert!(!limiter.check_rate_limit("user1").await);
+}
+```
+
+#### Integration Testing
+
+Test middleware with actual operations:
+
+```rust
+#[tokio::test]
+async fn test_middleware_integration() {
+    let limiter = RateLimitMiddleware::new(5);
+    let executor = FilesystemExecutor::default()
+        .with_middleware(limiter);
+    
+    let context = ExecutionContext::new(
+        SecurityContext::new("test".to_string())
+    );
+    
+    // Create a test file
+    let temp_file = std::env::temp_dir().join("middleware_test.txt");
+    std::fs::write(&temp_file, b"test data")
+        .expect("Failed to create test file");
+    
+    // Operation should succeed
+    let operation = FileReadOperation::new(
+        temp_file.to_str().unwrap().to_string()
+    );
+    let result = executor.execute(operation, &context).await;
+    
+    // Cleanup
+    let _ = std::fs::remove_file(&temp_file);
+    
+    assert!(result.is_ok(), "Operation should succeed within rate limit");
+}
+```
+
+### Middleware Priority Guidelines
+
+When setting priority values, follow these guidelines:
+
+| Priority Range | Purpose | Examples |
+|----------------|---------|----------|
+| 90-100 | Critical security and validation | SecurityMiddleware (100) |
+| 70-89 | Resource management | RateLimitMiddleware (75), CachingMiddleware (75) |
+| 50-69 | Observability and metrics | MetricsMiddleware (50), LoggerMiddleware (50) |
+| 25-49 | Error handling and recovery | RetryMiddleware (25) |
+| 0-24 | Low-priority cross-cutting concerns | Custom audit trails, cleanup |
+
+### Integration with Helper Functions
+
+Custom middleware can be used with all three API levels:
+
+**Level 1 - Simple Helpers (uses default middleware):**
+```rust
+// Cannot use custom middleware - uses defaults only
+let data = read_file("/path", "user").await?;
+```
+
+**Level 2 - Custom Middleware Helpers:**
+```rust
+// Use with *_with_middleware variants
+let custom = RateLimitMiddleware::new(100);
+let data = read_file_with_middleware("/path", "user", custom).await?;
+```
+
+**Level 3 - Trait Composition (Future):**
+```rust
+// Build reusable pipelines
+let helper = FileHelper::new()
+    .with_middleware(RateLimitMiddleware::new(100))
+    .with_middleware(MetricsMiddleware::new());
+
+let data = helper.read("/path", "user").await?;
+```
+
+### Common Patterns
+
+#### Pattern 1: Conditional Processing
+
+```rust
+async fn can_process(&self, operation: &O, context: &ExecutionContext) -> bool {
+    // Only process operations from specific users
+    context.security_context.principal == "admin"
+}
+```
+
+#### Pattern 2: Operation Transformation
+
+```rust
+async fn before_execution(
+    &self,
+    mut operation: O,
+    _context: &ExecutionContext,
+) -> MiddlewareResult<Option<O>> {
+    // Modify operation before execution
+    // (requires mutable operation type)
+    Ok(Some(operation))
+}
+```
+
+#### Pattern 3: Short-Circuit Execution
+
+```rust
+async fn before_execution(
+    &self,
+    operation: O,
+    _context: &ExecutionContext,
+) -> MiddlewareResult<Option<O>> {
+    if should_skip(&operation) {
+        // Return None to skip executor
+        return Ok(None);
+    }
+    Ok(Some(operation))
+}
+```
+
+### Complete Working Example
+
+For a complete, production-ready example of custom middleware, see:
+- **[`examples/custom_middleware.rs`](../../../examples/custom_middleware.rs)** - Full RateLimitMiddleware implementation with tests
+
+This example demonstrates:
+- Thread-safe state management
+- Sliding window rate limiting
+- Integration with ExecutorExt
+- Middleware chaining
+- Helper function integration
+- Comprehensive testing patterns
 
 ## Best Practices
 
@@ -315,54 +890,7 @@ async fn test_custom_middleware() {
 }
 ```
 
-## Advanced Patterns
-
-### Conditional Middleware
-
-Middleware can selectively process operations:
-
-```rust
-async fn can_process(&self, operation: &O, context: &ExecutionContext) -> bool {
-    // Only process operations from specific users
-    context.security_context.user() == "admin"
-}
-```
-
-### Operation Transformation
-
-Middleware can modify operations before execution:
-
-```rust
-async fn before_execution(
-    &self,
-    mut operation: O,
-    _context: &ExecutionContext,
-) -> MiddlewareResult<Option<O>> {
-    // Modify operation parameters
-    // For example, sanitize file paths
-    Ok(Some(operation))
-}
-```
-
-### Short-Circuit Execution
-
-Middleware can handle operations without calling the executor:
-
-```rust
-async fn before_execution(
-    &self,
-    operation: O,
-    context: &ExecutionContext,
-) -> MiddlewareResult<Option<O>> {
-    if should_cache_hit(&operation) {
-        // Return None to skip executor and use cached result
-        return Ok(None);
-    }
-    Ok(Some(operation))
-}
-```
-
-## Examples
+## Additional Examples
 
 See the complete working examples in the repository:
 
