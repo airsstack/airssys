@@ -61,7 +61,9 @@ async fn test_type_safety_process_operations() {
     let spawner = ProcessHelper::builder().with_security(middleware);
 
     // Type inference ensures correct operation type
-    let result = spawner.spawn("echo", vec!["test".to_string()], "testuser").await;
+    let result = spawner
+        .spawn("echo", vec!["test".to_string()], "testuser")
+        .await;
     assert!(result.is_ok(), "Type-safe spawn operation should succeed");
 }
 
@@ -80,7 +82,7 @@ async fn test_type_safety_network_operations() {
     // Type inference ensures correct operation type
     // Using example.com which should be accessible
     let result = connector.connect("example.com:80", "testuser").await;
-    
+
     // Network operations may fail due to connectivity, but type safety is verified at compile time
     assert!(
         result.is_ok() || result.is_err(),
@@ -131,8 +133,14 @@ async fn test_shared_middleware_instance() {
     let network_result = network_helper.connect("example.com:80", "testuser").await;
 
     // All should respect the same security policy
-    assert!(file_result.is_ok(), "File operation with shared middleware should succeed");
-    assert!(process_result.is_ok(), "Process operation with shared middleware should succeed");
+    assert!(
+        file_result.is_ok(),
+        "File operation with shared middleware should succeed"
+    );
+    assert!(
+        process_result.is_ok(),
+        "Process operation with shared middleware should succeed"
+    );
     // Network may fail due to connectivity, but middleware works
     assert!(
         network_result.is_ok() || network_result.is_err(),
@@ -177,7 +185,9 @@ async fn test_cross_operation_sequential_execution() {
     // Execute operations in sequence
     // 1. File operation
     let file_helper = FileHelper::builder().with_security(file_middleware);
-    let file_data = file_helper.read(test_path, "testuser").await
+    let file_data = file_helper
+        .read(test_path, "testuser")
+        .await
         .expect("File read should succeed");
     assert!(!file_data.is_empty(), "Should read file data");
 
@@ -192,7 +202,7 @@ async fn test_cross_operation_sequential_execution() {
     // 3. Network operation (may fail due to connectivity)
     let network_helper = NetworkHelper::builder().with_security(network_middleware);
     let _network_result = network_helper.connect("example.com:80", "testuser").await;
-    
+
     // All operations completed in sequence without interference
     // Cleanup
     fs::remove_file(test_file).ok();
@@ -222,7 +232,10 @@ async fn test_pipeline_reuse_across_operations() {
     // Reuse the same helper pipeline for multiple operations
     for file in &files {
         let result = helper.read(file.to_str().unwrap(), "testuser").await;
-        assert!(result.is_ok(), "Pipeline reuse should work for all operations");
+        assert!(
+            result.is_ok(),
+            "Pipeline reuse should work for all operations"
+        );
     }
 
     // Cleanup
@@ -259,7 +272,8 @@ async fn test_different_security_policies_different_helpers() {
     let deny_helper = FileHelper::builder().with_security(deny_middleware);
 
     // Create test file
-    let test_file = std::env::temp_dir().join(format!("test_policies_{}.txt", uuid::Uuid::new_v4()));
+    let test_file =
+        std::env::temp_dir().join(format!("test_policies_{}.txt", uuid::Uuid::new_v4()));
     fs::write(&test_file, "policy test").expect("Failed to create test file");
     let test_path = test_file.to_str().unwrap();
 

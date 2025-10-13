@@ -120,7 +120,10 @@ async fn test_security_with_custom_middleware() {
     let result = helper.read(test_path, "testuser").await;
 
     // Verify success
-    assert!(result.is_ok(), "Operation should succeed with chained middleware");
+    assert!(
+        result.is_ok(),
+        "Operation should succeed with chained middleware"
+    );
 
     // Verify custom middleware was executed
     let log_entries = log.lock().unwrap();
@@ -167,7 +170,10 @@ async fn test_multiple_custom_middleware() {
     let result = helper.read(test_path, "testuser").await;
 
     // Verify success
-    assert!(result.is_ok(), "Operation should succeed with multiple middleware");
+    assert!(
+        result.is_ok(),
+        "Operation should succeed with multiple middleware"
+    );
 
     // Verify both middleware were executed
     let log_entries = log.lock().unwrap();
@@ -221,10 +227,10 @@ async fn test_middleware_order_matters() {
     // Verify execution order (middleware execute in chain order for "before",
     // and reverse order for "after")
     let log_entries = log.lock().unwrap();
-    
+
     // Debug: print all log entries to see what we captured
     println!("Log entries captured: {:?}", log_entries);
-    
+
     // Find positions of log entries
     let first_before_pos = log_entries
         .iter()
@@ -249,7 +255,7 @@ async fn test_middleware_order_matters() {
         second_before_pos < first_before_pos,
         "Second middleware should execute before First"
     );
-    
+
     // Find "after" positions
     let first_after_pos = log_entries
         .iter()
@@ -263,7 +269,7 @@ async fn test_middleware_order_matters() {
         .iter()
         .position(|e| e == "Third - after")
         .expect("Third - after should exist");
-    
+
     // Verify "after" executes in FORWARD order (unwinding the onion)
     // Order: [operation] → First → Second → Third
     assert!(

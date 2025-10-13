@@ -1,7 +1,7 @@
 //! Integration tests for basic composition API functionality.
 //!
 //! Tests the Level 3 trait-based composition API with SecurityMiddleware.
-//! 
+//!
 //! Note: Currently FileHelper::builder() returns a read-operation helper.
 //! Write, create, and delete operations need separate test coverage once
 //! the API supports operation type switching or multiple builder methods.
@@ -81,7 +81,7 @@ async fn test_file_helper_with_security_write() {
 
 #[tokio::test]
 async fn test_file_helper_with_security_create_directory() {
-    // TODO: Implement once FileHelper supports create operations  
+    // TODO: Implement once FileHelper supports create operations
 }
 
 #[tokio::test]
@@ -104,7 +104,9 @@ async fn test_process_helper_with_security_spawn() {
     let helper = ProcessHelper::builder().with_security(middleware);
 
     // Execute spawn operation
-    let result = helper.spawn("echo", vec!["hello".to_string()], "testuser").await;
+    let result = helper
+        .spawn("echo", vec!["hello".to_string()], "testuser")
+        .await;
 
     // Verify success
     assert!(result.is_ok(), "Process spawn should succeed");
@@ -114,7 +116,7 @@ async fn test_process_helper_with_security_spawn() {
     assert!(!output.is_empty(), "Process should produce output");
 }
 
-// NOTE: Signal and kill operations commented out - ProcessHelper::builder()  
+// NOTE: Signal and kill operations commented out - ProcessHelper::builder()
 // currently only supports ProcessSpawnOperation
 /*
 #[tokio::test]
