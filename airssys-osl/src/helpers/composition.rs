@@ -496,7 +496,10 @@ where
 /// Execution methods for file write operations.
 impl<E> ComposedHelper<crate::operations::filesystem::FileWriteOperation, E>
 where
-    E: OSExecutor<crate::operations::filesystem::FileWriteOperation> + Send + Sync + std::fmt::Debug,
+    E: OSExecutor<crate::operations::filesystem::FileWriteOperation>
+        + Send
+        + Sync
+        + std::fmt::Debug,
 {
     /// Write data to file.
     ///
@@ -603,7 +606,10 @@ where
 /// Execution methods for file deletion operations.
 impl<E> ComposedHelper<crate::operations::filesystem::FileDeleteOperation, E>
 where
-    E: OSExecutor<crate::operations::filesystem::FileDeleteOperation> + Send + Sync + std::fmt::Debug,
+    E: OSExecutor<crate::operations::filesystem::FileDeleteOperation>
+        + Send
+        + Sync
+        + std::fmt::Debug,
 {
     /// Delete a file.
     ///
@@ -658,7 +664,10 @@ where
 /// Execution methods for process spawn operations.
 impl<E> ComposedHelper<crate::operations::process::ProcessSpawnOperation, E>
 where
-    E: OSExecutor<crate::operations::process::ProcessSpawnOperation> + Send + Sync + std::fmt::Debug,
+    E: OSExecutor<crate::operations::process::ProcessSpawnOperation>
+        + Send
+        + Sync
+        + std::fmt::Debug,
 {
     /// Spawn a new process.
     ///
@@ -701,8 +710,8 @@ where
     ) -> OSResult<Vec<u8>> {
         use crate::core::context::{ExecutionContext, SecurityContext};
 
-        let operation = crate::operations::process::ProcessSpawnOperation::new(command.into())
-            .with_args(args);
+        let operation =
+            crate::operations::process::ProcessSpawnOperation::new(command.into()).with_args(args);
         let context = ExecutionContext::new(SecurityContext::new(user.into()));
         let result = self.executor.execute(operation, &context).await?;
         Ok(result.output)
@@ -758,7 +767,10 @@ where
 /// Execution methods for process signal operations.
 impl<E> ComposedHelper<crate::operations::process::ProcessSignalOperation, E>
 where
-    E: OSExecutor<crate::operations::process::ProcessSignalOperation> + Send + Sync + std::fmt::Debug,
+    E: OSExecutor<crate::operations::process::ProcessSignalOperation>
+        + Send
+        + Sync
+        + std::fmt::Debug,
 {
     /// Send a signal to a process.
     ///
@@ -792,7 +804,12 @@ where
     /// # Ok(())
     /// # }
     /// ```
-    pub async fn send_signal(&self, pid: u32, signal: i32, user: impl Into<String>) -> OSResult<()> {
+    pub async fn send_signal(
+        &self,
+        pid: u32,
+        signal: i32,
+        user: impl Into<String>,
+    ) -> OSResult<()> {
         use crate::core::context::{ExecutionContext, SecurityContext};
 
         let operation = crate::operations::process::ProcessSignalOperation::new(pid, signal);
@@ -915,7 +932,10 @@ where
 /// Execution methods for network socket creation operations.
 impl<E> ComposedHelper<crate::operations::network::NetworkSocketOperation, E>
 where
-    E: OSExecutor<crate::operations::network::NetworkSocketOperation> + Send + Sync + std::fmt::Debug,
+    E: OSExecutor<crate::operations::network::NetworkSocketOperation>
+        + Send
+        + Sync
+        + std::fmt::Debug,
 {
     /// Create a network socket.
     ///
