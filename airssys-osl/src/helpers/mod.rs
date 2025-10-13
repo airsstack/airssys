@@ -196,15 +196,17 @@ pub(crate) mod context; // Security context building utilities
 pub(crate) mod factories;
 
 // Module declarations for simple helpers and composition
-pub(crate) mod simple; // Phase 2-4: Simple helper functions (NOW ADDED)
-                       // pub mod composition;       // Phase 8-10: Trait-based composition layer
+pub(crate) mod simple; // Phase 2-4: Simple helper functions
+pub mod composition; // Phase 8: Trait-based composition layer
 
 // ============================================================================
 // Re-exports (will be populated in later phases)
 // ============================================================================
 
-// Re-export simple helpers (Level 1 & 2) - NOW AVAILABLE
+// Re-export simple helpers (Level 1 & 2)
 pub use self::simple::*;
 
-// Re-export composition layer (Level 3) - Phase 8-10
-// (public re-exports will be added here)
+// Re-export composition layer (Level 3) - Phase 8
+pub use self::composition::{
+    ComposedHelper, FileHelper, HelperPipeline, NetworkHelper, ProcessHelper,
+};
