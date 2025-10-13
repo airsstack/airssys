@@ -50,7 +50,7 @@ async fn filesystem_operations() {
     println!("1. Writing file: {}", test_file.display());
     match write_file(&test_file, test_data.clone(), "admin").await {
         Ok(()) => println!("   ✓ File written successfully ({} bytes)", test_data.len()),
-        Err(e) => println!("   ✗ Failed to write file: {}", e),
+        Err(e) => println!("   ✗ Failed to write file: {e}"),
     }
 
     // 2. Read file
@@ -60,7 +60,7 @@ async fn filesystem_operations() {
             println!("   ✓ File read successfully ({} bytes)", data.len());
             println!("   Content: {}", String::from_utf8_lossy(&data));
         }
-        Err(e) => println!("   ✗ Failed to read file: {}", e),
+        Err(e) => println!("   ✗ Failed to read file: {e}"),
     }
 
     // 3. Create directory
@@ -71,7 +71,7 @@ async fn filesystem_operations() {
             if e.to_string().contains("already exists") {
                 println!("   ✓ Directory already exists (expected)");
             } else {
-                println!("   ✗ Failed to create directory: {}", e);
+                println!("   ✗ Failed to create directory: {e}");
             }
         }
     }
@@ -80,7 +80,7 @@ async fn filesystem_operations() {
     println!("\n4. Deleting file:");
     match delete_file(&test_file, "admin").await {
         Ok(()) => println!("   ✓ File deleted successfully"),
-        Err(e) => println!("   ✗ Failed to delete file: {}", e),
+        Err(e) => println!("   ✗ Failed to delete file: {e}"),
     }
 
     // Cleanup
@@ -109,7 +109,7 @@ async fn process_operations() {
             println!("   ✓ Process completed successfully");
             println!("   Output: {}", String::from_utf8_lossy(&output).trim());
         }
-        Err(e) => println!("   ✗ Failed to spawn process: {}", e),
+        Err(e) => println!("   ✗ Failed to spawn process: {e}"),
     }
 
     // 6. List directory (platform-specific command)
@@ -130,10 +130,10 @@ async fn process_operations() {
             let lines: Vec<&str> = output_str.lines().take(5).collect();
             println!("   ✓ Directory listing:");
             for line in lines {
-                println!("     {}", line);
+                println!("     {line}");
             }
         }
-        Err(e) => println!("   ✗ Failed to list directory: {}", e),
+        Err(e) => println!("   ✗ Failed to list directory: {e}"),
     }
 
     // Note: kill_process and send_signal require actual PIDs
@@ -160,14 +160,14 @@ async fn network_operations() {
     println!("\n2. Creating TCP listener:");
     match network_listen("127.0.0.1:0", "admin").await {
         Ok(_) => println!("   ✓ TCP listener created on random port"),
-        Err(e) => println!("   ✗ Failed to create TCP listener: {}", e),
+        Err(e) => println!("   ✗ Failed to create TCP listener: {e}"),
     }
 
     // 9. UDP socket on random port
     println!("\n3. Creating UDP socket:");
     match create_socket("127.0.0.1:0", "admin").await {
         Ok(_) => println!("   ✓ UDP socket created on random port"),
-        Err(e) => println!("   ✗ Failed to create UDP socket: {}", e),
+        Err(e) => println!("   ✗ Failed to create UDP socket: {e}"),
     }
 
     println!();
@@ -208,7 +208,7 @@ async fn error_handling_patterns() {
                 String::from_utf8_lossy(&content)
             );
         }
-        Err(e) => println!("   ✗ All attempts failed: {}", e),
+        Err(e) => println!("   ✗ All attempts failed: {e}"),
     }
 
     // Cleanup
@@ -225,7 +225,7 @@ async fn error_handling_patterns() {
             } else if error_msg.contains("not found") || error_msg.contains("No such") {
                 println!("   ✓ File not found error");
             } else {
-                println!("   ✓ Other error: {}", error_msg);
+                println!("   ✓ Other error: {error_msg}");
             }
         }
     }
@@ -262,7 +262,7 @@ async fn real_world_workflow() {
     match write_file(&config_file, config_json.as_bytes().to_vec(), "admin").await {
         Ok(()) => println!("   ✓ Configuration file created"),
         Err(e) => {
-            println!("   ✗ Failed to create config: {}", e);
+            println!("   ✗ Failed to create config: {e}");
             return;
         }
     }
@@ -275,7 +275,7 @@ async fn real_world_workflow() {
             data
         }
         Err(e) => {
-            println!("   ✗ Failed to load config: {}", e);
+            println!("   ✗ Failed to load config: {e}");
             return;
         }
     };
@@ -284,7 +284,7 @@ async fn real_world_workflow() {
     println!("\n3. Configuration preview:");
     let config_str = String::from_utf8_lossy(&config_data);
     for line in config_str.lines().take(6) {
-        println!("   {}", line);
+        println!("   {line}");
     }
 
     // Step 4: Write application log
@@ -298,7 +298,7 @@ async fn real_world_workflow() {
 
     match write_file(&log_file, log_entry.as_bytes().to_vec(), "admin").await {
         Ok(()) => println!("   ✓ Log file written successfully"),
-        Err(e) => println!("   ✗ Failed to write log: {}", e),
+        Err(e) => println!("   ✗ Failed to write log: {e}"),
     }
 
     // Step 5: Verify log file
@@ -307,9 +307,9 @@ async fn real_world_workflow() {
         Ok(log_data) => {
             let log_str = String::from_utf8_lossy(&log_data);
             let line_count = log_str.lines().count();
-            println!("   ✓ Log file verified ({} log entries)", line_count);
+            println!("   ✓ Log file verified ({line_count} log entries)");
         }
-        Err(e) => println!("   ✗ Failed to read log: {}", e),
+        Err(e) => println!("   ✗ Failed to read log: {e}"),
     }
 
     // Step 6: Cleanup
@@ -319,7 +319,7 @@ async fn real_world_workflow() {
     match delete_file(&config_file, "admin").await {
         Ok(()) => println!("   ✓ Configuration file deleted"),
         Err(e) => {
-            println!("   ✗ Failed to delete config: {}", e);
+            println!("   ✗ Failed to delete config: {e}");
             cleanup_ok = false;
         }
     }
@@ -327,7 +327,7 @@ async fn real_world_workflow() {
     match delete_file(&log_file, "admin").await {
         Ok(()) => println!("   ✓ Log file deleted"),
         Err(e) => {
-            println!("   ✗ Failed to delete log: {}", e);
+            println!("   ✗ Failed to delete log: {e}");
             cleanup_ok = false;
         }
     }

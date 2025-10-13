@@ -8,5 +8,5 @@
 fn test_basic_compilation() {
     // Placeholder test to ensure basic compilation works
     // TODO: Implement actual macro tests once macros are functional
-    assert!(true);
+    // This test ensures the crate compiles successfully
 }

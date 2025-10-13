@@ -109,7 +109,7 @@ async fn test_security_with_custom_middleware() {
         .expect("Failed to build middleware");
 
     // Create custom logging middleware
-    let logger = LoggingMiddleware::new("CustomLogger", log.clone());
+    let logger = LoggingMiddleware::new("CustomLogger", Arc::clone(&log));
 
     // Create helper with both security and custom middleware
     let helper = FileHelper::builder()
@@ -157,8 +157,8 @@ async fn test_multiple_custom_middleware() {
         .expect("Failed to build middleware");
 
     // Create multiple custom middleware
-    let logger1 = LoggingMiddleware::new("Logger1", log.clone());
-    let logger2 = LoggingMiddleware::new("Logger2", log.clone());
+    let logger1 = LoggingMiddleware::new("Logger1", Arc::clone(&log));
+    let logger2 = LoggingMiddleware::new("Logger2", Arc::clone(&log));
 
     // Create helper with security and two custom middleware
     let helper = FileHelper::builder()
@@ -207,9 +207,9 @@ async fn test_middleware_order_matters() {
         .expect("Failed to build middleware");
 
     // Create middleware in specific order
-    let logger_first = LoggingMiddleware::new("First", log.clone());
-    let logger_second = LoggingMiddleware::new("Second", log.clone());
-    let logger_third = LoggingMiddleware::new("Third", log.clone());
+    let logger_first = LoggingMiddleware::new("First", Arc::clone(&log));
+    let logger_second = LoggingMiddleware::new("Second", Arc::clone(&log));
+    let logger_third = LoggingMiddleware::new("Third", Arc::clone(&log));
 
     // Create helper with middleware in specific order
     let helper = FileHelper::builder()
@@ -229,7 +229,7 @@ async fn test_middleware_order_matters() {
     let log_entries = log.lock().unwrap();
 
     // Debug: print all log entries to see what we captured
-    println!("Log entries captured: {:?}", log_entries);
+    println!("Log entries captured: {log_entries:?}");
 
     // Find positions of log entries
     let first_before_pos = log_entries

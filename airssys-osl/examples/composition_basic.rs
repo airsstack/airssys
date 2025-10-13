@@ -9,6 +9,10 @@
 //!
 //! Run with: `cargo run --example composition_basic`
 
+// Allow expect/unwrap in examples - this is demonstration code
+#![allow(clippy::expect_used)]
+#![allow(clippy::unwrap_used)]
+
 use std::fs;
 use std::path::PathBuf;
 
@@ -165,7 +169,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n✓ Connecting to example.com:80...");
     match network_helper.connect("example.com:80", "demo_user").await {
         Ok(_) => println!("  Successfully connected to example.com:80"),
-        Err(e) => println!("  Connection result: {} (may fail if offline)", e),
+        Err(e) => println!("  Connection result: {e} (may fail if offline)"),
     }
 
     // ========================================================================

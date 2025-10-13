@@ -154,9 +154,9 @@ use crate::operations::process::{
 ///
 /// # Methods
 ///
-/// - [`with_security()`]: Add SecurityMiddleware to the pipeline
-/// - [`with_middleware()`]: Add any custom middleware to the pipeline
-/// - [`executor()`]: Access the underlying executor
+/// - `with_security()`: Add SecurityMiddleware to the pipeline
+/// - `with_middleware()`: Add any custom middleware to the pipeline
+/// - `executor()`: Access the underlying executor
 ///
 /// # Example
 ///
@@ -179,7 +179,7 @@ pub trait HelperPipeline<O: Operation>: Sized {
     /// Add security middleware to the pipeline.
     ///
     /// This is a convenience method for adding SecurityMiddleware.
-    /// Use [`with_middleware()`] for other middleware types.
+    /// Use `with_middleware()` for other middleware types.
     ///
     /// # Example
     ///

@@ -13,6 +13,10 @@
 //!
 //! # Running This Example
 //!
+
+// Allow expect/unwrap in examples - this is demonstration code
+#![allow(clippy::expect_used)]
+#![allow(clippy::unwrap_used)]
 //! ```bash
 //! cargo run --example custom_middleware
 //! ```
@@ -213,21 +217,21 @@ async fn example_basic_rate_limiting() -> OSResult<()> {
     let op1 = FileReadOperation::new("/tmp/test1.txt".to_string());
     match executor.execute(op1, &context).await {
         Ok(_) => println!("✓ Operation 1: SUCCESS (within rate limit)"),
-        Err(e) => println!("✗ Operation 1: FAILED - {}", e),
+        Err(e) => println!("✗ Operation 1: FAILED - {e}"),
     }
 
     // Operation 2: Should succeed
     let op2 = FileReadOperation::new("/tmp/test2.txt".to_string());
     match executor.execute(op2, &context).await {
         Ok(_) => println!("✓ Operation 2: SUCCESS (within rate limit)"),
-        Err(e) => println!("✗ Operation 2: FAILED - {}", e),
+        Err(e) => println!("✗ Operation 2: FAILED - {e}"),
     }
 
     // Operation 3: Should fail (rate limit exceeded)
     let op3 = FileReadOperation::new("/tmp/test3.txt".to_string());
     match executor.execute(op3, &context).await {
         Ok(_) => println!("✓ Operation 3: SUCCESS (unexpected!)"),
-        Err(e) => println!("✗ Operation 3: FAILED - {} (expected!)", e),
+        Err(e) => println!("✗ Operation 3: FAILED - {e} (expected!)"),
     }
 
     println!("\nWaiting 1 second for rate limit window to reset...");
@@ -237,7 +241,7 @@ async fn example_basic_rate_limiting() -> OSResult<()> {
     let op4 = FileReadOperation::new("/tmp/test4.txt".to_string());
     match executor.execute(op4, &context).await {
         Ok(_) => println!("✓ Operation 4: SUCCESS (new rate limit window)"),
-        Err(e) => println!("✗ Operation 4: FAILED - {}", e),
+        Err(e) => println!("✗ Operation 4: FAILED - {e}"),
     }
 
     Ok(())
@@ -264,7 +268,7 @@ async fn example_middleware_chaining() -> OSResult<()> {
     let operation = FileReadOperation::new("/tmp/chained.txt".to_string());
     match executor.execute(operation, &context).await {
         Ok(_) => println!("\n✓ Chained operation succeeded"),
-        Err(e) => println!("\n✗ Chained operation failed: {}", e),
+        Err(e) => println!("\n✗ Chained operation failed: {e}"),
     }
 
     Ok(())
@@ -294,7 +298,7 @@ async fn example_helper_integration() -> OSResult<()> {
     .await
     {
         Ok(_) => println!("✓ Write operation: SUCCESS"),
-        Err(e) => println!("✗ Write operation: FAILED - {}", e),
+        Err(e) => println!("✗ Write operation: FAILED - {e}"),
     }
 
     // Read operation (counts toward rate limit)
@@ -306,7 +310,7 @@ async fn example_helper_integration() -> OSResult<()> {
     .await
     {
         Ok(data) => println!("✓ Read operation: SUCCESS (read {} bytes)", data.len()),
-        Err(e) => println!("✗ Read operation: FAILED - {}", e),
+        Err(e) => println!("✗ Read operation: FAILED - {e}"),
     }
 
     // Cleanup

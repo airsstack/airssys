@@ -223,8 +223,8 @@ async fn test_pipeline_reuse_across_operations() {
     // Create multiple test files
     let files: Vec<_> = (0..3)
         .map(|i| {
-            let path = std::env::temp_dir().join(format!("test_reuse_{}.txt", i));
-            fs::write(&path, format!("content {}", i)).expect("Failed to create test file");
+            let path = std::env::temp_dir().join(format!("test_reuse_{i}.txt"));
+            fs::write(&path, format!("content {i}")).expect("Failed to create test file");
             path
         })
         .collect();

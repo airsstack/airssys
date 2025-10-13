@@ -75,11 +75,12 @@ async fn test_security_violation_in_composed_helper() {
                 "ExecutionFailed should contain security violation: {reason}"
             );
         }
-        Err(other) => panic!(
-            "Expected SecurityViolation or ExecutionFailed, got: {:?}",
-            other
-        ),
-        Ok(_) => panic!("Operation should have been denied"),
+        Err(other) => {
+            unreachable!("Expected SecurityViolation or ExecutionFailed, got: {other:?}")
+        }
+        Ok(_) => {
+            unreachable!("Operation should have been denied")
+        }
     }
 
     // Cleanup
@@ -126,11 +127,12 @@ async fn test_file_not_found_error() {
                 "ExecutionFailed should indicate file not found: {reason}"
             );
         }
-        Err(other) => panic!(
-            "Expected FilesystemError or ExecutionFailed, got: {:?}",
-            other
-        ),
-        Ok(_) => panic!("Reading nonexistent file should fail"),
+        Err(other) => {
+            unreachable!("Expected FilesystemError or ExecutionFailed, got: {other:?}")
+        }
+        Ok(_) => {
+            unreachable!("Reading nonexistent file should fail")
+        }
     }
 }
 
@@ -173,8 +175,12 @@ async fn test_process_spawn_failure() {
                 "ExecutionFailed should indicate command not found: {reason}"
             );
         }
-        Err(other) => panic!("Expected ProcessError or ExecutionFailed, got: {:?}", other),
-        Ok(_) => panic!("Spawning nonexistent command should fail"),
+        Err(other) => {
+            unreachable!("Expected ProcessError or ExecutionFailed, got: {other:?}")
+        }
+        Ok(_) => {
+            unreachable!("Spawning nonexistent command should fail")
+        }
     }
 }
 
@@ -221,16 +227,13 @@ async fn test_network_connection_refused() {
             }
             Err(other) => {
                 // Accept other network-related errors
-                println!("Got network error (acceptable): {:?}", other);
+                println!("Got network error (acceptable): {other:?}");
             }
             Ok(_) => unreachable!(),
         }
     } else {
         // If connection succeeded, the port happened to be open - that's fine
-        println!(
-            "Port {} was open (unexpected but acceptable)",
-            unlikely_port
-        );
+        println!("Port {unlikely_port} was open (unexpected but acceptable)");
     }
 }
 
@@ -271,11 +274,14 @@ async fn test_error_propagation_through_middleware_chain() {
                 "ExecutionFailed should contain security violation: {reason}"
             );
         }
-        Err(other) => panic!(
-            "Expected SecurityViolation or ExecutionFailed with security context, got: {:?}",
-            other
-        ),
-        Ok(_) => panic!("Operation should have failed"),
+        Err(other) => {
+            unreachable!(
+                "Expected SecurityViolation or ExecutionFailed with security context, got: {other:?}"
+            )
+        }
+        Ok(_) => {
+            unreachable!("Operation should have failed")
+        }
     }
 }
 
@@ -306,6 +312,6 @@ async fn test_multiple_error_types_with_same_helper() {
     );
 
     // Verify both errors propagate correctly
-    println!("Error 1: {:?}", result1);
-    println!("Error 2: {:?}", result2);
+    println!("Error 1: {result1:?}");
+    println!("Error 2: {result2:?}");
 }

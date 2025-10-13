@@ -9,6 +9,10 @@
 //!
 //! Run with: `cargo run --example composition_service`
 
+// Allow expect/unwrap in examples - this is demonstration code
+#![allow(clippy::expect_used)]
+#![allow(clippy::unwrap_used)]
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -43,7 +47,7 @@ impl AuditLogger {
     }
 
     fn get_logs(&self) -> Vec<String> {
-        self.log.lock().unwrap().clone()
+        self.log.lock().expect("Failed to acquire log lock").clone()
     }
 }
 
@@ -64,8 +68,11 @@ impl Middleware<FileReadOperation> for AuditLogger {
             context.principal(),
             operation.path
         );
-        self.log.lock().unwrap().push(log_entry.clone());
-        println!("  {}", log_entry);
+        self.log
+            .lock()
+            .expect("Failed to acquire log lock")
+            .push(log_entry.clone());
+        println!("  {log_entry}");
 
         Ok(Some(operation))
     }
@@ -87,8 +94,11 @@ impl Middleware<FileReadOperation> for AuditLogger {
                 e
             ),
         };
-        self.log.lock().unwrap().push(log_entry.clone());
-        println!("  {}", log_entry);
+        self.log
+            .lock()
+            .expect("Failed to acquire log lock")
+            .push(log_entry.clone());
+        println!("  {log_entry}");
 
         Ok(())
     }
@@ -200,9 +210,13 @@ impl FileProcessingService {
             .with_middleware(size_validator);
 
         // Execute the read operation
-        let content = helper.read(file_path.to_str().unwrap(), user_id).await?;
+        let file_path_str = file_path
+            .to_str()
+            .expect("Failed to convert path to string");
+        let content = helper.read(file_path_str, user_id).await?;
 
-        println!("  ✓ Successfully processed {} bytes", content.len());
+        let bytes_len = content.len();
+        println!("  ✓ Successfully processed {bytes_len} bytes");
         Ok(content)
     }
 
@@ -244,18 +258,19 @@ fn create_demo_files() -> Vec<PathBuf> {
         &small_file,
         "Small file content - this will pass validation",
     )
-    .unwrap();
+    .expect("Failed to write small demo file");
     files.push(small_file);
 
     // Create medium file (will pass size validation)
     let medium_file = temp_dir.join("service_demo_medium.txt");
     let medium_content = "Medium file content. ".repeat(100); // ~2KB
-    fs::write(&medium_file, medium_content).unwrap();
+    fs::write(&medium_file, medium_content).expect("Failed to write medium demo file");
     files.push(medium_file);
 
     // Create another small file
     let another_small = temp_dir.join("service_demo_another.txt");
-    fs::write(&another_small, "Another small file for batch processing").unwrap();
+    fs::write(&another_small, "Another small file for batch processing")
+        .expect("Failed to write another small demo file");
     files.push(another_small);
 
     files
@@ -289,7 +304,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
         }
         Err(e) => {
-            println!("\n✗ File processing failed: {}", e);
+            println!("\n✗ File processing failed: {e}");
         }
     }
 

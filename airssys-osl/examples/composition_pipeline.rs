@@ -9,6 +9,10 @@
 //!
 //! Run with: `cargo run --example composition_pipeline`
 
+// Allow expect/unwrap in examples - this is demonstration code
+#![allow(clippy::expect_used)]
+#![allow(clippy::unwrap_used)]
+
 use std::fs;
 use std::path::PathBuf;
 
@@ -185,11 +189,11 @@ impl FileProcessingWorkflow {
         command: &str,
         args: Vec<String>,
     ) -> Result<(Vec<u8>, Vec<u8>), Box<dyn std::error::Error>> {
-        println!("\n  Step 1: Reading file '{}'...", file_path);
+        println!("\n  Step 1: Reading file '{file_path}'...");
         let file_content = self.file_reader.read(file_path).await?;
         println!("    ✓ Read {} bytes", file_content.len());
 
-        println!("  Step 2: Executing command '{}'...", command);
+        println!("  Step 2: Executing command '{command}'...");
         let process_output = self.process_executor.execute(command, args).await?;
         println!("    ✓ Got {} bytes output", process_output.len());
 
@@ -268,7 +272,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Ok(content) => {
             println!("  ✓ Read {} bytes with read-only policy", content.len());
         }
-        Err(e) => println!("  ✗ Failed with read-only policy: {}", e),
+        Err(e) => println!("  ✗ Failed with read-only policy: {e}"),
     }
 
     // ========================================================================
@@ -287,7 +291,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await
     {
         Ok(content) => println!("    ✓ Success - Read {} bytes", content.len()),
-        Err(e) => println!("    ✗ Failed: {}", e),
+        Err(e) => println!("    ✗ Failed: {e}"),
     }
 
     // ========================================================================
@@ -316,7 +320,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 String::from_utf8_lossy(&process_output)
             );
         }
-        Err(e) => println!("\n✗ Workflow failed: {}", e),
+        Err(e) => println!("\n✗ Workflow failed: {e}"),
     }
 
     // ========================================================================
@@ -333,7 +337,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n  Admin executing 'ls':");
     match admin_executor.execute("ls", vec![]).await {
         Ok(output) => println!("    ✓ Success - {} bytes output", output.len()),
-        Err(e) => println!("    ✗ Failed: {}", e),
+        Err(e) => println!("    ✗ Failed: {e}"),
     }
 
     // Restricted execution
@@ -344,13 +348,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await
     {
         Ok(output) => println!("    ✓ Success - {}", String::from_utf8_lossy(&output)),
-        Err(e) => println!("    ✗ Failed: {}", e),
+        Err(e) => println!("    ✗ Failed: {e}"),
     }
 
     println!("\n  Restricted user attempting 'ls' (should fail):");
     match restricted_executor.execute("ls", vec![]).await {
         Ok(output) => println!("    ✓ Success - {} bytes output", output.len()),
-        Err(e) => println!("    ✗ Failed as expected: {}", e),
+        Err(e) => println!("    ✗ Failed as expected: {e}"),
     }
 
     // ========================================================================
