@@ -123,11 +123,25 @@ use std::marker::PhantomData;
 // (none needed)
 
 // Layer 3: Internal module imports
+use crate::core::context::{ExecutionContext, SecurityContext};
 use crate::core::executor::OSExecutor;
 use crate::core::middleware::Middleware;
 use crate::core::operation::Operation;
 use crate::core::result::OSResult;
-use crate::middleware::ext::ExecutorExt;
+use crate::executors::filesystem::FilesystemExecutor;
+use crate::executors::network::NetworkExecutor;
+use crate::executors::process::ProcessExecutor;
+use crate::middleware::ext::{ExecutorExt, MiddlewareExecutor};
+use crate::middleware::security::SecurityMiddleware;
+use crate::operations::filesystem::{
+    DirectoryCreateOperation, FileDeleteOperation, FileReadOperation, FileWriteOperation,
+};
+use crate::operations::network::{
+    NetworkConnectOperation, NetworkListenOperation, NetworkSocketOperation,
+};
+use crate::operations::process::{
+    ProcessKillOperation, ProcessSignalOperation, ProcessSpawnOperation,
+};
 
 /// Trait for composable helper pipelines.
 ///
@@ -180,15 +194,8 @@ pub trait HelperPipeline<O: Operation>: Sized {
     /// ```
     fn with_security(
         self,
-        middleware: crate::middleware::security::SecurityMiddleware,
-    ) -> ComposedHelper<
-        O,
-        crate::middleware::ext::MiddlewareExecutor<
-            Self::Executor,
-            crate::middleware::security::SecurityMiddleware,
-            O,
-        >,
-    >;
+        middleware: SecurityMiddleware,
+    ) -> ComposedHelper<O, MiddlewareExecutor<Self::Executor, SecurityMiddleware, O>>;
 
     /// Add custom middleware to the pipeline.
     ///
@@ -215,7 +222,7 @@ pub trait HelperPipeline<O: Operation>: Sized {
     fn with_middleware<M>(
         self,
         middleware: M,
-    ) -> ComposedHelper<O, crate::middleware::ext::MiddlewareExecutor<Self::Executor, M, O>>
+    ) -> ComposedHelper<O, MiddlewareExecutor<Self::Executor, M, O>>
     where
         M: Middleware<O> + Send + Sync + std::fmt::Debug + 'static;
 
@@ -300,22 +307,12 @@ where
 
     fn with_security(
         self,
-        middleware: crate::middleware::security::SecurityMiddleware,
-    ) -> ComposedHelper<
-        O,
-        crate::middleware::ext::MiddlewareExecutor<
-            E,
-            crate::middleware::security::SecurityMiddleware,
-            O,
-        >,
-    > {
+        middleware: SecurityMiddleware,
+    ) -> ComposedHelper<O, MiddlewareExecutor<E, SecurityMiddleware, O>> {
         ComposedHelper::new(self.executor.with_middleware(middleware))
     }
 
-    fn with_middleware<M>(
-        self,
-        middleware: M,
-    ) -> ComposedHelper<O, crate::middleware::ext::MiddlewareExecutor<E, M, O>>
+    fn with_middleware<M>(self, middleware: M) -> ComposedHelper<O, MiddlewareExecutor<E, M, O>>
     where
         M: Middleware<O> + Send + Sync + std::fmt::Debug + 'static,
     {
@@ -355,11 +352,8 @@ impl FileHelper {
     ///
     /// This is a builder method that returns a composable helper pipeline,
     /// not a `FileHelper` instance.
-    pub fn builder() -> ComposedHelper<
-        crate::operations::filesystem::FileReadOperation,
-        crate::executors::filesystem::FilesystemExecutor,
-    > {
-        ComposedHelper::new(crate::executors::filesystem::FilesystemExecutor::new())
+    pub fn builder() -> ComposedHelper<FileReadOperation, FilesystemExecutor> {
+        ComposedHelper::new(FilesystemExecutor::new())
     }
 }
 
@@ -390,13 +384,8 @@ impl ProcessHelper {
     ///
     /// This is a builder method that returns a composable helper pipeline,
     /// not a `ProcessHelper` instance.
-    pub fn builder() -> ComposedHelper<
-        crate::operations::process::ProcessSpawnOperation,
-        crate::executors::process::ProcessExecutor,
-    > {
-        ComposedHelper::new(crate::executors::process::ProcessExecutor::new(
-            "composition_helper",
-        ))
+    pub fn builder() -> ComposedHelper<ProcessSpawnOperation, ProcessExecutor> {
+        ComposedHelper::new(ProcessExecutor::new("composition_helper"))
     }
 }
 
@@ -427,13 +416,8 @@ impl NetworkHelper {
     ///
     /// This is a builder method that returns a composable helper pipeline,
     /// not a `NetworkHelper` instance.
-    pub fn builder() -> ComposedHelper<
-        crate::operations::network::NetworkConnectOperation,
-        crate::executors::network::NetworkExecutor,
-    > {
-        ComposedHelper::new(crate::executors::network::NetworkExecutor::new(
-            "composition_helper",
-        ))
+    pub fn builder() -> ComposedHelper<NetworkConnectOperation, NetworkExecutor> {
+        ComposedHelper::new(NetworkExecutor::new("composition_helper"))
     }
 }
 
@@ -442,9 +426,9 @@ impl NetworkHelper {
 // ============================================================================
 
 /// Execution methods for file read operations.
-impl<E> ComposedHelper<crate::operations::filesystem::FileReadOperation, E>
+impl<E> ComposedHelper<FileReadOperation, E>
 where
-    E: OSExecutor<crate::operations::filesystem::FileReadOperation> + Send + Sync + std::fmt::Debug,
+    E: OSExecutor<FileReadOperation> + Send + Sync + std::fmt::Debug,
 {
     /// Read file contents.
     ///
@@ -483,10 +467,8 @@ where
         path: P,
         user: impl Into<String>,
     ) -> OSResult<Vec<u8>> {
-        use crate::core::context::{ExecutionContext, SecurityContext};
-
         let path_str = path.as_ref().display().to_string();
-        let operation = crate::operations::filesystem::FileReadOperation::new(path_str);
+        let operation = FileReadOperation::new(path_str);
         let context = ExecutionContext::new(SecurityContext::new(user.into()));
         let result = self.executor.execute(operation, &context).await?;
         Ok(result.output)
@@ -494,12 +476,9 @@ where
 }
 
 /// Execution methods for file write operations.
-impl<E> ComposedHelper<crate::operations::filesystem::FileWriteOperation, E>
+impl<E> ComposedHelper<FileWriteOperation, E>
 where
-    E: OSExecutor<crate::operations::filesystem::FileWriteOperation>
-        + Send
-        + Sync
-        + std::fmt::Debug,
+    E: OSExecutor<FileWriteOperation> + Send + Sync + std::fmt::Debug,
 {
     /// Write data to file.
     ///
@@ -539,10 +518,8 @@ where
         data: Vec<u8>,
         user: impl Into<String>,
     ) -> OSResult<Vec<u8>> {
-        use crate::core::context::{ExecutionContext, SecurityContext};
-
         let path_str = path.as_ref().display().to_string();
-        let operation = crate::operations::filesystem::FileWriteOperation::new(path_str, data);
+        let operation = FileWriteOperation::new(path_str, data);
         let context = ExecutionContext::new(SecurityContext::new(user.into()));
         let result = self.executor.execute(operation, &context).await?;
         Ok(result.output)
@@ -550,12 +527,9 @@ where
 }
 
 /// Execution methods for directory creation operations.
-impl<E> ComposedHelper<crate::operations::filesystem::DirectoryCreateOperation, E>
+impl<E> ComposedHelper<DirectoryCreateOperation, E>
 where
-    E: OSExecutor<crate::operations::filesystem::DirectoryCreateOperation>
-        + Send
-        + Sync
-        + std::fmt::Debug,
+    E: OSExecutor<DirectoryCreateOperation> + Send + Sync + std::fmt::Debug,
 {
     /// Create a new directory.
     ///
@@ -593,10 +567,8 @@ where
         path: P,
         user: impl Into<String>,
     ) -> OSResult<()> {
-        use crate::core::context::{ExecutionContext, SecurityContext};
-
         let path_str = path.as_ref().display().to_string();
-        let operation = crate::operations::filesystem::DirectoryCreateOperation::new(path_str);
+        let operation = DirectoryCreateOperation::new(path_str);
         let context = ExecutionContext::new(SecurityContext::new(user.into()));
         self.executor.execute(operation, &context).await?;
         Ok(())
@@ -604,12 +576,9 @@ where
 }
 
 /// Execution methods for file deletion operations.
-impl<E> ComposedHelper<crate::operations::filesystem::FileDeleteOperation, E>
+impl<E> ComposedHelper<FileDeleteOperation, E>
 where
-    E: OSExecutor<crate::operations::filesystem::FileDeleteOperation>
-        + Send
-        + Sync
-        + std::fmt::Debug,
+    E: OSExecutor<FileDeleteOperation> + Send + Sync + std::fmt::Debug,
 {
     /// Delete a file.
     ///
@@ -647,10 +616,8 @@ where
         path: P,
         user: impl Into<String>,
     ) -> OSResult<()> {
-        use crate::core::context::{ExecutionContext, SecurityContext};
-
         let path_str = path.as_ref().display().to_string();
-        let operation = crate::operations::filesystem::FileDeleteOperation::new(path_str);
+        let operation = FileDeleteOperation::new(path_str);
         let context = ExecutionContext::new(SecurityContext::new(user.into()));
         self.executor.execute(operation, &context).await?;
         Ok(())
@@ -662,12 +629,9 @@ where
 // ============================================================================
 
 /// Execution methods for process spawn operations.
-impl<E> ComposedHelper<crate::operations::process::ProcessSpawnOperation, E>
+impl<E> ComposedHelper<ProcessSpawnOperation, E>
 where
-    E: OSExecutor<crate::operations::process::ProcessSpawnOperation>
-        + Send
-        + Sync
-        + std::fmt::Debug,
+    E: OSExecutor<ProcessSpawnOperation> + Send + Sync + std::fmt::Debug,
 {
     /// Spawn a new process.
     ///
@@ -708,10 +672,7 @@ where
         args: Vec<String>,
         user: impl Into<String>,
     ) -> OSResult<Vec<u8>> {
-        use crate::core::context::{ExecutionContext, SecurityContext};
-
-        let operation =
-            crate::operations::process::ProcessSpawnOperation::new(command.into()).with_args(args);
+        let operation = ProcessSpawnOperation::new(command.into()).with_args(args);
         let context = ExecutionContext::new(SecurityContext::new(user.into()));
         let result = self.executor.execute(operation, &context).await?;
         Ok(result.output)
@@ -719,9 +680,9 @@ where
 }
 
 /// Execution methods for process kill operations.
-impl<E> ComposedHelper<crate::operations::process::ProcessKillOperation, E>
+impl<E> ComposedHelper<ProcessKillOperation, E>
 where
-    E: OSExecutor<crate::operations::process::ProcessKillOperation> + Send + Sync + std::fmt::Debug,
+    E: OSExecutor<ProcessKillOperation> + Send + Sync + std::fmt::Debug,
 {
     /// Kill a process by PID.
     ///
@@ -755,9 +716,7 @@ where
     /// # }
     /// ```
     pub async fn kill(&self, pid: u32, user: impl Into<String>) -> OSResult<()> {
-        use crate::core::context::{ExecutionContext, SecurityContext};
-
-        let operation = crate::operations::process::ProcessKillOperation::new(pid);
+        let operation = ProcessKillOperation::new(pid);
         let context = ExecutionContext::new(SecurityContext::new(user.into()));
         self.executor.execute(operation, &context).await?;
         Ok(())
@@ -765,12 +724,9 @@ where
 }
 
 /// Execution methods for process signal operations.
-impl<E> ComposedHelper<crate::operations::process::ProcessSignalOperation, E>
+impl<E> ComposedHelper<ProcessSignalOperation, E>
 where
-    E: OSExecutor<crate::operations::process::ProcessSignalOperation>
-        + Send
-        + Sync
-        + std::fmt::Debug,
+    E: OSExecutor<ProcessSignalOperation> + Send + Sync + std::fmt::Debug,
 {
     /// Send a signal to a process.
     ///
@@ -810,9 +766,7 @@ where
         signal: i32,
         user: impl Into<String>,
     ) -> OSResult<()> {
-        use crate::core::context::{ExecutionContext, SecurityContext};
-
-        let operation = crate::operations::process::ProcessSignalOperation::new(pid, signal);
+        let operation = ProcessSignalOperation::new(pid, signal);
         let context = ExecutionContext::new(SecurityContext::new(user.into()));
         self.executor.execute(operation, &context).await?;
         Ok(())
@@ -824,12 +778,9 @@ where
 // ============================================================================
 
 /// Execution methods for network connect operations.
-impl<E> ComposedHelper<crate::operations::network::NetworkConnectOperation, E>
+impl<E> ComposedHelper<NetworkConnectOperation, E>
 where
-    E: OSExecutor<crate::operations::network::NetworkConnectOperation>
-        + Send
-        + Sync
-        + std::fmt::Debug,
+    E: OSExecutor<NetworkConnectOperation> + Send + Sync + std::fmt::Debug,
 {
     /// Connect to a remote network endpoint.
     ///
@@ -867,9 +818,7 @@ where
         address: impl Into<String>,
         user: impl Into<String>,
     ) -> OSResult<Vec<u8>> {
-        use crate::core::context::{ExecutionContext, SecurityContext};
-
-        let operation = crate::operations::network::NetworkConnectOperation::new(address.into());
+        let operation = NetworkConnectOperation::new(address.into());
         let context = ExecutionContext::new(SecurityContext::new(user.into()));
         let result = self.executor.execute(operation, &context).await?;
         Ok(result.output)
@@ -877,12 +826,9 @@ where
 }
 
 /// Execution methods for network listen operations.
-impl<E> ComposedHelper<crate::operations::network::NetworkListenOperation, E>
+impl<E> ComposedHelper<NetworkListenOperation, E>
 where
-    E: OSExecutor<crate::operations::network::NetworkListenOperation>
-        + Send
-        + Sync
-        + std::fmt::Debug,
+    E: OSExecutor<NetworkListenOperation> + Send + Sync + std::fmt::Debug,
 {
     /// Listen on a local network endpoint.
     ///
@@ -920,9 +866,7 @@ where
         address: impl Into<String>,
         user: impl Into<String>,
     ) -> OSResult<Vec<u8>> {
-        use crate::core::context::{ExecutionContext, SecurityContext};
-
-        let operation = crate::operations::network::NetworkListenOperation::new(address.into());
+        let operation = NetworkListenOperation::new(address.into());
         let context = ExecutionContext::new(SecurityContext::new(user.into()));
         let result = self.executor.execute(operation, &context).await?;
         Ok(result.output)
@@ -930,12 +874,9 @@ where
 }
 
 /// Execution methods for network socket creation operations.
-impl<E> ComposedHelper<crate::operations::network::NetworkSocketOperation, E>
+impl<E> ComposedHelper<NetworkSocketOperation, E>
 where
-    E: OSExecutor<crate::operations::network::NetworkSocketOperation>
-        + Send
-        + Sync
-        + std::fmt::Debug,
+    E: OSExecutor<NetworkSocketOperation> + Send + Sync + std::fmt::Debug,
 {
     /// Create a network socket.
     ///
@@ -973,9 +914,7 @@ where
         socket_type: impl Into<String>,
         user: impl Into<String>,
     ) -> OSResult<Vec<u8>> {
-        use crate::core::context::{ExecutionContext, SecurityContext};
-
-        let operation = crate::operations::network::NetworkSocketOperation::new(socket_type.into());
+        let operation = NetworkSocketOperation::new(socket_type.into());
         let context = ExecutionContext::new(SecurityContext::new(user.into()));
         let result = self.executor.execute(operation, &context).await?;
         Ok(result.output)
