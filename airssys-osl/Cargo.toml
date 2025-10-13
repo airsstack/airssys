@@ -83,5 +83,9 @@ path = "examples/security_middleware_comprehensive.rs"
 name = "custom_middleware"
 path = "examples/custom_middleware.rs"
 
+[[example]]
+name = "helper_functions_comprehensive"
+path = "examples/helper_functions_comprehensive.rs"
+
 [lints]
 workspace = true
