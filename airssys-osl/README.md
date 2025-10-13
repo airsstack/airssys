@@ -64,30 +64,65 @@ Add `airssys-osl` to your `Cargo.toml`:
 ```toml
 [dependencies]
 airssys-osl = { version = "0.1", features = ["macros"] }
+tokio = { version = "1.0", features = ["full"] }
 ```
 
-### Basic Usage with Helper Functions
+### Basic Usage with Helper Functions (Level 1 API)
 
-The easiest way to use `airssys-osl` is through helper functions:
+The simplest way to use `airssys-osl` is through helper functions with default security:
 
 ```rust
 use airssys_osl::helpers::*;
 
 #[tokio::main]
-async fn main() -> Result<(), airssys_osl::core::result::OSError> {
-    // Read a file - simple API with security context
-    let content = read_file("/tmp/test.txt", "my-user").await?;
-    println!("Read {} bytes", content.len());
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Filesystem operations
+    let data = b"Hello, World!".to_vec();
+    write_file("/tmp/test.txt", data, "admin").await?;
+    let content = read_file("/tmp/test.txt", "admin").await?;
+    println!("Read: {}", String::from_utf8_lossy(&content));
     
-    // Write to a file
-    write_file("/tmp/output.txt", b"Hello, World!".to_vec(), "my-user").await?;
+    // Process operations
+    let output = spawn_process("echo", vec!["Hello!".to_string()], "admin").await?;
+    println!("Output: {}", String::from_utf8_lossy(&output));
     
-    // Spawn a process
-    let output = spawn_process("ls", vec!["-la".to_string()], "my-user").await?;
-    println!("Process output: {}", String::from_utf8_lossy(&output));
+    // Network operations
+    let listener = network_listen("127.0.0.1:0", "admin").await?;
+    println!("Listening on: {:?}", listener.local_addr()?);
     
-    // Connect to network
-    network_connect("127.0.0.1:8080", "my-user").await?;
+    Ok(())
+}
+```
+
+**Security:** All helper functions enforce default ACL and RBAC policies with audit logging.
+
+### Advanced Usage with Custom Middleware (Level 2 API)
+
+For custom security policies or middleware, use the `*_with_middleware` variants:
+
+```rust
+use airssys_osl::helpers::*;
+use airssys_osl::middleware::security::*;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create custom ACL policy
+    let acl = AccessControlList::new()
+        .add_entry(AclEntry::new(
+            "alice".to_string(),
+            "/data/*".to_string(),
+            vec!["read".to_string(), "write".to_string()],
+            AclPolicy::Allow,
+        ));
+    
+    // Build security middleware
+    let security = SecurityMiddlewareBuilder::new()
+        .add_policy(Box::new(acl))
+        .build()?;
+    
+    // Use with custom middleware
+    let data = read_file_with_middleware("/data/file.txt", "alice", security).await?;
+    println!("Read {} bytes", data.len());
     
     Ok(())
 }
@@ -215,14 +250,90 @@ For more details, see:
 - [Macros API Reference](docs/src/api/macros.md)
 - [Examples](examples/)
 
+## Helper Functions
+
+AirsSys OSL provides **10 high-level helper functions** for common OS operations with built-in security and audit logging:
+
+### Filesystem Operations (4 helpers)
+
+```rust
+// Read file contents
+let data = read_file("/path/to/file.txt", "user").await?;
+
+// Write data to file
+write_file("/path/to/file.txt", data, "user").await?;
+
+// Create directory
+create_directory("/path/to/dir", "user").await?;
+
+// Delete file
+delete_file("/path/to/file.txt", "user").await?;
+```
+
+### Process Operations (3 helpers)
+
+```rust
+// Spawn a process
+let output = spawn_process("echo", vec!["Hello!".to_string()], "user").await?;
+
+// Kill a process
+kill_process(1234, "user").await?;
+
+// Send signal to process (Unix only)
+#[cfg(unix)]
+send_signal(1234, nix::sys::signal::Signal::SIGTERM, "user").await?;
+```
+
+### Network Operations (3 helpers)
+
+```rust
+// TCP connect
+let stream = network_connect("127.0.0.1:8080", "user").await?;
+
+// TCP listen
+let listener = network_listen("127.0.0.1:8080", "user").await?;
+
+// UDP socket
+let socket = create_socket("127.0.0.1:8080", "user").await?;
+```
+
+### Advanced Middleware Variants
+
+All helpers have `*_with_middleware` variants for custom security policies:
+
+```rust
+use airssys_osl::middleware::security::*;
+
+// Custom rate limiting middleware
+let rate_limiter = RateLimitMiddleware::new(100); // 100 ops/sec
+
+let data = read_file_with_middleware(
+    "/path/to/file.txt",
+    "user",
+    rate_limiter
+).await?;
+```
+
+**Complete Example:** See [`examples/helper_functions_comprehensive.rs`](examples/helper_functions_comprehensive.rs) for a full demonstration of all 10 helpers with error handling and real-world workflows.
+
 ## Features
 
 ### Core Features
+- **Helper Functions API** - 10 high-level functions for filesystem, process, and network operations with built-in security
+- **Three API Levels** - Simple helpers, custom middleware, and trait composition (planned) for different use cases
 - **Cross-platform OS abstraction** - Unified interface for filesystem, process, and network operations
 - **Type-safe operations** - Strongly-typed operation definitions with compile-time guarantees
 - **Async/await support** - Built on Tokio for efficient async operations
-- **Middleware pipeline** - Extensible middleware for logging, security, and custom logic
-- **Security framework** - Built-in security policies and validation
+- **Middleware pipeline** - Extensible middleware for logging, security, rate limiting, caching, and custom logic
+- **Security framework** - Built-in ACL and RBAC policies with deny-by-default security model
+- **Comprehensive audit logging** - All operations logged with security context for compliance
+
+### Security Features
+- **ACL (Access Control List)** - Path-based access control with glob pattern matching
+- **RBAC (Role-Based Access Control)** - Role hierarchies with permission inheritance
+- **Deny-by-default** - Operations denied unless explicitly allowed by policy
+- **Security middleware** - Automatic policy enforcement in all helper functions
+- **Audit trails** - JSON-formatted security audit logs for all operations
 
 ### Optional Features
 - `macros` - Procedural macros for simplified custom executor development
@@ -231,14 +342,24 @@ For more details, see:
 
 The `examples/` directory contains comprehensive examples:
 
+- **`helper_functions_comprehensive.rs`** - Complete demonstration of all 10 helper functions with real-world workflows ⭐
 - `basic_usage.rs` - Basic operation execution
-- `middleware_pipeline.rs` - Custom middleware creation
+- `middleware_pipeline.rs` - Middleware chaining and composition
+- `custom_middleware.rs` - Creating custom middleware (rate limiting example)
 - `logger_comprehensive.rs` - Advanced logging configuration
+- `security_middleware_comprehensive.rs` - Security policies and enforcement
 - `custom_executor_with_macro.rs` - Creating custom executors with macros
 
 Run examples with:
 
 ```bash
+# Run comprehensive helper functions example
+cargo run --example helper_functions_comprehensive
+
+# Run custom middleware example
+cargo run --example custom_middleware
+
+# Run with features
 cargo run --example custom_executor_with_macro --features macros
 ```
 
