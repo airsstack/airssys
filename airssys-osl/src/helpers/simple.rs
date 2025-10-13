@@ -39,7 +39,7 @@ use super::factories::default_security_middleware;
 
 /// Read file contents with default security middleware.
 ///
-/// This function enforces deny-by-default security via [`default_security_middleware()`],
+/// This function enforces deny-by-default security via `default_security_middleware()`,
 /// which includes ACL policy, RBAC policy, and audit logging.
 ///
 /// # Security
@@ -121,7 +121,7 @@ where
 
 /// Write data to file with default security middleware.
 ///
-/// This function enforces deny-by-default security via [`default_security_middleware()`],
+/// This function enforces deny-by-default security via `default_security_middleware()`,
 /// which includes ACL policy, RBAC policy, and audit logging.
 ///
 /// # Security
@@ -199,7 +199,7 @@ where
 
 /// Delete file with default security middleware.
 ///
-/// This function enforces deny-by-default security via [`default_security_middleware()`],
+/// This function enforces deny-by-default security via `default_security_middleware()`,
 /// which includes ACL policy, RBAC policy, and audit logging.
 ///
 /// # Security
@@ -270,7 +270,7 @@ where
 
 /// Create directory with default security middleware.
 ///
-/// This function enforces deny-by-default security via [`default_security_middleware()`],
+/// This function enforces deny-by-default security via `default_security_middleware()`,
 /// which includes ACL policy, RBAC policy, and audit logging.
 ///
 /// # Security
@@ -345,7 +345,7 @@ where
 
 /// Spawn a process with default security middleware.
 ///
-/// This function enforces deny-by-default security via [`default_security_middleware()`],
+/// This function enforces deny-by-default security via `default_security_middleware()`,
 /// which includes ACL policy, RBAC policy, and audit logging.
 ///
 /// Returns the process ID (PID) as bytes. The process runs in the background.
@@ -428,7 +428,7 @@ where
 
 /// Kill a process by PID with default security middleware.
 ///
-/// This function enforces deny-by-default security via [`default_security_middleware()`],
+/// This function enforces deny-by-default security via `default_security_middleware()`,
 /// which includes ACL policy, RBAC policy, and audit logging.
 ///
 /// # Security
@@ -497,7 +497,7 @@ where
 
 /// Send signal to process with default security middleware.
 ///
-/// This function enforces deny-by-default security via [`default_security_middleware()`],
+/// This function enforces deny-by-default security via `default_security_middleware()`,
 /// which includes ACL policy, RBAC policy, and audit logging.
 ///
 /// # Security
@@ -571,7 +571,7 @@ where
 
 /// Connect to network address with default security middleware.
 ///
-/// This function enforces deny-by-default security via [`default_security_middleware()`],
+/// This function enforces deny-by-default security via `default_security_middleware()`,
 /// which includes ACL policy, RBAC policy, and audit logging.
 ///
 /// # Security
@@ -643,7 +643,7 @@ where
 
 /// Listen on network address with default security middleware.
 ///
-/// This function enforces deny-by-default security via [`default_security_middleware()`],
+/// This function enforces deny-by-default security via `default_security_middleware()`,
 /// which includes ACL policy, RBAC policy, and audit logging.
 ///
 /// # Security
@@ -712,7 +712,7 @@ where
 
 /// Create network socket with default security middleware.
 ///
-/// This function enforces deny-by-default security via [`default_security_middleware()`],
+/// This function enforces deny-by-default security via `default_security_middleware()`,
 /// which includes ACL policy, RBAC policy, and audit logging.
 ///
 /// # Security
