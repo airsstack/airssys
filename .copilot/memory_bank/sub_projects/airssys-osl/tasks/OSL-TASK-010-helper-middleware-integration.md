@@ -2,11 +2,11 @@
 
 **Task ID:** OSL-TASK-010  
 **Priority:** High  
-**Status:** 🔄 In Progress - Phase 5 Complete (5/11 phases)  
+**Status:** 🔄 In Progress - Phase 6.2 Complete (5.5/11 phases)  
 **Created:** 2025-10-10  
 **Last Updated:** 2025-10-13  
 **Estimated Effort:** 2-3 days (16-24 hours)  
-**Current Progress:** ~45% (Phases 1-5 complete, 6-11 remaining)  
+**Current Progress:** ~50% (Phases 1-5 + 6.2 complete, 6.1 + 7-11 remaining)  
 
 ## Task Overview
 Integrate security validation and audit logging into all 10 helper functions using the ExecutorExt middleware composition pattern. This task delivers a complete three-tier API system (Simple Helpers, Custom Middleware, Trait Composition) to complete the production-ready implementation of airssys-osl.
@@ -42,10 +42,18 @@ Integrate security validation and audit logging into all 10 helper functions usi
 
 ### ⏳ Remaining Phases (6-11):
 
-**Phase 6: Custom Middleware Documentation** (2-3 hours)
-- Create custom middleware creation guide
-- Real-world middleware examples (Rate limiting, Caching, Metrics, Retry)
-- Document middleware priority and composition rules
+**Phase 6: Custom Middleware Documentation** (2-3 hours) - 🔄 50% Complete
+- ✅ Phase 6.2: Created `examples/custom_middleware.rs` (2025-10-13)
+  - RateLimitMiddleware implementation (~400 lines)
+  - Complete Middleware<O> trait implementation
+  - Three working examples (basic, chaining, helper integration)
+  - Comprehensive tests (4 test cases)
+  - Verified: compiles cleanly, runs successfully
+- ⏳ Phase 6.1: Expand `guides/middleware.md` documentation (pending)
+  - Add "Creating Custom Middleware" section
+  - Extract patterns from working example
+  - Document additional middleware types (Caching, Metrics, Retry)
+  - Add testing patterns section
 
 **Phase 7: Documentation & Examples** (2-3 hours)
 - Update rustdoc for all helper functions
