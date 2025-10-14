@@ -20,7 +20,7 @@ use chrono::{DateTime, Utc};
 
 use crate::actor::{Actor, ActorContext, ErrorAction};
 use crate::broker::MessageBroker;
-use crate::message::{MessageEnvelope, Message};
+use crate::message::{Message, MessageEnvelope};
 use crate::supervisor::{Child, ChildHealth};
 
 use super::messages::{
@@ -228,7 +228,11 @@ where
 #[async_trait]
 impl<M, B> Actor for NetworkActor<M, B>
 where
-    M: Message + serde::Serialize + for<'de> serde::Deserialize<'de> + From<NetworkResponse> + 'static,
+    M: Message
+        + serde::Serialize
+        + for<'de> serde::Deserialize<'de>
+        + From<NetworkResponse>
+        + 'static,
     B: MessageBroker<M> + Clone + Send + Sync + 'static,
 {
     type Message = NetworkRequest;
@@ -250,8 +254,7 @@ where
 
         // Wrap response in unified message type and create envelope
         let unified_message = M::from(response);
-        let envelope = MessageEnvelope::new(unified_message)
-            .with_reply_to(message.reply_to);
+        let envelope = MessageEnvelope::new(unified_message).with_reply_to(message.reply_to);
 
         // Publish via broker (ADR-RT-009: Broker Dependency Injection)
         self.broker
