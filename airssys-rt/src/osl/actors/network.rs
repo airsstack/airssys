@@ -11,6 +11,7 @@
 //! - Centralized network audit logging
 
 use std::collections::HashMap;
+use std::marker::PhantomData;
 use std::net::SocketAddr;
 use std::time::Duration;
 
@@ -19,6 +20,7 @@ use chrono::{DateTime, Utc};
 
 use crate::actor::{Actor, ActorContext, ErrorAction};
 use crate::broker::MessageBroker;
+use crate::message::{MessageEnvelope, Message};
 use crate::supervisor::{Child, ChildHealth};
 
 use super::messages::{
@@ -39,7 +41,22 @@ use super::messages::{
 /// - Automatic cleanup when actor stops
 /// - Clean fault isolation (network failures don't crash app actors)
 /// - Superior testability (mock this actor in tests)
-pub struct NetworkActor {
+///
+/// ## Generic Parameters
+///
+/// - `M`: Unified message type that wraps NetworkRequest/NetworkResponse (must implement `Message + From<NetworkResponse>`)
+/// - `B`: Message broker for publishing responses (must implement `MessageBroker<M>`)
+pub struct NetworkActor<M, B>
+where
+    M: Message,
+    B: MessageBroker<M>,
+{
+    /// Message broker for publishing responses
+    broker: B,
+
+    /// Phantom data for message type
+    _phantom: PhantomData<M>,
+
     /// Active TCP connections
     active_connections: HashMap<ConnectionId, ConnectionHandle>,
 
@@ -80,10 +97,20 @@ struct SocketHandle {
     bound_at: DateTime<Utc>,
 }
 
-impl NetworkActor {
-    /// Create a new NetworkActor
-    pub fn new() -> Self {
+impl<M, B> NetworkActor<M, B>
+where
+    M: Message,
+    B: MessageBroker<M>,
+{
+    /// Create a new NetworkActor with the given broker
+    ///
+    /// # Arguments
+    ///
+    /// * `broker` - Message broker for publishing responses
+    pub fn new(broker: B) -> Self {
         Self {
+            broker,
+            _phantom: PhantomData,
             active_connections: HashMap::new(),
             active_sockets: HashMap::new(),
             next_connection_id: 1,
@@ -198,21 +225,19 @@ impl NetworkActor {
     }
 }
 
-impl Default for NetworkActor {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[async_trait]
-impl Actor for NetworkActor {
+impl<M, B> Actor for NetworkActor<M, B>
+where
+    M: Message + serde::Serialize + for<'de> serde::Deserialize<'de> + From<NetworkResponse> + 'static,
+    B: MessageBroker<M> + Clone + Send + Sync + 'static,
+{
     type Message = NetworkRequest;
     type Error = NetworkError;
 
-    async fn handle_message<B: MessageBroker<Self::Message>>(
+    async fn handle_message<Broker: MessageBroker<Self::Message>>(
         &mut self,
         message: Self::Message,
-        _context: &mut ActorContext<Self::Message, B>,
+        _context: &mut ActorContext<Self::Message, Broker>,
     ) -> Result<(), Self::Error> {
         // Execute operation
         let result = self.execute_operation(message.operation).await;
@@ -223,17 +248,26 @@ impl Actor for NetworkActor {
             result,
         };
 
-        // Send response via broker
-        // TODO: Need to use broker.publish() directly
-        println!("NetworkActor response: {response:?}");
+        // Wrap response in unified message type and create envelope
+        let unified_message = M::from(response);
+        let envelope = MessageEnvelope::new(unified_message)
+            .with_reply_to(message.reply_to);
+
+        // Publish via broker (ADR-RT-009: Broker Dependency Injection)
+        self.broker
+            .publish(envelope)
+            .await
+            .map_err(|_| NetworkError::Other {
+                message: "Failed to publish response".to_string(),
+            })?;
 
         Ok(())
     }
 
-    async fn on_error<B: MessageBroker<Self::Message>>(
+    async fn on_error<Broker: MessageBroker<Self::Message>>(
         &mut self,
         error: Self::Error,
-        _context: &mut ActorContext<Self::Message, B>,
+        _context: &mut ActorContext<Self::Message, Broker>,
     ) -> ErrorAction {
         eprintln!("NetworkActor error: {error:?}");
         ErrorAction::Resume
@@ -241,7 +275,11 @@ impl Actor for NetworkActor {
 }
 
 #[async_trait]
-impl Child for NetworkActor {
+impl<M, B> Child for NetworkActor<M, B>
+where
+    M: Message + 'static,
+    B: MessageBroker<M> + 'static,
+{
     type Error = NetworkError;
 
     async fn start(&mut self) -> Result<(), Self::Error> {
@@ -284,31 +322,48 @@ impl Child for NetworkActor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::broker::InMemoryMessageBroker;
+
+    use serde::{Deserialize, Serialize};
+
+    /// Test message type that wraps NetworkRequest/NetworkResponse
+    #[derive(Debug, Clone, Serialize, Deserialize)]
+    enum TestOSLMessage {
+        NetworkReq(NetworkRequest),
+        NetworkResp(NetworkResponse),
+    }
+
+    impl Message for TestOSLMessage {
+        const MESSAGE_TYPE: &'static str = "test_osl_message";
+    }
+
+    impl From<NetworkResponse> for TestOSLMessage {
+        fn from(response: NetworkResponse) -> Self {
+            TestOSLMessage::NetworkResp(response)
+        }
+    }
 
     #[test]
     fn test_network_actor_new() {
-        let actor = NetworkActor::new();
+        let broker = InMemoryMessageBroker::<TestOSLMessage>::new();
+        let actor = NetworkActor::new(broker);
         assert_eq!(actor.active_connection_count(), 0);
         assert_eq!(actor.active_socket_count(), 0);
         assert_eq!(actor.operation_count(), 0);
     }
 
-    #[test]
-    fn test_network_actor_default() {
-        let actor = NetworkActor::default();
-        assert_eq!(actor.active_connection_count(), 0);
-    }
-
     #[tokio::test]
     async fn test_network_actor_health_check() {
-        let actor = NetworkActor::new();
+        let broker = InMemoryMessageBroker::<TestOSLMessage>::new();
+        let actor = NetworkActor::new(broker);
         let health = actor.health_check().await;
         assert_eq!(health, ChildHealth::Healthy);
     }
 
     #[tokio::test]
     async fn test_network_actor_health_degraded() {
-        let mut actor = NetworkActor::new();
+        let broker = InMemoryMessageBroker::<TestOSLMessage>::new();
+        let mut actor = NetworkActor::new(broker);
 
         // Add many connections to trigger degraded state
         for i in 0..101 {

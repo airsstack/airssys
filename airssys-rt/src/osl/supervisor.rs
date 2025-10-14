@@ -122,8 +122,15 @@ type ProcessSupervisor = Arc<
     >,
 >;
 
-type NetworkSupervisor =
-    Arc<Mutex<SupervisorNode<RestForOne, NetworkActor, InMemoryMonitor<SupervisionEvent>>>>;
+type NetworkSupervisor = Arc<
+    Mutex<
+        SupervisorNode<
+            RestForOne,
+            NetworkActor<OSLMessage, InMemoryMessageBroker<OSLMessage>>,
+            InMemoryMonitor<SupervisionEvent>,
+        >,
+    >,
+>;
 
 /// Supervisor for OS Layer integration actors.
 ///
@@ -257,10 +264,11 @@ impl OSLSupervisor {
             return Ok(());
         }
 
-        // Create temporary brokers for refactored actors (FileSystem and Process)
+        // Create temporary brokers for refactored actors (FileSystem, Process, and Network)
         // TODO(Task 2.1.2): Make OSLSupervisor generic and inject shared broker to all actors
         let fs_broker = InMemoryMessageBroker::<OSLMessage>::new();
         let proc_broker = InMemoryMessageBroker::<OSLMessage>::new();
+        let net_broker = InMemoryMessageBroker::<OSLMessage>::new();
 
         // Start FileSystemActor first (no dependencies)
         {
@@ -295,12 +303,12 @@ impl OSLSupervisor {
         }
 
         // Start NetworkActor third (may depend on FileSystem for config)
-        // TODO(Task 2.1.1): Refactor NetworkActor to accept broker injection
         {
             let mut sup = self.supervisor_net.lock().await;
+            let broker_clone = net_broker.clone();
             let spec = ChildSpec {
                 id: "network".to_string(),
-                factory: NetworkActor::new,
+                factory: move || NetworkActor::new(broker_clone.clone()),
                 restart_policy: RestartPolicy::Permanent,
                 shutdown_policy: ShutdownPolicy::Graceful(Duration::from_secs(5)),
                 start_timeout: Duration::from_secs(10),
