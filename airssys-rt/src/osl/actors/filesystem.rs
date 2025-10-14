@@ -19,8 +19,8 @@
 //! use std::path::PathBuf;
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! let mut actor = FileSystemActor::new();
 //! let broker = InMemoryMessageBroker::new();
+//! let mut actor = FileSystemActor::new(broker.clone());
 //! let actor_addr = ActorAddress::named("fs-actor");
 //! let mut context = ActorContext::new(actor_addr, broker);
 //!
@@ -38,6 +38,7 @@
 //! ```
 
 use std::collections::HashMap;
+use std::marker::PhantomData;
 use std::time::Duration;
 
 use async_trait::async_trait;
@@ -45,6 +46,7 @@ use chrono::{DateTime, Utc};
 
 use crate::actor::{Actor, ActorContext, ErrorAction};
 use crate::broker::MessageBroker;
+use crate::message::{Message, MessageEnvelope};
 use crate::supervisor::{Child, ChildHealth};
 
 use super::messages::{
@@ -58,13 +60,26 @@ use super::messages::{
 /// file system operations. All application actors should send messages
 /// to this actor rather than performing file operations directly.
 ///
+/// ## Generic Parameters
+///
+/// - `M`: Message type implementing `Message` trait (for broker compatibility)
+/// - `B`: MessageBroker implementation for publishing responses
+///
 /// ## Benefits
 ///
 /// - Centralized audit logging for all file operations
 /// - Clean fault isolation (FS failures don't crash app actors)
 /// - Superior testability (mock this actor in tests)
 /// - Rate limiting and backpressure protection
-pub struct FileSystemActor {
+/// - Broker injection for flexible message routing
+pub struct FileSystemActor<M, B>
+where
+    M: Message,
+    B: MessageBroker<M>,
+{
+    /// Message broker for publishing responses
+    broker: B,
+
     /// Operation counter for metrics
     operation_count: u64,
 
@@ -76,6 +91,9 @@ pub struct FileSystemActor {
 
     /// Last operation timestamp
     last_operation_at: Option<DateTime<Utc>>,
+
+    /// Phantom data for message type
+    _phantom: PhantomData<M>,
 }
 
 type OperationId = u64;
@@ -88,14 +106,24 @@ struct Operation {
     started_at: DateTime<Utc>,
 }
 
-impl FileSystemActor {
-    /// Create a new FileSystemActor
-    pub fn new() -> Self {
+impl<M, B> FileSystemActor<M, B>
+where
+    M: Message + 'static,
+    B: MessageBroker<M> + Clone + 'static,
+{
+    /// Create a new FileSystemActor with broker injection
+    ///
+    /// # Arguments
+    ///
+    /// * `broker` - MessageBroker implementation for publishing responses
+    pub fn new(broker: B) -> Self {
         Self {
+            broker,
             operation_count: 0,
             active_operations: HashMap::new(),
             created_at: Utc::now(),
             last_operation_at: None,
+            _phantom: PhantomData,
         }
     }
 
@@ -287,21 +315,25 @@ impl FileSystemActor {
     }
 }
 
-impl Default for FileSystemActor {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+// Note: No Default implementation - broker must be explicitly provided
 
 #[async_trait]
-impl Actor for FileSystemActor {
+impl<M, B> Actor for FileSystemActor<M, B>
+where
+    M: Message
+        + serde::Serialize
+        + serde::Deserialize<'static>
+        + From<FileSystemResponse>
+        + 'static,
+    B: MessageBroker<M> + Clone + Send + Sync + 'static,
+{
     type Message = FileSystemRequest;
     type Error = FileSystemError;
 
-    async fn handle_message<B: MessageBroker<Self::Message>>(
+    async fn handle_message<Broker: MessageBroker<Self::Message>>(
         &mut self,
         message: Self::Message,
-        _context: &mut ActorContext<Self::Message, B>,
+        _context: &mut ActorContext<Self::Message, Broker>,
     ) -> Result<(), Self::Error> {
         // Execute operation
         let result = self.execute_operation(message.operation).await;
@@ -312,24 +344,25 @@ impl Actor for FileSystemActor {
             result,
         };
 
-        // Send response via broker (casting to generic message type)
-        // The broker will route this to the reply_to address
-        let _response_msg =
-            serde_json::to_string(&response).map_err(|e| FileSystemError::Other {
-                message: e.to_string(),
-            })?;
+        // Convert response to generic message type and publish via broker
+        let response_message: M = response.into();
+        let envelope = MessageEnvelope::new(response_message).with_reply_to(message.reply_to);
 
-        // TODO: Need to use broker.publish() directly instead of context.send()
-        // For now, just log the response
-        println!("FileSystemActor response: {response:?}");
+        // Publish response through injected broker
+        self.broker
+            .publish(envelope)
+            .await
+            .map_err(|e| FileSystemError::Other {
+                message: format!("Failed to publish response: {e}"),
+            })?;
 
         Ok(())
     }
 
-    async fn on_error<B: MessageBroker<Self::Message>>(
+    async fn on_error<Broker: MessageBroker<Self::Message>>(
         &mut self,
         error: Self::Error,
-        _context: &mut ActorContext<Self::Message, B>,
+        _context: &mut ActorContext<Self::Message, Broker>,
     ) -> ErrorAction {
         eprintln!("FileSystemActor error: {error:?}");
         ErrorAction::Resume
@@ -337,7 +370,11 @@ impl Actor for FileSystemActor {
 }
 
 #[async_trait]
-impl Child for FileSystemActor {
+impl<M, B> Child for FileSystemActor<M, B>
+where
+    M: Message + Send + 'static,
+    B: MessageBroker<M> + Clone + Send + Sync + 'static,
+{
     type Error = FileSystemError;
 
     async fn start(&mut self) -> Result<(), Self::Error> {
@@ -377,30 +414,47 @@ impl Child for FileSystemActor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::broker::InMemoryMessageBroker;
+
+    // Mock message type for testing
+    #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+    struct TestMessage;
+
+    impl Message for TestMessage {
+        const MESSAGE_TYPE: &'static str = "test_message";
+        fn priority(&self) -> crate::message::MessagePriority {
+            crate::message::MessagePriority::Normal
+        }
+    }
+
+    impl From<FileSystemResponse> for TestMessage {
+        fn from(_: FileSystemResponse) -> Self {
+            TestMessage
+        }
+    }
+
+    type TestFileSystemActor = FileSystemActor<TestMessage, InMemoryMessageBroker<TestMessage>>;
 
     #[test]
     fn test_filesystem_actor_new() {
-        let actor = FileSystemActor::new();
+        let broker = InMemoryMessageBroker::new();
+        let actor: TestFileSystemActor = FileSystemActor::new(broker);
         assert_eq!(actor.operation_count(), 0);
         assert_eq!(actor.active_operations_count(), 0);
     }
 
-    #[test]
-    fn test_filesystem_actor_default() {
-        let actor = FileSystemActor::default();
-        assert_eq!(actor.operation_count(), 0);
-    }
-
     #[tokio::test]
     async fn test_filesystem_actor_health_check() {
-        let actor = FileSystemActor::new();
+        let broker = InMemoryMessageBroker::new();
+        let actor: TestFileSystemActor = FileSystemActor::new(broker);
         let health = actor.health_check().await;
         assert_eq!(health, ChildHealth::Healthy);
     }
 
     #[tokio::test]
     async fn test_filesystem_actor_health_degraded() {
-        let mut actor = FileSystemActor::new();
+        let broker = InMemoryMessageBroker::new();
+        let mut actor: TestFileSystemActor = FileSystemActor::new(broker);
 
         // Add many active operations to trigger degraded state
         for i in 0..101 {

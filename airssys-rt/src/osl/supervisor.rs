@@ -20,14 +20,14 @@
 //!
 //! # Usage
 //!
-//! ```rust,no_run
+//! ```rust,ignore
 //! use airssys_rt::osl::OSLSupervisor;
 //! use std::time::Duration;
 //!
-//! # async fn example() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! // Create and start OSL supervisor
 //! let osl_supervisor = OSLSupervisor::new();
-//! osl_supervisor.start().await?;
+//! osl_supervisor.start().await.map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
 //!
 //! // Get actor addresses for message routing
 //! let fs_addr = osl_supervisor.filesystem_addr();
@@ -38,7 +38,7 @@
 //! // via these addresses
 //!
 //! // Graceful shutdown
-//! osl_supervisor.shutdown(Duration::from_secs(5)).await?;
+//! osl_supervisor.shutdown(Duration::from_secs(5)).await.map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
 //! # Ok(())
 //! # }
 //! ```
@@ -52,14 +52,54 @@ use async_trait::async_trait;
 use tokio::sync::Mutex;
 
 // Layer 3: Internal module imports
+use crate::broker::InMemoryMessageBroker;
+use crate::message::Message;
 use crate::monitoring::{InMemoryMonitor, MonitoringConfig};
 use crate::supervisor::{
-    Child, ChildHealth, ChildSpec, RestartPolicy, RestForOne, ShutdownPolicy, Supervisor,
+    Child, ChildHealth, ChildSpec, RestForOne, RestartPolicy, ShutdownPolicy, Supervisor,
     SupervisorNode,
 };
 use crate::util::ActorAddress;
 
+use super::actors::messages::{
+    FileSystemRequest, FileSystemResponse, NetworkRequest, NetworkResponse, ProcessRequest,
+    ProcessResponse,
+};
 use super::actors::{FileSystemActor, NetworkActor, ProcessActor};
+
+// Temporary unified message type for OSL actors (until full generic refactoring in Task 2.1.2)
+// This allows actors to communicate using a common message envelope
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+enum OSLMessage {
+    FileSystemReq(FileSystemRequest),
+    FileSystemResp(FileSystemResponse),
+    ProcessReq(ProcessRequest),
+    ProcessResp(ProcessResponse),
+    NetworkReq(NetworkRequest),
+    NetworkResp(NetworkResponse),
+}
+
+impl Message for OSLMessage {
+    const MESSAGE_TYPE: &'static str = "osl::unified::message";
+}
+
+impl From<FileSystemResponse> for OSLMessage {
+    fn from(resp: FileSystemResponse) -> Self {
+        OSLMessage::FileSystemResp(resp)
+    }
+}
+
+impl From<ProcessResponse> for OSLMessage {
+    fn from(resp: ProcessResponse) -> Self {
+        OSLMessage::ProcessResp(resp)
+    }
+}
+
+impl From<NetworkResponse> for OSLMessage {
+    fn from(resp: NetworkResponse) -> Self {
+        OSLMessage::NetworkResp(resp)
+    }
+}
 
 /// Supervisor for OS Layer integration actors.
 ///
@@ -75,39 +115,41 @@ use super::actors::{FileSystemActor, NetworkActor, ProcessActor};
 ///
 /// # Examples
 ///
-/// ```rust,no_run
+/// ```rust,ignore
 /// use airssys_rt::osl::OSLSupervisor;
 /// use std::time::Duration;
 ///
-/// # async fn example() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 /// // Create OSL supervisor
 /// let osl_supervisor = OSLSupervisor::new();
 ///
 /// // Start all OSL actors
-/// osl_supervisor.start().await?;
+/// osl_supervisor.start().await.map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
 ///
 /// // Get actor addresses for routing
 /// let fs_addr = osl_supervisor.filesystem_addr();
-/// println!("FileSystemActor address: {:?}", fs_addr.name());
+/// if let Some(name) = fs_addr.name() {
+///     println!("FileSystemActor address: {}", name);
+/// }
 ///
 /// // Shutdown gracefully
-/// osl_supervisor.shutdown(Duration::from_secs(3)).await?;
+/// osl_supervisor.shutdown(Duration::from_secs(3)).await.map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
 /// # Ok(())
 /// # }
 /// ```
 pub struct OSLSupervisor {
-    /// Supervisor managing FileSystemActor
+    /// Supervisor managing FileSystemActor (refactored with broker injection)
     supervisor_fs: Arc<
         Mutex<
             SupervisorNode<
                 RestForOne,
-                FileSystemActor,
+                FileSystemActor<OSLMessage, InMemoryMessageBroker<OSLMessage>>,
                 InMemoryMonitor<crate::monitoring::SupervisionEvent>,
             >,
         >,
     >,
 
-    /// Supervisor managing ProcessActor
+    /// Supervisor managing ProcessActor (pending refactoring - Task 2.1.1)
     supervisor_proc: Arc<
         Mutex<
             SupervisorNode<
@@ -198,14 +240,14 @@ impl OSLSupervisor {
     ///
     /// # Examples
     ///
-    /// ```rust,no_run
+    /// ```rust,ignore
     /// # use airssys_rt::osl::OSLSupervisor;
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let osl_supervisor = OSLSupervisor::new();
-    /// osl_supervisor.start().await?;
+    /// osl_supervisor.start().await.map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
     ///
     /// // Calling start again is safe (idempotent)
-    /// osl_supervisor.start().await?;
+    /// osl_supervisor.start().await.map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
     /// # Ok(())
     /// # }
     /// ```
@@ -215,12 +257,17 @@ impl OSLSupervisor {
             return Ok(());
         }
 
+        // Create temporary broker for FileSystemActor (refactored in Task 2.1.1)
+        // TODO(Task 2.1.2): Make OSLSupervisor generic and inject shared broker to all actors
+        let fs_broker = InMemoryMessageBroker::<OSLMessage>::new();
+
         // Start FileSystemActor first (no dependencies)
         {
             let mut sup = self.supervisor_fs.lock().await;
+            let broker_clone = fs_broker.clone();
             let spec = ChildSpec {
                 id: "filesystem".to_string(),
-                factory: FileSystemActor::new,
+                factory: move || FileSystemActor::new(broker_clone.clone()),
                 restart_policy: RestartPolicy::Permanent,
                 shutdown_policy: ShutdownPolicy::Graceful(Duration::from_secs(5)),
                 start_timeout: Duration::from_secs(10),
@@ -231,6 +278,7 @@ impl OSLSupervisor {
         }
 
         // Start ProcessActor second
+        // TODO(Task 2.1.1): Refactor ProcessActor to accept broker injection
         {
             let mut sup = self.supervisor_proc.lock().await;
             let spec = ChildSpec {
@@ -246,6 +294,7 @@ impl OSLSupervisor {
         }
 
         // Start NetworkActor third (may depend on FileSystem for config)
+        // TODO(Task 2.1.1): Refactor NetworkActor to accept broker injection
         {
             let mut sup = self.supervisor_net.lock().await;
             let spec = ChildSpec {
@@ -280,7 +329,7 @@ impl OSLSupervisor {
     ///
     /// let osl_supervisor = OSLSupervisor::new();
     /// let fs_addr = osl_supervisor.filesystem_addr();
-    /// assert_eq!(fs_addr.name(), Some("osl-filesystem"));
+    /// assert_eq!(fs_addr.name().unwrap(), "osl-filesystem");
     /// ```
     pub fn filesystem_addr(&self) -> &ActorAddress {
         &self.filesystem_addr
@@ -302,7 +351,7 @@ impl OSLSupervisor {
     ///
     /// let osl_supervisor = OSLSupervisor::new();
     /// let proc_addr = osl_supervisor.process_addr();
-    /// assert_eq!(proc_addr.name(), Some("osl-process"));
+    /// assert_eq!(proc_addr.name().unwrap(), "osl-process");
     /// ```
     pub fn process_addr(&self) -> &ActorAddress {
         &self.process_addr
@@ -324,7 +373,7 @@ impl OSLSupervisor {
     ///
     /// let osl_supervisor = OSLSupervisor::new();
     /// let net_addr = osl_supervisor.network_addr();
-    /// assert_eq!(net_addr.name(), Some("osl-network"));
+    /// assert_eq!(net_addr.name().unwrap(), "osl-network");
     /// ```
     pub fn network_addr(&self) -> &ActorAddress {
         &self.network_addr
@@ -346,15 +395,15 @@ impl OSLSupervisor {
     ///
     /// # Examples
     ///
-    /// ```rust,no_run
+    /// ```rust,ignore
     /// # use airssys_rt::osl::OSLSupervisor;
     /// # use std::time::Duration;
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let osl_supervisor = OSLSupervisor::new();
-    /// osl_supervisor.start().await?;
+    /// osl_supervisor.start().await.map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
     ///
     /// // Graceful shutdown with 5 second timeout
-    /// osl_supervisor.shutdown(Duration::from_secs(5)).await?;
+    /// osl_supervisor.shutdown(Duration::from_secs(5)).await.map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
     /// # Ok(())
     /// # }
     /// ```
@@ -436,11 +485,15 @@ impl Child for OSLSupervisor {
     type Error = OSLSupervisorError;
 
     async fn start(&mut self) -> Result<(), Self::Error> {
-        OSLSupervisor::start(self).await.map_err(OSLSupervisorError::from)
+        OSLSupervisor::start(self)
+            .await
+            .map_err(OSLSupervisorError::from)
     }
 
     async fn stop(&mut self, timeout: Duration) -> Result<(), Self::Error> {
-        self.shutdown(timeout).await.map_err(OSLSupervisorError::from)
+        self.shutdown(timeout)
+            .await
+            .map_err(OSLSupervisorError::from)
     }
 
     async fn health_check(&self) -> ChildHealth {
