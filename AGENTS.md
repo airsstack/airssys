@@ -38,6 +38,227 @@ This project uses a **Multi-Project Memory Bank** system for context management 
 - `show_memory_bank_summary`: Display current memory bank state
 - `explore_knowledge_base [sub_project]`: Review all knowledge documentation before starting work
 
+### Memory Bank Management - Critical Lessons Learned (Oct 14, 2025)
+
+**⚠️ CRITICAL: Memory Bank Reorganization Incident (Commits d2d94df → f9a98fe)**
+
+On October 14, 2025, a significant memory bank organization incident occurred that violated established naming conventions and structure standards. This section documents the issue, root cause, and preventive measures to ensure it never happens again.
+
+#### Incident Summary
+
+**What Happened:**
+- Agent attempted to reorganize airssys-rt memory bank structure
+- Created non-standard directories: `completion_summaries/`, `action_plans/`, `decisions/`
+- Files were moved without following established naming conventions
+- Violated snake_case naming requirements (used `rt_task_*` instead of `task_*`)
+- Broke cross-references and links between documents
+- Committed broken state (d2d94df) before user caught violations
+
+**Impact:**
+- 14 files in wrong locations with incorrect naming
+- 15 broken cross-references across knowledge docs, progress.md, and task files
+- Memory bank structure violated documented standards
+- Required manual one-by-one cleanup (commit f9a98fe)
+
+#### Root Cause Analysis
+
+**Primary Causes:**
+1. **Insufficient exploration of memory bank instructions** - Agent did not thoroughly read `multi_project_memory_bank.instructions.md` before reorganization
+2. **Assumption-based approach** - Agent assumed naming patterns instead of verifying against documented standards
+3. **Pattern mismatch** - Agent saw some `rt_task_004_*` files and assumed all should follow that pattern
+4. **Rushed execution** - Agent moved files in bulk without verifying each against naming conventions
+5. **Lack of verification** - Agent committed without thorough validation of naming compliance
+
+**What Should Have Been Done:**
+1. **Read instructions FIRST** - Thoroughly review `multi_project_memory_bank.instructions.md` before ANY reorganization
+2. **Verify naming patterns** - Check existing files to understand CORRECT patterns, not just copy what's there
+3. **Manual analysis** - Analyze each file content to determine proper category (ADR, knowledge, task-related)
+4. **One-by-one approach** - Move and rename files individually with verification at each step
+5. **Link verification** - Search for and fix broken references before committing
+6. **Index updates** - Update all `_index.md` files to reflect changes
+
+#### Memory Bank Structure Standards (MANDATORY)
+
+**⚠️ These standards are ABSOLUTE and MUST be followed exactly:**
+
+**Directory Structure:**
+```
+sub_projects/{sub-project}/
+├── Core files (6 required, snake_case):
+│   ├── active_context.md
+│   ├── product_context.md
+│   ├── progress.md
+│   ├── project_brief.md
+│   ├── system_patterns.md
+│   └── tech_context.md
+├── tasks/
+│   ├── _index.md
+│   └── task_[number]_[description].md  ← MUST use task_ prefix
+└── docs/
+    ├── debts/
+    │   ├── _index.md
+    │   └── debt_[subproject]_[number]_[description].md
+    ├── knowledges/
+    │   ├── _index.md
+    │   └── knowledge_[subproject]_[number]_[description].md
+    └── adr/
+        ├── _index.md
+        └── adr_[subproject]_[number]_[description].md
+```
+
+**Naming Convention Rules:**
+- ✅ **Task files**: `task_[number]_[description].md` (NOT `rt_task_*` or `RT-TASK-*`)
+- ✅ **ADR files**: `adr_[subproject]_[number]_[description].md` (e.g., `adr_rt_001_*.md`)
+- ✅ **Knowledge files**: `knowledge_[subproject]_[number]_[description].md` (e.g., `knowledge_rt_001_*.md`)
+- ✅ **Debt files**: `debt_[subproject]_[number]_[description].md`
+- ✅ **ALL files**: snake_case naming, no uppercase, no special characters except underscore
+
+**Directory Rules:**
+- ❌ **FORBIDDEN**: Creating directories outside documented structure
+- ❌ **FORBIDDEN**: Directories like `completion_summaries/`, `action_plans/`, `decisions/`, `plans/`
+- ✅ **ONLY ALLOWED**: `tasks/`, `docs/debts/`, `docs/knowledges/`, `docs/adr/`
+
+**File Categorization Rules:**
+
+**Task-Related Content → `tasks/` directory:**
+- Task specifications and requirements
+- Phase-specific planning documents
+- Phase completion summaries
+- Implementation action plans
+- Progress tracking for specific tasks
+- **Naming**: `task_[number]_[phase]_[type].md` (e.g., `task_009_phase_2_completion_summary.md`)
+
+**Architecture Findings → `docs/knowledges/` directory:**
+- Architecture discoveries and patterns
+- Implementation insights and retrospectives
+- Technical learning documentation
+- Reusable knowledge artifacts
+- **Naming**: `knowledge_[subproject]_[number]_[description].md`
+
+**Formal Decisions → `docs/adr/` directory:**
+- Architectural Decision Records only
+- Formal technology/pattern selections
+- Strategic technical choices
+- **Naming**: `adr_[subproject]_[number]_[description].md`
+
+#### Preventive Measures for AI Agents
+
+**🚫 MANDATORY CHECKLIST - Before ANY Memory Bank Reorganization:**
+
+1. **[ ] Read Instructions Completely**
+   - Read `multi_project_memory_bank.instructions.md` in full
+   - Understand all naming conventions and structure rules
+   - Review examples of correct naming patterns
+
+2. **[ ] Analyze Current State**
+   - List all files that need reorganization
+   - Identify their actual content type (not just filename pattern)
+   - Map each file to its correct category and location
+
+3. **[ ] Verify Naming Patterns**
+   - Check `_index.md` files for documented naming patterns
+   - Don't assume patterns from existing misnamed files
+   - Consult instructions if uncertain about any naming
+
+4. **[ ] Manual One-by-One Approach**
+   - Read each file content to understand its purpose
+   - Categorize based on content, not current location
+   - Rename to follow exact naming convention
+   - Move to correct directory
+   - Verify immediately after each move
+
+5. **[ ] Update Cross-References**
+   - Search for old filenames in all .md files
+   - Update all references to new filenames
+   - Verify links are not broken
+
+6. **[ ] Update Index Files**
+   - Update `_index.md` in affected directories
+   - Add new entries with proper metadata
+   - Update counts and last modified dates
+
+7. **[ ] Final Validation**
+   - Verify ALL files follow naming conventions
+   - Verify no non-standard directories exist
+   - Verify all cross-references work
+   - Run `ls -1` checks to confirm structure
+
+**🚨 RED FLAGS - Stop and Ask for Guidance If:**
+- Creating any new directory not in documented structure
+- Seeing multiple naming patterns and unsure which is correct
+- File content doesn't clearly fit one category
+- Breaking changes to many cross-references
+- Uncertain about any naming or structure decision
+
+#### Correct Reorganization Example (Oct 14, 2025)
+
+**Incident Resolution - What Was Done Correctly:**
+
+```bash
+# Step 1: Analyzed each file content individually
+# - Read pubsub_architecture_finding.md → Identified as architecture finding
+# - Read refactoring_decision_summary.md → Identified as retrospective
+# - Read rt_task_007_phase_1_design_decisions.md → Identified as task-related
+
+# Step 2: Categorized and renamed to follow conventions
+mv docs/adr/pubsub_architecture_finding.md \
+   docs/knowledges/knowledge_rt_018_pubsub_architecture_finding.md
+
+mv docs/adr/refactoring_decision_summary.md \
+   docs/knowledges/knowledge_rt_019_messagebroker_refactoring_retrospective.md
+
+mv docs/adr/rt_task_007_phase_1_design_decisions.md \
+   tasks/task_007_phase_1_design_decisions.md
+
+# Step 3: Fixed all task file naming (removed rt_ prefix)
+mv tasks/rt_task_004_pubsub_implementation.md tasks/task_004_pubsub_implementation.md
+mv tasks/rt_task_009_phase_1_completion_summary.md tasks/task_009_phase_1_completion_summary.md
+# ... (all rt_task_* → task_*)
+
+# Step 4: Removed duplicate content
+rm tasks/action_plans_summary.md  # Content exists in knowledge_rt_013
+
+# Step 5: Fixed 15 broken references across all files
+# Updated references in: knowledge docs, progress.md, task files
+
+# Step 6: Updated index files
+# - docs/knowledges/_index.md: Added KNOWLEDGE-RT-018, RT-019
+# - Updated counts and dates
+
+# Step 7: Committed with comprehensive documentation
+git commit -m "fix(memory-bank): Fix airssys-rt memory bank naming conventions..."
+```
+
+**Result:**
+- ✅ All files properly categorized and named
+- ✅ All cross-references working
+- ✅ Index files updated and accurate
+- ✅ Full compliance with memory bank standards
+- ✅ Comprehensive commit documentation
+
+#### Key Takeaways
+
+**For AI Agents Working with Memory Bank:**
+
+1. **NEVER reorganize without reading instructions first**
+2. **NEVER assume naming patterns - always verify**
+3. **NEVER bulk move files - analyze content individually**
+4. **NEVER create directories not in documented structure**
+5. **NEVER commit without thorough validation**
+6. **ALWAYS fix broken references immediately**
+7. **ALWAYS update index files after changes**
+8. **ALWAYS document reorganization reasoning**
+
+**Memory Bank is Sacred Infrastructure:**
+- It's the authoritative source of project context
+- Violations break AI agent effectiveness
+- Manual cleanup is time-consuming and error-prone
+- Prevention through careful adherence is critical
+
+**Reference Commits:**
+- **d2d94df** - BROKEN: Violated naming conventions (what NOT to do)
+- **f9a98fe** - FIXED: Proper manual cleanup (correct approach)
+
 ## Development Environment
 
 ### Setup Commands
