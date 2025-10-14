@@ -281,6 +281,87 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+## 🔌 OSL Integration (Phase 2 Complete)
+
+`airssys-rt` now includes complete integration with the Operating System Layer (OSL) through a supervisor hierarchy managing FileSystem, Process, and Network actors with broker-based communication.
+
+### Architecture
+
+```text
+┌─────────────────────────────────────┐
+│     InMemoryMessageBroker          │
+│         (OSLMessage)                │
+└─────────────────────────────────────┘
+             ↑           ↑
+             │           │
+   ┌─────────┴───────────┴─────────┐
+   │     OSLSupervisor<M, B>       │
+   │    (RestForOne Strategy)      │
+   └───────────────────────────────┘
+             ↓           ↓
+   ┌─────────┴───────────┴─────────┐
+   │  FileSystem │ Process │ Network│
+   │   Actor     │  Actor  │  Actor │
+   └─────────────┴─────────┴────────┘
+```
+
+### Usage Example
+
+```rust
+use airssys_rt::broker::{InMemoryMessageBroker, MessageBroker};
+use airssys_rt::osl::OSLSupervisor;
+use airssys_rt::osl::supervisor::OSLMessage;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    // Create shared message broker
+    let broker = InMemoryMessageBroker::<OSLMessage>::new();
+    
+    // Create and start OSL supervisor
+    let supervisor = OSLSupervisor::new(broker.clone());
+    supervisor.start().await?;
+    
+    // Actors are now running and can handle messages
+    // See examples/osl_integration_example.rs for complete demo
+    
+    Ok(())
+}
+```
+
+### Key Features
+
+- **Broker Dependency Injection**: All actors share a single message broker (ADR-RT-009)
+- **RestForOne Strategy**: Failed actors restart dependent children
+- **Generic Architecture**: `OSLSupervisor<M, B>` supports custom message and broker types
+- **Type-Safe Messaging**: `OSLMessage` enum for unified actor communication
+- **Actor Addresses**: Named addresses (osl-filesystem, osl-process, osl-network)
+
+### Available Examples
+
+```bash
+# Run OSL integration example
+cargo run --example osl_integration_example
+
+# Run integration tests
+cargo test --package airssys-rt --test supervisor_hierarchy_tests
+```
+
+### Phase 2 Status
+
+✅ **Complete** - OSL Integration with Broker Injection
+- FileSystemActor with broker injection (c1f1be0)
+- ProcessActor with broker injection (811d966)
+- NetworkActor with broker injection (df0c8b4)
+- OSLSupervisor generic refactoring (ac910d4)
+- Example application (5c8d0be)
+- Integration tests (007a48c)
+
+**Quality Metrics:**
+- 336 library tests passing
+- 9 integration tests passing
+- Zero compilation warnings
+- Full workspace standards compliance
+
 ## ⚠️ Important Notes
 
 > [!IMPORTANT]

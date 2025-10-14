@@ -1,15 +1,27 @@
-//! OSL Supervisor for managing OS integration actors.
+//! OSL Supervisor for managing OS integration actors with broker-based communication.
 //!
 //! This module provides `OSLSupervisor` which manages FileSystemActor,
-//! ProcessActor, and NetworkActor with RestForOne supervision strategy.
+//! ProcessActor, and NetworkActor with RestForOne supervision strategy and
+//! shared message broker for unified communication (ADR-RT-009).
 //!
 //! # Architecture
 //!
 //! ```text
-//! OSLSupervisor (RestForOne)
-//! ├── FileSystemActor (all file/directory operations)
-//! ├── ProcessActor (all process spawning/management)
-//! └── NetworkActor (all network connections)
+//! ┌─────────────────────────────────────┐
+//! │     InMemoryMessageBroker          │
+//! │         (OSLMessage)                │
+//! └─────────────────────────────────────┘
+//!              ↑           ↑
+//!              │           │
+//!    ┌─────────┴───────────┴─────────┐
+//!    │     OSLSupervisor<M, B>       │
+//!    │    (RestForOne Strategy)      │
+//!    └───────────────────────────────┘
+//!              ↓           ↓
+//!    ┌─────────┴───────────┴─────────┐
+//!    │  FileSystem │ Process │ Network│
+//!    │   Actor     │  Actor  │  Actor │
+//!    └─────────────┴─────────┴────────┘
 //! ```
 //!
 //! # Supervision Strategy
@@ -18,30 +30,48 @@
 //! actors started after it (ProcessActor, NetworkActor). This ensures
 //! consistent state if dependencies exist.
 //!
+//! # Broker Dependency Injection
+//!
+//! All OSL actors share a single message broker injected at supervisor creation.
+//! This enables:
+//! - Unified message routing across all actors
+//! - Pub-sub communication patterns
+//! - Message isolation and correlation
+//! - Extensibility for monitoring and audit logging
+//!
 //! # Usage
 //!
 //! ```rust,ignore
+//! use airssys_rt::broker::{InMemoryMessageBroker, MessageBroker};
 //! use airssys_rt::osl::OSLSupervisor;
-//! use std::time::Duration;
+//! use airssys_rt::osl::supervisor::OSLMessage;
 //!
-//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! // Create and start OSL supervisor
-//! let osl_supervisor = OSLSupervisor::new();
-//! osl_supervisor.start().await.map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
+//! # async fn example() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+//! // Create shared message broker
+//! let broker = InMemoryMessageBroker::<OSLMessage>::new();
+//!
+//! // Create and start OSL supervisor with broker injection
+//! let osl_supervisor = OSLSupervisor::new(broker.clone());
+//! osl_supervisor.start().await?;
 //!
 //! // Get actor addresses for message routing
 //! let fs_addr = osl_supervisor.filesystem_addr();
 //! let proc_addr = osl_supervisor.process_addr();
 //! let net_addr = osl_supervisor.network_addr();
 //!
-//! // Application actors can now send messages to OSL actors
-//! // via these addresses
-//!
-//! // Graceful shutdown
-//! osl_supervisor.shutdown(Duration::from_secs(5)).await.map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
+//! // Application can now communicate via the shared broker
+//! // See examples/osl_integration_example.rs for complete demo
 //! # Ok(())
 //! # }
 //! ```
+//!
+//! # Examples
+//!
+//! See `examples/osl_integration_example.rs` for a complete demonstration of:
+//! - Broker creation and injection
+//! - Supervisor lifecycle management
+//! - Request-response patterns for all three actor types
+//! - Message correlation and routing
 
 // Layer 1: Standard library imports
 use std::marker::PhantomData;
