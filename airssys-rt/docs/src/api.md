@@ -1,340 +1,516 @@
-# API Reference Overview
+# API Reference
 
-This section provides comprehensive documentation for the `airssys-rt` API, covering all public types, traits, and functions available for building actor-based applications.
+This API reference documents the actual, implemented APIs in `airssys-rt`. All code examples are from real, working implementations.
 
-## API Design Philosophy
+> **💡 Tip**: For the most up-to-date API documentation, run `cargo doc --open --package airssys-rt` to view the generated Rustdoc.
 
-The `airssys-rt` API is designed with several key principles:
+## Core API Overview
 
-- **Type Safety**: Leverage Rust's type system to prevent runtime errors
-- **Ergonomic Design**: Minimize boilerplate while maintaining clarity
-- **Performance**: Zero-cost abstractions and efficient implementations
-- **Consistency**: Predictable patterns across all API components
-- **Composability**: APIs that work well together and with the Rust ecosystem
+The `airssys-rt` API is organized into several key modules:
 
-## Core API Structure
+- **`actor`** - Core actor trait and context
+- **`message`** - Message types and envelopes
+- **`broker`** - Message broker for pub/sub
+- **`mailbox`** - Message queue implementations
+- **`supervisor`** - Supervision and fault tolerance
+- **`monitoring`** - Health checks and metrics
+- **`util`** - Utilities (addressing, IDs)
 
-### Trait-Based Architecture
-The API is organized around key traits that define the behavior of actors and system components:
+## Actor API
+
+### Actor Trait
+
+The foundational trait for all actors (from `src/actor/traits.rs`):
 
 ```rust
-// Core actor behavior
-pub trait Actor: Send + 'static {
-    type Message: Send + 'static;
-    async fn handle(&mut self, msg: Self::Message) -> ActorResult<()>;
-}
+use airssys_rt::{Actor, ActorContext, Message, ErrorAction};
+use async_trait::async_trait;
 
-// System integration
-pub trait ActorSystem {
-    async fn spawn<A: Actor>(&self, actor: A) -> Result<ActorRef<A::Message>, SpawnError>;
-}
+#[async_trait]
+pub trait Actor: Send + Sync + 'static {
+    /// The type of messages this actor handles
+    type Message: Message;
 
-// Supervision behavior  
-pub trait Supervisor {
-    type Child: Actor;
-    async fn handle_child_exit(&mut self, child: ActorId, reason: ExitReason) -> SupervisionAction;
+    /// The error type for actor operations
+    type Error: Error + Send + Sync + 'static;
+
+    /// Handle an incoming message
+    async fn handle_message<B: MessageBroker<Self::Message>>(
+        &mut self,
+        message: Self::Message,
+        context: &mut ActorContext<Self::Message, B>,
+    ) -> Result<(), Self::Error>;
+
+    /// Lifecycle hook: called before actor starts (optional)
+    async fn pre_start<B: MessageBroker<Self::Message>>(
+        &mut self,
+        context: &mut ActorContext<Self::Message, B>,
+    ) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    /// Lifecycle hook: called when actor stops (optional)
+    async fn post_stop<B: MessageBroker<Self::Message>>(
+        &mut self,
+        context: &mut ActorContext<Self::Message, B>,
+    ) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    /// Error handler: return supervision decision (optional)
+    async fn on_error<B: MessageBroker<Self::Message>>(
+        &mut self,
+        error: Self::Error,
+        context: &mut ActorContext<Self::Message, B>,
+    ) -> ErrorAction {
+        ErrorAction::Restart
+    }
 }
 ```
 
-### Type-Safe References
-Actor communication is handled through strongly-typed references:
+### ActorContext
+
+Context provided to actors during message handling:
 
 ```rust
-pub struct ActorRef<M: Send + 'static> {
-    // Internal implementation hidden
+pub struct ActorContext<M: Message, B: MessageBroker<M>> {
+    // Fields are private, access via methods
 }
 
-impl<M: Send + 'static> ActorRef<M> {
-    pub async fn tell(&self, message: M) -> Result<(), SendError>;
-    pub async fn ask<R>(&self, message: M) -> Result<R, AskError>
-    where
-        M: HasResponse<Response = R>;
+impl<M: Message, B: MessageBroker<M>> ActorContext<M, B> {
+    /// Get the actor's address
+    pub fn address(&self) -> &ActorAddress;
+    
+    /// Get the actor's unique ID
+    pub fn id(&self) -> &ActorId;
+    
+    /// Get when the actor was created
+    pub fn created_at(&self) -> DateTime<Utc>;
+    
+    /// Get when the last message was processed
+    pub fn last_message_at(&self) -> Option<DateTime<Utc>>;
+    
+    /// Get total number of messages processed
+    pub fn message_count(&self) -> u64;
+    
+    /// Record that a message was processed
+    pub fn record_message(&mut self);
+    
+    /// Send a message to another actor
+    pub async fn send(&self, message: M, recipient: ActorAddress) 
+        -> Result<(), String>;
 }
 ```
 
-## API Reference Sections
+### ActorLifecycle
 
-The API documentation is organized into comprehensive reference sections:
+State management for actor lifecycle:
 
-### [Core Types](./api/core-types.md)
-Fundamental types used throughout the system:
-- **ProcessId**: Unique identifier for actors
-- **ActorRef**: Type-safe actor references
-- **ActorSystem**: Main system coordinator
-- **Message**: Base message traits and utilities
-- **Error Types**: Comprehensive error handling types
-
-### [Actor Traits](./api/actor-traits.md)
-Core traits that define actor behavior:
-- **Actor**: Main actor trait for message handling
-- **ActorContext**: Context provided to actors during execution
-- **Lifecycle**: Actor lifecycle hooks and callbacks
-- **StateManagement**: State persistence and recovery traits
-
-### [Message Types](./api/message-types.md)
-Message system API and utilities:
-- **Message**: Core message trait requirements
-- **Request/Response**: Synchronous-style communication patterns
-- **Event**: Asynchronous event broadcasting
-- **Envelope**: Internal message wrapper utilities
-
-### [Supervisor API](./api/supervisor-api.md)
-Supervision and fault tolerance API:
-- **Supervisor**: Supervisor trait and implementations
-- **RestartStrategy**: Configuration for restart behavior
-- **SupervisionTree**: Hierarchical supervision utilities
-- **HealthMonitoring**: Actor health and monitoring APIs
-
-## Quick API Reference
-
-### Basic Actor Implementation
 ```rust
-use airssys_rt::{Actor, ActorResult, ActorSystem, ActorRef};
-
-// Define your actor
-struct MyActor {
-    state: MyState,
+pub enum ActorState {
+    Starting,   // Actor is initializing
+    Running,    // Actor is active
+    Stopping,   // Actor is shutting down
+    Stopped,    // Actor has stopped
+    Failed,     // Actor has failed
 }
 
-// Define messages
+pub struct ActorLifecycle {
+    // Implementation details hidden
+}
+
+impl ActorLifecycle {
+    pub fn new() -> Self;
+    pub fn state(&self) -> ActorState;
+    pub fn transition_to(&mut self, new_state: ActorState);
+    pub fn restart_count(&self) -> u32;
+    pub fn last_state_change(&self) -> DateTime<Utc>;
+    pub fn is_terminal(&self) -> bool;
+    pub fn is_running(&self) -> bool;
+}
+```
+
+### ErrorAction
+
+Control supervision behavior on errors:
+
+```rust
+pub enum ErrorAction {
+    Resume,     // Continue processing (ignore error)
+    Restart,    // Restart the actor
+    Stop,       // Stop the actor permanently
+    Escalate,   // Pass error to supervisor
+}
+```
+
+## Message API
+
+### Message Trait
+
+All messages must implement this trait:
+
+```rust
+pub trait Message: Clone + Send + Sync + 'static 
+    + serde::Serialize + for<'de> serde::Deserialize<'de> 
+{
+    const MESSAGE_TYPE: &'static str;
+}
+```
+
+Example implementation:
+
+```rust
+use serde::{Serialize, Deserialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct MyMessage {
+    data: String,
+}
+
+impl Message for MyMessage {
+    const MESSAGE_TYPE: &'static str = "my_message";
+}
+```
+
+### MessageEnvelope
+
+Messages are wrapped in envelopes for routing:
+
+```rust
+pub struct MessageEnvelope<M> {
+    pub id: MessageId,
+    pub message: M,
+    pub timestamp: DateTime<Utc>,
+    pub reply_to: Option<ActorAddress>,
+}
+
+impl<M: Message> MessageEnvelope<M> {
+    pub fn new(message: M) -> Self;
+}
+```
+
+### MessageId
+
+Unique identifier for messages:
+
+```rust
+pub struct MessageId(uuid::Uuid);
+
+impl MessageId {
+    pub fn new() -> Self;
+}
+```
+
+## Broker API
+
+### MessageBroker Trait
+
+Pub/sub system for actor communication:
+
+```rust
+#[async_trait]
+pub trait MessageBroker<M: Message>: Clone + Send + Sync + 'static {
+    type Error: Error + Send + Sync + 'static;
+
+    /// Publish a message to all subscribers
+    async fn publish(&self, envelope: MessageEnvelope<M>) 
+        -> Result<(), Self::Error>;
+    
+    /// Subscribe to messages for an actor
+    async fn subscribe(&self, subscriber_id: ActorId) 
+        -> Result<mpsc::Receiver<MessageEnvelope<M>>, Self::Error>;
+}
+```
+
+### InMemoryMessageBroker
+
+Current broker implementation:
+
+```rust
+use airssys_rt::broker::InMemoryMessageBroker;
+
+let broker = InMemoryMessageBroker::<MyMessage>::new();
+```
+
+## Mailbox API
+
+### Mailbox Types
+
+Two mailbox implementations are provided:
+
+**UnboundedMailbox**:
+```rust
+use airssys_rt::mailbox::UnboundedMailbox;
+
+let mailbox = UnboundedMailbox::<MyMessage>::new();
+```
+
+**BoundedMailbox**:
+```rust
+use airssys_rt::mailbox::{BoundedMailbox, BackpressureStrategy};
+
+let mailbox = BoundedMailbox::<MyMessage>::new(
+    100,  // capacity
+    BackpressureStrategy::Block,
+);
+```
+
+### BackpressureStrategy
+
+Control behavior when mailbox is full:
+
+```rust
+pub enum BackpressureStrategy {
+    Block,      // Block sender when mailbox full
+    Drop,       // Drop new messages when full
+    DropOldest, // Drop oldest message to make room
+}
+```
+
+### Mailbox Traits
+
+Generic interfaces for mailboxes:
+
+```rust
+#[async_trait]
+pub trait MailboxReceiver<M: Message>: Send {
+    async fn recv(&mut self) -> Option<MessageEnvelope<M>>;
+    fn try_recv(&mut self) -> Result<MessageEnvelope<M>, TryRecvError>;
+}
+
+#[async_trait]
+pub trait MailboxSender<M: Message>: Clone + Send + Sync {
+    async fn send(&self, envelope: MessageEnvelope<M>) 
+        -> Result<(), MailboxError>;
+}
+```
+
+## Supervisor API
+
+### Child Trait
+
+Any entity can be supervised by implementing `Child`:
+
+```rust
+#[async_trait]
+pub trait Child: Send + Sync {
+    async fn start(&mut self) -> Result<(), Box<dyn Error + Send + Sync>>;
+    async fn stop(&mut self) -> Result<(), Box<dyn Error + Send + Sync>>;
+    async fn health_check(&self) -> ChildHealth;
+}
+```
+
+Note: Actors automatically implement `Child` via blanket implementation.
+
+### ChildSpec
+
+Configuration for supervised children:
+
+```rust
+pub struct ChildSpec {
+    pub id: ChildId,
+    pub restart_policy: RestartPolicy,
+    pub shutdown_policy: ShutdownPolicy,
+    pub significant: bool,
+}
+```
+
+### RestartPolicy
+
+Control when children should be restarted:
+
+```rust
+pub enum RestartPolicy {
+    Permanent,   // Always restart on failure
+    Transient,   // Restart only on abnormal termination
+    Temporary,   // Never restart
+}
+```
+
+### RestartStrategy
+
+Choose how supervisor handles child failures:
+
+```rust
+// OneForOne - Restart only the failed child
+use airssys_rt::supervisor::OneForOne;
+let strategy = OneForOne::new();
+
+// OneForAll - Restart all children when one fails
+use airssys_rt::supervisor::OneForAll;
+let strategy = OneForAll::new();
+
+// RestForOne - Restart failed child and those started after it
+use airssys_rt::supervisor::RestForOne;
+let strategy = RestForOne::new();
+```
+
+### SupervisorNode
+
+Create and manage supervision trees:
+
+```rust
+use airssys_rt::supervisor::{SupervisorNode, SupervisorId};
+
+let mut supervisor = SupervisorNode::new(
+    SupervisorId::new(),
+    OneForOne::new(),
+);
+
+supervisor.add_child(child_spec, child_instance).await?;
+supervisor.start_all_children().await?;
+```
+
+### ChildHealth
+
+Health status for monitored actors:
+
+```rust
+pub enum ChildHealth {
+    Healthy,
+    Unhealthy(String),  // Contains error message
+}
+```
+
+## Addressing API
+
+### ActorAddress
+
+Identify actors by address:
+
+```rust
+pub struct ActorAddress {
+    // Implementation details hidden
+}
+
+impl ActorAddress {
+    /// Create anonymous address (UUID-based)
+    pub fn anonymous() -> Self;
+    
+    /// Create named address
+    pub fn named(name: impl Into<String>) -> Self;
+    
+    /// Get actor ID
+    pub fn id(&self) -> &ActorId;
+    
+    /// Get actor name (if any)
+    pub fn name(&self) -> Option<&str>;
+}
+```
+
+### ActorId
+
+Unique identifier using UUIDs:
+
+```rust
+pub struct ActorId(uuid::Uuid);
+
+impl ActorId {
+    pub fn new() -> Self;
+}
+```
+
+## Complete API Example
+
+Here's a complete example using the real APIs:
+
+```rust
+use airssys_rt::{
+    Actor, ActorContext, Message, ErrorAction,
+    broker::{InMemoryMessageBroker, MessageBroker},
+    util::ActorAddress,
+};
+use async_trait::async_trait;
+use serde::{Serialize, Deserialize};
+use std::fmt;
+
+// 1. Define message
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct WorkMessage {
+    task: String,
+}
+
+impl Message for WorkMessage {
+    const MESSAGE_TYPE: &'static str = "work";
+}
+
+// 2. Define actor
+struct WorkerActor {
+    completed: usize,
+}
+
+// 3. Define error
 #[derive(Debug)]
-enum MyMessage {
-    DoWork(String),
-    GetStatus(oneshot::Sender<Status>),
-}
+struct WorkerError(String);
 
-// Implement actor behavior
-impl Actor for MyActor {
-    type Message = MyMessage;
-    
-    async fn handle(&mut self, msg: MyMessage) -> ActorResult<()> {
-        match msg {
-            MyMessage::DoWork(data) => {
-                // Process work
-                self.process(data).await?;
-                Ok(())
-            }
-            MyMessage::GetStatus(sender) => {
-                let status = self.get_status();
-                sender.send(status).map_err(|_| ActorError::ChannelClosed)?;
-                Ok(())
-            }
-        }
+impl fmt::Display for WorkerError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "WorkerError: {}", self.0)
     }
 }
 
-// Use the actor
-async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    let system = ActorSystem::new().await?;
-    let actor_ref = system.spawn(MyActor::new()).await?;
-    
-    // Send messages
-    actor_ref.tell(MyMessage::DoWork("data".to_string())).await?;
-    
-    let (tx, rx) = oneshot::channel();
-    actor_ref.tell(MyMessage::GetStatus(tx)).await?;
-    let status = rx.await?;
-    
-    Ok(())
-}
-```
+impl std::error::Error for WorkerError {}
 
-### Supervision Setup
-```rust
-use airssys_rt::{Supervisor, RestartStrategy, RestartPolicy};
+// 4. Implement Actor trait
+#[async_trait]
+impl Actor for WorkerActor {
+    type Message = WorkMessage;
+    type Error = WorkerError;
 
-async fn setup_supervision() -> Result<(), SupervisionError> {
-    let system = ActorSystem::new().await?;
-    
-    let supervisor = Supervisor::builder()
-        .strategy(RestartStrategy::OneForOne)
-        .policy(RestartPolicy::Permanent)
-        .max_restarts(5)
-        .within_seconds(60)
-        .child("worker1", WorkerActor::new())
-        .child("worker2", WorkerActor::new())
-        .build(&system)
-        .await?;
-    
-    Ok(())
-}
-```
+    async fn pre_start<B: MessageBroker<Self::Message>>(
+        &mut self,
+        context: &mut ActorContext<Self::Message, B>,
+    ) -> Result<(), Self::Error> {
+        println!("Worker {} starting", 
+            context.address().name().unwrap_or("anonymous"));
+        Ok(())
+    }
 
-## Common API Patterns
+    async fn handle_message<B: MessageBroker<Self::Message>>(
+        &mut self,
+        message: Self::Message,
+        context: &mut ActorContext<Self::Message, B>,
+    ) -> Result<(), Self::Error> {
+        println!("Processing: {}", message.task);
+        self.completed += 1;
+        context.record_message();
+        Ok(())
+    }
 
-### Request-Response Pattern
-```rust
-// Define request with response channel
-#[derive(Debug)]
-struct CalculateRequest {
-    x: i32,
-    y: i32,
-    response: oneshot::Sender<i32>,
-}
-
-// Helper trait for ergonomic ask() method
-impl HasResponse for CalculateRequest {
-    type Response = i32;
-    
-    fn with_response(self, sender: oneshot::Sender<Self::Response>) -> Self {
-        CalculateRequest { 
-            x: self.x, 
-            y: self.y, 
-            response: sender 
-        }
+    async fn on_error<B: MessageBroker<Self::Message>>(
+        &mut self,
+        error: Self::Error,
+        _context: &mut ActorContext<Self::Message, B>,
+    ) -> ErrorAction {
+        eprintln!("Error occurred: {}", error);
+        ErrorAction::Restart
     }
 }
 
-// Usage
-let result = actor.ask(CalculateRequest { x: 10, y: 20 }).await?;
-```
-
-### Event Broadcasting
-```rust
-use airssys_rt::{EventBus, Event};
-
-#[derive(Debug, Clone)]
-struct UserCreated {
-    user_id: UserId,
-    timestamp: DateTime<Utc>,
-}
-
-impl Event for UserCreated {
-    fn event_type(&self) -> &'static str {
-        "user.created"
-    }
-}
-
-// Publishing
-let event_bus = EventBus::new();
-event_bus.publish(UserCreated {
-    user_id: user.id,
-    timestamp: Utc::now(),
-}).await?;
-
-// Subscribing
-actor_ref.subscribe::<UserCreated>().await?;
-```
-
-### Actor Pools
-```rust
-use airssys_rt::{ActorPool, RoundRobinStrategy};
-
-let pool = ActorPool::new()
-    .strategy(RoundRobinStrategy::new())
-    .size(10)
-    .factory(|| WorkerActor::new())
-    .build(&system)
-    .await?;
-
-// Submit work to pool
-pool.submit(WorkMessage::Process(data)).await?;
-```
-
-## Error Handling
-
-### Comprehensive Error Types
-```rust
-#[derive(Debug, thiserror::Error)]
-pub enum ActorError {
-    #[error("Actor mailbox is full")]
-    MailboxFull,
+// 5. Use the actor
+async fn run_actor() {
+    let address = ActorAddress::named("worker-1");
+    let broker = InMemoryMessageBroker::new();
+    let mut context = ActorContext::new(address, broker);
     
-    #[error("Actor not found: {id}")]
-    ActorNotFound { id: ProcessId },
+    let mut actor = WorkerActor { completed: 0 };
     
-    #[error("Channel closed unexpectedly")]
-    ChannelClosed,
+    // Start actor
+    actor.pre_start(&mut context).await.unwrap();
     
-    #[error("Business logic error: {0}")]
-    BusinessLogic(String),
+    // Handle message
+    let message = WorkMessage { task: "job-1".to_string() };
+    actor.handle_message(message, &mut context).await.unwrap();
     
-    #[error("Actor timeout after {seconds}s")]
-    Timeout { seconds: u64 },
-}
-
-pub type ActorResult<T> = Result<T, ActorError>;
-```
-
-### Error Recovery Patterns
-```rust
-impl Actor for ResilientActor {
-    async fn handle(&mut self, msg: MyMessage) -> ActorResult<()> {
-        self.process_message(msg).await
-            .or_else(|e| self.handle_recoverable_error(e))
-    }
-    
-    async fn handle_error(&mut self, error: ActorError) -> ErrorAction {
-        match error {
-            ActorError::Timeout { .. } => ErrorAction::Retry,
-            ActorError::BusinessLogic(_) => ErrorAction::Continue,
-            _ => ErrorAction::Stop,
-        }
-    }
+    println!("Messages processed: {}", context.message_count());
 }
 ```
 
-## Performance and Configuration
+## Further Reading
 
-### System Configuration
-```rust
-use airssys_rt::{ActorSystemConfig, SchedulerConfig};
+- **Generated Rustdoc**: Run `cargo doc --open --package airssys-rt` for complete API documentation
+- **Examples**: See `examples/` directory for real, working code
+- **Architecture**: Read [Core Concepts](./architecture/core-concepts.md) for design principles
+- **Implementation Guide**: See [Implementation](./implementation.md) for practical usage patterns
 
-let config = ActorSystemConfig::builder()
-    .max_actors(10000)
-    .message_queue_size(1000)
-    .scheduler(SchedulerConfig {
-        worker_threads: num_cpus::get(),
-        max_blocking_threads: 512,
-    })
-    .build();
-
-let system = ActorSystem::with_config(config).await?;
-```
-
-### Performance Monitoring
-```rust
-use airssys_rt::{ActorMetrics, SystemMetrics};
-
-// Actor-level metrics
-let metrics = actor_ref.metrics().await?;
-println!("Messages processed: {}", metrics.messages_processed);
-println!("Average processing time: {:?}", metrics.avg_processing_time);
-
-// System-level metrics
-let system_metrics = system.metrics().await?;
-println!("Active actors: {}", system_metrics.active_actors);
-println!("Total memory usage: {} bytes", system_metrics.memory_usage);
-```
-
-## Integration APIs
-
-### AirsSys Integration
-```rust
-use airssys_rt::{AirsOslIntegration, SecurityContext, ActivityLogger};
-
-let system = ActorSystem::builder()
-    .integration(AirsOslIntegration::new()
-        .security_context(security_ctx)
-        .activity_logger(logger)
-        .resource_limits(limits))
-    .build()
-    .await?;
-```
-
-### Custom Extensions
-```rust
-use airssys_rt::{ActorSystemExtension, Extension};
-
-struct CustomExtension {
-    config: CustomConfig,
-}
-
-impl Extension for CustomExtension {
-    async fn initialize(&mut self, system: &ActorSystem) -> Result<(), ExtensionError>;
-    async fn actor_spawned(&mut self, actor_id: ProcessId) -> Result<(), ExtensionError>;
-    async fn actor_stopped(&mut self, actor_id: ProcessId) -> Result<(), ExtensionError>;
-}
-```
-
-The API reference provides complete documentation for all public interfaces in `airssys-rt`, enabling you to build robust actor-based applications with full type safety and performance optimization.
+All APIs documented here are implemented and tested. See the working examples for complete usage patterns.

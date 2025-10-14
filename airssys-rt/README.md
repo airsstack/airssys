@@ -15,53 +15,17 @@ A high-performance, fault-tolerant actor runtime for Rust, inspired by the Erlan
 
 ## 🏗️ Core Architecture
 
-### Actor Model Implementation
-```rust
-// Virtual processes with encapsulated state
-struct VirtualProcess {
-    pid: ProcessId,
-    state: ActorState,
-    mailbox: MessageQueue,
-    supervisor: Option<ProcessId>,
-}
+The runtime is built on several key architectural patterns:
 
-// Message-passing communication
-actor.send(Message::Command(data)).await?;
-```
+- **Generic Actor Trait**: `Actor<M, B>` supporting custom message types and broker dependency injection
+- **Broker-Based Communication**: Message routing through `InMemoryMessageBroker` with pub-sub patterns
+- **Supervision Trees**: Hierarchical fault tolerance with configurable restart strategies
+- **Child Lifecycle**: Actors implement `Child` trait for start/stop/health_check lifecycle management
 
-### Supervision Trees
-```rust
-// Hierarchical fault tolerance
-let supervisor = Supervisor::new()
-    .strategy(RestartStrategy::OneForOne)
-    .child("worker1", WorkerActor::new())
-    .child("worker2", WorkerActor::new())
-    .start().await?;
-```
-
-### Message Processing
-```rust
-// Sequential message handling with state isolation
-impl Actor for MyActor {
-    async fn handle(&mut self, msg: Message) -> Result<(), ActorError> {
-        match msg {
-            Message::Process(data) => self.process_data(data).await,
-            Message::Status => self.report_status().await,
-        }
-    }
-}
-```
-
-## ⚡ Performance Characteristics
-
-| Metric | Target | Current Status |
-|--------|--------|----------------|
-| **Concurrent Actors** | 10,000+ | 🏗️ In Development |
-| **Message Latency** | <1ms | 🏗️ In Development |
-| **Message Throughput** | 1M+/sec | 🏗️ In Development |
-| **Memory Per Actor** | <1KB | 🏗️ In Development |
-| **Spawn Time** | <100μs | 🏗️ In Development |
-| **CPU Overhead** | <5% | 🏗️ In Development |
+For detailed architecture documentation and working examples, see:
+- [Architecture Guide](./docs/src/architecture/) - Core concepts and design patterns
+- [Working Examples](./examples/) - Real implementation examples
+- [OSL Integration](#-osl-integration) - Complete broker-based integration example
 
 ## 🧩 Core Components
 
@@ -87,34 +51,17 @@ impl Actor for MyActor {
 
 ## 🎮 Actor Model Principles
 
-### Encapsulation
-```rust
-// Actors maintain private internal state
-struct CounterActor {
-    count: i64,        // Private state - never shared
-    name: String,      // Only accessible via message handling
-}
-```
+The runtime implements core actor model principles:
 
-### Asynchronous Message Passing
-```rust
-// No shared memory - only message communication
-let response = counter_actor
-    .send(CounterMessage::Increment)
-    .await?;
-```
+- **Encapsulation**: Actors maintain private internal state, never shared directly
+- **Message Passing**: Communication only through asynchronous message passing, no shared memory
+- **Sequential Processing**: Messages processed one at a time, ensuring state consistency
+- **Isolation**: Actor failures are isolated and managed by supervisors
 
-### Sequential Processing
-```rust
-// Messages processed one at a time, ensuring consistency
-async fn handle_message(&mut self, msg: CounterMessage) {
-    match msg {
-        CounterMessage::Increment => self.count += 1,
-        CounterMessage::Decrement => self.count -= 1,
-        CounterMessage::GetValue => // return current count
-    }
-}
-```
+See working examples demonstrating these principles:
+- [`examples/actor_basic.rs`](./examples/actor_basic.rs) - Basic actor implementation
+- [`examples/actor_lifecycle.rs`](./examples/actor_lifecycle.rs) - Actor lifecycle management
+- [`examples/supervisor_basic.rs`](./examples/supervisor_basic.rs) - Supervision patterns
 
 ## 🛡️ Fault Tolerance Model
 
@@ -142,51 +89,17 @@ pub enum RestartPolicy {
 ## 🏛️ System Integration
 
 ### AirsSys Ecosystem Integration
-```rust
-use airssys_osl::{SecurityContext, ActivityLogger, ResourceLimits};
 
-// Integration with OS layer for system operations
-let actor = SystemActor::new()
-    .with_security_context(security_ctx)
-    .with_activity_logger(logger)
-    .with_resource_limits(limits)
-    .spawn().await?;
-```
+The runtime integrates with the AirsSys ecosystem through the Operating System Layer (OSL):
+- FileSystem operations through dedicated actors
+- Process management with lifecycle tracking  
+- Network operations with connection handling
+
+See the complete working integration: [`examples/osl_integration_example.rs`](./examples/osl_integration_example.rs)
 
 ### Future WASM Integration
-```rust
-// Planned integration with airssys-wasm
-let wasm_actor = WasmActor::new()
-    .load_component("./component.wasm")
-    .supervised_by(supervisor)
-    .spawn().await?;
-```
 
-## 📊 Development Timeline
-
-### Phase 1: Foundation (Q1 2026)
-- ✅ Research and architecture design
-- 🏗️ Core virtual process implementation
-- 🏗️ Basic message passing system
-- 🏗️ Simple actor lifecycle management
-
-### Phase 2: Supervision (Q2 2026)
-- 🏗️ Supervision tree implementation
-- 🏗️ Restart strategies and policies
-- 🏗️ Fault isolation and error handling
-- 🏗️ Process linking and monitoring
-
-### Phase 3: Optimization (Q2-Q3 2026)
-- 🏗️ Performance optimization and tuning
-- 🏗️ Advanced scheduling strategies
-- 🏗️ Memory management optimization
-- 🏗️ Comprehensive benchmarking
-
-### Phase 4: Advanced Features (Q3-Q4 2026)
-- 🏗️ Distribution support (planned)
-- 🏗️ Hot code loading (research phase)
-- 🏗️ Advanced monitoring and metrics
-- 🏗️ Ecosystem integration completion
+Planned integration with `airssys-wasm` for WebAssembly component hosting. See [Future Use Cases](./docs/src/explanation/future-use-cases.md) for conceptual designs.
 
 ## 📚 Documentation
 
@@ -209,79 +122,36 @@ mdbook serve docs
 mdbook build docs
 ```
 
-## 🎯 Use Cases
-
-### High-Concurrency Servers
-```rust
-// Handle thousands of concurrent connections
-let server = TcpServer::new()
-    .with_connection_actor(ConnectionActor::new())
-    .with_supervisor(connection_supervisor)
-    .bind("0.0.0.0:8080").await?;
-```
-
-### Event-Driven Architecture
-```rust
-// Complex event processing with state management
-let event_processor = EventProcessor::new()
-    .with_handler(OrderHandler::new())
-    .with_handler(PaymentHandler::new())
-    .with_supervisor(business_logic_supervisor)
-    .start().await?;
-```
-
-### System Service Management
-```rust
-// Reliable system service coordination
-let service_manager = ServiceManager::new()
-    .service("database", DatabaseService::new())
-    .service("cache", CacheService::new())
-    .service("metrics", MetricsService::new())
-    .with_restart_strategy(RestartStrategy::OneForOne)
-    .start().await?;
-```
-
 ## 🚀 Getting Started
 
 ### Prerequisites
 - Rust 2021 Edition or later
 - Tokio async runtime
 
-### Basic Example
-```rust
-use airssys_rt::{Actor, ActorSystem, Message};
+### Working Examples
 
-#[derive(Debug)]
-struct PingMessage;
+The best way to get started is to explore the working examples:
 
-struct PingActor {
-    count: usize,
-}
+```bash
+# Basic actor implementation
+cargo run --example actor_basic
 
-impl Actor for PingActor {
-    type Message = PingMessage;
-    
-    async fn handle(&mut self, _msg: PingMessage) -> Result<(), ActorError> {
-        self.count += 1;
-        println!("Ping! Count: {}", self.count);
-        Ok(())
-    }
-}
+# Actor lifecycle management  
+cargo run --example actor_lifecycle
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let system = ActorSystem::new().await?;
-    
-    let ping_actor = PingActor { count: 0 };
-    let actor_ref = system.spawn(ping_actor).await?;
-    
-    actor_ref.send(PingMessage).await?;
-    
-    Ok(())
-}
+# Basic supervision patterns
+cargo run --example supervisor_basic
+
+# Supervisor restart strategies
+cargo run --example supervisor_strategies
+
+# OSL integration (complete system)
+cargo run --example osl_integration_example
 ```
 
-## 🔌 OSL Integration (Phase 2 Complete)
+All examples are fully documented and demonstrate real, working patterns. See the [`examples/`](./examples/) directory for complete source code.
+
+## 🔌 OSL Integration
 
 `airssys-rt` now includes complete integration with the Operating System Layer (OSL) through a supervisor hierarchy managing FileSystem, Process, and Network actors with broker-based communication.
 
@@ -346,7 +216,7 @@ cargo run --example osl_integration_example
 cargo test --package airssys-rt --test supervisor_hierarchy_tests
 ```
 
-### Phase 2 Status
+### Implementation Status
 
 ✅ **Complete** - OSL Integration with Broker Injection
 - FileSystemActor with broker injection (c1f1be0)
@@ -370,7 +240,7 @@ cargo test --package airssys-rt --test supervisor_hierarchy_tests
 
 > [!NOTE]
 >
-> **Current Status**: Active development and architecture phase. Not ready for production use. Target timeline: Q1-Q4 2026.
+> **Current Status**: Active development and architecture phase. Not ready for production use.
 
 ## 🤝 Contributing
 

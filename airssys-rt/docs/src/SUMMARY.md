@@ -29,3 +29,7 @@
     - [Actor Traits](./api/actor-traits.md)
     - [Message Types](./api/message-types.md)
     - [Supervisor API](./api/supervisor-api.md)
+
+## Explanation
+- [Explanation Overview](./explanation.md)
+    - [Future Use Cases](./explanation/future-use-cases.md)

@@ -1,301 +1,434 @@
-# Implementation Overview
+# Implementation Guide
 
-This section provides practical guidance for using `airssys-rt` in your applications, covering everything from basic setup to advanced patterns for building robust actor-based systems.
+This guide provides practical, step-by-step instructions for building applications with `airssys-rt`. All examples are based on the actual implementation and working code from the `examples/` directory.
 
-## Getting Started with airssys-rt
+## Quick Start
 
-The implementation guide is designed to take you from initial setup through advanced usage patterns, providing practical examples and best practices for each step of the development process.
+### Add Dependency
 
-### Prerequisites
-- Rust 2021 Edition or later
-- Basic understanding of async/await programming
-- Familiarity with concurrent programming concepts
-- Knowledge of actor model principles (helpful but not required)
+Add `airssys-rt` to your `Cargo.toml`:
 
-### Development Workflow
-1. **Setup**: Install dependencies and configure your project
-2. **Basic Actors**: Create your first actors and message handlers
-3. **Message Design**: Design effective message protocols
-4. **Supervision**: Implement fault tolerance through supervisor trees
-5. **Optimization**: Performance tuning and monitoring
+```toml
+[dependencies]
+airssys-rt = { path = "../airssys-rt" }  # or version from crates.io when published
+async-trait = "0.1"
+tokio = { version = "1.47", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+```
 
-## Implementation Sections
+### Your First Actor
 
-The implementation guide is organized into practical, step-by-step sections:
+Create a simple counter actor (from `examples/actor_basic.rs`):
 
-### [Getting Started](./implementation/getting-started.md)
-Complete setup and initial project configuration:
-- Project setup and dependency management
-- Basic actor system creation and configuration
-- Your first actor implementation
-- Simple message passing examples
-- Running and testing your actor system
-
-### [Actor Creation](./implementation/actor-creation.md)
-Comprehensive guide to creating and configuring actors:
-- Implementing the Actor trait
-- Actor state design and management
-- Actor lifecycle hooks and callbacks
-- Registration and addressing patterns
-- Actor configuration and customization
-
-### [Message Handling](./implementation/message-handling.md)
-Best practices for designing and handling messages:
-- Message type design and organization
-- Request-response patterns
-- Event broadcasting and subscription
-- Error handling in message processing
-- Message serialization and persistence
-
-### [Supervision Setup](./implementation/supervision-setup.md)
-Building robust supervision hierarchies:
-- Supervisor creation and configuration
-- Restart strategies and policies
-- Error handling and escalation
-- Monitoring and health checks
-- Testing supervision behavior
-
-## Common Implementation Patterns
-
-### Basic Actor Pattern
 ```rust
-use airssys_rt::{Actor, ActorResult, ActorSystem};
+use airssys_rt::{Actor, ActorContext, Message};
+use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 
+// 1. Define your message type
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct CounterMessage {
+    delta: i32,
+}
+
+impl Message for CounterMessage {
+    const MESSAGE_TYPE: &'static str = "counter";
+}
+
+// 2. Define your actor
 struct CounterActor {
-    count: i64,
+    value: i32,
+    max_value: i32,
 }
 
+// 3. Define error type
 #[derive(Debug)]
-enum CounterMessage {
-    Increment,
-    Decrement,
-    GetCount(oneshot::Sender<i64>),
+struct CounterError {
+    message: String,
 }
 
+impl std::fmt::Display for CounterError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "CounterError: {}", self.message)
+    }
+}
+
+impl std::error::Error for CounterError {}
+
+// 4. Implement the Actor trait
+#[async_trait]
 impl Actor for CounterActor {
     type Message = CounterMessage;
-    
-    async fn handle(&mut self, msg: CounterMessage) -> ActorResult<()> {
-        match msg {
-            CounterMessage::Increment => {
-                self.count += 1;
-                Ok(())
-            }
-            CounterMessage::Decrement => {
-                self.count -= 1;
-                Ok(())
-            }
-            CounterMessage::GetCount(sender) => {
-                sender.send(self.count).map_err(|_| {
-                    ActorError::ChannelClosed
-                })?;
-                Ok(())
-            }
+    type Error = CounterError;
+
+    async fn handle_message<B: airssys_rt::broker::MessageBroker<Self::Message>>(
+        &mut self,
+        message: Self::Message,
+        context: &mut ActorContext<Self::Message, B>,
+    ) -> Result<(), Self::Error> {
+        self.value += message.delta;
+
+        if self.value > self.max_value {
+            return Err(CounterError {
+                message: format!("Value {} exceeds maximum {}", 
+                    self.value, self.max_value),
+            });
         }
+
+        context.record_message();
+        Ok(())
     }
 }
 ```
 
-### Supervised Actor Pattern
-```rust
-use airssys_rt::{Supervisor, RestartStrategy, RestartPolicy};
+Run the complete example:
+```bash
+cargo run --example actor_basic
+```
 
-async fn create_supervised_system() -> Result<(), Box<dyn std::error::Error>> {
-    let system = ActorSystem::new().await?;
-    
-    let supervisor = Supervisor::new()
-        .strategy(RestartStrategy::OneForOne)
-        .policy(RestartPolicy::Permanent)
-        .child("counter", CounterActor { count: 0 })
-        .child("logger", LoggerActor::new())
-        .start(&system).await?;
-    
+## Actor Lifecycle Hooks
+
+Actors can override lifecycle hooks for initialization and cleanup (from `examples/actor_lifecycle.rs`):
+
+```rust
+#[async_trait]
+impl Actor for CounterActor {
+    type Message = CounterMessage;
+    type Error = CounterError;
+
+    // Called before actor starts processing messages
+    async fn pre_start<B: MessageBroker<Self::Message>>(
+        &mut self,
+        context: &mut ActorContext<Self::Message, B>,
+    ) -> Result<(), Self::Error> {
+        println!(
+            "[Actor {}] Starting with initial value: {}",
+            context.address().name().unwrap_or("anonymous"),
+            self.value
+        );
+        // Initialize resources here (e.g., database connections)
+        Ok(())
+    }
+
+    // Called when actor stops
+    async fn post_stop<B: MessageBroker<Self::Message>>(
+        &mut self,
+        context: &mut ActorContext<Self::Message, B>,
+    ) -> Result<(), Self::Error> {
+        println!(
+            "[Actor {}] Stopping with final value: {} (processed {} messages)",
+            context.address().name().unwrap_or("anonymous"),
+            self.value,
+            context.message_count()
+        );
+        // Cleanup resources here (e.g., close connections)
+        Ok(())
+    }
+
+    async fn handle_message<B: MessageBroker<Self::Message>>(
+        &mut self,
+        message: Self::Message,
+        context: &mut ActorContext<Self::Message, B>,
+    ) -> Result<(), Self::Error> {
+        // Message handling logic
+        self.value += message.delta;
+        context.record_message();
+        Ok(())
+    }
+}
+```
+
+Run the lifecycle example:
+```bash
+cargo run --example actor_lifecycle
+```
+
+## Error Handling and Supervision
+
+### ErrorAction for Fault Tolerance
+
+Actors return `ErrorAction` from `on_error` to control supervision behavior:
+
+```rust
+use airssys_rt::ErrorAction;
+
+#[async_trait]
+impl Actor for CounterActor {
+    type Message = CounterMessage;
+    type Error = CounterError;
+
+    async fn on_error<B: MessageBroker<Self::Message>>(
+        &mut self,
+        error: Self::Error,
+        context: &mut ActorContext<Self::Message, B>,
+    ) -> ErrorAction {
+        eprintln!("[Actor {}] Error: {}", 
+            context.address().name().unwrap_or("anonymous"), 
+            error);
+        
+        // Supervisor will restart this actor
+        ErrorAction::Restart
+    }
+
+    async fn handle_message<B: MessageBroker<Self::Message>>(
+        &mut self,
+        message: Self::Message,
+        context: &mut ActorContext<Self::Message, B>,
+    ) -> Result<(), Self::Error> {
+        self.value += message.delta;
+
+        if self.value > self.max_value {
+            return Err(CounterError {
+                message: format!("Value {} exceeds maximum", self.value),
+            });
+        }
+
+        Ok(())
+    }
+}
+```
+
+### Building Supervisor Trees
+
+Create supervisors to manage child actors (from `examples/supervisor_basic.rs`):
+
+```rust
+use airssys_rt::supervisor::{
+    Child, ChildHealth, ChildSpec, RestartPolicy, 
+    ShutdownPolicy, SupervisorNode, OneForOne
+};
+use async_trait::async_trait;
+
+// 1. Define a worker that implements Child
+struct SimpleWorker {
+    id: String,
+}
+
+#[async_trait]
+impl Child for SimpleWorker {
+    async fn start(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
+        println!("Worker {} started", self.id);
+        Ok(())
+    }
+
+    async fn stop(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
+        println!("Worker {} stopped", self.id);
+        Ok(())
+    }
+
+    async fn health_check(&self) -> ChildHealth {
+        ChildHealth::Healthy
+    }
+}
+
+// 2. Create supervisor and add children
+async fn create_supervisor() -> Result<(), Box<dyn Error + Send + Sync>> {
+    let mut supervisor = SupervisorNode::new(
+        SupervisorId::new(),
+        OneForOne::new(),  // Restart strategy
+    );
+
+    // Add a child worker
+    supervisor.add_child(
+        ChildSpec {
+            id: ChildId::new(),
+            restart_policy: RestartPolicy::Permanent,
+            shutdown_policy: ShutdownPolicy::default(),
+            significant: true,
+        },
+        Box::new(SimpleWorker {
+            id: "worker-1".to_string(),
+        }),
+    ).await?;
+
+    // Start all children
+    supervisor.start_all_children().await?;
+
     Ok(())
 }
 ```
 
-### Request-Response Pattern
-```rust
-use airssys_rt::{ActorRef, ask};
-
-async fn use_counter(counter: ActorRef<CounterMessage>) -> Result<i64, ActorError> {
-    // Increment the counter
-    counter.tell(CounterMessage::Increment).await?;
-    
-    // Get current count
-    let (sender, receiver) = oneshot::channel();
-    counter.tell(CounterMessage::GetCount(sender)).await?;
-    let count = receiver.await?;
-    
-    Ok(count)
-}
+Run the supervisor example:
+```bash
+cargo run --example supervisor_basic
 ```
 
-## Development Best Practices
+### Restart Strategies
 
-### Actor Design Guidelines
+Choose the appropriate strategy for your use case (from `examples/supervisor_strategies.rs`):
 
-#### 1. Single Responsibility
-Design actors with a clear, focused purpose:
+**OneForOne** - Restart only the failed child:
 ```rust
-// Good: Focused on user management
-struct UserManagerActor {
-    users: HashMap<UserId, User>,
-    database: DatabasePool,
-}
+use airssys_rt::supervisor::OneForOne;
 
-// Avoid: Too many responsibilities
-struct SystemActor {
-    users: HashMap<UserId, User>,
-    orders: Vec<Order>,
-    payments: PaymentProcessor,
-    notifications: NotificationService,
-}
+let supervisor = SupervisorNode::new(
+    SupervisorId::new(),
+    OneForOne::new(),
+);
 ```
 
-#### 2. Immutable Messages
-Design messages as immutable data structures:
+**OneForAll** - Restart all children when one fails:
 ```rust
-// Good: Immutable message with owned data
-#[derive(Debug, Clone)]
-enum UserMessage {
-    CreateUser { name: String, email: String },
-    UpdateUser { id: UserId, changes: UserUpdate },
-}
+use airssys_rt::supervisor::OneForAll;
 
-// Avoid: Mutable references in messages
-enum BadUserMessage {
-    ProcessUser(&mut User),  // Don't do this!
-}
+let supervisor = SupervisorNode::new(
+    SupervisorId::new(),
+    OneForAll::new(),
+);
 ```
 
-#### 3. Clear Error Handling
-Handle errors explicitly and appropriately:
+**RestForOne** - Restart failed child and those started after it:
 ```rust
-impl Actor for UserActor {
-    async fn handle(&mut self, msg: UserMessage) -> ActorResult<()> {
-        match msg {
-            UserMessage::CreateUser { name, email } => {
-                self.create_user(name, email).await
-                    .map_err(|e| ActorError::BusinessLogic(e.to_string()))
+use airssys_rt::supervisor::RestForOne;
+
+let supervisor = SupervisorNode::new(
+    SupervisorId::new(),
+    RestForOne::new(),
+);
+```
+
+Run the strategies example:
+```bash
+cargo run --example supervisor_strategies
+```
+
+## Actor Monitoring
+
+### Health Checks
+
+Implement health checking for supervised actors (from `examples/supervisor_automatic_health.rs`):
+
+```rust
+use airssys_rt::supervisor::{Child, ChildHealth, HealthConfig};
+
+struct MonitoredWorker {
+    is_healthy: bool,
+}
+
+#[async_trait]
+impl Child for MonitoredWorker {
+    async fn start(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
+        self.is_healthy = true;
+        Ok(())
+    }
+
+    async fn stop(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
+        self.is_healthy = false;
+        Ok(())
+    }
+
+    async fn health_check(&self) -> ChildHealth {
+        if self.is_healthy {
+            ChildHealth::Healthy
+        } else {
+            ChildHealth::Unhealthy("Worker is unhealthy".to_string())
+        }
+    }
+}
+
+// Configure automatic health monitoring
+let health_config = HealthConfig {
+    check_interval: Duration::from_secs(5),
+    unhealthy_threshold: 3,
+    restart_on_unhealthy: true,
+};
+```
+
+Run the health monitoring example:
+```bash
+cargo run --example supervisor_automatic_health
+```
+
+### Monitoring System
+
+Use the monitoring system to track actor metrics (from `examples/monitoring_basic.rs` and `examples/monitoring_supervisor.rs`):
+
+```rust
+use airssys_rt::monitoring::{ActorMonitor, MonitoringConfig};
+
+// Monitor individual actors
+let monitor = ActorMonitor::new(MonitoringConfig::default());
+
+// Monitor supervisors
+cargo run --example monitoring_basic
+cargo run --example monitoring_supervisor
+```
+
+## Integration with AirsSys OSL
+
+Integrate with `airssys-osl` for secure system operations (from `examples/osl_integration_example.rs`):
+
+```rust
+use airssys_osl::prelude::*;
+use airssys_rt::{Actor, ActorContext, Message};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+enum FileMessage {
+    ReadFile { path: String },
+    WriteFile { path: String, content: String },
+}
+
+impl Message for FileMessage {
+    const MESSAGE_TYPE: &'static str = "file_operation";
+}
+
+struct FileActor {
+    executor: OslExecutor,
+}
+
+#[async_trait]
+impl Actor for FileActor {
+    type Message = FileMessage;
+    type Error = FileError;
+
+    async fn handle_message<B: MessageBroker<Self::Message>>(
+        &mut self,
+        message: Self::Message,
+        context: &mut ActorContext<Self::Message, B>,
+    ) -> Result<(), Self::Error> {
+        match message {
+            FileMessage::ReadFile { path } => {
+                // Use OSL for secure file operations
+                let content = self.executor.read_file(&path)?;
+                println!("Read {} bytes from {}", content.len(), path);
+                Ok(())
+            }
+            FileMessage::WriteFile { path, content } => {
+                self.executor.write_file(&path, content.as_bytes())?;
+                println!("Wrote to {}", path);
+                Ok(())
             }
         }
     }
 }
 ```
 
-### Message Design Patterns
-
-#### Command-Query Separation
-Separate commands (actions) from queries (data requests):
-```rust
-#[derive(Debug)]
-enum UserCommand {
-    CreateUser { name: String, email: String },
-    UpdateUser { id: UserId, changes: UserUpdate },
-    DeleteUser { id: UserId },
-}
-
-#[derive(Debug)]
-enum UserQuery {
-    GetUser { id: UserId, response: oneshot::Sender<Option<User>> },
-    ListUsers { response: oneshot::Sender<Vec<User>> },
-}
+Run the OSL integration example:
+```bash
+cargo run --example osl_integration_example
 ```
 
-#### Event Sourcing Pattern
-Use events to represent state changes:
-```rust
-#[derive(Debug, Clone)]
-enum UserEvent {
-    UserCreated { id: UserId, name: String, email: String },
-    UserUpdated { id: UserId, changes: UserUpdate },
-    UserDeleted { id: UserId },
-}
-```
+## Complete Examples Reference
 
-### Supervision Strategies
+All working examples are in the `examples/` directory:
 
-#### Choose Appropriate Restart Policies
-```rust
-// Permanent: Critical services that should always be running
-let database_supervisor = Supervisor::new()
-    .policy(RestartPolicy::Permanent)
-    .child("db_pool", DatabasePoolActor::new());
+| Example | Description | Run Command |
+|---------|-------------|-------------|
+| `actor_basic.rs` | Basic actor implementation | `cargo run --example actor_basic` |
+| `actor_lifecycle.rs` | Lifecycle hooks (pre_start, post_stop) | `cargo run --example actor_lifecycle` |
+| `supervisor_basic.rs` | Basic supervision patterns | `cargo run --example supervisor_basic` |
+| `supervisor_strategies.rs` | Restart strategies comparison | `cargo run --example supervisor_strategies` |
+| `supervisor_automatic_health.rs` | Automatic health monitoring | `cargo run --example supervisor_automatic_health` |
+| `monitoring_basic.rs` | Actor monitoring basics | `cargo run --example monitoring_basic` |
+| `monitoring_supervisor.rs` | Supervisor monitoring | `cargo run --example monitoring_supervisor` |
+| `osl_integration_example.rs` | OSL integration for file operations | `cargo run --example osl_integration_example` |
 
-// Temporary: One-time tasks that shouldn't restart
-let task_supervisor = Supervisor::new()
-    .policy(RestartPolicy::Temporary)
-    .child("backup_task", BackupTaskActor::new());
+## Next Steps
 
-// Transient: Services that should restart only on abnormal termination
-let cache_supervisor = Supervisor::new()
-    .policy(RestartPolicy::Transient)
-    .child("cache", CacheActor::new());
-```
+1. **Explore Examples**: Run each example to see the runtime in action
+2. **Build Your Actor**: Start with `actor_basic.rs` as a template
+3. **Add Supervision**: Use `supervisor_basic.rs` for fault tolerance
+4. **Monitor Health**: Implement health checks for production readiness
+5. **Integrate OSL**: Use `osl_integration_example.rs` for system operations
 
-## Testing Strategies
-
-### Unit Testing Actors
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use airssys_rt::testing::ActorTestHarness;
-    
-    #[tokio::test]
-    async fn test_counter_increment() {
-        let mut harness = ActorTestHarness::new(CounterActor { count: 0 });
-        
-        harness.send(CounterMessage::Increment).await;
-        
-        let (sender, receiver) = oneshot::channel();
-        harness.send(CounterMessage::GetCount(sender)).await;
-        let count = receiver.await.unwrap();
-        
-        assert_eq!(count, 1);
-    }
-}
-```
-
-### Integration Testing
-```rust
-#[tokio::test]
-async fn test_user_system_integration() {
-    let system = ActorSystem::new().await.unwrap();
-    
-    let user_manager = system.spawn(UserManagerActor::new()).await.unwrap();
-    let notification_service = system.spawn(NotificationActor::new()).await.unwrap();
-    
-    // Test user creation with notification
-    user_manager.tell(UserMessage::CreateUser {
-        name: "Alice".to_string(),
-        email: "alice@example.com".to_string(),
-    }).await.unwrap();
-    
-    // Verify notification was sent
-    // ... test implementation
-}
-```
-
-## Performance Considerations
-
-### Memory Management
-- Keep actor state minimal and efficient
-- Use `Arc` for sharing large immutable data
-- Implement proper cleanup in actor stop hooks
-- Monitor memory usage in production
-
-### Message Throughput
-- Batch related operations when possible
-- Use zero-copy techniques for large payloads
-- Consider message prioritization for critical operations
-- Profile message processing hot paths
-
-### Scalability Planning
-- Design for horizontal scaling from the start
-- Use actor pools for high-throughput scenarios
-- Implement backpressure for flow control
-- Monitor system metrics and actor health
-
-The implementation guide provides everything you need to build robust, scalable applications using the `airssys-rt` actor runtime.
+All examples demonstrate real, production-ready patterns using the actual `airssys-rt` implementation.

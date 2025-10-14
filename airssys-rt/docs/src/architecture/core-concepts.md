@@ -2,268 +2,489 @@
 
 `airssys-rt` is built around several fundamental concepts adapted from the Erlang/BEAM runtime model. Understanding these concepts is essential for effectively using the actor runtime.
 
-## Virtual Processes
+> **Note**: All code examples in this document are taken from the actual implementation. For complete working examples, see the [examples directory](../../examples/).
 
-### Definition
-Virtual processes in `airssys-rt` are lightweight units of execution that exist entirely in memory. They are similar to:
-- Erlang processes in BEAM
-- Green threads in Go
-- Actors in Akka/Actor frameworks
+## Actors and Message Processing
 
-**Important**: These are **not** operating system processes. They are managed execution contexts within a single OS process.
+### Actor Trait
 
-### Characteristics
-```rust
-struct VirtualProcess {
-    pid: ProcessId,           // Unique identifier
-    state: ActorState,        // Private, encapsulated state
-    mailbox: MessageQueue,    // Incoming message queue
-    supervisor: Option<ProcessId>, // Parent supervisor reference
-    children: HashSet<ProcessId>,  // Child process references
-    status: ProcessStatus,    // Current execution status
-}
-```
-
-### Process Lifecycle
-1. **Spawn**: Process is created and registered in the system
-2. **Running**: Process actively handles messages
-3. **Waiting**: Process is idle, waiting for messages
-4. **Stopping**: Process is shutting down gracefully
-5. **Stopped**: Process has terminated and been cleaned up
-
-## Actor Model
-
-### Encapsulation Principle
-Each actor maintains its own private state that cannot be directly accessed by other actors:
+The core `Actor` trait is the foundation of the runtime system. Every actor must implement this trait with associated types for messages and errors:
 
 ```rust
-struct CounterActor {
-    count: i64,        // Private - no external access
-    name: String,      // Only modified via message handling
-}
+#[async_trait]
+pub trait Actor: Send + Sync + 'static {
+    /// The type of messages this actor can handle.
+    type Message: Message;
 
-impl Actor for CounterActor {
-    type Message = CounterMessage;
-    
-    // Only way to modify state is through message handling
-    async fn handle(&mut self, msg: CounterMessage) -> ActorResult<()> {
-        match msg {
-            CounterMessage::Increment => {
-                self.count += 1;  // State mutation happens here
-                Ok(())
-            }
-            CounterMessage::GetCount => {
-                // Can read state and respond
-                Ok(())
-            }
-        }
+    /// The error type returned by actor operations.
+    type Error: Error + Send + Sync + 'static;
+
+    /// Handle an incoming message.
+    async fn handle_message<B: MessageBroker<Self::Message>>(
+        &mut self,
+        message: Self::Message,
+        context: &mut ActorContext<Self::Message, B>,
+    ) -> Result<(), Self::Error>;
+
+    // Optional lifecycle hooks
+    async fn pre_start<B: MessageBroker<Self::Message>>(
+        &mut self,
+        context: &mut ActorContext<Self::Message, B>,
+    ) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    async fn post_stop<B: MessageBroker<Self::Message>>(
+        &mut self,
+        context: &mut ActorContext<Self::Message, B>,
+    ) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    async fn on_error<B: MessageBroker<Self::Message>>(
+        &mut self,
+        error: Self::Error,
+        context: &mut ActorContext<Self::Message, B>,
+    ) -> ErrorAction {
+        ErrorAction::Restart
     }
 }
 ```
 
-### Actor Identity
-Every actor has a unique identity represented by a `ProcessId`:
+### Actor Context
+
+The `ActorContext` provides metadata and messaging capabilities to actors:
 
 ```rust
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ProcessId(u64);
-
-// Actors are referenced by their PID
-let actor_ref = ActorRef::new(pid);
-actor_ref.send(message).await?;
+pub struct ActorContext<M: Message, B: MessageBroker<M>> {
+    address: ActorAddress,
+    id: ActorId,
+    created_at: DateTime<Utc>,
+    last_message_at: Option<DateTime<Utc>>,
+    message_count: u64,
+    broker: B, // Dependency injection
+    _marker: PhantomData<M>,
+}
 ```
 
-## Message Passing System
+Key methods:
+- `address()` - Get the actor's address
+- `id()` - Get the actor's unique ID
+- `message_count()` - Get total messages processed
+- `record_message()` - Track message processing
+- `send(message, recipient)` - Send messages to other actors
 
-### Message Immutability
-All messages in `airssys-rt` are immutable once sent:
+### Process Lifecycle
+
+Actors go through several lifecycle stages managed by the `ActorLifecycle` struct:
+
+```rust
+pub enum ActorState {
+    Starting,   // Actor is initializing
+    Running,    // Actor is active and processing messages
+    Stopping,   // Actor is shutting down
+    Stopped,    // Actor has stopped successfully
+    Failed,     // Actor has failed (requires supervision)
+}
+```
+
+The `ActorLifecycle` struct provides state management (from `src/actor/lifecycle.rs`):
 
 ```rust
 #[derive(Debug, Clone)]
-pub enum UserMessage {
-    CreateUser { name: String, email: String },
-    UpdateUser { id: UserId, changes: UserUpdate },
-    DeleteUser { id: UserId },
+pub struct ActorLifecycle {
+    state: ActorState,
+    last_state_change: DateTime<Utc>,
+    restart_count: u32,
 }
 
-// Messages are cloned/moved when sent - no shared references
-actor.send(UserMessage::CreateUser {
-    name: "Alice".to_string(),
-    email: "alice@example.com".to_string(),
-}).await?;
-```
-
-### Mailbox Model
-Each actor has a private mailbox (message queue):
-
-```rust
-struct Mailbox {
-    queue: VecDeque<Message>,
-    capacity: Option<usize>,      // Optional bounded capacity
-    backpressure: BackpressureStrategy,
-}
-
-enum BackpressureStrategy {
-    Block,        // Block sender when full
-    Drop,         // Drop new messages when full
-    DropOldest,   // Drop oldest messages when full
+impl ActorLifecycle {
+    pub fn new() -> Self;
+    pub fn state(&self) -> ActorState;
+    pub fn transition_to(&mut self, new_state: ActorState);
+    pub fn restart_count(&self) -> u32;
+    pub fn is_terminal(&self) -> bool;
+    pub fn is_running(&self) -> bool;
 }
 ```
 
-### Sequential Processing
-Messages are processed one at a time, ensuring state consistency:
+## Complete Actor Example
+
+Here's a real actor implementation from `examples/actor_basic.rs`:
 
 ```rust
-// Actor processes messages sequentially
-loop {
-    let message = mailbox.recv().await?;
+// Define a message type
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct CounterMessage {
+    delta: i32,
+}
+
+impl Message for CounterMessage {
+    const MESSAGE_TYPE: &'static str = "counter";
+}
+
+// Define the actor
+struct CounterActor {
+    value: i32,
+    max_value: i32,
+}
+
+// Define error type
+#[derive(Debug)]
+struct CounterError {
+    message: String,
+}
+
+impl fmt::Display for CounterError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "CounterError: {}", self.message)
+    }
+}
+
+impl std::error::Error for CounterError {}
+
+// Implement Actor trait
+#[async_trait]
+impl Actor for CounterActor {
+    type Message = CounterMessage;
+    type Error = CounterError;
+
+    async fn handle_message<B: MessageBroker<Self::Message>>(
+        &mut self,
+        message: Self::Message,
+        context: &mut ActorContext<Self::Message, B>,
+    ) -> Result<(), Self::Error> {
+        self.value += message.delta;
+
+        if self.value > self.max_value {
+            return Err(CounterError {
+                message: format!("Value {} exceeds maximum {}", 
+                    self.value, self.max_value),
+            });
+        }
+
+        context.record_message();
+        Ok(())
+    }
+
+    async fn pre_start<B: MessageBroker<Self::Message>>(
+        &mut self,
+        context: &mut ActorContext<Self::Message, B>,
+    ) -> Result<(), Self::Error> {
+        println!("[Actor {}] Starting with value: {}", 
+            context.address().name().unwrap_or("anonymous"), 
+            self.value);
+        Ok(())
+    }
+
+    async fn post_stop<B: MessageBroker<Self::Message>>(
+        &mut self,
+        context: &mut ActorContext<Self::Message, B>,
+    ) -> Result<(), Self::Error> {
+        println!("[Actor {}] Stopping with value: {}", 
+            context.address().name().unwrap_or("anonymous"), 
+            self.value);
+        Ok(())
+    }
+
+    async fn on_error<B: MessageBroker<Self::Message>>(
+        &mut self,
+        error: Self::Error,
+        _context: &mut ActorContext<Self::Message, B>,
+    ) -> ErrorAction {
+        eprintln!("Error: {}", error);
+        ErrorAction::Restart  // Supervisor will restart this actor
+    }
+}
+```
+
+Run this example:
+```bash
+cargo run --example actor_basic
+```
+
+## Message System
+
+### Message Trait
+
+All messages must implement the `Message` trait:
+
+```rust
+pub trait Message: Clone + Send + Sync + 'static 
+    + for<'de> serde::Deserialize<'de> + serde::Serialize 
+{
+    const MESSAGE_TYPE: &'static str;
+}
+```
+
+### Message Envelope
+
+Messages are wrapped in envelopes for routing:
+
+```rust
+pub struct MessageEnvelope<M> {
+    pub id: MessageId,
+    pub message: M,
+    pub timestamp: DateTime<Utc>,
+    pub reply_to: Option<ActorAddress>,
+}
+```
+
+### Message Broker
+
+The `MessageBroker` trait defines the pub/sub system:
+
+```rust
+#[async_trait]
+pub trait MessageBroker<M: Message>: Clone + Send + Sync + 'static {
+    type Error: Error + Send + Sync + 'static;
+
+    async fn publish(&self, envelope: MessageEnvelope<M>) 
+        -> Result<(), Self::Error>;
     
-    // Only one message processed at a time
-    match self.handle(message).await {
-        Ok(()) => continue,
-        Err(e) => {
-            // Error handling - may trigger supervision
-            self.handle_error(e).await;
+    async fn subscribe(&self, subscriber_id: ActorId) 
+        -> Result<mpsc::Receiver<MessageEnvelope<M>>, Self::Error>;
+}
+```
+
+Current implementation: `InMemoryMessageBroker` (see `src/broker/in_memory.rs`)
+
+## Supervision Framework
+
+### Child Trait
+
+Any entity can be supervised by implementing the `Child` trait:
+
+```rust
+#[async_trait]
+pub trait Child: Send + Sync {
+    async fn start(&mut self) -> Result<(), Box<dyn Error + Send + Sync>>;
+    async fn stop(&mut self) -> Result<(), Box<dyn Error + Send + Sync>>;
+    async fn health_check(&self) -> ChildHealth;
+}
+```
+
+Actors automatically implement `Child` via blanket implementation.
+
+### Supervision Strategies
+
+Three BEAM-inspired restart strategies:
+
+```rust
+pub enum RestartStrategy {
+    OneForOne,   // Restart only the failed child
+    OneForAll,   // Restart all children when one fails
+    RestForOne,  // Restart failed child and those started after it
+}
+```
+
+### Restart Policies
+
+Control when children should be restarted:
+
+```rust
+pub enum RestartPolicy {
+    Permanent,   // Always restart on failure
+    Transient,   // Restart only on abnormal termination
+    Temporary,   // Never restart
+}
+```
+
+### Child Specification
+
+Configure supervised children:
+
+```rust
+pub struct ChildSpec {
+    pub id: ChildId,
+    pub restart_policy: RestartPolicy,
+    pub shutdown_policy: ShutdownPolicy,
+    pub significant: bool,  // Does failure affect supervisor?
+}
+```
+
+### Complete Supervisor Example
+
+From `examples/supervisor_basic.rs`:
+
+```rust
+use airssys_rt::supervisor::{Child, ChildHealth, ChildSpec, RestartPolicy};
+
+// Define a worker that implements Child
+struct SimpleWorker {
+    id: String,
+    fail_on_start: bool,
+}
+
+#[async_trait]
+impl Child for SimpleWorker {
+    async fn start(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
+        if self.fail_on_start {
+            return Err(format!("Worker {} failed to start", self.id).into());
+        }
+        println!("Worker {} started", self.id);
+        Ok(())
+    }
+
+    async fn stop(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
+        println!("Worker {} stopped", self.id);
+        Ok(())
+    }
+
+    async fn health_check(&self) -> ChildHealth {
+        ChildHealth::Healthy
+    }
+}
+
+// Create supervisor with OneForOne strategy
+let mut supervisor = SupervisorNode::new(
+    SupervisorId::new(),
+    OneForOne::new(),
+);
+
+// Add children
+supervisor.add_child(
+    ChildSpec {
+        id: ChildId::new(),
+        restart_policy: RestartPolicy::Permanent,
+        shutdown_policy: ShutdownPolicy::default(),
+        significant: true,
+    },
+    Box::new(SimpleWorker {
+        id: "worker-1".to_string(),
+        fail_on_start: false,
+    }),
+).await?;
+```
+
+Run this example:
+```bash
+cargo run --example supervisor_basic
+```
+
+## Actor Addressing
+
+### ActorAddress
+
+Actors are identified by addresses:
+
+```rust
+pub struct ActorAddress {
+    id: ActorId,
+    name: Option<String>,
+}
+
+impl ActorAddress {
+    pub fn anonymous() -> Self;
+    pub fn named(name: impl Into<String>) -> Self;
+    pub fn id(&self) -> &ActorId;
+    pub fn name(&self) -> Option<&str>;
+}
+```
+
+### ActorId
+
+Unique identifiers for actors:
+
+```rust
+pub struct ActorId(uuid::Uuid);
+
+impl ActorId {
+    pub fn new() -> Self {
+        Self(uuid::Uuid::new_v4())
+    }
+}
+```
+
+## Error Handling
+
+### ErrorAction
+
+Actors return `ErrorAction` from `on_error` to control supervision:
+
+```rust
+pub enum ErrorAction {
+    Resume,       // Continue processing (ignore error)
+    Restart,      // Restart the actor
+    Stop,         // Stop the actor permanently
+    Escalate,     // Pass error to supervisor
+}
+```
+
+### Actor Error Flow
+
+1. Actor's `handle_message` returns `Err(Self::Error)`
+2. Supervisor calls actor's `on_error` method
+3. Actor returns `ErrorAction` to supervisor
+4. Supervisor applies restart strategy based on action
+
+## Integration Patterns
+
+### OSL Integration
+
+Actors can use `airssys-osl` for secure system operations. From `examples/osl_integration_example.rs`:
+
+```rust
+use airssys_osl::prelude::*;
+use airssys_rt::{Actor, ActorContext};
+
+struct FileActor {
+    executor: OslExecutor,
+}
+
+#[async_trait]
+impl Actor for FileActor {
+    type Message = FileMessage;
+    type Error = FileError;
+
+    async fn handle_message<B: MessageBroker<Self::Message>>(
+        &mut self,
+        message: Self::Message,
+        context: &mut ActorContext<Self::Message, B>,
+    ) -> Result<(), Self::Error> {
+        match message {
+            FileMessage::Read { path } => {
+                let result = self.executor.read_file(&path)?;
+                // Process file content
+                Ok(())
+            }
         }
     }
 }
 ```
 
-## Supervision Trees
-
-### Hierarchical Structure
-Supervision trees create a hierarchy of processes where supervisors monitor children:
-
-```rust
-// Parent-child relationships
-Supervisor
-├── WorkerActor1
-├── WorkerActor2
-└── ChildSupervisor
-    ├── WorkerActor3
-    └── WorkerActor4
+Run this example:
+```bash
+cargo run --example osl_integration_example
 ```
 
-### Supervision Strategies
-Different strategies for handling child failures:
+## Architecture Layers
 
-```rust
-pub enum RestartStrategy {
-    OneForOne,    // Restart only the failed child
-    OneForAll,    // Restart all children when one fails
-    RestForOne,   // Restart failed child and those started after it
-}
+The runtime is organized in layers:
 
-pub enum RestartPolicy {
-    Permanent,    // Always restart on failure
-    Temporary,    // Never restart
-    Transient,    // Restart only on abnormal termination
-}
-```
+1. **Message Layer** (`src/message/`) - Message types and envelopes
+2. **Broker Layer** (`src/broker/`) - Pub/sub message routing
+3. **Actor Layer** (`src/actor/`) - Actor trait and context
+4. **Mailbox Layer** (`src/mailbox/`) - Message queue management
+5. **Supervisor Layer** (`src/supervisor/`) - Fault tolerance
+6. **Monitoring Layer** (`src/monitoring/`) - Health checks and metrics
+7. **System Layer** (`src/system/`) - Runtime coordination (planned)
 
-### Fault Isolation
-Failures are contained within the supervision hierarchy:
+Each layer builds on the previous, following Microsoft Rust Guidelines (M-SIMPLE-ABSTRACTIONS).
 
-```rust
-// Child failure doesn't affect siblings (OneForOne strategy)
-Actor1 [RUNNING] ─┐
-                  ├── Supervisor [MONITORING]
-Actor2 [FAILED]  ─┤  └── Restart Actor2
-                  │
-Actor3 [RUNNING] ─┘
-```
+## Working Examples
 
-## Process Communication Patterns
+Explore these examples to understand the runtime:
 
-### Request-Response
-Synchronous-style communication using async/await:
+| Example | Description | Command |
+|---------|-------------|---------|
+| `actor_basic.rs` | Basic actor implementation | `cargo run --example actor_basic` |
+| `actor_lifecycle.rs` | Lifecycle hooks | `cargo run --example actor_lifecycle` |
+| `supervisor_basic.rs` | Basic supervision | `cargo run --example supervisor_basic` |
+| `supervisor_strategies.rs` | Restart strategies | `cargo run --example supervisor_strategies` |
+| `supervisor_automatic_health.rs` | Health monitoring | `cargo run --example supervisor_automatic_health` |
+| `monitoring_basic.rs` | Actor monitoring | `cargo run --example monitoring_basic` |
+| `monitoring_supervisor.rs` | Supervisor monitoring | `cargo run --example monitoring_supervisor` |
+| `osl_integration_example.rs` | OSL integration | `cargo run --example osl_integration_example` |
 
-```rust
-// Send request and wait for response
-let response = actor_ref
-    .ask(CalculateRequest { x: 10, y: 20 })
-    .await?;
-
-match response {
-    CalculateResponse::Result(sum) => println!("Sum: {}", sum),
-    CalculateResponse::Error(e) => eprintln!("Error: {}", e),
-}
-```
-
-### Fire-and-Forget
-Asynchronous messaging without waiting for response:
-
-```rust
-// Send message without waiting
-actor_ref.tell(LogMessage {
-    level: LogLevel::Info,
-    message: "System started".to_string(),
-}).await?;
-```
-
-### Publish-Subscribe
-Event broadcasting to multiple subscribers:
-
-```rust
-// Publisher sends events
-event_bus.publish(UserCreated {
-    user_id: user.id,
-    timestamp: Utc::now(),
-}).await?;
-
-// Multiple actors can subscribe
-analytics_actor.subscribe::<UserCreated>().await?;
-notification_actor.subscribe::<UserCreated>().await?;
-```
-
-## System Architecture Layers
-
-### Runtime Layer
-Core runtime managing process lifecycle:
-- Process registry and addressing
-- Message routing and delivery
-- Scheduler integration with Tokio
-- Resource management and cleanup
-
-### Actor Layer
-High-level actor abstractions:
-- Actor trait definitions
-- Message handling patterns
-- Lifecycle hooks and callbacks
-- State management utilities
-
-### Supervision Layer
-Fault tolerance and monitoring:
-- Supervisor implementations
-- Restart strategies and policies
-- Error handling and escalation
-- System health monitoring
-
-### Integration Layer
-External system integration:
-- airssys-osl integration for OS operations
-- Async/await ecosystem compatibility
-- Metrics and monitoring integration
-- Future airssys-wasm integration
-
-## Performance Considerations
-
-### Memory Efficiency
-- Actors have minimal baseline overhead (<1KB)
-- Messages are efficiently queued and processed
-- Garbage collection is handled by Rust's ownership system
-- No global GC pauses like in BEAM
-
-### CPU Efficiency
-- Cooperative scheduling reduces context switching
-- Zero-copy message passing where possible
-- Efficient actor lookup and routing
-- Integration with Tokio's work-stealing scheduler
-
-### Scalability Characteristics
-- Designed for 10,000+ concurrent actors
-- Sub-millisecond message latency for local delivery
-- Horizontal scaling through distribution (planned)
-- Efficient resource utilization under high load
-
-These core concepts form the foundation of `airssys-rt`'s design and provide the building blocks for creating robust, concurrent applications using the actor model.
+All examples are located in the `examples/` directory and demonstrate real, working implementations of the concepts described in this document.

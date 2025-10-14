@@ -271,9 +271,9 @@ Before writing the first line of code, four fundamental architectural decisions 
   - **Library Pattern:** *Pros:* Simpler to implement initially, decouples application logic from runtime internals. *Cons:* Less powerful, the runtime is not "aware" of the supervision hierarchy, limiting potential optimizations and deep integration.
   - **Runtime Primitive:** *Pros:* A true replication of the OTP model, enables the scheduler to be aware of process links and monitors, allows for a more robust and integrated fault-tolerance system. *Cons:* More complex, requires tight coupling between the process management, scheduling, and supervision components.
 
+## 5. Implementation Phases
 
-
-### 5.2 Phase 1: Building the Core Runtime, Executor, and Scheduler
+### 5.1 Core Runtime, Executor, and Scheduler
 
 The first phase focuses on establishing the absolute core of the runtime: the ability to schedule and execute tasks.
 
@@ -283,9 +283,7 @@ The first phase focuses on establishing the absolute core of the runtime: the ab
    - If **cooperative**, this involves creating a wrapper around a `tokio::runtime::Runtime` and its `Handle`.
 3. **Implement Run Queues and Load Balancing:** Each scheduler thread should have its own run queue. Implement the logic for tasks to be added to these queues and for the scheduler to pull from them. If building for multi-core, implement a work-stealing or process-migration strategy to balance load across schedulers.17
 
-
-
-### 5.3 Phase 2: Implementing Lightweight Processes and Message Passing Infrastructure
+### 5.2 Lightweight Processes and Message Passing Infrastructure
 
 This phase introduces the core abstractions of the actor model: processes and messages.
 
@@ -294,9 +292,7 @@ This phase introduces the core abstractions of the actor model: processes and me
 3. **Design the Mailbox:** Implement the data structure for the process mailbox. A lock-free, multi-producer, single-consumer queue (e.g., from the `crossbeam-channel` crate) is a suitable choice. A decision must be made whether the mailboxes will be bounded (providing back-pressure) or unbounded.
 4. **Implement Message Passing Primitives:** Implement the `send` function. This will involve locating the target process's PCB via its PID, and enqueuing the message into its mailbox. The implementation must adhere to the copy/move semantics chosen in Decision 3.
 
-
-
-### 5.4 Phase 3: Designing a Memory Management and Garbage Collection Strategy
+### 5.3 Memory Management and Garbage Collection Strategy
 
 This phase is only necessary if pursuing the hard isolation model with per-process heaps, as the logical isolation model would rely on Rust's global allocator.
 
@@ -304,9 +300,7 @@ This phase is only necessary if pursuing the hard isolation model with per-proce
 2. **Implement a Garbage Collector:** Start with a simple, correct GC algorithm. A Cheney's two-space copying collector is a classic and well-understood choice for functional languages.19
 3. **Integrate GC with the Runtime:** The GC needs to be triggered at appropriate times. This could be when a process's heap allocator fails to satisfy a request. The process would be suspended, the GC would run on its heap, and then the process would be rescheduled. The root set for the GC would be the process's stack and registers.19
 
-
-
-### 5.5 Phase 4: Advanced Features - Supervision, Distribution, and Dynamic Code Reloading
+### 5.4 Advanced Features - Supervision, Distribution, and Dynamic Code Reloading
 
 With the core runtime in place, the advanced features that define the Erlang/OTP experience can be built.
 
