@@ -376,9 +376,11 @@ where
     /// # Examples
     ///
     /// ```rust
-    /// use airssys_rt::osl::OSLSupervisor;
+    /// use airssys_rt::osl::{OSLSupervisor, OSLMessage};
+    /// use airssys_rt::broker::InMemoryMessageBroker;
     ///
-    /// let osl_supervisor = OSLSupervisor::new();
+    /// let broker = InMemoryMessageBroker::<OSLMessage>::new();
+    /// let osl_supervisor = OSLSupervisor::new(broker);
     /// let fs_addr = osl_supervisor.filesystem_addr();
     /// assert_eq!(fs_addr.name().unwrap(), "osl-filesystem");
     /// ```
@@ -398,9 +400,11 @@ where
     /// # Examples
     ///
     /// ```rust
-    /// use airssys_rt::osl::OSLSupervisor;
+    /// use airssys_rt::osl::{OSLSupervisor, OSLMessage};
+    /// use airssys_rt::broker::InMemoryMessageBroker;
     ///
-    /// let osl_supervisor = OSLSupervisor::new();
+    /// let broker = InMemoryMessageBroker::<OSLMessage>::new();
+    /// let osl_supervisor = OSLSupervisor::new(broker);
     /// let proc_addr = osl_supervisor.process_addr();
     /// assert_eq!(proc_addr.name().unwrap(), "osl-process");
     /// ```
@@ -420,9 +424,11 @@ where
     /// # Examples
     ///
     /// ```rust
-    /// use airssys_rt::osl::OSLSupervisor;
+    /// use airssys_rt::osl::{OSLSupervisor, OSLMessage};
+    /// use airssys_rt::broker::InMemoryMessageBroker;
     ///
-    /// let osl_supervisor = OSLSupervisor::new();
+    /// let broker = InMemoryMessageBroker::<OSLMessage>::new();
+    /// let osl_supervisor = OSLSupervisor::new(broker);
     /// let net_addr = osl_supervisor.network_addr();
     /// assert_eq!(net_addr.name().unwrap(), "osl-network");
     /// ```

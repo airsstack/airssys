@@ -12,17 +12,17 @@
 //! ## Example
 //!
 //! ```rust,no_run
-//! use airssys_rt::osl::{FileSystemActor, FileSystemRequest, FileSystemOperation};
+//! use airssys_rt::osl::{FileSystemActor, FileSystemRequest, FileSystemOperation, OSLMessage};
 //! use airssys_rt::actor::{Actor, ActorContext};
 //! use airssys_rt::broker::InMemoryMessageBroker;
 //! use airssys_rt::util::{ActorAddress, MessageId};
 //! use std::path::PathBuf;
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! let broker = InMemoryMessageBroker::new();
+//! let broker = InMemoryMessageBroker::<OSLMessage>::new();
 //! let mut actor = FileSystemActor::new(broker.clone());
 //! let actor_addr = ActorAddress::named("fs-actor");
-//! let mut context = ActorContext::new(actor_addr, broker);
+//! let mut context = ActorContext::new(actor_addr, InMemoryMessageBroker::new());
 //!
 //! let request = FileSystemRequest {
 //!     request_id: MessageId::new(),

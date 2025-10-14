@@ -30,18 +30,20 @@
 //! ## Usage Example
 //!
 //! ```rust,no_run
-//! use airssys_rt::osl::{FileSystemActor, FileSystemRequest, FileSystemOperation};
+//! use airssys_rt::osl::{FileSystemActor, FileSystemRequest, FileSystemOperation, OSLMessage};
 //! use airssys_rt::actor::{Actor, ActorContext};
 //! use airssys_rt::broker::InMemoryMessageBroker;
 //! use airssys_rt::util::{ActorAddress, MessageId};
 //! use std::path::PathBuf;
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! // Create FileSystemActor for centralized file operations
-//! let mut fs_actor = FileSystemActor::new();
-//! let broker = InMemoryMessageBroker::new();
+//! // Create broker for message passing
+//! let broker = InMemoryMessageBroker::<OSLMessage>::new();
+//!
+//! // Create FileSystemActor with broker dependency injection
+//! let mut fs_actor = FileSystemActor::new(broker.clone());
 //! let actor_addr = ActorAddress::named("fs-actor");
-//! let mut context = ActorContext::new(actor_addr, broker);
+//! let mut context = ActorContext::new(actor_addr, InMemoryMessageBroker::new());
 //!
 //! // Send message to FileSystemActor
 //! let request = FileSystemRequest {
@@ -74,4 +76,4 @@ pub use actors::{
     ProcessResponse, ProcessResult,
 };
 
-pub use supervisor::OSLSupervisor;
+pub use supervisor::{OSLMessage, OSLSupervisor};
