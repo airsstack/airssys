@@ -14,16 +14,26 @@
 //!
 //! When the ProcessActor stops (via Child::stop()), it automatically terminates
 //! all spawned processes, preventing zombie processes.
+//!
+//! ## Broker Injection (ADR-RT-009)
+//!
+//! ProcessActor accepts MessageBroker via dependency injection for response publishing.
+//! This enables testability, flexibility, and follows Microsoft Rust Guidelines M-DI-HIERARCHY.
 
+// Layer 1: Standard library imports
 use std::collections::HashMap;
+use std::marker::PhantomData;
 use std::path::PathBuf;
 use std::time::Duration;
 
+// Layer 2: Third-party crate imports
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 
+// Layer 3: Internal module imports
 use crate::actor::{Actor, ActorContext, ErrorAction};
 use crate::broker::MessageBroker;
+use crate::message::{Message, MessageEnvelope};
 use crate::supervisor::{Child, ChildHealth};
 
 use super::messages::{
@@ -43,7 +53,29 @@ use super::messages::{
 /// - Automatic cleanup when actor stops (no zombie processes)
 /// - Clean fault isolation (process failures don't crash app actors)
 /// - Superior testability (mock this actor in tests)
-pub struct ProcessActor {
+///
+/// ## Generic Parameters
+///
+/// - `M`: Message type that must implement `Message` trait and support conversion from ProcessResponse
+/// - `B`: MessageBroker implementation for publishing responses
+///
+/// ## Example
+///
+/// ```rust,ignore
+/// use airssys_rt::broker::InMemoryMessageBroker;
+/// use airssys_rt::osl::ProcessActor;
+///
+/// let broker = InMemoryMessageBroker::new();
+/// let actor = ProcessActor::new(broker.clone());
+/// ```
+pub struct ProcessActor<M, B>
+where
+    M: Message,
+    B: MessageBroker<M>,
+{
+    /// Message broker for publishing responses
+    broker: B,
+
     /// Spawned processes registry
     spawned_processes: HashMap<u32, ProcessHandle>,
 
@@ -58,6 +90,9 @@ pub struct ProcessActor {
 
     /// Last operation timestamp
     last_operation_at: Option<DateTime<Utc>>,
+
+    /// Phantom data for message type
+    _phantom: PhantomData<M>,
 }
 
 #[derive(Debug, Clone)]
@@ -70,15 +105,25 @@ struct ProcessHandle {
     state: ProcessState,
 }
 
-impl ProcessActor {
-    /// Create a new ProcessActor
-    pub fn new() -> Self {
+impl<M, B> ProcessActor<M, B>
+where
+    M: Message + 'static,
+    B: MessageBroker<M> + Clone + 'static,
+{
+    /// Create a new ProcessActor with broker injection
+    ///
+    /// # Arguments
+    ///
+    /// * `broker` - MessageBroker instance for publishing responses
+    pub fn new(broker: B) -> Self {
         Self {
+            broker,
             spawned_processes: HashMap::new(),
             next_process_id: 1,
             operation_count: 0,
             created_at: Utc::now(),
             last_operation_at: None,
+            _phantom: PhantomData,
         }
     }
 
@@ -243,21 +288,21 @@ impl ProcessActor {
     }
 }
 
-impl Default for ProcessActor {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+// No Default implementation - broker must be explicitly provided
 
 #[async_trait]
-impl Actor for ProcessActor {
+impl<M, B> Actor for ProcessActor<M, B>
+where
+    M: Message + serde::Serialize + serde::Deserialize<'static> + From<ProcessResponse> + 'static,
+    B: MessageBroker<M> + Clone + Send + Sync + 'static,
+{
     type Message = ProcessRequest;
     type Error = ProcessError;
 
-    async fn handle_message<B: MessageBroker<Self::Message>>(
+    async fn handle_message<Broker: MessageBroker<Self::Message>>(
         &mut self,
         message: Self::Message,
-        _context: &mut ActorContext<Self::Message, B>,
+        _context: &mut ActorContext<Self::Message, Broker>,
     ) -> Result<(), Self::Error> {
         // Execute operation
         let result = self.execute_operation(message.operation).await;
@@ -268,17 +313,19 @@ impl Actor for ProcessActor {
             result,
         };
 
-        // Send response via broker
-        // TODO: Need to use broker.publish() directly
-        println!("ProcessActor response: {response:?}");
+        // Publish response via injected broker
+        let envelope = MessageEnvelope::new(M::from(response));
+        if let Err(e) = self.broker.publish(envelope).await {
+            eprintln!("Failed to publish ProcessResponse: {e:?}");
+        }
 
         Ok(())
     }
 
-    async fn on_error<B: MessageBroker<Self::Message>>(
+    async fn on_error<Broker: MessageBroker<Self::Message>>(
         &mut self,
         error: Self::Error,
-        _context: &mut ActorContext<Self::Message, B>,
+        _context: &mut ActorContext<Self::Message, Broker>,
     ) -> ErrorAction {
         eprintln!("ProcessActor error: {error:?}");
         ErrorAction::Resume
@@ -286,7 +333,11 @@ impl Actor for ProcessActor {
 }
 
 #[async_trait]
-impl Child for ProcessActor {
+impl<M, B> Child for ProcessActor<M, B>
+where
+    M: Message + Send + 'static,
+    B: MessageBroker<M> + Clone + Send + Sync + 'static,
+{
     type Error = ProcessError;
 
     async fn start(&mut self) -> Result<(), Self::Error> {
@@ -327,30 +378,50 @@ impl Child for ProcessActor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::broker::InMemoryMessageBroker;
+
+    // Mock message type for testing
+    #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+    struct TestMessage {
+        #[allow(dead_code)]
+        data: String,
+    }
+
+    impl Message for TestMessage {
+        const MESSAGE_TYPE: &'static str = "test::message";
+    }
+
+    impl From<ProcessResponse> for TestMessage {
+        fn from(_resp: ProcessResponse) -> Self {
+            TestMessage {
+                data: "process_response".to_string(),
+            }
+        }
+    }
+
+    // Type alias for convenience
+    type TestProcessActor = ProcessActor<TestMessage, InMemoryMessageBroker<TestMessage>>;
 
     #[test]
     fn test_process_actor_new() {
-        let actor = ProcessActor::new();
+        let broker = InMemoryMessageBroker::<TestMessage>::new();
+        let actor = TestProcessActor::new(broker);
         assert_eq!(actor.spawned_process_count(), 0);
         assert_eq!(actor.operation_count(), 0);
     }
 
-    #[test]
-    fn test_process_actor_default() {
-        let actor = ProcessActor::default();
-        assert_eq!(actor.spawned_process_count(), 0);
-    }
-
     #[tokio::test]
     async fn test_process_actor_health_check() {
-        let actor = ProcessActor::new();
+        let broker = InMemoryMessageBroker::<TestMessage>::new();
+        let actor = TestProcessActor::new(broker);
         let health = actor.health_check().await;
         assert_eq!(health, ChildHealth::Healthy);
     }
 
     #[tokio::test]
     async fn test_process_actor_health_degraded() {
-        let mut actor = ProcessActor::new();
+        let broker = InMemoryMessageBroker::<TestMessage>::new();
+        let mut actor = TestProcessActor::new(broker);
 
         // Add many spawned processes to trigger degraded state (threshold is 100)
         for i in 0..101 {

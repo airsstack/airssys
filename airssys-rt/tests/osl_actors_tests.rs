@@ -18,11 +18,38 @@ use std::time::Duration;
 use airssys_rt::actor::context::ActorContext;
 use airssys_rt::actor::traits::Actor;
 use airssys_rt::broker::InMemoryMessageBroker;
+use airssys_rt::message::Message;
 use airssys_rt::osl::actors::{
-    FileSystemActor, FileSystemOperation, FileSystemRequest, NetworkActor, NetworkOperation,
-    NetworkRequest, ProcessActor, ProcessOperation, ProcessRequest,
+    FileSystemActor, FileSystemOperation, FileSystemRequest, FileSystemResponse, NetworkActor,
+    NetworkOperation, NetworkRequest, ProcessActor, ProcessOperation, ProcessRequest,
+    ProcessResponse,
 };
 use airssys_rt::util::{ActorAddress, MessageId};
+
+// Unified test message type for OSL actor tests
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+enum TestOSLMessage {
+    FileSystemReq(FileSystemRequest),
+    FileSystemResp(FileSystemResponse),
+    ProcessReq(ProcessRequest),
+    ProcessResp(ProcessResponse),
+}
+
+impl Message for TestOSLMessage {
+    const MESSAGE_TYPE: &'static str = "test::osl::message";
+}
+
+impl From<FileSystemResponse> for TestOSLMessage {
+    fn from(resp: FileSystemResponse) -> Self {
+        TestOSLMessage::FileSystemResp(resp)
+    }
+}
+
+impl From<ProcessResponse> for TestOSLMessage {
+    fn from(resp: ProcessResponse) -> Self {
+        TestOSLMessage::ProcessResp(resp)
+    }
+}
 
 // ============================================================================
 // FileSystem Actor Integration Tests
@@ -30,8 +57,8 @@ use airssys_rt::util::{ActorAddress, MessageId};
 
 #[tokio::test]
 async fn test_filesystem_actor_read_file_operation() {
-    let mut actor = FileSystemActor::new();
-    let broker = InMemoryMessageBroker::new();
+    let broker = InMemoryMessageBroker::<TestOSLMessage>::new();
+    let mut actor = FileSystemActor::new(broker.clone());
     let actor_addr = ActorAddress::named("fs-actor");
     let reply_to = ActorAddress::named("test");
     let mut context = ActorContext::new(actor_addr, broker);
@@ -55,8 +82,8 @@ async fn test_filesystem_actor_read_file_operation() {
 
 #[tokio::test]
 async fn test_filesystem_actor_write_file_operation() {
-    let mut actor = FileSystemActor::new();
-    let broker = InMemoryMessageBroker::new();
+    let broker = InMemoryMessageBroker::<TestOSLMessage>::new();
+    let mut actor = FileSystemActor::new(broker.clone());
     let actor_addr = ActorAddress::named("fs-actor");
     let reply_to = ActorAddress::named("test");
     let mut context = ActorContext::new(actor_addr, broker);
@@ -78,8 +105,8 @@ async fn test_filesystem_actor_write_file_operation() {
 
 #[tokio::test]
 async fn test_filesystem_actor_create_directory_operation() {
-    let mut actor = FileSystemActor::new();
-    let broker = InMemoryMessageBroker::new();
+    let broker = InMemoryMessageBroker::<TestOSLMessage>::new();
+    let mut actor = FileSystemActor::new(broker.clone());
     let actor_addr = ActorAddress::named("fs-actor");
     let reply_to = ActorAddress::named("test");
     let mut context = ActorContext::new(actor_addr, broker);
@@ -100,8 +127,8 @@ async fn test_filesystem_actor_create_directory_operation() {
 
 #[tokio::test]
 async fn test_filesystem_actor_delete_file_operation() {
-    let mut actor = FileSystemActor::new();
-    let broker = InMemoryMessageBroker::new();
+    let broker = InMemoryMessageBroker::<TestOSLMessage>::new();
+    let mut actor = FileSystemActor::new(broker.clone());
     let actor_addr = ActorAddress::named("fs-actor");
     let reply_to = ActorAddress::named("test");
     let mut context = ActorContext::new(actor_addr, broker);
@@ -122,8 +149,8 @@ async fn test_filesystem_actor_delete_file_operation() {
 
 #[tokio::test]
 async fn test_filesystem_actor_multiple_operations() {
-    let mut actor = FileSystemActor::new();
-    let broker = InMemoryMessageBroker::new();
+    let broker = InMemoryMessageBroker::<TestOSLMessage>::new();
+    let mut actor = FileSystemActor::new(broker.clone());
     let actor_addr = ActorAddress::named("fs-actor");
     let reply_to = ActorAddress::named("test");
     let mut context = ActorContext::new(actor_addr, broker);
@@ -145,8 +172,8 @@ async fn test_filesystem_actor_multiple_operations() {
 
 #[tokio::test]
 async fn test_filesystem_actor_request_id_correlation() {
-    let mut actor = FileSystemActor::new();
-    let broker = InMemoryMessageBroker::new();
+    let broker = InMemoryMessageBroker::<TestOSLMessage>::new();
+    let mut actor = FileSystemActor::new(broker.clone());
     let actor_addr = ActorAddress::named("fs-actor");
     let reply_to = ActorAddress::named("test");
     let mut context = ActorContext::new(actor_addr, broker);
@@ -175,8 +202,8 @@ async fn test_filesystem_actor_request_id_correlation() {
 
 #[tokio::test]
 async fn test_process_actor_spawn_operation() {
-    let mut actor = ProcessActor::new();
-    let broker = InMemoryMessageBroker::new();
+    let broker = InMemoryMessageBroker::<TestOSLMessage>::new();
+    let mut actor = ProcessActor::new(broker.clone());
     let actor_addr = ActorAddress::named("proc-actor");
     let reply_to = ActorAddress::named("test");
     let mut context = ActorContext::new(actor_addr, broker);
@@ -200,8 +227,8 @@ async fn test_process_actor_spawn_operation() {
 
 #[tokio::test]
 async fn test_process_actor_terminate_operation() {
-    let mut actor = ProcessActor::new();
-    let broker = InMemoryMessageBroker::new();
+    let broker = InMemoryMessageBroker::<TestOSLMessage>::new();
+    let mut actor = ProcessActor::new(broker.clone());
     let actor_addr = ActorAddress::named("proc-actor");
     let reply_to = ActorAddress::named("test");
     let mut context = ActorContext::new(actor_addr, broker);
@@ -224,8 +251,8 @@ async fn test_process_actor_terminate_operation() {
 
 #[tokio::test]
 async fn test_process_actor_get_status_operation() {
-    let mut actor = ProcessActor::new();
-    let broker = InMemoryMessageBroker::new();
+    let broker = InMemoryMessageBroker::<TestOSLMessage>::new();
+    let mut actor = ProcessActor::new(broker.clone());
     let actor_addr = ActorAddress::named("proc-actor");
     let reply_to = ActorAddress::named("test");
     let mut context = ActorContext::new(actor_addr, broker);
@@ -244,8 +271,8 @@ async fn test_process_actor_get_status_operation() {
 
 #[tokio::test]
 async fn test_process_actor_wait_operation() {
-    let mut actor = ProcessActor::new();
-    let broker = InMemoryMessageBroker::new();
+    let broker = InMemoryMessageBroker::<TestOSLMessage>::new();
+    let mut actor = ProcessActor::new(broker.clone());
     let actor_addr = ActorAddress::named("proc-actor");
     let reply_to = ActorAddress::named("test");
     let mut context = ActorContext::new(actor_addr, broker);
@@ -267,8 +294,8 @@ async fn test_process_actor_wait_operation() {
 
 #[tokio::test]
 async fn test_process_actor_multiple_operations() {
-    let mut actor = ProcessActor::new();
-    let broker = InMemoryMessageBroker::new();
+    let broker = InMemoryMessageBroker::<TestOSLMessage>::new();
+    let mut actor = ProcessActor::new(broker.clone());
     let actor_addr = ActorAddress::named("proc-actor");
     let reply_to = ActorAddress::named("test");
     let mut context = ActorContext::new(actor_addr, broker);
@@ -298,7 +325,7 @@ async fn test_process_actor_multiple_operations() {
 #[tokio::test]
 async fn test_network_actor_tcp_connect_operation() {
     let mut actor = NetworkActor::new();
-    let broker = InMemoryMessageBroker::new();
+    let broker = InMemoryMessageBroker::<TestOSLMessage>::new();
     let actor_addr = ActorAddress::named("net-actor");
     let reply_to = ActorAddress::named("test");
     let mut context = ActorContext::new(actor_addr, broker);
@@ -322,7 +349,7 @@ async fn test_network_actor_tcp_connect_operation() {
 #[tokio::test]
 async fn test_network_actor_tcp_disconnect_operation() {
     let mut actor = NetworkActor::new();
-    let broker = InMemoryMessageBroker::new();
+    let broker = InMemoryMessageBroker::<TestOSLMessage>::new();
     let actor_addr = ActorAddress::named("net-actor");
     let reply_to = ActorAddress::named("test");
     let mut context = ActorContext::new(actor_addr, broker);
@@ -342,7 +369,7 @@ async fn test_network_actor_tcp_disconnect_operation() {
 #[tokio::test]
 async fn test_network_actor_udp_bind_operation() {
     let mut actor = NetworkActor::new();
-    let broker = InMemoryMessageBroker::new();
+    let broker = InMemoryMessageBroker::<TestOSLMessage>::new();
     let actor_addr = ActorAddress::named("net-actor");
     let reply_to = ActorAddress::named("test");
     let mut context = ActorContext::new(actor_addr, broker);
@@ -363,7 +390,7 @@ async fn test_network_actor_udp_bind_operation() {
 #[tokio::test]
 async fn test_network_actor_udp_close_operation() {
     let mut actor = NetworkActor::new();
-    let broker = InMemoryMessageBroker::new();
+    let broker = InMemoryMessageBroker::<TestOSLMessage>::new();
     let actor_addr = ActorAddress::named("net-actor");
     let reply_to = ActorAddress::named("test");
     let mut context = ActorContext::new(actor_addr, broker);
@@ -383,7 +410,7 @@ async fn test_network_actor_udp_close_operation() {
 #[tokio::test]
 async fn test_network_actor_get_connection_status_operation() {
     let mut actor = NetworkActor::new();
-    let broker = InMemoryMessageBroker::new();
+    let broker = InMemoryMessageBroker::<TestOSLMessage>::new();
     let actor_addr = ActorAddress::named("net-actor");
     let reply_to = ActorAddress::named("test");
     let mut context = ActorContext::new(actor_addr, broker);
@@ -403,7 +430,7 @@ async fn test_network_actor_get_connection_status_operation() {
 #[tokio::test]
 async fn test_network_actor_multiple_connections() {
     let mut actor = NetworkActor::new();
-    let broker = InMemoryMessageBroker::new();
+    let broker = InMemoryMessageBroker::<TestOSLMessage>::new();
     let actor_addr = ActorAddress::named("net-actor");
     let reply_to = ActorAddress::named("test");
     let mut context = ActorContext::new(actor_addr, broker);
@@ -432,12 +459,12 @@ async fn test_network_actor_multiple_connections() {
 #[tokio::test]
 async fn test_all_actors_use_separate_brokers() {
     // Each actor type needs its own broker due to message type specialization
-    let fs_broker = InMemoryMessageBroker::new();
-    let proc_broker = InMemoryMessageBroker::new();
-    let net_broker = InMemoryMessageBroker::new();
+    let fs_broker = InMemoryMessageBroker::<TestOSLMessage>::new();
+    let proc_broker = InMemoryMessageBroker::<TestOSLMessage>::new();
+    let net_broker = InMemoryMessageBroker::<TestOSLMessage>::new();
 
-    let mut fs_actor = FileSystemActor::new();
-    let mut proc_actor = ProcessActor::new();
+    let mut fs_actor = FileSystemActor::new(fs_broker.clone());
+    let mut proc_actor = ProcessActor::new(proc_broker.clone());
     let mut net_actor = NetworkActor::new();
 
     let fs_addr = ActorAddress::named("fs-actor");
@@ -491,8 +518,9 @@ async fn test_all_actors_use_separate_brokers() {
 
 #[tokio::test]
 async fn test_concurrent_operations() {
-    let broker = InMemoryMessageBroker::new();
-    let mut actor = FileSystemActor::new();
+    let broker = InMemoryMessageBroker::<TestOSLMessage>::new();
+    let broker = InMemoryMessageBroker::<TestOSLMessage>::new();
+    let mut actor = FileSystemActor::new(broker.clone());
     let actor_addr = ActorAddress::named("fs-actor");
     let reply_to = ActorAddress::named("test");
 
@@ -533,8 +561,8 @@ async fn test_unique_request_ids() {
 
 #[tokio::test]
 async fn test_request_preserves_id() {
-    let mut actor = FileSystemActor::new();
-    let broker = InMemoryMessageBroker::new();
+    let broker = InMemoryMessageBroker::<TestOSLMessage>::new();
+    let mut actor = FileSystemActor::new(broker.clone());
     let actor_addr = ActorAddress::named("fs-actor");
     let reply_to = ActorAddress::named("test");
     let mut context = ActorContext::new(actor_addr, broker);
@@ -563,7 +591,8 @@ async fn test_request_preserves_id() {
 
 #[tokio::test]
 async fn test_filesystem_actor_initial_state() {
-    let actor = FileSystemActor::new();
+    let broker = InMemoryMessageBroker::<TestOSLMessage>::new();
+    let actor = FileSystemActor::new(broker);
 
     // Initially no operations
     assert_eq!(actor.operation_count(), 0);
@@ -571,7 +600,8 @@ async fn test_filesystem_actor_initial_state() {
 
 #[tokio::test]
 async fn test_process_actor_initial_state() {
-    let actor = ProcessActor::new();
+    let broker = InMemoryMessageBroker::<TestOSLMessage>::new();
+    let actor = ProcessActor::new(broker);
 
     // Initially no spawned processes
     assert_eq!(actor.spawned_process_count(), 0);
@@ -592,8 +622,8 @@ async fn test_network_actor_initial_state() {
 
 #[tokio::test]
 async fn test_process_actor_handles_invalid_pid() {
-    let mut actor = ProcessActor::new();
-    let broker = InMemoryMessageBroker::new();
+    let broker = InMemoryMessageBroker::<TestOSLMessage>::new();
+    let mut actor = ProcessActor::new(broker.clone());
     let actor_addr = ActorAddress::named("proc-actor");
     let reply_to = ActorAddress::named("test");
     let mut context = ActorContext::new(actor_addr, broker);
@@ -612,7 +642,7 @@ async fn test_process_actor_handles_invalid_pid() {
 #[tokio::test]
 async fn test_network_actor_handles_invalid_connection() {
     let mut actor = NetworkActor::new();
-    let broker = InMemoryMessageBroker::new();
+    let broker = InMemoryMessageBroker::<TestOSLMessage>::new();
     let actor_addr = ActorAddress::named("net-actor");
     let reply_to = ActorAddress::named("test");
     let mut context = ActorContext::new(actor_addr, broker);

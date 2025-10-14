@@ -54,7 +54,7 @@ use tokio::sync::Mutex;
 // Layer 3: Internal module imports
 use crate::broker::InMemoryMessageBroker;
 use crate::message::Message;
-use crate::monitoring::{InMemoryMonitor, MonitoringConfig};
+use crate::monitoring::{InMemoryMonitor, MonitoringConfig, SupervisionEvent};
 use crate::supervisor::{
     Child, ChildHealth, ChildSpec, RestForOne, RestartPolicy, ShutdownPolicy, Supervisor,
     SupervisorNode,
@@ -101,6 +101,30 @@ impl From<NetworkResponse> for OSLMessage {
     }
 }
 
+// Type aliases to reduce complexity (clippy::type_complexity)
+type FileSystemSupervisor = Arc<
+    Mutex<
+        SupervisorNode<
+            RestForOne,
+            FileSystemActor<OSLMessage, InMemoryMessageBroker<OSLMessage>>,
+            InMemoryMonitor<SupervisionEvent>,
+        >,
+    >,
+>;
+
+type ProcessSupervisor = Arc<
+    Mutex<
+        SupervisorNode<
+            RestForOne,
+            ProcessActor<OSLMessage, InMemoryMessageBroker<OSLMessage>>,
+            InMemoryMonitor<SupervisionEvent>,
+        >,
+    >,
+>;
+
+type NetworkSupervisor =
+    Arc<Mutex<SupervisorNode<RestForOne, NetworkActor, InMemoryMonitor<SupervisionEvent>>>>;
+
 /// Supervisor for OS Layer integration actors.
 ///
 /// Manages FileSystemActor, ProcessActor, and NetworkActor with RestForOne
@@ -139,37 +163,13 @@ impl From<NetworkResponse> for OSLMessage {
 /// ```
 pub struct OSLSupervisor {
     /// Supervisor managing FileSystemActor (refactored with broker injection)
-    supervisor_fs: Arc<
-        Mutex<
-            SupervisorNode<
-                RestForOne,
-                FileSystemActor<OSLMessage, InMemoryMessageBroker<OSLMessage>>,
-                InMemoryMonitor<crate::monitoring::SupervisionEvent>,
-            >,
-        >,
-    >,
+    supervisor_fs: FileSystemSupervisor,
 
-    /// Supervisor managing ProcessActor (pending refactoring - Task 2.1.1)
-    supervisor_proc: Arc<
-        Mutex<
-            SupervisorNode<
-                RestForOne,
-                ProcessActor,
-                InMemoryMonitor<crate::monitoring::SupervisionEvent>,
-            >,
-        >,
-    >,
+    /// Supervisor managing ProcessActor (refactored with broker injection)
+    supervisor_proc: ProcessSupervisor,
 
-    /// Supervisor managing NetworkActor
-    supervisor_net: Arc<
-        Mutex<
-            SupervisorNode<
-                RestForOne,
-                NetworkActor,
-                InMemoryMonitor<crate::monitoring::SupervisionEvent>,
-            >,
-        >,
-    >,
+    /// Supervisor managing NetworkActor (pending refactoring - Task 2.1.1)
+    supervisor_net: NetworkSupervisor,
 
     /// Actor addresses for message routing
     filesystem_addr: ActorAddress,
@@ -257,9 +257,10 @@ impl OSLSupervisor {
             return Ok(());
         }
 
-        // Create temporary broker for FileSystemActor (refactored in Task 2.1.1)
+        // Create temporary brokers for refactored actors (FileSystem and Process)
         // TODO(Task 2.1.2): Make OSLSupervisor generic and inject shared broker to all actors
         let fs_broker = InMemoryMessageBroker::<OSLMessage>::new();
+        let proc_broker = InMemoryMessageBroker::<OSLMessage>::new();
 
         // Start FileSystemActor first (no dependencies)
         {
@@ -277,13 +278,13 @@ impl OSLSupervisor {
             sup.start_child(spec).await?;
         }
 
-        // Start ProcessActor second
-        // TODO(Task 2.1.1): Refactor ProcessActor to accept broker injection
+        // Start ProcessActor second (refactored with broker injection)
         {
             let mut sup = self.supervisor_proc.lock().await;
+            let broker_clone = proc_broker.clone();
             let spec = ChildSpec {
                 id: "process".to_string(),
-                factory: ProcessActor::new,
+                factory: move || ProcessActor::new(broker_clone.clone()),
                 restart_policy: RestartPolicy::Permanent,
                 shutdown_policy: ShutdownPolicy::Graceful(Duration::from_secs(5)),
                 start_timeout: Duration::from_secs(10),

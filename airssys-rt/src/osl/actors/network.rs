@@ -312,7 +312,9 @@ mod tests {
 
         // Add many connections to trigger degraded state
         for i in 0..101 {
-            let addr = format!("127.0.0.1:{}", 8000 + i).parse().unwrap();
+            let addr = format!("127.0.0.1:{}", 8000 + i)
+                .parse()
+                .expect("valid socket address");
             actor.active_connections.insert(
                 i,
                 ConnectionHandle {
