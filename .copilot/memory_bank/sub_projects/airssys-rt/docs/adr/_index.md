@@ -2,8 +2,8 @@
 
 **Sub-Project:** airssys-rt  
 **Last Updated:** 2025-10-14  
-**Total ADRs:** 8  
-**Active ADRs:** 8  
+**Total ADRs:** 9  
+**Active ADRs:** 9  
 
 ## Active ADRs
 
@@ -95,7 +95,7 @@ Simplifies backpressure strategies from four to three by removing misleading `Dr
 
 ---
 
-### ADR-RT-007: Hierarchical Supervisor Architecture for OSL Integration ⭐ **NEW**
+### ADR-RT-007: Hierarchical Supervisor Architecture for OSL Integration
 **Status**: Accepted | **Date**: 2025-10-11  
 **File**: [adr_rt_007_hierarchical_supervisor_architecture.md](./adr_rt_007_hierarchical_supervisor_architecture.md)
 
@@ -145,6 +145,40 @@ Resolves the incompatibility between OSL request-response pattern (oneshot chann
 
 **Related ADR**:
 - ADR-RT-007: Hierarchical Supervisor Architecture (defines OSL actor structure)
+
+---
+
+### ADR-RT-009: OSL Broker Dependency Injection ⭐ **NEW**
+**Status**: Accepted | **Date**: 2025-10-14  
+**File**: [adr_rt_009_osl_broker_injection.md](./adr_rt_009_osl_broker_injection.md)  
+**Related**: ADR-RT-001 (Zero-Cost Abstractions), ADR-RT-002 (Message Passing), ADR-RT-007 (OSL Architecture)
+
+Addresses critical architectural gap discovered during RT-TASK-009 Phase 2: OSL actors had no MessageBroker integration, preventing message-based communication. Refactors OSLSupervisor and OSL actors to accept broker injection via generic constraints.
+
+**Key Decisions**:
+- OSL actors generic over broker: `FileSystemActor<M, B: MessageBroker<M>>`
+- OSLSupervisor generic over broker: `OSLSupervisor<M, B>`
+- Broker injected via constructor, cloned to child actors
+- Factory closures capture broker for SupervisorNode ChildSpec
+- Follows Microsoft Rust Guidelines M-DI-HIERARCHY (trait bounds over concrete types)
+
+**Impact**:
+- **Testability**: Can inject mock brokers for comprehensive testing
+- **Flexibility**: Support different broker implementations (in-memory, distributed)
+- **Standards Compliance**: Aligns with Microsoft Rust Guidelines
+- **Generic Complexity**: OSLSupervisor becomes generic, types propagate upward
+- **Breaking Change**: Existing OSL code requires broker injection parameter
+
+**Architecture Pattern**:
+```rust
+// Production
+let broker = InMemoryMessageBroker::new();
+let osl_supervisor = OSLSupervisor::new(broker);
+
+// Testing
+let mock_broker = MockBroker::new();
+let osl_supervisor = OSLSupervisor::new(mock_broker);
+```
 
 ---
 
