@@ -30,23 +30,29 @@
 //! ## Usage Example
 //!
 //! ```rust,no_run
-//! use airssys_rt::osl::{FileSystemActor, FileSystemMessage, FileSystemResponse};
-//! use airssys_rt::{ActorSystem, SupervisorNode, OneForOne};
+//! use airssys_rt::osl::{FileSystemActor, FileSystemRequest, FileSystemOperation};
+//! use airssys_rt::actor::{Actor, ActorContext};
+//! use airssys_rt::broker::InMemoryMessageBroker;
+//! use airssys_rt::util::{ActorAddress, MessageId};
 //! use std::path::PathBuf;
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! // Create OSL supervisor with FileSystemActor
-//! let mut supervisor = SupervisorNode::new(
-//!     "osl-supervisor".into(),
-//!     OneForOne::new(),
-//!     airssys_rt::NoopMonitor,
-//! );
+//! // Create FileSystemActor for centralized file operations
+//! let mut fs_actor = FileSystemActor::new();
+//! let broker = InMemoryMessageBroker::new();
+//! let actor_addr = ActorAddress::named("fs-actor");
+//! let mut context = ActorContext::new(actor_addr, broker);
 //!
-//! // Application actors send messages to FileSystemActor
-//! // let response = filesystem_actor.send(FileSystemMessage::ReadFile {
-//! //     path: PathBuf::from("config.txt"),
-//! //     respond_to: tx,
-//! // }).await?;
+//! // Send message to FileSystemActor
+//! let request = FileSystemRequest {
+//!     request_id: MessageId::new(),
+//!     reply_to: ActorAddress::named("client"),
+//!     operation: FileSystemOperation::ReadFile {
+//!         path: PathBuf::from("config.txt"),
+//!     },
+//! };
+//!
+//! fs_actor.handle_message(request, &mut context).await?;
 //! # Ok(())
 //! # }
 //! ```

@@ -12,21 +12,27 @@
 //! ## Example
 //!
 //! ```rust,no_run
-//! use airssys_rt::osl::{FileSystemActor, FileSystemMessage, FileSystemResponse};
-//! use airssys_rt::{Actor, ActorContext};
+//! use airssys_rt::osl::{FileSystemActor, FileSystemRequest, FileSystemOperation};
+//! use airssys_rt::actor::{Actor, ActorContext};
+//! use airssys_rt::broker::InMemoryMessageBroker;
+//! use airssys_rt::util::{ActorAddress, MessageId};
 //! use std::path::PathBuf;
-//! use tokio::sync::oneshot;
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! let actor = FileSystemActor::new();
+//! let mut actor = FileSystemActor::new();
+//! let broker = InMemoryMessageBroker::new();
+//! let actor_addr = ActorAddress::named("fs-actor");
+//! let mut context = ActorContext::new(actor_addr, broker);
 //!
-//! let (tx, rx) = oneshot::channel();
-//! // actor.handle(FileSystemMessage::ReadFile {
-//! //     path: PathBuf::from("config.txt"),
-//! //     respond_to: tx,
-//! // }, &context).await?;
+//! let request = FileSystemRequest {
+//!     request_id: MessageId::new(),
+//!     reply_to: ActorAddress::named("client"),
+//!     operation: FileSystemOperation::ReadFile {
+//!         path: PathBuf::from("config.txt"),
+//!     },
+//! };
 //!
-//! let response = rx.await?;
+//! actor.handle_message(request, &mut context).await?;
 //! # Ok(())
 //! # }
 //! ```
@@ -168,7 +174,11 @@ impl FileSystemActor {
     }
 
     /// Handle WriteFile operation
-    async fn handle_write_file(&self, path: std::path::PathBuf, content: Vec<u8>) -> FileSystemResult {
+    async fn handle_write_file(
+        &self,
+        path: std::path::PathBuf,
+        content: Vec<u8>,
+    ) -> FileSystemResult {
         // TODO: Integrate with airssys-osl helper functions
         match std::fs::write(&path, &content) {
             Ok(_) => FileSystemResult::WriteSuccess,
@@ -304,9 +314,11 @@ impl Actor for FileSystemActor {
 
         // Send response via broker (casting to generic message type)
         // The broker will route this to the reply_to address
-        let _response_msg = serde_json::to_string(&response)
-            .map_err(|e| FileSystemError::Other { message: e.to_string() })?;
-        
+        let _response_msg =
+            serde_json::to_string(&response).map_err(|e| FileSystemError::Other {
+                message: e.to_string(),
+            })?;
+
         // TODO: Need to use broker.publish() directly instead of context.send()
         // For now, just log the response
         println!("FileSystemActor response: {response:?}");
@@ -352,7 +364,10 @@ impl Child for FileSystemActor {
     async fn health_check(&self) -> ChildHealth {
         // Simple health check: too many active operations = degraded
         if self.active_operations.len() > 100 {
-            ChildHealth::Degraded(format!("Too many active operations: {}", self.active_operations.len()))
+            ChildHealth::Degraded(format!(
+                "Too many active operations: {}",
+                self.active_operations.len()
+            ))
         } else {
             ChildHealth::Healthy
         }

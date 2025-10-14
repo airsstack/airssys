@@ -16,8 +16,7 @@
 //!
 //! ```rust,no_run
 //! use airssys_rt::osl::{FileSystemRequest, FileSystemOperation, FileSystemResponse};
-//! use airssys_rt::util::ActorAddress;
-//! use airssys_rt::message::MessageId;
+//! use airssys_rt::util::{ActorAddress, MessageId};
 //! use std::path::PathBuf;
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
