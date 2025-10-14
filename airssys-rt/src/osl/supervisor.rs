@@ -44,6 +44,7 @@
 //! ```
 
 // Layer 1: Standard library imports
+use std::marker::PhantomData;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -52,7 +53,7 @@ use async_trait::async_trait;
 use tokio::sync::Mutex;
 
 // Layer 3: Internal module imports
-use crate::broker::InMemoryMessageBroker;
+use crate::broker::MessageBroker;
 use crate::message::Message;
 use crate::monitoring::{InMemoryMonitor, MonitoringConfig, SupervisionEvent};
 use crate::supervisor::{
@@ -101,36 +102,16 @@ impl From<NetworkResponse> for OSLMessage {
     }
 }
 
-// Type aliases to reduce complexity (clippy::type_complexity)
-type FileSystemSupervisor = Arc<
-    Mutex<
-        SupervisorNode<
-            RestForOne,
-            FileSystemActor<OSLMessage, InMemoryMessageBroker<OSLMessage>>,
-            InMemoryMonitor<SupervisionEvent>,
-        >,
-    >,
+// Generic type aliases to reduce type complexity (clippy::type_complexity)
+type FileSystemSupervisor<M, B> = Arc<
+    Mutex<SupervisorNode<RestForOne, FileSystemActor<M, B>, InMemoryMonitor<SupervisionEvent>>>,
 >;
 
-type ProcessSupervisor = Arc<
-    Mutex<
-        SupervisorNode<
-            RestForOne,
-            ProcessActor<OSLMessage, InMemoryMessageBroker<OSLMessage>>,
-            InMemoryMonitor<SupervisionEvent>,
-        >,
-    >,
->;
+type ProcessSupervisor<M, B> =
+    Arc<Mutex<SupervisorNode<RestForOne, ProcessActor<M, B>, InMemoryMonitor<SupervisionEvent>>>>;
 
-type NetworkSupervisor = Arc<
-    Mutex<
-        SupervisorNode<
-            RestForOne,
-            NetworkActor<OSLMessage, InMemoryMessageBroker<OSLMessage>>,
-            InMemoryMonitor<SupervisionEvent>,
-        >,
-    >,
->;
+type NetworkSupervisor<M, B> =
+    Arc<Mutex<SupervisorNode<RestForOne, NetworkActor<M, B>, InMemoryMonitor<SupervisionEvent>>>>;
 
 /// Supervisor for OS Layer integration actors.
 ///
@@ -144,15 +125,23 @@ type NetworkSupervisor = Arc<
 /// single `SupervisorNode` due to Rust's type system. This is acceptable as each
 /// actor is managed independently with the same RestForOne strategy.
 ///
+/// # Generic Parameters
+///
+/// - `M`: Unified message type that wraps all OSL message types (FileSystem, Process, Network)
+/// - `B`: Message broker for inter-actor communication
+///
 /// # Examples
 ///
 /// ```rust,ignore
 /// use airssys_rt::osl::OSLSupervisor;
+/// use airssys_rt::broker::InMemoryMessageBroker;
+/// use airssys_rt::osl::OSLMessage;
 /// use std::time::Duration;
 ///
 /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-/// // Create OSL supervisor
-/// let osl_supervisor = OSLSupervisor::new();
+/// // Create OSL supervisor with broker
+/// let broker = InMemoryMessageBroker::<OSLMessage>::new();
+/// let osl_supervisor = OSLSupervisor::new(broker);
 ///
 /// // Start all OSL actors
 /// osl_supervisor.start().await.map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
@@ -168,15 +157,25 @@ type NetworkSupervisor = Arc<
 /// # Ok(())
 /// # }
 /// ```
-pub struct OSLSupervisor {
+pub struct OSLSupervisor<M, B>
+where
+    M: Message + 'static,
+    B: MessageBroker<M> + Clone + 'static,
+{
+    /// Message broker shared by all OSL actors
+    broker: B,
+
+    /// Phantom data for message type
+    _phantom: std::marker::PhantomData<M>,
+
     /// Supervisor managing FileSystemActor (refactored with broker injection)
-    supervisor_fs: FileSystemSupervisor,
+    supervisor_fs: FileSystemSupervisor<M, B>,
 
     /// Supervisor managing ProcessActor (refactored with broker injection)
-    supervisor_proc: ProcessSupervisor,
+    supervisor_proc: ProcessSupervisor<M, B>,
 
-    /// Supervisor managing NetworkActor (pending refactoring - Task 2.1.1)
-    supervisor_net: NetworkSupervisor,
+    /// Supervisor managing NetworkActor (refactored with broker injection)
+    supervisor_net: NetworkSupervisor<M, B>,
 
     /// Actor addresses for message routing
     filesystem_addr: ActorAddress,
@@ -187,11 +186,20 @@ pub struct OSLSupervisor {
     started: Arc<Mutex<bool>>,
 }
 
-impl OSLSupervisor {
-    /// Create a new OSLSupervisor with default configuration.
+impl<M, B> OSLSupervisor<M, B>
+where
+    M: Message + 'static,
+    B: MessageBroker<M> + Clone + 'static,
+{
+    /// Create a new OSLSupervisor with the given broker.
     ///
     /// Creates three separate supervisor instances (one per actor type) due to
     /// generic constraints. All use RestForOne strategy for consistency.
+    /// All three actors share the same broker for unified message passing.
+    ///
+    /// # Arguments
+    ///
+    /// * `broker` - Shared message broker for all OSL actors
     ///
     /// # Returns
     ///
@@ -201,10 +209,13 @@ impl OSLSupervisor {
     ///
     /// ```rust
     /// use airssys_rt::osl::OSLSupervisor;
+    /// use airssys_rt::broker::InMemoryMessageBroker;
+    /// use airssys_rt::osl::OSLMessage;
     ///
-    /// let osl_supervisor = OSLSupervisor::new();
+    /// let broker = InMemoryMessageBroker::<OSLMessage>::new();
+    /// let osl_supervisor = OSLSupervisor::new(broker);
     /// ```
-    pub fn new() -> Self {
+    pub fn new(broker: B) -> Self {
         // Create supervisors for each actor type
         let supervisor_fs = Arc::new(Mutex::new(SupervisorNode::new(
             RestForOne,
@@ -225,6 +236,8 @@ impl OSLSupervisor {
         let network_addr = ActorAddress::named("osl-network");
 
         Self {
+            broker,
+            _phantom: PhantomData,
             supervisor_fs,
             supervisor_proc,
             supervisor_net,
@@ -264,11 +277,10 @@ impl OSLSupervisor {
             return Ok(());
         }
 
-        // Create temporary brokers for refactored actors (FileSystem, Process, and Network)
-        // TODO(Task 2.1.2): Make OSLSupervisor generic and inject shared broker to all actors
-        let fs_broker = InMemoryMessageBroker::<OSLMessage>::new();
-        let proc_broker = InMemoryMessageBroker::<OSLMessage>::new();
-        let net_broker = InMemoryMessageBroker::<OSLMessage>::new();
+        // Use shared broker for all actors (ADR-RT-009: Broker Dependency Injection)
+        let fs_broker = self.broker.clone();
+        let proc_broker = self.broker.clone();
+        let net_broker = self.broker.clone();
 
         // Start FileSystemActor first (no dependencies)
         {
@@ -457,12 +469,6 @@ impl OSLSupervisor {
     }
 }
 
-impl Default for OSLSupervisor {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 /// OSLSupervisor error type
 #[derive(Debug)]
 pub struct OSLSupervisorError {
@@ -490,7 +496,11 @@ impl From<Box<dyn std::error::Error + Send + Sync>> for OSLSupervisorError {
 /// This allows OSLSupervisor to be managed as a child of a higher-level
 /// supervisor, enabling hierarchical supervisor architectures.
 #[async_trait]
-impl Child for OSLSupervisor {
+impl<M, B> Child for OSLSupervisor<M, B>
+where
+    M: Message + 'static,
+    B: MessageBroker<M> + Clone + 'static,
+{
     type Error = OSLSupervisorError;
 
     async fn start(&mut self) -> Result<(), Self::Error> {
@@ -518,10 +528,12 @@ impl Child for OSLSupervisor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::broker::InMemoryMessageBroker;
 
     #[test]
     fn test_new_osl_supervisor() {
-        let osl_supervisor = OSLSupervisor::new();
+        let broker = InMemoryMessageBroker::<OSLMessage>::new();
+        let osl_supervisor = OSLSupervisor::new(broker);
 
         // Verify actor addresses are configured correctly
         assert_eq!(
@@ -534,7 +546,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_health_check_before_start() {
-        let osl_supervisor = OSLSupervisor::new();
+        let broker = InMemoryMessageBroker::<OSLMessage>::new();
+        let osl_supervisor = OSLSupervisor::new(broker);
 
         let health = osl_supervisor.health_check().await;
         assert!(matches!(health, ChildHealth::Degraded(_)));
@@ -542,7 +555,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_health_check_after_start() {
-        let osl_supervisor = OSLSupervisor::new();
+        let broker = InMemoryMessageBroker::<OSLMessage>::new();
+        let osl_supervisor = OSLSupervisor::new(broker);
         assert!(osl_supervisor.start().await.is_ok());
 
         let health = osl_supervisor.health_check().await;
