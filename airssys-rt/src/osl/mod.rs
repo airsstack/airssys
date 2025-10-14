@@ -64,6 +64,7 @@
 //! - **KNOWLEDGE-RT-016**: Process Group Management - Future Considerations
 
 pub mod actors;
+pub mod supervisor;
 
 // Re-export commonly used types
 pub use actors::{
@@ -72,3 +73,5 @@ pub use actors::{
     NetworkResponse, NetworkResult, ProcessActor, ProcessError, ProcessOperation, ProcessRequest,
     ProcessResponse, ProcessResult,
 };
+
+pub use supervisor::OSLSupervisor;
