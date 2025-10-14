@@ -71,7 +71,7 @@ use super::actors::{FileSystemActor, NetworkActor, ProcessActor};
 // Temporary unified message type for OSL actors (until full generic refactoring in Task 2.1.2)
 // This allows actors to communicate using a common message envelope
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-enum OSLMessage {
+pub enum OSLMessage {
     FileSystemReq(FileSystemRequest),
     FileSystemResp(FileSystemResponse),
     ProcessReq(ProcessRequest),
