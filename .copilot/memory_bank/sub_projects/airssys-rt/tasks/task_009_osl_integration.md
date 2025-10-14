@@ -1,8 +1,8 @@
 # [RT-TASK-009] - OSL Integration  
 
-**Status:** pending  
+**Status:** in-progress (Phase 1: 80% complete - 4/5 subtasks done)  
 **Added:** 2025-10-02  
-**Updated:** 2025-10-11  
+**Updated:** 2025-10-14  
 **Architecture:** Hierarchical Supervisors with OSL Integration Actors
 
 ## Original Request
@@ -35,8 +35,9 @@ RootSupervisor
 
 **Related Documentation:**
 - **ADR-RT-007**: Hierarchical Supervisor Architecture for OSL Integration
+- **ADR-RT-008**: OSL Message Wrapper Pattern for Cloneable Messages (Oct 14, 2025)
 - **KNOWLEDGE-RT-016**: Process Group Management - Future Considerations (deferred)
-- **KNOWLEDGE-RT-017**: OSL Integration Actors Pattern (implementation guide)
+- **KNOWLEDGE-RT-017**: OSL Integration Actors Pattern (needs update for wrapper pattern)
 
 ## YAGNI Decisions (2025-10-11)
 
@@ -60,27 +61,45 @@ This creates a unified runtime that leverages OSL's system capabilities through 
 
 ## Implementation Plan
 
-### Phase 1: OSL Integration Actors (Days 1-4)
-**Deliverables:**
-- FileSystemActor implementation with message protocol
-- ProcessActor implementation with lifecycle tracking
-- NetworkActor implementation with connection pooling
-- Message protocols for all OSL operations
-- Unit tests with mock OSL client
+### Phase 1: OSL Integration Actors (Days 1-4) - 80% COMPLETE ✅
+**Status:** 4/5 subtasks complete (Phase 1A-1D done, Phase 1E pending)
 
-**Files:**
-- `src/osl/actors/filesystem.rs` - FileSystemActor
-- `src/osl/actors/process.rs` - ProcessActor
-- `src/osl/actors/network.rs` - NetworkActor
-- `src/osl/actors/messages.rs` - Message protocol definitions
-- `tests/osl_actors_tests.rs` - Unit tests
+**Completed (2025-10-14):**
+- ✅ **Phase 1A**: Module structure created (`src/osl/mod.rs`, actor files)
+- ✅ **Phase 1B**: Message protocol with ADR-RT-008 wrapper pattern
+  - Three-layer design: *Operation, *Request, *Response
+  - All message types cloneable (Clone + Serialize + Deserialize)
+  - MessageId-based correlation for request-response matching
+- ✅ **Phase 1C**: Actor implementations refactored
+  - FileSystemActor, ProcessActor, NetworkActor with execute_operation()
+  - Actor trait: handle_message() implementation
+  - Child trait: start(), stop(Duration), health_check() implementation
+  - Removed all oneshot channel dependencies
+- ✅ **Phase 1D**: Compilation & quality validation
+  - Zero compilation errors, zero warnings, zero clippy warnings
+  - 17/17 embedded tests passing
+  - Modern Rust idioms (inline format args, thiserror, #[async_trait])
+
+**Remaining:**
+- ⏳ **Phase 1E**: Integration tests in `tests/osl_actors_tests.rs`
+  - Comprehensive unit tests with mock broker
+  - Test request-response flow and message correlation
+  - Target: >95% test coverage for actor logic
+
+**Files (Completed):**
+- ✅ `src/osl/mod.rs` - Module exports (88 lines)
+- ✅ `src/osl/actors/filesystem.rs` - FileSystemActor (406 lines, 7 tests)
+- ✅ `src/osl/actors/process.rs` - ProcessActor (372 lines, 5 tests)
+- ✅ `src/osl/actors/network.rs` - NetworkActor (329 lines, 5 tests)
+- ✅ `src/osl/actors/messages.rs` - Message protocols (332 lines, 2 tests)
+- ⏳ `tests/osl_actors_tests.rs` - Integration tests (pending)
 
 **Acceptance Criteria:**
-- All three OSL actors implement Actor + Child traits
-- Message-based request-response pattern working
-- Mock OSL client used in tests (no real OS operations)
-- >95% test coverage for actor logic
-- Zero warnings compilation
+- ✅ All three OSL actors implement Actor + Child traits
+- ✅ Message-based request-response pattern implemented (ADR-RT-008)
+- ⏳ Mock OSL client used in tests (no real OS operations) - pending Phase 1E
+- ⏳ >95% test coverage for actor logic - pending Phase 1E
+- ✅ Zero warnings compilation
 
 ### Phase 2: Hierarchical Supervisor Setup (Days 5-6)
 **Deliverables:**
@@ -162,6 +181,14 @@ This creates a unified runtime that leverages OSL's system capabilities through 
 | 9.12 | Performance benchmarks | not_started | 2025-10-11 | Message passing overhead |
 
 ## Progress Log
+### 2025-10-14
+- **CRITICAL ARCHITECTURE DECISION**: OSL Message Wrapper Pattern for Cloneable Messages
+- **ADR-RT-008** created: OSL Message Wrapper Pattern
+- **Problem Resolved**: OSL messages with oneshot::Sender can't implement Clone (required by Message trait)
+- **Solution**: Wrapper pattern with `*Operation` + `*Request` + `*Response`, broker-based routing
+- **Impact**: OSL actors fully integrated with Actor trait, request-response via MessageId correlation
+- **Implementation**: Refactor message types, update actor implementations, fix compilation errors
+
 ### 2025-10-11
 - **MAJOR ARCHITECTURE DECISION**: Adopted hierarchical supervisor pattern with OSL integration actors
 - **ADR-RT-007** created: Hierarchical Supervisor Architecture for OSL Integration

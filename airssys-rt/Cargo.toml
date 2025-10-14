@@ -36,6 +36,10 @@ dashmap = { workspace = true }
 # Random number generation for pool strategies
 rand = { workspace = true }
 
+# Unix process signals (Unix-only, for ProcessActor)
+[target.'cfg(unix)'.dependencies]
+nix = { workspace = true }
+
 [dev-dependencies]
 tokio-test = { workspace = true }
 

@@ -1,9 +1,9 @@
 # airssys-rt Architecture Decision Records Index
 
 **Sub-Project:** airssys-rt  
-**Last Updated:** 2025-10-11  
-**Total ADRs:** 6  
-**Active ADRs:** 6  
+**Last Updated:** 2025-10-14  
+**Total ADRs:** 8  
+**Active ADRs:** 8  
 
 ## Active ADRs
 
@@ -122,6 +122,32 @@ Simplifies backpressure strategies from four to three by removing misleading `Dr
 
 ---
 
+### ADR-RT-008: OSL Message Wrapper Pattern for Cloneable Messages
+**Status**: Accepted | **Date**: 2025-10-14  
+**File**: [adr_rt_008_osl_message_wrapper_pattern.md](./adr_rt_008_osl_message_wrapper_pattern.md)  
+**Supersedes**: Initial OSL actor design with oneshot channels
+
+Resolves the incompatibility between OSL request-response pattern (oneshot channels) and Actor trait requirements (`Clone` messages) by redesigning OSL messages as cloneable wrappers with broker-based response routing.
+
+**Key Decisions**:
+- OSL messages split into cloneable types: `*Operation`, `*Request`, `*Response`
+- Request-response correlation via `MessageId` + `reply_to: ActorAddress`
+- Responses sent through `MessageBroker.publish()` instead of oneshot channels
+- OSL actors implement standard `Actor` + `Child` traits (no custom traits)
+- Full integration with existing ActorSystem and MessageBroker infrastructure
+
+**Impact**:
+- OSL actors fully integrated with actor system (message passing + supervision)
+- Request-response requires two message passes (request → response via broker)
+- Application actors must handle response messages and track pending requests
+- Pattern aligns with Erlang's `gen_server:call`, Akka's `ask` pattern
+- No fragmentation of actor system (no custom OslActor trait needed)
+
+**Related ADR**:
+- ADR-RT-007: Hierarchical Supervisor Architecture (defines OSL actor structure)
+
+---
+
 ## Planned ADR Categories
 
 ### Actor System Architecture (Remaining)
@@ -147,6 +173,8 @@ Simplifies backpressure strategies from four to three by removing misleading `Dr
 3. ✅ **ADR-RT-003**: Backpressure Strategy Simplification (YAGNI compliance)
 4. ✅ **ADR-RT-004**: Child Trait Separation (Supervision lifecycle architecture)
 5. ✅ **ADR-RT-006**: MessageBroker Pub-Sub Architecture (True pub-sub message bus)
+6. ✅ **ADR-RT-007**: Hierarchical Supervisor Architecture for OSL Integration
+7. ✅ **ADR-RT-008**: OSL Message Wrapper Pattern (Cloneable messages for Actor integration)
 
 ### Critical Path (Required Before Implementation)
 1. **ADR-RT-005**: Async Runtime Selection

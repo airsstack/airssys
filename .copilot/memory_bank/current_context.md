@@ -1,63 +1,83 @@
 # Current Context
 
-**Last Updated:** 2025-10-11  
-**Active Sub-Project:** airssys-osl  
-**Status:** OSL-TASK-010 Phase 1 COMPLETE ✅ - Module Structure Refactored  
-**Current Phase:** Helper Integration - Phase 1.3 and 1.4 Next
+**Last Updated:### Immediate Next Steps 🎯
+🔄 **RT-TASK-009 Phase 1: OSL Integration Actors** (80% Complete - Days 1-4)
+- ✅ Task 9.1: FileSystemActor implementation (COMPLETE)
+- ✅ Task 9.2: ProcessActor implementation (COMPLETE)
+- ✅ Task 9.3: NetworkActor implementation (COMPLETE)
+- ✅ Task 9.4: Message protocol definitions with ADR-RT-008 wrapper pattern (COMPLETE)
+- ⏳ Task 9.5: Integration tests in tests/osl_actors_tests.rs (NEXT - Final Phase 1 task)
+- **Status**: Core actor implementations complete, integration tests pending
+- **Progress**: Phase 1 of 4 - 4/5 subtasks complete (80%)
+- **Next**: Create comprehensive integration tests with mock broker
+- **Estimate**: 0.5 days remaining for Phase 1 completion-14  
+**Active Sub-Project:** airssys-rt  
+**Status:** RT-TASK-009 Phase 1 80% COMPLETE ✅ - OSL Integration Actors  
+**Current Phase:** Phase 1E - Integration Tests (Final Phase 1 task)
 
-**Context:** OSL-TASK-010 Helper Function Middleware Integration in progress
-**Phase Status:** 9 of 10 tasks complete - OSL-TASK-010 Phase 1 (Design & Architecture) complete
+**Context:** RT-TASK-009 OSL Integration - FileSystemActor, ProcessActor, NetworkActor complete
+**Phase Status:** 8 of 15 tasks complete - RT-TASK-009 Phase 1 nearly complete (4/5 subtasks done)
 
 ---
 
-## airssys-osl - Current Focus 🎯
+## airssys-rt - Current Focus 🎯
 
-### Status: OSL-TASK-010 Phase 1 Complete - Documentation Next
-- **Active Focus**: OSL-TASK-010 Helper Function Middleware Integration
-- **Project Type**: OS Abstraction Layer (system programming primitives)
-- **Project Priority**: Critical - Foundation for all AirsSys components
-- **Technology Stack**: Rust (async/await), Tokio runtime, platform-specific I/O
-- **Architecture Model**: Three-tier API (simple helpers, custom middleware, trait composition)
-- **Phase**: 9 of 10 core tasks complete (OSL-TASK-010 in progress)
-- **Total Tests**: 311 (232 unit + 66 integration + 13 threat) + 108 doctests
-- **Quality Status**: All tests passing, expected unused warnings, production-ready core
+### Status: RT-TASK-009 Phase 1 Started - OSL Integration Actors
+- **Active Focus**: RT-TASK-009 OSL Integration - Phase 1
+- **Project Type**: Erlang-Actor Model Runtime (high-concurrency applications)
+- **Project Priority**: HIGH - Ecosystem integration with airssys-osl
+- **Technology Stack**: Rust (async/await), Tokio runtime, zero-cost abstractions
+- **Architecture Model**: Hierarchical Supervisor with Dedicated OSL Integration Actors
+- **Phase**: Phase 1 of 4 - OSL Integration Actors (Days 1-4)
+- **Total Tests**: 319 tests passing (foundation complete)
+- **Quality Status**: Foundation complete, ready for OSL integration
 
 ### What's Been Done ✅
-1. ✅ **OSL-TASK-001**: Core Module Foundation (Complete)
-2. ✅ **OSL-TASK-002**: Logger Middleware Module (Complete)
-3. ✅ **OSL-TASK-003**: Security Middleware Module (Complete - All 7 phases)
-4. ✅ **OSL-TASK-005**: API Ergonomics Foundation (Complete)
-5. ✅ **OSL-TASK-006**: Framework Implementation (Phases 1-3, Phase 4 cancelled)
-6. ✅ **OSL-TASK-007**: All 11 Concrete Operations (Complete)
-7. ✅ **OSL-TASK-008**: All 3 Platform Executors (Phases 1-4, 5-7 cancelled)
-8. ✅ **OSL-TASK-009**: Remove Framework and Add Helpers (Complete - All 4 phases)
-9. ✅ **OSL-TASK-010 Phase 1**: Design & Architecture Decisions (Complete - 2 subtasks)
-10. ✅ **airssys-osl-macros Integration**: Complete with #[executor] macro
+1. ✅ **RT-TASK-001**: Message System Implementation (Complete - Oct 4, 2025)
+2. ✅ **RT-TASK-002**: Actor System Core (Complete - Oct 4, 2025)
+3. ✅ **RT-TASK-003**: Mailbox System (Complete - Oct 5, 2025)
+4. ✅ **RT-TASK-004**: Message Broker Core (Complete - Oct 6, 2025)
+5. ✅ **RT-TASK-005**: Actor Addressing (Complete - Oct 5, 2025)
+6. ✅ **RT-TASK-006**: Actor System Framework (Complete - Oct 6, 2025)
+7. ✅ **RT-TASK-007**: Supervisor Framework (Complete - Oct 8, 2025 - All 5 phases)
+8. ✅ **RT-TASK-010**: Universal Monitoring Infrastructure (Complete - Oct 7, 2025)
 
 ### Immediate Next Steps 🎯
-🔄 **OSL-TASK-010: Helper Function Middleware Integration** (In Progress - 2-3 days)
-- ✅ Phase 1.1: File Organization Decision (Complete - Option B selected)
-- ✅ Phase 1.2: Middleware Factory Functions (Complete - 3 factories created)
-- ⏳ Phase 1.3: Update Module-Level Documentation (Next - comprehensive docs for 3 API levels)
-- ⏳ Phase 1.4: Review KNOW-013 and Align Implementation (Next - verify knowledge base alignment)
-- **Status**: Module structure refactored, factories implemented, ready for documentation
-- **Progress**: 2 of 4 Phase 1 subtasks complete
-- **Estimate**: 1-2 hours remaining for Phase 1 completion
+� **RT-TASK-009 Phase 1: OSL Integration Actors** (Starting Now - Days 1-4)
+- 🔄 Task 9.1: FileSystemActor implementation (In Progress)
+- ⏳ Task 9.2: ProcessActor implementation (Next)
+- ⏳ Task 9.3: NetworkActor implementation (Next)
+- ⏳ Task 9.4: Message protocol definitions (In Progress)
+- ⏳ Task 9.5: Unit tests with mock OSL client (Next)
+- **Status**: Creating OSL integration actors with hierarchical supervisor pattern
+- **Progress**: Phase 1 of 4 started (0/12 subtasks complete)
+- **Estimate**: 4 days for Phase 1 completion
 
-### Current Session Work (2025-10-11)
-- ✅ **Module Structure Refactoring**: Migrated from single file to helpers/ module
-  - Created `helpers/mod.rs` (module declarations only - §4.3 compliant)
-  - Created `helpers/factories.rs` (middleware factory functions)
-  - Created `helpers/simple.rs` (10 existing helper functions migrated)
-  - Deleted old `helpers.rs` file
-- ✅ **Factory Functions**: All 3 middleware factories implemented
-  - `default_security_middleware()`: SecurityMiddleware with policies
-  - `default_acl_policy()`: Permissive ACL (admin full access)
-  - `default_rbac_policy()`: Empty RBAC (ACL-controlled)
-- ✅ **Build Validation**: All checks passing with expected warnings
-  - Zero compiler errors
-  - Only "unused function" warnings (will be resolved in Phase 2-4)
-  - All 311 existing tests still passing
+### Current Session Work (2025-10-14)
+- 🎉 **RT-TASK-009 Phase 1B-1D COMPLETE**: OSL Integration Actors implementation
+  - ✅ **Phase 1B**: Message protocol with ADR-RT-008 wrapper pattern
+    - Three-layer design: *Operation (cloneable), *Request (with request_id), *Response (with result)
+    - FileSystemOperation/Request/Response, ProcessOperation/Request/Response, NetworkOperation/Request/Response
+    - All types: Clone + Serialize + Deserialize + Debug + Send + Sync + 'static
+    - 2 unit tests for message protocol (correlation, cloneable operations)
+  - ✅ **Phase 1C**: Actor implementations refactored
+    - FileSystemActor (406 lines, 7 tests), ProcessActor (372 lines, 5 tests), NetworkActor (329 lines, 5 tests)
+    - execute_operation() methods returning *Result enums
+    - Actor trait: handle_message() with MessageBroker
+    - Child trait: start(), stop(Duration timeout), health_check()
+    - Removed all oneshot channel dependencies
+    - Added thiserror Error trait derivation
+  - ✅ **Phase 1D**: Compilation & quality validation
+    - **Zero compilation errors**, **zero warnings**, **zero clippy warnings**
+    - 17/17 OSL actor tests passing (100%)
+    - Fixed all format string suggestions (inline format args)
+    - Added #[allow(dead_code)] for internal structs
+    - Updated health check tests (ChildHealth::Degraded tuple variant)
+    - Production-ready code quality achieved
+- ⏳ **Next**: Phase 1E - Create integration tests in `tests/osl_actors_tests.rs`
+  - Comprehensive unit tests with mock broker
+  - Test request-response flow and message correlation
+  - Target: >95% test coverage for actor logic
 
 ### Recent Context: airssys-osl-macros Switch
 Previous focus was on airssys-osl-macros (proc-macro crate) which is now complete:
