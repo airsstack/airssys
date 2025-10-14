@@ -95,7 +95,7 @@ Actor → ActorContext.send() → Broker.publish() → [Message Bus]
 ## Task Breakdown
 
 ### Task 1: RT-TASK-004-REFACTOR (Trait Definition)
-**File:** `tasks/rt_task_004_refactor_pubsub_trait.md`  
+**File:** `tasks/task_004_refactor_pubsub_trait.md`  
 **Time:** 2-3 hours  
 **Priority:** CRITICAL - Do FIRST
 
@@ -114,7 +114,7 @@ Actor → ActorContext.send() → Broker.publish() → [Message Bus]
 ---
 
 ### Task 2: RT-TASK-004-PUBSUB (Implementation)
-**File:** `tasks/rt_task_004_pubsub_implementation.md`  
+**File:** `tasks/task_004_pubsub_implementation.md`  
 **Time:** 3-4 hours  
 **Priority:** CRITICAL - Do SECOND
 

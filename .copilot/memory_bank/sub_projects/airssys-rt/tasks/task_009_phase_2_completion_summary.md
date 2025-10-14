@@ -188,8 +188,8 @@ RootSupervisor (OneForOne)
 - KNOWLEDGE-RT-016: Process Group Management - Future Considerations
 
 **Planning Docs:**
-- RT-TASK-009_PHASE-2_ACTION_PLAN.md
-- RT-TASK-009_PHASE-2_PLANNING_SUMMARY.md
+- task_009_phase_2_action_plan.md
+- task_009_phase_2_planning_summary.md
 
 ---
 

@@ -453,7 +453,7 @@
     - **Files**: `src/broker/traits.rs`, `src/broker/mod.rs`
     - **Changes**: Added MessageStream<M>, publish(), subscribe(), publish_request()
     - **Actual Duration**: 3 hours (estimated 2-3 hours)
-    - **Task File**: `tasks/rt_task_004_refactor_pubsub_trait.md`
+    - **Task File**: `tasks/task_004_refactor_pubsub_trait.md`
   
   - **RT-TASK-004-PUBSUB** - Pub-Sub Implementation ✅ COMPLETE (Oct 6, 2025)
     - **Status**: Complete
@@ -462,7 +462,7 @@
     - **Changes**: Subscriber management, broadcast publishing, request-reply pattern
     - **Critical Bug Fix**: Request-reply race condition (publish before registering)
     - **Actual Duration**: 4 hours (estimated 3-4 hours)
-    - **Task File**: `tasks/rt_task_004_pubsub_implementation.md`
+    - **Task File**: `tasks/task_004_pubsub_implementation.md`
   
   - **Architecture Update Complete** (Oct 6, 2025):
     - **Solution**: Pure pub-sub pattern with publish/subscribe methods ✅
@@ -768,7 +768,7 @@
 - Updated RT-TASK-007 with RT-TASK-010 dependency
 - Updated tasks/_index.md with task sequencing strategy
 - Updated docs/knowledges/_index.md with KNOWLEDGE-RT-013
-- Created ACTION_PLANS_SUMMARY.md for quick reference
+- Created comprehensive action plans summary (integrated into KNOWLEDGE-RT-013)
 - Updated progress.md with next priorities
 
 **Task Sequencing Decision:**

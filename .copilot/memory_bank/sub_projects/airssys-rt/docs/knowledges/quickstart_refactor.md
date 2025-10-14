@@ -18,7 +18,7 @@
    - Complete implementation guide (600+ lines)
    - Code examples and patterns
 
-3. **Task File**: `.copilot/memory_bank/sub_projects/airssys-rt/tasks/rt_task_004_refactor_pubsub_trait.md`
+3. **Task File**: `.copilot/memory_bank/sub_projects/airssys-rt/tasks/task_004_refactor_pubsub_trait.md`
    - Phase-by-phase implementation plan
    - All code snippets ready to use
 
@@ -206,7 +206,7 @@ cargo clippy --package airssys-rt --all-targets --all-features
 
 **Ready to start?**
 
-1. Open task file: `tasks/rt_task_004_refactor_pubsub_trait.md`
+1. Open task file: `tasks/task_004_refactor_pubsub_trait.md`
 2. Open code file: `airssys-rt/src/broker/traits.rs`
 3. Start with Phase 1: Add MessageStream type
 4. Follow the phases in order

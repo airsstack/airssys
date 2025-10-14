@@ -9,7 +9,7 @@
 
 The comprehensive action plan for **RT-TASK-009 Phase 2: Hierarchical Supervisor Setup** has been saved to the memory bank.
 
-**Location:** `.copilot/memory_bank/sub_projects/airssys-rt/docs/action_plans/RT-TASK-009_PHASE-2_ACTION_PLAN.md`
+**Location:** `.copilot/memory_bank/sub_projects/airssys-rt/tasks/task_009_phase_2_action_plan.md`
 
 ---
 
@@ -136,7 +136,7 @@ RootSupervisor (OneForOne)
 
 ## References
 
-**Action Plan Document:** `.copilot/memory_bank/sub_projects/airssys-rt/docs/action_plans/RT-TASK-009_PHASE-2_ACTION_PLAN.md`
+**Action Plan Document:** `.copilot/memory_bank/sub_projects/airssys-rt/tasks/task_009_phase_2_action_plan.md`
 
 **Related ADRs:**
 - ADR-RT-007: Hierarchical Supervisor Architecture

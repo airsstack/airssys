@@ -1,9 +1,9 @@
 # airssys-rt Knowledge Documentation Index
 
 **Sub-Project:** airssys-rt  
-**Last Updated:** 2025-10-11  
-**Total Knowledge Docs:** 17  
-**Active Knowledge Docs:** 17  
+**Last Updated:** 2025-10-15  
+**Total Knowledge Docs:** 19  
+**Active Knowledge Docs:** 19  
 
 ## Active Knowledge Documentation
 
@@ -77,6 +77,14 @@
 - **[KNOWLEDGE-RT-017](knowledge_rt_017_osl_integration_actors.md)**: OSL Integration Actors Pattern ⭐ **NEW**
   - *Status*: active | *Created*: 2025-10-11
   - *Summary*: **RECOMMENDED OSL INTEGRATION PATTERN**: Service-oriented architecture with dedicated OSL actors (FileSystemActor, ProcessActor, NetworkActor) managed by separate OSLSupervisor, message-based communication across supervisor boundaries, centralized OS operation management, superior testability with mock actors, process lifecycle safety, performance optimization opportunities (pooling, batching), and migration guide from direct OSL helpers. **REQUIRED READING BEFORE RT-TASK-009**
+
+- **[KNOWLEDGE-RT-018](knowledge_rt_018_pubsub_architecture_finding.md)**: Pub-Sub MessageBroker Architecture Finding ⚠️ **NEW**
+  - *Status*: active | *Created*: 2025-10-06
+  - *Summary*: **CRITICAL ARCHITECTURE FINDING**: Documents the discovery that MessageBroker requires pub-sub routing pattern instead of direct actor routing, explains the mismatch between actor system framework (direct addressing) and message broker semantics (topic-based routing), and provides complete refactoring guidance for RT-TASK-006 implementation
+
+- **[KNOWLEDGE-RT-019](knowledge_rt_019_messagebroker_refactoring_retrospective.md)**: MessageBroker Refactoring Retrospective 📝 **NEW**
+  - *Status*: active | *Created*: 2025-10-06
+  - *Summary*: **REFACTORING DECISION LOG**: Retrospective of MessageBroker architecture breakthrough on October 6, 2025, documenting the eureka moment that resolved confusion between actor system framework and message broker responsibilities, timeline of discovery, documentation updates made, and lessons learned
 
 ## Planned Knowledge Documentation
 

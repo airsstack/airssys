@@ -55,7 +55,7 @@ We're refactoring the MessageBroker from direct routing to pub-sub architecture.
 - ⚠️ InMemoryMessageBroker won't compile (expected)
 - ✅ Clear interface for implementation
 
-**Task File:** `tasks/rt_task_004_refactor_pubsub_trait.md`
+**Task File:** `tasks/task_004_refactor_pubsub_trait.md`
 
 ---
 
@@ -88,7 +88,7 @@ We're refactoring the MessageBroker from direct routing to pub-sub architecture.
 - ✅ All tests passing (~24 broker tests)
 - ✅ Ready for ActorSystem integration
 
-**Task File:** `tasks/rt_task_004_pubsub_implementation.md`
+**Task File:** `tasks/task_004_pubsub_implementation.md`
 
 ---
 
