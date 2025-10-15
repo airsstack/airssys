@@ -59,21 +59,21 @@ The current manual `ChildSpec` approach is powerful but verbose, requiring signi
 - Comprehensive unit tests
 - Full rustdoc documentation
 
-### Phase 3: Integration & Documentation (4-6 hours)
+### Phase 3: Integration Tests & Documentation (4-6 hours)
 
 **Files:**
-- `src/supervisor/node.rs` - Add entry points (child, children methods)
-- `src/supervisor/mod.rs` - Export builder module
-- `examples/supervisor_builder.rs` - Comprehensive builder demonstration
-- `examples/supervisor_basic.rs` - Update with builder comparison
 - `tests/supervisor_builder_tests.rs` - Integration tests (~15 tests)
+- `src/supervisor/builder/mod.rs` - Add migration guide to module documentation
+- `examples/supervisor_basic.rs` - Optional: Update with builder comparison
 
 **Deliverables:**
-- SupervisorNode entry points implemented
-- Integration tests validating all patterns
-- Working examples for all three approaches
-- Migration guide in module documentation
-- Performance validation (zero overhead)
+- Integration tests validating builder patterns with full supervisor lifecycle
+- Error propagation and edge case testing
+- Different child types validation
+- Migration guide in module rustdoc (manual ChildSpec → builder pattern)
+- Before/after code examples showing migration path
+
+**Note:** SupervisorNode entry points (child, children) and module exports already completed in Phases 1-2. Comprehensive examples (phase1.rs, phase2.rs) already created.
 
 ## Progress Tracking
 
@@ -163,9 +163,9 @@ The current manual `ChildSpec` approach is powerful but verbose, requiring signi
 | 13.5 | BatchChildCustomizer | ✅ completed | 2025-10-15 | Phase 2 - customizer.rs with tests |
 | 13.6 | SupervisorNode entry points | ✅ completed | 2025-10-15 | child() and children() methods |
 | 13.7 | Unit test coverage | ✅ completed | 2025-10-15 | 49 tests (34 Phase 1 + 15 Phase 2) |
-| 13.8 | Integration tests | ✅ completed | 2025-10-15 | Phase 1 & 2 examples |
+| 13.8 | Integration tests | ⏳ pending | - | Phase 3 - tests/supervisor_builder_tests.rs |
 | 13.9 | Examples | ✅ completed | 2025-10-15 | phase1.rs + phase2.rs |
-| 13.10 | Documentation | ✅ completed | 2025-10-15 | Comprehensive rustdoc |
+| 13.10 | Documentation | ⏳ pending | - | Phase 3 - Migration guide in rustdoc |
 
 ## Architecture Details
 
@@ -276,12 +276,13 @@ DEFAULT_SHUTDOWN_TIMEOUT: 10 seconds
   - [x] 15 unit tests passing (49 total builder tests)
   - [x] Complete rustdoc documentation
   
-- [ ] **Phase 3 Complete** - Advanced Patterns (Future)
+- [ ] **Phase 3 Complete** - Integration Tests & Documentation (Future)
   - [x] SupervisorNode entry points added (child, children) - Done in Phase 1-2
   - [x] Module exports in supervisor/mod.rs - Done in Phase 1-2
-  - [ ] Advanced patterns documentation
-  - [ ] Performance optimization guide
-  - [ ] Migration guide in module docs
+  - [x] Working examples created (phase1.rs, phase2.rs) - Done in Phase 1-2
+  - [ ] Integration tests in tests/supervisor_builder_tests.rs (~15 tests)
+  - [ ] Migration guide in module rustdoc documentation
+  - [ ] Optional: Update examples/supervisor_basic.rs with builder comparison
   
 - [x] **Quality Gates** ✅ (2025-10-15)
   - [x] Zero warnings (cargo check, clippy)
@@ -289,10 +290,8 @@ DEFAULT_SHUTDOWN_TIMEOUT: 10 seconds
   - [x] >95% code coverage
   - [x] Backward compatibility validated
   - [x] Performance overhead measured (zero - compile-time only)
-  - [x] Examples compile and run successfully
-  - [x] Documentation complete and accurate
-  - [ ] Examples compile and run successfully
-  - [ ] Documentation complete and accurate
+  - [x] Phase 1-2 examples compile and run successfully
+  - [x] Phase 1-2 documentation complete and accurate
 
 ## Estimated Effort
 - **Phase 1**: 6-8 hours (Core builder infrastructure)
