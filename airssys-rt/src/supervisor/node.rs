@@ -685,7 +685,8 @@ where
         let supervisor_arc = Arc::new(Mutex::new(self));
 
         // Spawn background health monitoring task
-        let (task_handle, shutdown_tx) = spawn_health_monitor(Arc::clone(&supervisor_arc), check_interval);
+        let (task_handle, shutdown_tx) =
+            spawn_health_monitor(Arc::clone(&supervisor_arc), check_interval);
 
         // Return wrapped supervisor that keeps task alive
         MonitoredSupervisor {
@@ -848,9 +849,7 @@ where
                             supervisor_id: self.id.to_string(),
                             child_id: Some(child_id.to_string()),
                             event_kind: SupervisionEventKind::ChildFailed {
-                                error: format!(
-                                    "Health check failed ({failure_count}): {reason}"
-                                ),
+                                error: format!("Health check failed ({failure_count}): {reason}"),
                                 restart_count: failure_count,
                             },
                             metadata: HashMap::new(),
@@ -1018,6 +1017,120 @@ where
 
         // Apply strategy-specific logic
         S::determine_decision(context)
+    }
+
+    /// Create a fluent builder for adding a single child.
+    ///
+    /// This provides an ergonomic alternative to manual [`ChildSpec`] construction
+    /// with sensible defaults for production use. The builder pattern reduces
+    /// boilerplate while maintaining full customization capabilities.
+    ///
+    /// # Examples
+    ///
+    /// ## Minimal Configuration
+    ///
+    /// ```rust,no_run
+    /// use airssys_rt::supervisor::{SupervisorNode, OneForOne, Child};
+    /// use airssys_rt::monitoring::NoopMonitor;
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// # #[derive(Clone)]
+    /// # struct MyWorker;
+    /// # impl Child for MyWorker {
+    /// #     type Error = std::io::Error;
+    /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+    /// #     async fn stop(&mut self) -> Result<(), Self::Error> { Ok(()) }
+    /// # }
+    /// let mut supervisor = SupervisorNode::new(OneForOne::default(), NoopMonitor);
+    ///
+    /// // Uses defaults: Permanent restart, 5s graceful shutdown, 30s start timeout
+    /// let id = supervisor
+    ///     .child("worker")
+    ///     .factory(|| MyWorker)
+    ///     .spawn()
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// ## Full Customization
+    ///
+    /// ```rust,no_run
+    /// use airssys_rt::supervisor::{SupervisorNode, OneForOne, Child};
+    /// use airssys_rt::monitoring::NoopMonitor;
+    /// use std::time::Duration;
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// # #[derive(Clone)]
+    /// # struct CriticalWorker;
+    /// # impl Child for CriticalWorker {
+    /// #     type Error = std::io::Error;
+    /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+    /// #     async fn stop(&mut self) -> Result<(), Self::Error> { Ok(()) }
+    /// # }
+    /// let mut supervisor = SupervisorNode::new(OneForOne::default(), NoopMonitor);
+    ///
+    /// let id = supervisor
+    ///     .child("critical")
+    ///     .factory(|| CriticalWorker)
+    ///     .restart_transient()
+    ///     .shutdown_graceful(Duration::from_secs(15))
+    ///     .start_timeout(Duration::from_secs(60))
+    ///     .spawn()
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// ## Comparison with Manual ChildSpec
+    ///
+    /// ```rust,no_run
+    /// use airssys_rt::supervisor::{SupervisorNode, OneForOne, Child, ChildSpec};
+    /// use airssys_rt::supervisor::{RestartPolicy, ShutdownPolicy};
+    /// use airssys_rt::monitoring::NoopMonitor;
+    /// use std::time::Duration;
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// # #[derive(Clone)]
+    /// # struct MyWorker;
+    /// # impl Child for MyWorker {
+    /// #     type Error = std::io::Error;
+    /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+    /// #     async fn stop(&mut self) -> Result<(), Self::Error> { Ok(()) }
+    /// # }
+    /// let mut supervisor = SupervisorNode::new(OneForOne::default(), NoopMonitor);
+    ///
+    /// // Manual approach (10+ lines)
+    /// let spec = ChildSpec {
+    ///     id: "worker".into(),
+    ///     factory: Box::new(|| MyWorker),
+    ///     restart_policy: RestartPolicy::Permanent,
+    ///     shutdown_policy: ShutdownPolicy::Graceful(Duration::from_secs(5)),
+    ///     start_timeout: Duration::from_secs(30),
+    ///     shutdown_timeout: Duration::from_secs(10),
+    /// };
+    /// supervisor.start_child(spec).await?;
+    ///
+    /// // Builder approach (4 lines - 60% reduction)
+    /// let id = supervisor
+    ///     .child("worker")
+    ///     .factory(|| MyWorker)
+    ///     .spawn()
+    ///     .await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// - [`crate::supervisor::builder::SingleChildBuilder`] for full builder API
+    /// - [`ChildSpec`] for manual specification
+    /// - [`start_child`](Self::start_child) for spawning with manual spec
+    pub fn child(
+        &mut self,
+        id: impl Into<String>,
+    ) -> crate::supervisor::builder::SingleChildBuilder<'_, S, C, M> {
+        crate::supervisor::builder::SingleChildBuilder::new(self, id.into())
     }
 }
 
@@ -2017,7 +2130,7 @@ mod tests {
 
         let sup = monitored.supervisor.lock().await;
         let config = sup.health_config().unwrap();
-        
+
         assert_eq!(config.check_interval, Duration::from_secs(30));
         assert_eq!(config.check_timeout, Duration::from_secs(5));
         assert_eq!(config.failure_threshold, 3);
@@ -2060,7 +2173,7 @@ mod tests {
         let sup = monitored.supervisor.lock().await;
         let handle = sup.get_child(&child_id).unwrap();
         assert_eq!(handle.state(), &ChildState::Running);
-        
+
         // Verify failure count is 0 (no failures detected)
         let config = sup.health_config().unwrap();
         assert_eq!(config.get_failure_count(&child_id), 0);
@@ -2112,11 +2225,11 @@ mod tests {
         let sup = monitored.supervisor.lock().await;
         let handle = sup.get_child(&child_id).unwrap();
         let final_restart_count = handle.restart_count();
-        
+
         // Also check failure count was reset after restart
         let config = sup.health_config().unwrap();
         let failure_count = config.get_failure_count(&child_id);
-        
+
         // Should have been restarted at least once
         assert!(
             final_restart_count > initial_restart_count,

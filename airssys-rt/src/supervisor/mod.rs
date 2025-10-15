@@ -55,6 +55,7 @@
 
 // Module declarations
 pub mod backoff;
+pub mod builder;
 pub mod error;
 pub mod health_monitor;
 pub mod node;
@@ -65,6 +66,10 @@ pub mod types;
 
 // Re-exports for convenient access
 pub use backoff::RestartBackoff;
+pub use builder::{
+    SingleChildBuilder, DEFAULT_RESTART_POLICY, DEFAULT_SHUTDOWN_POLICY, DEFAULT_SHUTDOWN_TIMEOUT,
+    DEFAULT_START_TIMEOUT,
+};
 pub use error::SupervisorError;
 pub use node::{ChildHandle, HealthConfig, SupervisorNode};
 pub use strategy::{should_restart, should_restart_any, OneForAll, OneForOne, RestForOne};
