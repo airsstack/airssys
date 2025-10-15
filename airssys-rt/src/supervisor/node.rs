@@ -19,6 +19,7 @@ use uuid::Uuid;
 
 // Layer 3: Internal module imports
 use super::backoff::RestartBackoff;
+use super::builder::{ChildrenBatchBuilder, SingleChildBuilder};
 use super::error::SupervisorError;
 use super::health_monitor::spawn_health_monitor;
 use super::strategy::should_restart;
@@ -1126,11 +1127,13 @@ where
     /// - [`crate::supervisor::builder::SingleChildBuilder`] for full builder API
     /// - [`ChildSpec`] for manual specification
     /// - [`start_child`](Self::start_child) for spawning with manual spec
-    pub fn child(
-        &mut self,
-        id: impl Into<String>,
-    ) -> crate::supervisor::builder::SingleChildBuilder<'_, S, C, M> {
-        crate::supervisor::builder::SingleChildBuilder::new(self, id.into())
+    pub fn child(&mut self, id: impl Into<String>) -> SingleChildBuilder<'_, S, C, M> {
+        SingleChildBuilder::new(self, id.into())
+    }
+
+    /// Create a batch builder for multiple children
+    pub fn children(&mut self) -> ChildrenBatchBuilder<'_, S, C, M> {
+        ChildrenBatchBuilder::new(self)
     }
 }
 

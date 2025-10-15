@@ -61,12 +61,16 @@
 //! - [`SingleChildBuilder`] - Fluent builder for individual children
 //! - [`constants`] - Default configuration values and rationale
 
+pub mod batch;
 pub mod constants;
+pub mod customizer;
 pub mod single;
 
 // Re-exports for convenient access
+pub use batch::ChildrenBatchBuilder;
 pub use constants::{
     DEFAULT_RESTART_POLICY, DEFAULT_SHUTDOWN_POLICY, DEFAULT_SHUTDOWN_TIMEOUT,
     DEFAULT_START_TIMEOUT,
 };
+pub use customizer::BatchChildCustomizer;
 pub use single::SingleChildBuilder;

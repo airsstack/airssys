@@ -98,7 +98,7 @@ async fn example_minimal_config() -> Result<(), Box<dyn std::error::Error>> {
         .spawn()
         .await?;
 
-    println!("✓ Spawned child with ID: {}", child_id);
+    println!("✓ Spawned child with ID: {child_id}");
     println!("  Using all default policies and timeouts\n");
 
     Ok(())
@@ -123,7 +123,7 @@ async fn example_restart_policies() -> Result<(), Box<dyn std::error::Error>> {
         .restart_permanent()
         .spawn()
         .await?;
-    println!("✓ Spawned permanent worker: {}", id1);
+    println!("✓ Spawned permanent worker: {id1}");
 
     // Transient restart - restart only on abnormal exit
     let id2 = supervisor
@@ -132,7 +132,7 @@ async fn example_restart_policies() -> Result<(), Box<dyn std::error::Error>> {
         .restart_transient()
         .spawn()
         .await?;
-    println!("✓ Spawned transient worker: {}", id2);
+    println!("✓ Spawned transient worker: {id2}");
 
     // Temporary - never restart
     let id3 = supervisor
@@ -141,7 +141,7 @@ async fn example_restart_policies() -> Result<(), Box<dyn std::error::Error>> {
         .restart_temporary()
         .spawn()
         .await?;
-    println!("✓ Spawned temporary worker: {}\n", id3);
+    println!("✓ Spawned temporary worker: {id3}\n");
 
     Ok(())
 }
@@ -165,7 +165,7 @@ async fn example_shutdown_policies() -> Result<(), Box<dyn std::error::Error>> {
         .shutdown_graceful(Duration::from_secs(15))
         .spawn()
         .await?;
-    println!("✓ Spawned worker with graceful 15s shutdown: {}", id1);
+    println!("✓ Spawned worker with graceful 15s shutdown: {id1}");
 
     // Immediate shutdown - no waiting
     let id2 = supervisor
@@ -174,7 +174,7 @@ async fn example_shutdown_policies() -> Result<(), Box<dyn std::error::Error>> {
         .shutdown_immediate()
         .spawn()
         .await?;
-    println!("✓ Spawned worker with immediate shutdown: {}", id2);
+    println!("✓ Spawned worker with immediate shutdown: {id2}");
 
     // Infinity shutdown - wait forever
     let id3 = supervisor
@@ -183,7 +183,7 @@ async fn example_shutdown_policies() -> Result<(), Box<dyn std::error::Error>> {
         .shutdown_infinity()
         .spawn()
         .await?;
-    println!("✓ Spawned worker with infinity shutdown: {}\n", id3);
+    println!("✓ Spawned worker with infinity shutdown: {id3}\n");
 
     Ok(())
 }
@@ -206,7 +206,7 @@ async fn example_custom_timeouts() -> Result<(), Box<dyn std::error::Error>> {
         .spawn()
         .await?;
 
-    println!("✓ Spawned worker with custom timeouts: {}", child_id);
+    println!("✓ Spawned worker with custom timeouts: {child_id}");
     println!("  Start timeout: 60s");
     println!("  Shutdown timeout: 5s\n");
 
@@ -233,7 +233,7 @@ async fn example_full_customization() -> Result<(), Box<dyn std::error::Error>> 
         .spawn()
         .await?;
 
-    println!("✓ Spawned fully customized worker: {}", child_id);
+    println!("✓ Spawned fully customized worker: {child_id}");
     println!("  Restart: Transient");
     println!("  Shutdown: Graceful (20s)");
     println!("  Start timeout: 45s");
@@ -257,7 +257,7 @@ async fn example_factory_methods() -> Result<(), Box<dyn std::error::Error>> {
         .factory(|| SimpleWorker::new("closure-worker"))
         .spawn()
         .await?;
-    println!("✓ Spawned worker with closure factory: {}", id1);
+    println!("✓ Spawned worker with closure factory: {id1}");
 
     let mut supervisor2: SupervisorNode<OneForOne, DefaultWorker, NoopMonitor<SupervisionEvent>> =
         SupervisorNode::new(OneForOne, NoopMonitor::new());
@@ -268,7 +268,7 @@ async fn example_factory_methods() -> Result<(), Box<dyn std::error::Error>> {
         .factory_default::<DefaultWorker>()
         .spawn()
         .await?;
-    println!("✓ Spawned worker with Default factory: {}\n", id2);
+    println!("✓ Spawned worker with Default factory: {id2}\n");
 
     Ok(())
 }
@@ -290,7 +290,7 @@ async fn example_comparison() -> Result<(), Box<dyn std::error::Error>> {
         .shutdown_graceful(Duration::from_secs(15))
         .spawn()
         .await?;
-    println!("✓ Spawned with builder: {}", id1);
+    println!("✓ Spawned with builder: {id1}");
     println!("  Code: ~5 lines");
 
     println!("\n--- Using Manual ChildSpec (Legacy) ---");
@@ -304,7 +304,7 @@ async fn example_comparison() -> Result<(), Box<dyn std::error::Error>> {
         shutdown_timeout: Duration::from_secs(10),
     };
     let id2 = supervisor.start_child(spec).await?;
-    println!("✓ Spawned with ChildSpec: {}", id2);
+    println!("✓ Spawned with ChildSpec: {id2}");
     println!("  Code: ~8 lines");
     println!("\n  Builder reduces boilerplate by ~60%!\n");
 

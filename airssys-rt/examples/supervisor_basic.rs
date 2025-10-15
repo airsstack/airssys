@@ -146,7 +146,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Step 4: Check child states
     println!("Step 4: Checking child states");
     let child_count = supervisor.child_count();
-    println!("Active children: {}", child_count);
+    println!("Active children: {child_count}");
     for child_id in supervisor.child_ids() {
         if let Some(handle) = supervisor.get_child(child_id) {
             println!("  - {}: {:?}", child_id, handle.state());
@@ -164,7 +164,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("✅ Worker-1 restart initiated");
             // The restart will fail once, then succeed on retry due to Permanent policy
         }
-        Err(e) => println!("⚠️  Worker-1 restart error: {}", e),
+        Err(e) => println!("⚠️  Worker-1 restart error: {e}"),
     }
 
     sleep(Duration::from_millis(500)).await;
@@ -178,7 +178,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Step 7: Check final states
     println!("Step 7: Final state check");
     let child_count = supervisor.child_count();
-    println!("Active children: {}", child_count);
+    println!("Active children: {child_count}");
     for child_id in supervisor.child_ids() {
         if let Some(handle) = supervisor.get_child(child_id) {
             println!("  - {}: {:?}", child_id, handle.state());

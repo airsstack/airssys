@@ -159,7 +159,7 @@ async fn demonstrate_one_for_one() -> Result<(), Box<dyn std::error::Error>> {
     println!("Starting 3 workers:");
     let mut child_ids = Vec::new();
     for (id, count, fail_flag) in &workers {
-        let id_str = id.to_string();
+        let id_str = (*id).to_string();
         let count_clone = Arc::clone(count);
         let fail_clone = Arc::clone(fail_flag);
 
@@ -242,7 +242,7 @@ async fn demonstrate_one_for_all() -> Result<(), Box<dyn std::error::Error>> {
     println!("Starting 3 workers:");
     let mut child_ids = Vec::new();
     for (id, count, fail_flag) in &workers {
-        let id_str = id.to_string();
+        let id_str = (*id).to_string();
         let count_clone = Arc::clone(count);
         let fail_clone = Arc::clone(fail_flag);
 
@@ -325,7 +325,7 @@ async fn demonstrate_rest_for_one() -> Result<(), Box<dyn std::error::Error>> {
     println!("Starting 3 workers in order (A → B → C):");
     let mut child_ids = Vec::new();
     for (id, count, fail_flag) in &workers {
-        let id_str = id.to_string();
+        let id_str = (*id).to_string();
         let count_clone = Arc::clone(count);
         let fail_clone = Arc::clone(fail_flag);
 
@@ -366,7 +366,7 @@ async fn demonstrate_rest_for_one() -> Result<(), Box<dyn std::error::Error>> {
             "worker-C" => "← Started AFTER B (also restarted)",
             _ => "",
         };
-        println!("  {} restarted: {} times {}", id, restarts, marker);
+        println!("  {id} restarted: {restarts} times {marker}");
     }
 
     println!("\n💡 Result: Worker-B and worker-C restarted (RestForOne behavior)");
