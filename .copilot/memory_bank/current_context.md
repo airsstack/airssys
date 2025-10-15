@@ -1,45 +1,52 @@
 # Current Context
 
-**Last Updated:** 2025-10-14
+**Last Updated:** 2025-10-16
 
 **Active Sub-Project:** airssys-rt  
-**Status:** 🎉 RT-TASK-009 Phase 2 100% COMPLETE - Hierarchical Supervisor Setup  
-**Current Phase:** Ready for RT-TASK-009 Phase 3/4 planning or new focus area
+**Status:** Foundation Complete - RT-TASK-008 Ready  
+**Current Phase:** Performance Baseline Measurement (RT-TASK-008)
 
-**Context:** RT-TASK-009 Phase 2 Complete - OSL supervisor hierarchy fully implemented
-**Phase Status:** Phases 1-2 complete (100% each) - Production-ready OSL integration
+**Context:** RT-TASK-013 Complete (Supervisor Builder Pattern) - RT-TASK-009 ABANDONED  
+**Phase Status:** 8 of 9 active tasks complete (~85% done)
 
-### Phase 2 Completion Summary 🎉
-✅ **RT-TASK-009 Phase 2: Hierarchical Supervisor Setup** (100% Complete)
-- ✅ Task 2.1: OSLSupervisor module (607 lines) - COMPLETE
-- ✅ Task 2.2: Example application (232 lines) - COMPLETE
-- ✅ Task 2.3: Integration tests (9 tests, 348 lines) - COMPLETE
-- ✅ Task 2.4: Documentation updates (exports, doctests, rustdoc) - COMPLETE
-- **Test Results**: 476 total tests passing (336 unit + 13 monitoring + 35 OSL + 118 doc)
-- **Code Quality**: Zero errors, zero warnings, >90% coverage
-- **Deliverables**: 1,187 lines (supervisor + example + tests)
-- **Status**: Production-ready OSL supervisor hierarchy ✅
+### Latest Completion Summary 🎉
+✅ **RT-TASK-013: Supervisor Builder Pattern** (100% Complete - Oct 15, 2025)
+- ✅ SingleChildBuilder and ChildrenBatchBuilder - Complete ergonomic API
+- ✅ 49 Unit Tests: All passing, zero warnings
+- ✅ 2 Integration Examples: Demonstrating all builder features
+- ✅ Migration Guide: Comprehensive documentation
+- ✅ Boilerplate Reduction: 60-75% less code for common cases
+- ✅ Zero Breaking Changes: Fully backward compatible
+- **Status**: Production-ready builder pattern ✅
+
+### OSL Integration Abandonment (Oct 15, 2025) ⚠️
+❌ **RT-TASK-009: OSL Integration** - ABANDONED
+- **Reason**: Complexity and time investment exceeded value
+- **Code Removed**: ~2,500+ lines (src/osl/, tests, examples, ADRs)
+- **Decision**: airssys-rt focuses on core actor runtime only
+- **Impact**: Users can use RT OR OSL directly, no forced integration
 
 ### Immediate Next Steps 🎯
-**Decision Point**: Choose next focus area
-- Option 1: RT-TASK-009 Phase 3/4 (requires planning - scope TBD)
-- Option 2: Switch to airssys-osl (continue OSL framework)
-- Option 3: Switch to airssys-wasm-component (macro implementation)
-- Option 4: Address technical debt or documentation improvements
+**Next Task**: RT-TASK-008 - Performance Baseline Measurement (4 days)
+- Establish benchmark infrastructure (criterion)
+- Measure baseline performance (26+ benchmarks)
+- Document performance characteristics
+- Enable regression detection
+- Philosophy: Measure first, optimize later based on data
 
 ---
 
 ## airssys-rt - Current Focus 🎯
 
-### Status: RT-TASK-009 Phase 1 Started - OSL Integration Actors
-- **Active Focus**: RT-TASK-009 OSL Integration - Phase 1
+### Status: Foundation Complete - Ready for RT-TASK-008
+- **Active Focus**: RT-TASK-008 - Performance Baseline Measurement
 - **Project Type**: Erlang-Actor Model Runtime (high-concurrency applications)
-- **Project Priority**: HIGH - Ecosystem integration with airssys-osl
+- **Project Priority**: HIGH - Core runtime completion
 - **Technology Stack**: Rust (async/await), Tokio runtime, zero-cost abstractions
-- **Architecture Model**: Hierarchical Supervisor with Dedicated OSL Integration Actors
-- **Phase**: Phase 1 of 4 - OSL Integration Actors (Days 1-4)
-- **Total Tests**: 319 tests passing (foundation complete)
-- **Quality Status**: Foundation complete, ready for OSL integration
+- **Architecture Model**: BEAM-inspired supervision trees with type-safe messaging
+- **Phase**: Performance baseline and production readiness
+- **Total Tests**: 368 tests passing (foundation + monitoring + supervisor + builder)
+- **Quality Status**: Production-ready core runtime, performance measurement next
 
 ### What's Been Done ✅
 1. ✅ **RT-TASK-001**: Message System Implementation (Complete - Oct 4, 2025)
@@ -48,6 +55,10 @@
 4. ✅ **RT-TASK-004**: Message Broker Core (Complete - Oct 6, 2025)
 5. ✅ **RT-TASK-005**: Actor Addressing (Complete - Oct 5, 2025)
 6. ✅ **RT-TASK-006**: Actor System Framework (Complete - Oct 6, 2025)
+7. ✅ **RT-TASK-010**: Universal Monitoring Infrastructure (Complete - Oct 7, 2025)
+8. ✅ **RT-TASK-007**: Supervisor Framework (Complete - Oct 8, 2025)
+9. ✅ **RT-TASK-013**: Supervisor Builder Pattern (Complete - Oct 15, 2025)
+10. ❌ **RT-TASK-009**: OSL Integration (ABANDONED - Oct 15, 2025)
 7. ✅ **RT-TASK-007**: Supervisor Framework (Complete - Oct 8, 2025 - All 5 phases)
 8. ✅ **RT-TASK-010**: Universal Monitoring Infrastructure (Complete - Oct 7, 2025)
 

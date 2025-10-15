@@ -7,16 +7,22 @@
 ## Original Request
 Complete comprehensive documentation including API documentation, user guides, tutorials, examples, and integration documentation for the airssys-rt runtime system.
 
+**Updated (2025-10-16):** Scope clarified after RT-TASK-009 (OSL Integration) abandonment. Documentation focuses on core actor runtime capabilities only, NOT OSL integration.
+
 ## Thought Process
 Documentation completion ensures runtime usability through:
 1. Complete rustdoc API documentation
 2. Comprehensive user guides and tutorials
 3. Real-world example implementations
-4. Integration guides for OSL and WASM
-5. Performance guides and best practices
-6. mdBook documentation system
+4. Core runtime feature documentation (actors, messaging, supervision, monitoring)
+5. Performance guides and best practices (based on RT-TASK-008 baselines)
+6. mdBook documentation system (following Diátaxis framework)
 
-This provides developers with complete guidance for using the runtime.
+**Scope Clarification:**
+- ✅ Document: Core actor runtime, message passing, supervision trees, monitoring, builder patterns
+- ❌ NOT Document: OSL integration (abandoned), WASM integration (future - out of scope)
+
+This provides developers with complete guidance for using the core runtime.
 
 ## Implementation Plan
 ### Phase 1: API Documentation (Day 1-2)
@@ -35,7 +41,7 @@ This provides developers with complete guidance for using the runtime.
 - Implement comprehensive examples
 - Create real-world use case tutorials
 - Add performance optimization examples
-- Create integration pattern examples
+- Create actor pattern examples (NOT OSL/WASM integration - those are out of scope)
 
 ### Phase 4: mdBook Documentation (Day 7-8)
 - Complete mdBook documentation system
@@ -60,13 +66,20 @@ This provides developers with complete guidance for using the runtime.
 | 11.8 | Message passing guide | not_started | 2025-10-02 | Best practices guide |
 | 11.9 | Comprehensive examples | not_started | 2025-10-02 | Real-world examples |
 | 11.10 | Use case tutorials | not_started | 2025-10-02 | Common scenarios |
-| 11.11 | Integration examples | not_started | 2025-10-02 | OSL and WASM integration |
+| 11.11 | Actor pattern examples | not_started | 2025-10-02 | Advanced actor patterns (OSL integration removed from scope) |
 | 11.12 | mdBook documentation | not_started | 2025-10-02 | Complete book format |
 | 11.13 | Architecture documentation | not_started | 2025-10-02 | System design docs |
 | 11.14 | API reference section | not_started | 2025-10-02 | Organized API docs |
 | 11.15 | Troubleshooting guide | not_started | 2025-10-02 | Common issues and solutions |
 
 ## Progress Log
+
+### 2025-10-16
+- **Dependencies Updated**: Removed RT-TASK-009 (OSL Integration) from dependencies - task was abandoned Oct 15, 2025
+- **Scope Clarified**: Documentation focuses on core actor runtime only (actors, messaging, supervision, monitoring, builders)
+- **Updated Subtasks**: Removed OSL/WASM integration examples, added actor pattern examples
+- **Current Dependencies**: Only depends on completed tasks (001-007, 010, 013) and pending RT-TASK-008 (not blocking)
+
 ### 2025-10-02
 - Task created with comprehensive documentation plan
 - Depends on complete runtime implementation and testing
@@ -81,8 +94,21 @@ This provides developers with complete guidance for using the runtime.
 - ✅ Proper workspace standards compliance (§2.1-§6.3)
 
 ## Dependencies
-- **Upstream:** RT-TASK-001 through RT-TASK-010 (Complete implementation) - REQUIRED
-- **Downstream:** None (Final task)
+- **Upstream (REQUIRED - All Complete):**
+  - RT-TASK-001: Message System Implementation ✅ Complete
+  - RT-TASK-002: Actor System Core ✅ Complete
+  - RT-TASK-003: Mailbox System ✅ Complete
+  - RT-TASK-004: Message Broker Core ✅ Complete
+  - RT-TASK-005: Actor Addressing ✅ Complete
+  - RT-TASK-006: Actor System Framework ✅ Complete
+  - RT-TASK-007: Supervisor Framework ✅ Complete
+  - RT-TASK-010: Universal Monitoring Infrastructure ✅ Complete
+  - RT-TASK-013: Supervisor Builder Pattern ✅ Complete
+- **Upstream (Pending):**
+  - RT-TASK-008: Performance Baseline Measurement ⏳ Pending (not blocking)
+- **Upstream (ABANDONED - Not Dependencies):**
+  - ~~RT-TASK-009: OSL Integration~~ ❌ ABANDONED (Oct 15, 2025)
+- **Downstream:** None (Final production readiness task)
 
 ## Documentation Standards
 ### Rustdoc Requirements
@@ -108,7 +134,7 @@ docs/src/
 │   ├── actors.md            # Actor development
 │   ├── supervisors.md       # Supervisor patterns
 │   ├── messaging.md         # Message passing
-│   └── integration.md       # OSL/WASM integration
+│   └── monitoring.md        # Monitoring and observability
 ├── api/                     # API reference
 │   ├── core.md              # Core types
 │   ├── actors.md            # Actor APIs
@@ -135,7 +161,7 @@ docs/src/
 - [ ] Message passing guide complete
 - [ ] Comprehensive examples implemented
 - [ ] Use case tutorials complete
-- [ ] Integration examples working
+- [ ] Actor pattern examples working
 - [ ] mdBook documentation complete
 - [ ] Architecture documentation thorough
 - [ ] API reference section organized
