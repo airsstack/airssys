@@ -3,6 +3,15 @@
 **Overall Progress:** ~85% (6 foundation + monitoring + supervisor + builder complete)
 **Last Updated:** 2025-10-15
 
+**🎯 RT-TASK-008 SCOPE REVISED** (2025-10-15):
+- **New Focus**: Performance Baseline Measurement (not premature optimization)
+- **Philosophy**: Measure first, optimize later, based on data not speculation
+- **Approach**: Establish comprehensive benchmark suite with criterion
+- **Deliverables**: Baseline metrics, performance characteristics, data-driven roadmap
+- **Duration**: 4 days (reduced from 5-7 days)
+- **Related**: ADR-RT-010 (Baseline-First Performance Strategy)
+- **Rationale**: YAGNI compliance - no performance issues proven, current architecture already uses zero-cost abstractions
+
 **🎉 RT-TASK-013 COMPLETE** (2025-10-15):
 - **Supervisor Builder Pattern** - Complete ergonomic API for child spawning
 - **Boilerplate Reduction**: 60-75% less code for common cases

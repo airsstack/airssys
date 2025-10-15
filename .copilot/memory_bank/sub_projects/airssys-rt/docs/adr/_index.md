@@ -1,9 +1,9 @@
 # airssys-rt Architecture Decision Records Index
 
 **Sub-Project:** airssys-rt  
-**Last Updated:** 2025-10-14  
-**Total ADRs:** 9  
-**Active ADRs:** 9  
+**Last Updated:** 2025-10-15  
+**Total ADRs:** 10  
+**Active ADRs:** 10  
 
 ## Active ADRs
 
@@ -148,39 +148,57 @@ Resolves the incompatibility between OSL request-response pattern (oneshot chann
 
 ---
 
-### ADR-RT-009: OSL Broker Dependency Injection ⭐ **NEW**
-**Status**: Accepted | **Date**: 2025-10-14  
-**File**: [adr_rt_009_osl_broker_injection.md](./adr_rt_009_osl_broker_injection.md)  
-**Related**: ADR-RT-001 (Zero-Cost Abstractions), ADR-RT-002 (Message Passing), ADR-RT-007 (OSL Architecture)
+### ADR-RT-009: Automatic Health Monitoring with Configurable Thresholds
+**Status**: Accepted | **Date**: 2025-10-08  
+**File**: [adr_rt_009_automatic_health_monitoring.md](./adr_rt_009_automatic_health_monitoring.md)
 
-Addresses critical architectural gap discovered during RT-TASK-009 Phase 2: OSL actors had no MessageBroker integration, preventing message-based communication. Refactors OSLSupervisor and OSL actors to accept broker injection via generic constraints.
+Establishes automatic health monitoring system for supervisor children with configurable thresholds and background monitoring tasks.
 
 **Key Decisions**:
-- OSL actors generic over broker: `FileSystemActor<M, B: MessageBroker<M>>`
-- OSLSupervisor generic over broker: `OSLSupervisor<M, B>`
-- Broker injected via constructor, cloned to child actors
-- Factory closures capture broker for SupervisorNode ChildSpec
-- Follows Microsoft Rust Guidelines M-DI-HIERARCHY (trait bounds over concrete types)
+- Background task per child for periodic health checks
+- Configurable intervals and failure thresholds
+- Automatic restart trigger on threshold breach
+- Monitor<SupervisionEvent> integration
 
-**Impact**:
-- **Testability**: Can inject mock brokers for comprehensive testing
-- **Flexibility**: Support different broker implementations (in-memory, distributed)
-- **Standards Compliance**: Aligns with Microsoft Rust Guidelines
-- **Generic Complexity**: OSLSupervisor becomes generic, types propagate upward
-- **Breaking Change**: Existing OSL code requires broker injection parameter
-
-**Architecture Pattern**:
-```rust
-// Production
-let broker = InMemoryMessageBroker::new();
-let osl_supervisor = OSLSupervisor::new(broker);
-
-// Testing
-let mock_broker = MockBroker::new();
-let osl_supervisor = OSLSupervisor::new(mock_broker);
-```
+**Impact**: Supervisors can automatically detect and recover from child degradation without explicit health check calls
 
 ---
+
+### ADR-RT-010: Baseline-First Performance Strategy
+**Status**: Accepted | **Date**: 2025-10-15  
+**File**: [adr_rt_010_baseline_first_performance_strategy.md](./adr_rt_010_baseline_first_performance_strategy.md)
+
+Establishes baseline measurement strategy before optimization, rejecting premature optimization in favor of data-driven performance work.
+
+**Key Decisions**:
+- Measure baseline performance before implementing optimizations
+- No speculative performance targets (10k actors, etc.)
+- Comprehensive benchmark suite using criterion
+- Data-driven optimization roadmap
+- YAGNI principle compliance (§6.1)
+
+**Impact**: RT-TASK-008 refocused on establishing performance baselines instead of implementing speculative optimizations. Future performance work will be justified by measured data.
+
+---
+
+## Deprecated/Rejected ADRs
+
+### ADR-RT-007: Hierarchical Supervisor Architecture for OSL Integration
+**Status**: Deprecated | **Date**: 2025-10-14 | **Deprecated**: 2025-10-15  
+**File**: [adr_rt_007_hierarchical_supervisor_osl.md](./adr_rt_007_hierarchical_supervisor_osl.md)  
+**Reason**: OSL integration (RT-TASK-009, RT-TASK-010) abandoned due to complexity and time investment exceeding value
+
+### ADR-RT-008: OSL Message Wrapper Pattern
+**Status**: Deprecated | **Date**: 2025-10-14 | **Deprecated**: 2025-10-15  
+**File**: [adr_rt_008_osl_message_wrapper_pattern.md](./adr_rt_008_osl_message_wrapper_pattern.md)  
+**Reason**: OSL integration abandoned - wrapper pattern no longer needed
+
+---
+
+## Future ADRs (Pending)
+
+### Performance & Optimization
+- **ADR-011: Performance Optimization Strategy** - Based on baseline data from RT-TASK-008 (data-driven)
 
 ## Planned ADR Categories
 
