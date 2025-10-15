@@ -13,7 +13,6 @@ pub mod broker;
 pub mod mailbox;
 pub mod message;
 pub mod monitoring;
-pub mod osl;
 pub mod supervisor;
 pub mod system;
 pub mod util;

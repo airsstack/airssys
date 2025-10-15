@@ -31,7 +31,9 @@ rust-version = "1.88"
 
 [workspace.dependencies]
 # Layer 1: AIRS Foundation Crates (MUST be at top)
+airssys-osl = { path = "airssys-osl" }
 airssys-osl-macros = { path = "airssys-osl-macros" }
+airssys-rt = { path = "airssys-rt" }
 
 # Layer 2: Core Runtime Dependencies
 tokio = { version = "1.47", features = ["full"] }
