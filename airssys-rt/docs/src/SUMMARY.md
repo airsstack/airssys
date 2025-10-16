@@ -32,11 +32,22 @@ Solve specific problems - practical guidance for accomplishing real-world tasks.
 Technical specifications - authoritative information about the system.
 
 - [Reference Overview](./reference.md)
-- [API Reference](./api.md)
-  - [Core Types](./api/core-types.md)
-  - [Actor Traits](./api/actor-traits.md)
-  - [Message Types](./api/message-types.md)
-  - [Supervisor API](./api/supervisor-api.md)
+- [API Reference](./reference/api.md)
+  - [Core Types](./reference/api/core.md)
+  - [Actors](./reference/api/actors.md)
+  - [Messaging](./reference/api/messaging.md)
+  - [Supervisors](./reference/api/supervisors.md)
+  - [Mailbox](./reference/api/mailbox.md)
+  - [Message Broker](./reference/api/broker.md)
+  - [Monitoring](./reference/api/monitoring.md)
+- [Architecture Reference](./reference/architecture.md)
+  - [System Overview](./reference/architecture/system-overview.md)
+  - [Components](./reference/architecture/components.md)
+  - [Message Passing](./reference/architecture/message-passing.md)
+  - [Supervision](./reference/architecture/supervision.md)
+  - [Process Lifecycle](./reference/architecture/process-lifecycle.md)
+- [Performance Reference](./reference/performance.md)
+- [Troubleshooting](./reference/troubleshooting.md)
 
 ---
 
@@ -45,20 +56,12 @@ Technical specifications - authoritative information about the system.
 Deepen your understanding - context, background, and design rationale.
 
 - [Explanation Overview](./explanation.md)
+  - [The Actor Model](./explanation/actor-model.md)
+  - [Supervision and Fault Tolerance](./explanation/supervision.md)
+  - [Message Passing Architecture](./explanation/message-passing.md)
+  - [Performance by Design](./explanation/performance-design.md)
+  - [Builder Pattern Design](./explanation/builder-pattern.md)
   - [Future Use Cases](./explanation/future-use-cases.md)
-
----
-
-# Architecture
-
-System design documentation - comprehensive architectural overview.
-
-- [Architecture Overview](./architecture.md)
-  - [Core Concepts](./architecture/core-concepts.md)
-  - [Actor Model Design](./architecture/actor-model.md)
-  - [Message Passing System](./architecture/message-passing.md)
-  - [Supervisor Trees](./architecture/supervision.md)
-  - [Process Lifecycle](./architecture/process-lifecycle.md)
 
 ---
 
