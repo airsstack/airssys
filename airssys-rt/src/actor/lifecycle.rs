@@ -13,14 +13,45 @@ use chrono::{DateTime, Utc}; // §3.2 MANDATORY
 
 /// Actor state in the lifecycle state machine.
 ///
+/// Represents the current phase in an actor's lifecycle, from initialization
+/// through normal operation to shutdown. Supervisors use these states to make
+/// restart decisions and monitor actor health.
+///
 /// # State Transitions
 ///
+/// Normal lifecycle flow:
 /// ```text
 /// Starting -> Running -> Stopping -> Stopped
-///     |          |           |
-///     v          v           v
-///   Failed     Failed     Failed
 /// ```
+///
+/// With failures and restarts:
+/// ```text
+/// Starting ──┬──> Running ──┬──> Stopping ──> Stopped
+///            │               │
+///            ├──> Failed <───┤
+///            │       │
+///            └───────┘ (supervisor restarts)
+/// ```
+///
+/// # State Descriptions
+///
+/// - **Starting**: Actor is initializing via `Actor::pre_start()`
+/// - **Running**: Actor is actively processing messages via `Actor::handle_message()`
+/// - **Stopping**: Actor is shutting down via `Actor::post_stop()`
+/// - **Stopped**: Actor has terminated successfully (terminal state)
+/// - **Failed**: Actor encountered an error and needs supervision (terminal state)
+///
+/// # Supervision Integration
+///
+/// Supervisors monitor actor states to enforce restart policies:
+/// - **Failed** state triggers supervisor restart strategies
+/// - **restart_count** tracked for maximum restart limits
+/// - **last_state_change** used for restart windows and rate limiting
+///
+/// # Performance
+///
+/// State transitions are zero-cost (simple enum assignment). State checks
+/// are compile-time optimized with no runtime overhead.
 ///
 /// # Examples
 ///
@@ -29,6 +60,21 @@ use chrono::{DateTime, Utc}; // §3.2 MANDATORY
 ///
 /// let state = ActorState::Starting;
 /// assert_eq!(state, ActorState::Starting);
+/// assert_eq!(ActorState::default(), ActorState::Starting);
+/// ```
+///
+/// Check for terminal states:
+///
+/// ```rust
+/// use airssys_rt::ActorState;
+///
+/// fn is_terminal(state: ActorState) -> bool {
+///     matches!(state, ActorState::Stopped | ActorState::Failed)
+/// }
+///
+/// assert!(!is_terminal(ActorState::Running));
+/// assert!(is_terminal(ActorState::Stopped));
+/// assert!(is_terminal(ActorState::Failed));
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ActorState {
@@ -54,12 +100,66 @@ impl Default for ActorState {
     }
 }
 
-/// Actor lifecycle tracker with state management.
+/// Actor lifecycle tracker with state management and supervision support.
 ///
 /// Tracks actor state transitions, restart count, and timing information
-/// for supervision and monitoring.
+/// for supervision, monitoring, and health checks. Each actor maintains
+/// its own lifecycle tracker to provide visibility into its operational state.
+///
+/// # Purpose
+///
+/// The lifecycle tracker serves multiple purposes:
+/// - **State Management**: Track current actor state (Starting, Running, etc.)
+/// - **Restart Tracking**: Count actor restarts for supervision policies
+/// - **Timing**: Record state change timestamps for monitoring
+/// - **Health Checks**: Determine if actor is running or in terminal state
+///
+/// # Integration with Supervision
+///
+/// Supervisors use lifecycle information to enforce restart policies:
+///
+/// - **restart_count**: Enforce maximum restart limits before giving up
+/// - **last_state_change**: Calculate restart rate for restart windows
+/// - **state**: Determine if restart is needed (Failed state)
+/// - **is_terminal()**: Check if actor can still be restarted
+///
+/// # Lifecycle Phases
+///
+/// **1. Starting** (Initialization)
+/// - Actor created and `pre_start()` called
+/// - Resources allocated, connections established
+/// - Transition to Running on success, Failed on error
+///
+/// **2. Running** (Normal Operation)
+/// - Actor processes messages via `handle_message()`
+/// - Most of actor's lifetime spent in this state
+/// - Can transition to Stopping (graceful) or Failed (error)
+///
+/// **3. Stopping** (Shutdown)
+/// - Actor shutting down via `post_stop()`
+/// - Resources released, connections closed
+/// - Transitions to Stopped on completion
+///
+/// **4. Stopped** (Terminal - Success)
+/// - Actor terminated successfully
+/// - Cannot transition to other states
+/// - Cleanup complete
+///
+/// **5. Failed** (Terminal - Error)
+/// - Actor encountered unrecoverable error
+/// - Supervisor decides restart or escalation
+/// - May transition back to Starting if restarted
+///
+/// # Performance Characteristics
+///
+/// - **State transitions**: Zero-cost (enum field assignment + timestamp)
+/// - **State queries**: Inlined, compile-time optimized
+/// - **restart_count**: Simple u32 increment
+/// - **Memory overhead**: ~24 bytes per actor (enum + DateTime + u32)
 ///
 /// # Examples
+///
+/// Basic lifecycle tracking:
 ///
 /// ```rust
 /// use airssys_rt::{ActorLifecycle, ActorState};
@@ -67,9 +167,51 @@ impl Default for ActorState {
 /// let mut lifecycle = ActorLifecycle::new();
 /// assert_eq!(lifecycle.state(), ActorState::Starting);
 ///
+/// // Actor started successfully
 /// lifecycle.transition_to(ActorState::Running);
 /// assert_eq!(lifecycle.state(), ActorState::Running);
 /// assert_eq!(lifecycle.restart_count(), 0);
+/// assert!(lifecycle.is_running());
+/// ```
+///
+/// Tracking restarts:
+///
+/// ```rust
+/// use airssys_rt::{ActorLifecycle, ActorState};
+///
+/// let mut lifecycle = ActorLifecycle::new();
+/// lifecycle.transition_to(ActorState::Running);
+///
+/// // Actor failed
+/// lifecycle.transition_to(ActorState::Failed);
+/// assert!(lifecycle.is_terminal());
+///
+/// // Supervisor restarts actor
+/// lifecycle.transition_to(ActorState::Starting);
+/// lifecycle.transition_to(ActorState::Running);
+/// assert_eq!(lifecycle.restart_count(), 1);
+/// ```
+///
+/// Health checking:
+///
+/// ```rust
+/// use airssys_rt::{ActorLifecycle, ActorState};
+///
+/// fn check_health(lifecycle: &ActorLifecycle) -> &'static str {
+///     if lifecycle.is_running() {
+///         "healthy"
+///     } else if lifecycle.is_terminal() {
+///         "terminated"
+///     } else {
+///         "transitioning"
+///     }
+/// }
+///
+/// let mut lifecycle = ActorLifecycle::new();
+/// assert_eq!(check_health(&lifecycle), "transitioning");
+///
+/// lifecycle.transition_to(ActorState::Running);
+/// assert_eq!(check_health(&lifecycle), "healthy");
 /// ```
 #[derive(Debug, Clone)]
 pub struct ActorLifecycle {
