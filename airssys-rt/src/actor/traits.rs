@@ -32,6 +32,15 @@ use crate::message::Message;
 /// The trait uses associated types for `Message` and `Error` to enable
 /// compile-time type checking and zero-cost abstractions (§6.2).
 ///
+/// # Actor Model Overview
+///
+/// Actors are independent units of computation that:
+/// - Maintain isolated state (no shared mutable state)
+/// - Communicate via asynchronous message passing
+/// - Process messages sequentially (one at a time)
+/// - Follow a defined lifecycle (pre_start → handle_message → post_stop)
+/// - Integrate with supervision trees for fault tolerance
+///
 /// # Associated Types
 ///
 /// - `Message`: The type of messages this actor can handle
@@ -44,11 +53,85 @@ use crate::message::Message;
 /// - `post_stop`: Cleanup when actor stops (optional)
 /// - `on_error`: Handle errors and return supervision decision (optional)
 ///
+/// # Performance Characteristics
+///
+/// Based on RT-TASK-008 baseline measurements (Oct 16, 2025):
+///
+/// - **Actor spawn time**: ~625ns (single actor)
+/// - **Batch spawn**: ~681ns/actor (10 actors, 9% overhead)
+/// - **Message processing**: ~31.5ns/message (direct processing)
+/// - **Scaling**: Linear with 6% overhead from 1→50 actors
+///
+/// Source: `BENCHMARKING.md` §6.1 (measured on macOS, Apple Silicon)
+///
+/// The runtime achieves **1,357x faster** than the <1ms target for message
+/// latency and **4.7x better** throughput than the 1M msgs/sec target.
+///
+/// # Safety Guarantees
+///
+/// Actors provide the following safety guarantees:
+/// - **Single-threaded message processing**: No internal locking needed
+/// - **Sequential message handling**: Messages processed one at a time
+/// - **Isolated state**: No shared mutable state between actors
+/// - **Type-safe messaging**: Compile-time message type verification
+///
+/// # Error Handling
+///
+/// When `handle_message` returns an error, the supervisor calls `on_error`
+/// to determine the recovery strategy:
+/// - `ErrorAction::Stop` - Stop the actor permanently (default)
+/// - `ErrorAction::Resume` - Continue processing (ignore error)
+/// - `ErrorAction::Restart` - Restart actor (call pre_start again)
+/// - `ErrorAction::Escalate` - Propagate error to parent supervisor
+///
 /// # Examples
 ///
-/// See the examples in the repository for complete actor implementations:
+/// Basic actor implementation:
+///
+/// ```rust
+/// use airssys_rt::prelude::*;
+/// use async_trait::async_trait;
+///
+/// struct CounterActor {
+///     count: u64,
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// enum CounterMessage {
+///     Increment,
+///     Decrement,
+///     GetCount(tokio::sync::oneshot::Sender<u64>),
+/// }
+///
+/// impl Message for CounterMessage {
+///     const MESSAGE_TYPE: &'static str = "counter_message";
+/// }
+///
+/// #[async_trait]
+/// impl Actor for CounterActor {
+///     type Message = CounterMessage;
+///     type Error = std::io::Error; // Use appropriate error type
+///     
+///     async fn handle_message<B: MessageBroker<Self::Message>>(
+///         &mut self,
+///         msg: Self::Message,
+///         _ctx: &mut ActorContext<Self::Message, B>,
+///     ) -> Result<(), Self::Error> {
+///         match msg {
+///             CounterMessage::Increment => self.count += 1,
+///             CounterMessage::Decrement => self.count -= 1,
+///             CounterMessage::GetCount(reply) => {
+///                 let _ = reply.send(self.count);
+///             }
+///         }
+///         Ok(())
+///     }
+/// }
+/// ```
+///
+/// See the examples in the repository for more complete implementations:
 /// - `examples/actor_basic.rs` - Basic actor implementation
-/// - `examples/actor_lifecycle.rs` - Actor lifecycle hooks
+/// - `examples/actor_lifecycle.rs` - Actor lifecycle hooks and resource management
 #[async_trait]
 pub trait Actor: Send + Sync + 'static {
     /// The type of messages this actor can handle.
