@@ -42,6 +42,23 @@ nix = { workspace = true }
 
 [dev-dependencies]
 tokio-test = { workspace = true }
+criterion = { workspace = true }
+
+[[bench]]
+name = "actor_benchmarks"
+harness = false
+
+[[bench]]
+name = "message_benchmarks"
+harness = false
+
+[[bench]]
+name = "supervisor_benchmarks"
+harness = false
+
+[[bench]]
+name = "resource_benchmarks"
+harness = false
 
 [lints]
 workspace = true

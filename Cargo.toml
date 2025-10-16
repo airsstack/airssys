@@ -127,7 +127,7 @@ tokio-test = { version = "0.4" }
 # Property-based testing
 proptest = { version = "1.4" }
 # Performance benchmarking
-criterion = { version = "0.7.0", features = ["html_reports"] }
+criterion = { version = "0.7.0", features = ["async_tokio", "html_reports"] }
 # CPU count detection for benchmarks
 num_cpus = { version = "1.16" }
 # UI testing for proc-macros
