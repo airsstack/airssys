@@ -10,39 +10,144 @@ use uuid::Uuid;
 use super::traits::{Message, MessagePriority};
 use crate::util::ids::ActorAddress;
 
-/// Generic message envelope with zero-cost abstraction
+/// Message envelope with routing metadata and zero-cost abstraction.
+///
+/// Wraps user messages with metadata needed for routing, tracking, and delivery.
+/// The envelope provides request/reply capabilities, expiration tracking, and
+/// priority-based routing without sacrificing type safety or performance.
+///
+/// # Purpose
+///
+/// The envelope serves multiple purposes in the messaging system:
+/// - **Routing**: Sender and reply-to addresses for message routing
+/// - **Tracking**: Correlation IDs for request/response correlation
+/// - **Expiration**: Time-to-live (TTL) for message expiration
+/// - **Priority**: Priority-based message processing
+/// - **Timestamps**: Message creation time for ordering and diagnostics
 ///
 /// # Type Safety
+///
 /// The envelope is generic over the message type M, ensuring compile-time
-/// type safety without runtime dispatch or type erasure.
+/// type safety without runtime dispatch or type erasure. The message type
+/// is preserved throughout the entire messaging pipeline.
 ///
-/// # Stack Allocation
-/// `MessageEnvelope<M>` is stack-allocated when M is stack-allocated,
-/// avoiding heap overhead for message passing.
+/// # Zero-Cost Abstraction
 ///
-/// # Example
+/// **Stack Allocation**: `MessageEnvelope<M>` is stack-allocated when M is
+/// stack-allocated, avoiding heap overhead for message passing.
+///
+/// **No Virtual Dispatch**: Generic constraints ensure compile-time resolution,
+/// no dynamic dispatch overhead.
+///
+/// # Envelope Metadata
+///
+/// The envelope includes the following metadata fields:
+///
+/// - **payload**: The actual message (generic type M)
+/// - **sender**: Optional sender address for replies
+/// - **reply_to**: Optional recipient for reply messages
+/// - **timestamp**: Message creation time (UTC, §3.2)
+/// - **correlation_id**: Optional UUID for request/response tracking
+/// - **priority**: Message priority (from payload.priority())
+/// - **ttl**: Optional time-to-live in seconds
+///
+/// # Builder Pattern
+///
+/// The envelope uses a fluent builder API for ergonomic construction:
+///
 /// ```rust
-/// use airssys_rt::message::{Message, MessageEnvelope, MessagePriority};
+/// use airssys_rt::message::{Message, MessageEnvelope};
 /// use airssys_rt::util::ActorAddress;
+/// use uuid::Uuid;
 ///
 /// #[derive(Debug, Clone)]
-/// struct MyMessage {
-///     content: String,
-/// }
+/// struct MyMessage { data: String }
 ///
 /// impl Message for MyMessage {
 ///     const MESSAGE_TYPE: &'static str = "my_message";
 /// }
 ///
-/// let msg = MyMessage { content: "Hello".to_string() };
+/// let msg = MyMessage { data: "hello".to_string() };
 /// let sender = ActorAddress::named("sender");
+/// let reply_to = ActorAddress::named("recipient");
 ///
 /// let envelope = MessageEnvelope::new(msg)
 ///     .with_sender(sender)
-///     .with_ttl(60);
+///     .with_reply_to(reply_to)
+///     .with_correlation_id(Uuid::new_v4())
+///     .with_ttl(60); // 60 seconds TTL
 ///
 /// assert_eq!(envelope.message_type(), "my_message");
+/// assert!(!envelope.is_expired());
 /// ```
+///
+/// # Request/Reply Pattern
+///
+/// The envelope supports request/reply correlation via sender and correlation_id:
+///
+/// ```rust,ignore
+/// // Requester side
+/// let request = RequestMessage { query: "status" };
+/// let correlation_id = Uuid::new_v4();
+///
+/// let envelope = MessageEnvelope::new(request)
+///     .with_sender(my_address.clone())
+///     .with_correlation_id(correlation_id);
+///
+/// broker.publish(envelope).await?;
+///
+/// // Responder side
+/// async fn handle_request(envelope: MessageEnvelope<RequestMessage>) {
+///     let response = ResponseMessage { status: "ok" };
+///     
+///     let reply = MessageEnvelope::new(response)
+///         .with_sender(my_address.clone())
+///         .with_reply_to(envelope.sender.unwrap())
+///         .with_correlation_id(envelope.correlation_id.unwrap());
+///     
+///     broker.publish(reply).await?;
+/// }
+/// ```
+///
+/// # Message Expiration
+///
+/// Messages can have a time-to-live (TTL) for automatic expiration:
+///
+/// ```rust
+/// use airssys_rt::message::{Message, MessageEnvelope};
+///
+/// #[derive(Debug, Clone)]
+/// struct CachedData { value: u64 }
+///
+/// impl Message for CachedData {
+///     const MESSAGE_TYPE: &'static str = "cached_data";
+/// }
+///
+/// let envelope = MessageEnvelope::new(CachedData { value: 42 })
+///     .with_ttl(300); // Expires in 5 minutes
+///
+/// // Check expiration before processing
+/// if envelope.is_expired() {
+///     // Discard expired message
+///     return;
+/// }
+/// ```
+///
+/// # Performance Characteristics
+///
+/// Based on RT-TASK-008 baseline measurements (Oct 16, 2025):
+///
+/// - **Envelope creation**: ~737ns (included in message creation)
+/// - **Expiration check**: <10ns (simple timestamp comparison)
+/// - **Serialization overhead**: Minimal (serde derive macros)
+///
+/// Source: `BENCHMARKING.md` §6.2
+///
+/// # See Also
+///
+/// - [`Message`](super::Message) - Message trait that envelopes wrap
+/// - [`MessageBroker`](crate::broker::MessageBroker) - Broker that routes envelopes
+/// - [`ActorContext::send()`](crate::actor::ActorContext::send) - Sending enveloped messages
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MessageEnvelope<M: Message> {
     /// The actual message payload
@@ -68,9 +173,23 @@ pub struct MessageEnvelope<M: Message> {
 }
 
 impl<M: Message> MessageEnvelope<M> {
-    /// Create a new message envelope with minimal information
+    /// Create a new message envelope with minimal metadata.
     ///
-    /// # Example
+    /// Creates an envelope with:
+    /// - The provided message payload
+    /// - Current timestamp (UTC, §3.2)
+    /// - Priority extracted from payload
+    /// - No sender, reply_to, correlation_id, or TTL (all None)
+    ///
+    /// Use builder methods to add optional metadata.
+    ///
+    /// # Performance
+    ///
+    /// Envelope creation is ~737ns including message construction
+    /// (from BENCHMARKING.md §6.2).
+    ///
+    /// # Examples
+    ///
     /// ```rust
     /// use airssys_rt::message::{Message, MessageEnvelope};
     ///
@@ -82,6 +201,8 @@ impl<M: Message> MessageEnvelope<M> {
     ///
     /// let envelope = MessageEnvelope::new(TestMsg);
     /// assert_eq!(envelope.message_type(), "test");
+    /// assert!(envelope.sender.is_none());
+    /// assert!(envelope.reply_to.is_none());
     /// ```
     pub fn new(payload: M) -> Self {
         let priority = payload.priority();
@@ -96,9 +217,13 @@ impl<M: Message> MessageEnvelope<M> {
         }
     }
 
-    /// Builder method: Set sender address
+    /// Builder method: Set sender address for reply capability.
     ///
-    /// # Example
+    /// The sender address allows recipients to send replies back to the
+    /// original sender. This is essential for request/reply patterns.
+    ///
+    /// # Examples
+    ///
     /// ```rust
     /// use airssys_rt::message::{Message, MessageEnvelope};
     /// use airssys_rt::util::ActorAddress;
@@ -120,27 +245,86 @@ impl<M: Message> MessageEnvelope<M> {
         self
     }
 
-    /// Builder method: Set reply-to address
+    /// Builder method: Set reply-to address for response routing.
+    ///
+    /// The reply-to address specifies where responses should be sent,
+    /// which may differ from the original sender (e.g., for delegation).
     pub fn with_reply_to(mut self, reply_to: ActorAddress) -> Self {
         self.reply_to = Some(reply_to);
         self
     }
 
-    /// Builder method: Set correlation ID
+    /// Builder method: Set correlation ID for request/response tracking.
+    ///
+    /// Correlation IDs link requests with their responses, enabling:
+    /// - Request/response matching
+    /// - Distributed tracing
+    /// - Debugging message flows
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use airssys_rt::message::{Message, MessageEnvelope};
+    /// use uuid::Uuid;
+    ///
+    /// #[derive(Debug, Clone)]
+    /// struct TestMsg;
+    /// impl Message for TestMsg {
+    ///     const MESSAGE_TYPE: &'static str = "test";
+    /// }
+    ///
+    /// let id = Uuid::new_v4();
+    /// let envelope = MessageEnvelope::new(TestMsg)
+    ///     .with_correlation_id(id);
+    ///
+    /// assert_eq!(envelope.correlation_id, Some(id));
+    /// ```
     pub fn with_correlation_id(mut self, id: Uuid) -> Self {
         self.correlation_id = Some(id);
         self
     }
 
-    /// Builder method: Set time-to-live in seconds
+    /// Builder method: Set time-to-live in seconds.
+    ///
+    /// Messages with TTL expire after the specified duration and can be
+    /// filtered out using `is_expired()`. Useful for:
+    /// - Cache invalidation messages
+    /// - Time-sensitive notifications
+    /// - Preventing stale message processing
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use airssys_rt::message::{Message, MessageEnvelope};
+    ///
+    /// #[derive(Debug, Clone)]
+    /// struct TestMsg;
+    /// impl Message for TestMsg {
+    ///     const MESSAGE_TYPE: &'static str = "test";
+    /// }
+    ///
+    /// let envelope = MessageEnvelope::new(TestMsg)
+    ///     .with_ttl(60); // 60 seconds
+    ///
+    /// assert_eq!(envelope.ttl, Some(60));
+    /// assert!(!envelope.is_expired()); // Fresh message
+    /// ```
     pub fn with_ttl(mut self, ttl_seconds: u64) -> Self {
         self.ttl = Some(ttl_seconds);
         self
     }
 
-    /// Check if message has expired based on TTL
+    /// Check if message has expired based on TTL.
     ///
-    /// # Example
+    /// Compares the message's age (since timestamp) against its TTL.
+    /// Returns `false` if no TTL is set (messages don't expire by default).
+    ///
+    /// # Performance
+    ///
+    /// Expiration check is <10ns (simple timestamp arithmetic).
+    ///
+    /// # Examples
+    ///
     /// ```rust
     /// use airssys_rt::message::{Message, MessageEnvelope};
     ///
@@ -152,6 +336,10 @@ impl<M: Message> MessageEnvelope<M> {
     ///
     /// let envelope = MessageEnvelope::new(TestMsg).with_ttl(60);
     /// assert!(!envelope.is_expired()); // Fresh message
+    ///
+    /// // No TTL = never expires
+    /// let no_ttl = MessageEnvelope::new(TestMsg);
+    /// assert!(!no_ttl.is_expired());
     /// ```
     pub fn is_expired(&self) -> bool {
         if let Some(ttl) = self.ttl {
@@ -164,7 +352,25 @@ impl<M: Message> MessageEnvelope<M> {
         }
     }
 
-    /// Get message type from payload's const
+    /// Get message type from payload's const MESSAGE_TYPE.
+    ///
+    /// Returns the compile-time message type identifier without runtime
+    /// reflection or type checking overhead.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use airssys_rt::message::{Message, MessageEnvelope};
+    ///
+    /// #[derive(Debug, Clone)]
+    /// struct TestMsg;
+    /// impl Message for TestMsg {
+    ///     const MESSAGE_TYPE: &'static str = "test_message";
+    /// }
+    ///
+    /// let envelope = MessageEnvelope::new(TestMsg);
+    /// assert_eq!(envelope.message_type(), "test_message");
+    /// ```
     pub fn message_type(&self) -> &'static str {
         M::MESSAGE_TYPE
     }

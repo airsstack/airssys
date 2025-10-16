@@ -51,13 +51,13 @@ This provides developers with complete guidance for using the core runtime.
 
 ## Progress Tracking
 
-**Overall Status:** in_progress - 5%
+**Overall Status:** in_progress - 10%
 
 ### Subtasks
 | ID | Description | Status | Updated | Notes |
 |----|-------------|--------|---------|-------|
-| 11.1 | Complete rustdoc API docs | in_progress | 2025-10-16 | Actor trait enhanced with performance data |
-| 11.2 | Code examples in rustdoc | not_started | 2025-10-02 | Working example code |
+| 11.1 | Complete rustdoc API docs | in_progress | 2025-10-16 | Actor, Message, ActorContext, MessageEnvelope complete |
+| 11.2 | Code examples in rustdoc | in_progress | 2025-10-16 | Examples added to all enhanced modules |
 | 11.3 | Error condition docs | not_started | 2025-10-02 | Error handling guidance |
 | 11.4 | Performance docs | not_started | 2025-10-02 | Performance characteristics |
 | 11.5 | Getting started guide | not_started | 2025-10-02 | Quick start tutorial |
@@ -74,6 +74,27 @@ This provides developers with complete guidance for using the core runtime.
 
 ## Progress Log
 
+### 2025-10-16 (Day 1 - Phase 1 Continued)
+- **ActorContext Enhanced**: Comprehensive rustdoc to `src/actor/context.rs`
+  - Added Purpose and Type Parameters sections
+  - Added Context Metadata documentation (address, id, timestamps, counts)
+  - Added Messaging Through Context (fire-and-forget vs request/reply)
+  - Enhanced send() method with performance data (212ns routing, 4.7M msgs/sec)
+  - Enhanced request() method with timeout patterns and examples
+  - Added Thread Safety guarantees section
+  - ✅ Verified compilation success
+- **MessageEnvelope Enhanced**: Comprehensive rustdoc to `src/message/envelope.rs`
+  - Added Purpose section (routing, tracking, expiration, priority)
+  - Added Zero-Cost Abstraction explanation (stack allocation, no virtual dispatch)
+  - Added Envelope Metadata documentation for all fields
+  - Added Builder Pattern examples with fluent API
+  - Added Request/Reply Pattern complete example
+  - Added Message Expiration pattern and use cases
+  - Enhanced all builder methods with detailed documentation
+  - Performance data: 737ns creation, <10ns expiration check
+  - ✅ Verified compilation success
+- **Progress**: Day 1 ~50% complete (4 of ~8 modules for actor/message)
+
 ### 2025-10-16 (Day 1 - Phase 1 Start)
 - **Action Plan Created**: Comprehensive 8-day plan documented in `task_011_action_plan.md`
 - **Phase 1 Started**: API Documentation (Actor and Message modules)
@@ -84,7 +105,13 @@ This provides developers with complete guidance for using the core runtime.
   - Added Error Handling overview
   - Enhanced with complete Counter Actor example
   - ✅ Verified compilation success (zero warnings)
-- **Next**: Continue with Message trait documentation
+- **Message Trait Enhanced**: Comprehensive rustdoc to `src/message/traits.rs`
+  - Added Type Safety section
+  - Added Performance Characteristics (737ns creation, 4.7M msgs/sec throughput)
+  - Added Message Patterns (fire-and-forget, request/reply, priority)
+  - Added serde serialization examples
+  - ✅ Verified compilation success
+- **Next**: Continue with remaining Day 1 modules
 
 ### 2025-10-16
 - **Dependencies Updated**: Removed RT-TASK-009 (OSL Integration) from dependencies - task was abandoned Oct 15, 2025
