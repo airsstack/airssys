@@ -7,18 +7,105 @@ use serde::{Deserialize, Serialize};
 // Layer 3: Internal module imports
 // (none yet)
 
-/// Core message trait with compile-time type identification
+/// Core message trait with compile-time type identification.
+///
+/// All types that can be sent between actors must implement this trait.
+/// Messages must be `Send + Sync + Clone + Debug + 'static` to enable
+/// safe cross-thread communication and actor system requirements.
 ///
 /// # Zero-Cost Abstraction
-/// Uses const MESSAGE_TYPE instead of runtime reflection for maximum performance.
-/// All message types are resolved at compile time.
+///
+/// Uses const `MESSAGE_TYPE` instead of runtime reflection for maximum performance.
+/// All message types are resolved at compile time, enabling zero-cost message routing.
+///
+/// # Type Safety
+///
+/// The actor system provides compile-time type safety for messaging:
+/// - Actors declare their message type via `Actor::Message`
+/// - `ActorRef<A>` can only send messages of type `A::Message`
+/// - No runtime type checking or downcasting required
+/// - Invalid message types caught at compile time
+///
+/// # Performance Characteristics
+///
+/// Based on RT-TASK-008 baseline measurements (Oct 16, 2025):
+///
+/// - **Message creation**: ~737ns
+/// - **Direct processing**: ~31.5ns/message (31.7M messages/second theoretical)
+/// - **Broker throughput**: 4.7M messages/second sustained
+/// - **Pub/sub latency**: ~212ns per message
+/// - **Mailbox operations**: ~182ns per enqueue/dequeue
+///
+/// Source: `BENCHMARKING.md` §6.2 (measured on macOS, Apple Silicon)
+///
+/// **Throughput exceeds target by 4.7x** (target: 1M msgs/sec, achieved: 4.7M msgs/sec)
 ///
 /// # Design Principles
-/// - **Type Safety**: Compile-time message type verification
-/// - **Zero Overhead**: No runtime type checking or reflection
-/// - **Flexibility**: Support for custom priority levels per message type
 ///
-/// # Example
+/// - **Type Safety**: Compile-time message type verification
+/// - **Zero Overhead**: No runtime type checking or reflection  
+/// - **Flexibility**: Support for custom priority levels per message type
+/// - **Serialization**: Serde integration for network transport (when needed)
+///
+/// # Message Patterns
+///
+/// ## Fire-and-Forget
+/// ```rust
+/// use airssys_rt::prelude::*;
+///
+/// #[derive(Debug, Clone)]
+/// struct LogMessage {
+///     level: String,
+///     text: String,
+/// }
+///
+/// impl Message for LogMessage {
+///     const MESSAGE_TYPE: &'static str = "log_message";
+/// }
+/// ```
+///
+/// ## Request/Reply with oneshot channel
+/// ```rust
+/// use airssys_rt::prelude::*;
+/// use tokio::sync::oneshot;
+///
+/// #[derive(Debug, Clone)]
+/// enum QueryMessage {
+///     GetStatus(oneshot::Sender<Status>),
+///     GetMetrics(oneshot::Sender<Metrics>),
+/// }
+///
+/// impl Message for QueryMessage {
+///     const MESSAGE_TYPE: &'static str = "query_message";
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// struct Status { /* fields */ }
+///
+/// #[derive(Debug, Clone)]
+/// struct Metrics { /* fields */ }
+/// ```
+///
+/// ## Priority Messages
+/// ```rust
+/// use airssys_rt::prelude::*;
+///
+/// #[derive(Debug, Clone)]
+/// struct ShutdownMessage;
+///
+/// impl Message for ShutdownMessage {
+///     const MESSAGE_TYPE: &'static str = "shutdown";
+///     
+///     fn priority(&self) -> MessagePriority {
+///         MessagePriority::Critical  // Processed before other messages
+///     }
+/// }
+/// ```
+///
+/// # Examples
+///
+/// Basic message implementation:
+///
 /// ```rust
 /// use airssys_rt::message::{Message, MessagePriority};
 ///
@@ -31,8 +118,24 @@ use serde::{Deserialize, Serialize};
 ///     const MESSAGE_TYPE: &'static str = "my_message";
 ///     
 ///     fn priority(&self) -> MessagePriority {
-///         MessagePriority::High
+///         MessagePriority::Normal  // Default priority
 ///     }
+/// }
+/// ```
+///
+/// With serde for serialization:
+///
+/// ```rust
+/// use airssys_rt::message::Message;
+/// use serde::{Deserialize, Serialize};
+///
+/// #[derive(Debug, Clone, Serialize, Deserialize)]
+/// struct NetworkMessage {
+///     payload: Vec<u8>,
+/// }
+///
+/// impl Message for NetworkMessage {
+///     const MESSAGE_TYPE: &'static str = "network_message";
 /// }
 /// ```
 pub trait Message: Send + Sync + Clone + Debug + 'static {
