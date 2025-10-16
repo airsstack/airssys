@@ -31,25 +31,137 @@ use super::types::{ChildHealth, ChildId, ChildSpec, StrategyContext, Supervision
 /// diverse entity types including actors, background tasks, I/O handlers, and
 /// system services.
 ///
+/// # Purpose
+///
+/// The Child trait provides the lifecycle interface required for supervision:
+/// - **Initialization**: Start child processes with resource allocation
+/// - **Graceful Shutdown**: Stop children within configurable timeout windows
+/// - **Health Monitoring**: Report operational status for proactive recovery
+/// - **Restart Support**: Enable automatic restart after failures
+///
 /// # Design Philosophy
 ///
 /// - **Universal Interface**: Any process-like entity can be supervised
 /// - **BEAM Alignment**: Matches Erlang/OTP supervisor behavior model
-/// - **True Independence**: No coupling to Actor, MessageBroker, or ActorContext
+/// - **True Independence**: No coupling to Actor, MessageBroker, or ActorContext (ADR-RT-004)
 /// - **Composability**: Mix actors and non-actors in supervision trees
+/// - **Zero-cost abstractions**: Generic constraints instead of `Box<dyn Child>` (§6.2)
+///
+/// # Separation from Actor Trait
+///
+/// The Child trait is intentionally **NOT** auto-implemented for actors. This
+/// design maintains clean separation of concerns:
+///
+/// - **Actor trait**: Message passing and state management
+/// - **Child trait**: Lifecycle management for supervision
+///
+/// Actors must explicitly implement Child to be supervised, allowing:
+/// - Custom initialization logic separate from `Actor::pre_start()`
+/// - Custom cleanup logic separate from `Actor::post_stop()`
+/// - Supervision of non-actor entities (tasks, services, connections)
+///
+/// # Performance Characteristics
+///
+/// - **Trait overhead**: Zero-cost abstraction via monomorphization
+/// - **start()**: Typically <1ms for simple initialization
+/// - **stop()**: Configurable timeout (default 5s for graceful shutdown)
+/// - **health_check()**: <100μs for typical implementations
+/// - **Memory**: No heap allocation required, stack-based lifecycle tracking
 ///
 /// # Lifecycle Methods
 ///
-/// - `start()`: Initialize and start the child process (REQUIRED)
-/// - `stop()`: Gracefully shutdown with timeout (REQUIRED)
-/// - `health_check()`: Report health status (OPTIONAL, default: Healthy)
+/// **Required Methods:**
+/// - `start()`: Initialize and start the child process
+/// - `stop(timeout)`: Gracefully shutdown with timeout
 ///
-/// # Actor Supervision
+/// **Optional Methods:**
+/// - `health_check()`: Report health status (default: Healthy)
+///
+/// # Actor Supervision Pattern
 ///
 /// Actors are **NOT** automatically Children. To supervise an actor, you must
 /// explicitly implement the Child trait for that actor type. This maintains
 /// clean separation between message-passing behavior (Actor) and supervision
 /// lifecycle (Child).
+///
+/// ## Why Explicit Implementation?
+///
+/// 1. **Flexibility**: Actors may need different supervision lifecycles than their message handling
+/// 2. **Clarity**: Makes supervision requirements explicit in code
+/// 3. **Composition**: Allows supervision of non-actor entities
+/// 4. **No Auto-Magic**: Avoids hidden coupling between traits (ADR-RT-004)
+///
+/// # Typical Implementation Patterns
+///
+/// ## Pattern 1: Minimal Implementation
+/// ```rust,ignore
+/// #[async_trait]
+/// impl Child for SimpleWorker {
+///     type Error = WorkerError;
+///     
+///     async fn start(&mut self) -> Result<(), Self::Error> {
+///         self.running = true;
+///         Ok(())
+///     }
+///     
+///     async fn stop(&mut self, _timeout: Duration) -> Result<(), Self::Error> {
+///         self.running = false;
+///         Ok(())
+///     }
+///     // Uses default health_check() → always Healthy
+/// }
+/// ```
+///
+/// ## Pattern 2: Resource Management
+/// ```rust,ignore
+/// #[async_trait]
+/// impl Child for DatabaseConnection {
+///     type Error = DbError;
+///     
+///     async fn start(&mut self) -> Result<(), Self::Error> {
+///         // Establish connection with retry logic
+///         self.connection = Some(connect_with_retry().await?);
+///         Ok(())
+///     }
+///     
+///     async fn stop(&mut self, timeout: Duration) -> Result<(), Self::Error> {
+///         // Graceful shutdown with timeout
+///         if let Some(conn) = self.connection.take() {
+///             tokio::time::timeout(timeout, conn.close()).await??;
+///         }
+///         Ok(())
+///     }
+/// }
+/// ```
+///
+/// ## Pattern 3: Health Monitoring
+/// ```rust,ignore
+/// #[async_trait]
+/// impl Child for MonitoredService {
+///     type Error = ServiceError;
+///     
+///     async fn start(&mut self) -> Result<(), Self::Error> {
+///         self.start_service().await
+///     }
+///     
+///     async fn stop(&mut self, timeout: Duration) -> Result<(), Self::Error> {
+///         self.shutdown(timeout).await
+///     }
+///     
+///     async fn health_check(&self) -> ChildHealth {
+///         // Check multiple health indicators
+///         if !self.is_connected() {
+///             return ChildHealth::Failed("Connection lost".into());
+///         }
+///         if self.error_rate() > 0.1 {
+///             return ChildHealth::Degraded(
+///                 format!("Error rate: {:.1}%", self.error_rate() * 100.0)
+///             );
+///         }
+///         ChildHealth::Healthy
+///     }
+/// }
+/// ```
 ///
 /// # Examples
 ///
