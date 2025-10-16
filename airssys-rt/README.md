@@ -1,53 +1,131 @@
-# airssys-rt (Lightweight Actor Runtime Model)
+# airssys-rt - Lightweight Erlang-Actor Model Runtime
 
-A high-performance, fault-tolerant actor runtime for Rust, inspired by the Erlang/BEAM virtual machine. `airssys-rt` provides lightweight virtual process management with supervisor trees, designed specifically for system programming within the AirsSys ecosystem.
+High-performance actor system with zero-cost abstractions, compile-time type safety, and BEAM-inspired supervision for building fault-tolerant concurrent applications.
+
+## 🚀 Quick Start
+
+Add to your `Cargo.toml`:
+
+```toml
+[dependencies]
+airssys-rt = "0.1.0"
+async-trait = "0.1"
+tokio = { version = "1.47", features = ["full"] }
+```
+
+Basic example using the prelude:
+
+```rust
+use airssys_rt::prelude::*;
+use async_trait::async_trait;
+
+// 1. Define your message type
+#[derive(Debug, Clone)]
+enum CounterMsg {
+    Increment,
+    GetCount(tokio::sync::oneshot::Sender<u64>),
+}
+
+impl Message for CounterMsg {
+    const MESSAGE_TYPE: &'static str = "counter";
+}
+
+// 2. Define your actor
+struct CounterActor {
+    count: u64,
+}
+
+// 3. Implement the Actor trait
+#[async_trait]
+impl Actor for CounterActor {
+    type Message = CounterMsg;
+    type Error = std::io::Error;
+    
+    async fn handle_message<B: MessageBroker<Self::Message>>(
+        &mut self,
+        msg: Self::Message,
+        ctx: &mut ActorContext<Self::Message, B>,
+    ) -> Result<(), Self::Error> {
+        match msg {
+            CounterMsg::Increment => self.count += 1,
+            CounterMsg::GetCount(reply) => {
+                let _ = reply.send(self.count);
+            }
+        }
+        Ok(())
+    }
+}
+```
 
 ## 🎯 Project Vision
 
-`airssys-rt` implements the proven actor model and supervision patterns from Erlang/OTP in a Rust-native runtime. Rather than recreating the entire BEAM virtual machine, it focuses on the essential patterns that make concurrent systems resilient and scalable.
+`airssys-rt` implements the proven actor model and supervision patterns from Erlang/OTP in a Rust-native runtime with modern zero-cost abstractions. Rather than recreating the entire BEAM virtual machine, it focuses on the essential patterns that make concurrent systems resilient and scalable.
 
 ### What Makes This Different
 
-- **Virtual Process Model**: Lightweight, isolated execution contexts (not OS processes)
-- **In-Memory Management**: Pure in-memory process lifecycle and communication
+- **Zero-Cost Abstractions**: Generic constraints instead of trait objects (§6.2), no runtime overhead
+- **Type Safety**: Compile-time message type verification, no `dyn` traits in public APIs
+- **High Performance**: ~625ns actor spawn, 31.5ns/msg processing, 4.7M msgs/sec throughput
+- **BEAM-Inspired**: Supervision trees with OneForOne, OneForAll, RestForOne strategies  
 - **System Programming Focus**: Optimized for low-level system operations and integration
 - **AirsSys Integration**: Designed to work seamlessly with airssys-osl and airssys-wasm
+
+## 📊 Performance Characteristics
+
+Based on RT-TASK-008 baseline measurements (Oct 16, 2025):
+
+- **Actor spawn**: ~625ns (single), ~681ns/actor (batch of 10)
+- **Message creation**: ~737ns (with envelope and metadata)
+- **Message processing**: ~31.5ns/message (direct actor handling)
+- **Broker routing**: ~212ns/message (registry lookup + mailbox send)
+- **Mailbox operations**: ~182ns/message (bounded mailbox with metrics)
+- **Message throughput**: ~4.7M messages/sec (4.7x target of 1M/sec)
+- **Scaling**: Linear with 6% overhead (1→50 actors)
+
+Source: `BENCHMARKING.md` §6.1-§6.3
 
 ## 🏗️ Core Architecture
 
 The runtime is built on several key architectural patterns:
 
-- **Generic Actor Trait**: `Actor<M, B>` supporting custom message types and broker dependency injection
-- **Broker-Based Communication**: Message routing through `InMemoryMessageBroker` with pub-sub patterns
-- **Supervision Trees**: Hierarchical fault tolerance with configurable restart strategies
-- **Child Lifecycle**: Actors implement `Child` trait for start/stop/health_check lifecycle management
+### Actor System
+- **Generic Actor Trait**: `Actor<M, B>` with compile-time type safety
+- **Zero-Cost Dispatch**: Monomorphization eliminates runtime overhead  
+- **Lifecycle Hooks**: `pre_start()`, `handle_message()`, `post_stop()`
+
+### Message Passing
+- **Type-Safe Messages**: Generic `Message` trait with compile-time verification
+- **Message Envelopes**: Metadata wrappers (priority, expiration, correlation)
+- **Broker-Based Routing**: `InMemoryMessageBroker` with pub-sub patterns
+- **Backpressure Control**: Configurable strategies (Block, Drop, Reject)
+
+### Supervision Trees
+- **Child Trait**: Lifecycle interface (`start()`, `stop()`, `health_check()`)
+- **Three Strategies**: OneForOne, OneForAll, RestForOne
+- **Restart Policies**: Permanent, Transient, Temporary
+- **Health Monitoring**: Proactive failure detection
+
+### Monitoring & Observability
+- **Event Tracking**: Actor, supervision, mailbox, broker events
+- **Zero-Overhead Option**: `NoopMonitor` compiles away completely
+- **Metrics**: Queue depth, throughput, error rates
 
 For detailed architecture documentation and working examples, see:
-- [Architecture Guide](./docs/src/architecture/) - Core concepts and design patterns
-- [Working Examples](./examples/) - Real implementation examples
-- [OSL Integration](#-osl-integration) - Complete broker-based integration example
+- **API Documentation**: Run `cargo doc --open --package airssys-rt`
+- **Working Examples**: See `examples/` directory
+- **Memory Bank**: `.copilot/memory_bank/sub_projects/airssys-rt/`
 
-## 🧩 Core Components
+## 🧩 Module Organization
 
-### 1. Virtual Process Manager
-- Lightweight process creation and lifecycle management
-- Process registry and addressing
-- Memory-efficient process storage
-
-### 2. Message Passing System
-- Zero-copy message delivery where possible
-- Backpressure and flow control
-- Message routing and addressing
-
-### 3. Supervision Framework
-- Hierarchical process monitoring
-- Configurable restart strategies (OneForOne, OneForAll, RestForOne)
-- Fault isolation and error propagation
-
-### 4. Scheduler Integration
-- Tokio-based cooperative scheduling
-- Fair scheduling across actors
-- Integration with async/await ecosystem
+- **`prelude`** - Convenient re-exports of commonly used types (start here!)
+- **`actor`** - Actor trait, lifecycle, and context
+- **`message`** - Message trait, envelopes, and priority
+- **`mailbox`** - Message queuing with backpressure
+- **`broker`** - Message routing and pub/sub
+- **`supervisor`** - Supervision trees and fault tolerance
+- **`monitoring`** - Event tracking and metrics
+- **`system`** - Actor system configuration
+- **`util`** - Utilities (addresses, IDs)
 
 ## 🎮 Actor Model Principles
 

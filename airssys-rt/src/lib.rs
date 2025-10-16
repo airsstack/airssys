@@ -5,6 +5,9 @@
 //!
 //! # Quick Start
 //!
+//! The easiest way to get started is by using the [`prelude`] module which re-exports
+//! all commonly used types and traits:
+//!
 //! ```rust,ignore
 //! use airssys_rt::prelude::*;
 //! use async_trait::async_trait;
@@ -102,6 +105,9 @@
 //!
 //! # Module Organization
 //!
+//! ## Prelude
+//! - [`prelude`] - Convenient re-exports of commonly used types (start here!)
+//!
 //! ## Core Actor System
 //! - [`actor`] - Actor trait, lifecycle, and context for message handling
 //! - [`message`] - Message trait, envelopes, and priority system
@@ -165,6 +171,7 @@ pub mod broker;
 pub mod mailbox;
 pub mod message;
 pub mod monitoring;
+pub mod prelude;
 pub mod supervisor;
 pub mod system;
 pub mod util;
