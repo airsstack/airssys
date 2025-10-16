@@ -82,7 +82,7 @@
 /// let monitor = InMemoryMonitor::new(config);
 ///
 /// // Record actor lifecycle events
-/// monitor.record(ActorEvent::Started { 
+/// monitor.record(ActorEvent::Started {
 ///     actor_id: "actor-123",
 ///     timestamp: Utc::now(),
 /// }).await?;
@@ -155,7 +155,6 @@
 /// monitor.record(ActorEvent::Started { /* ... */ }).await?;  // 0ns
 /// let snapshot = monitor.snapshot().await?;  // 0ns, empty snapshot
 /// ```
-
 pub mod error;
 pub mod in_memory;
 pub mod noop;

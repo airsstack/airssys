@@ -211,7 +211,6 @@
 ///     .with_health_check_interval(Duration::from_secs(1))
 ///     .build();
 /// ```
-
 // Module declarations
 pub mod backoff;
 pub mod builder;
