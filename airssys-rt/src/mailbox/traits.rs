@@ -1,18 +1,30 @@
 //! Core mailbox traits and supporting types for actor message queuing.
 //!
 //! This module provides the foundational traits and types for the mailbox system:
-//! - `MailboxReceiver<M>`: Generic mailbox trait for receiving messages
-//! - `MailboxSender<M>`: Generic sender trait for sending messages
-//! - `MailboxCapacity`: Capacity configuration (bounded/unbounded)
-//! - `MailboxError`: Comprehensive error types
-//! - `MailboxMetrics`: Message tracking and monitoring
+//! - [`MailboxReceiver<M>`] - Generic trait for receiving messages from mailbox
+//! - [`MailboxSender<M>`] - Generic trait for sending messages to mailbox
+//! - [`MailboxCapacity`] - Capacity configuration (bounded/unbounded)
+//! - [`MailboxError`] - Comprehensive error types for mailbox operations
+//! - [`TryRecvError`] - Error type for non-blocking receive operations
 //!
 //! # Design Principles
 //!
 //! - **Zero-cost abstractions**: Generic constraints instead of trait objects (§6.2)
-//! - **Type safety**: Compile-time message type verification
-//! - **Async support**: Full async/await integration with tokio
-//! - **Metrics tracking**: Built-in monitoring for observability
+//! - **Type safety**: Compile-time message type verification via generics
+//! - **Async support**: Full async/await integration with tokio runtime
+//! - **Ownership semantics**: Receiver owned by one actor, sender cloneable
+//! - **Backpressure control**: Configurable strategies via implementations
+//!
+//! # Performance Characteristics
+//!
+//! Based on RT-TASK-008 baseline measurements (Oct 16, 2025):
+//!
+//! - **send() operation**: ~182ns/message (bounded mailbox with metrics)
+//! - **recv() operation**: ~150ns/message (zero-copy message retrieval)
+//! - **try_recv() operation**: <50ns (non-blocking check + atomic read)
+//! - **capacity() check**: <10ns (atomic read)
+//!
+//! Source: `BENCHMARKING.md` §6.3
 //!
 //! # Example
 //!
