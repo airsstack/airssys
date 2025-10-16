@@ -67,7 +67,7 @@ struct CacheActor {
     cache: HashMap<String, String>,
     hits: u64,
     misses: u64,
-    
+
     // Circuit breaker state
     breaker: CircuitBreaker,
 }
@@ -130,12 +130,15 @@ impl CircuitBreaker {
     fn on_failure(&mut self) {
         self.failure_count += 1;
         self.last_failure = Some(Instant::now());
-        
+
         if self.failure_count >= self.threshold {
             println!("Circuit breaker: Failure threshold reached - OPEN");
             self.state = BreakerState::Open;
         } else {
-            println!("Circuit breaker: Failure {} of {}", self.failure_count, self.threshold);
+            println!(
+                "Circuit breaker: Failure {} of {}",
+                self.failure_count, self.threshold
+            );
         }
     }
 }
@@ -174,8 +177,10 @@ impl Actor for CacheActor {
         &mut self,
         context: &mut ActorContext<Self::Message, B>,
     ) -> Result<(), Self::Error> {
-        println!("[{}] Cache actor starting...", 
-                 context.address().name().unwrap_or("cache"));
+        println!(
+            "[{}] Cache actor starting...",
+            context.address().name().unwrap_or("cache")
+        );
         Ok(())
     }
 
@@ -218,8 +223,10 @@ impl Actor for CacheActor {
         &mut self,
         context: &mut ActorContext<Self::Message, B>,
     ) -> Result<(), Self::Error> {
-        println!("[{}] Cache actor stopped. Final stats:", 
-                 context.address().name().unwrap_or("cache"));
+        println!(
+            "[{}] Cache actor stopped. Final stats:",
+            context.address().name().unwrap_or("cache")
+        );
         println!("  - Entries: {}", self.cache.len());
         println!("  - Hits: {}", self.hits);
         println!("  - Misses: {}", self.misses);
@@ -250,11 +257,11 @@ impl CacheActor {
                     self.breaker.on_failure();
                     return Err(CacheError::StorageFull);
                 }
-                
+
                 self.cache.insert(key.clone(), value.clone());
                 self.breaker.on_success();
                 println!("✓ Set key '{}' = '{}'", key, value);
-                
+
                 // Emit event
                 context.send_event(CacheMessage::Event(CacheEvent::KeySet {
                     key,
@@ -278,7 +285,7 @@ impl CacheActor {
                 self.breaker.on_success();
             }
         }
-        
+
         context.record_message();
         Ok(())
     }
@@ -304,11 +311,15 @@ impl CacheActor {
                 println!("✓ Cache size: {}", size);
             }
             CacheQuery::Stats => {
-                println!("✓ Cache stats: {} entries, {} hits, {} misses", 
-                         self.cache.len(), self.hits, self.misses);
+                println!(
+                    "✓ Cache stats: {} entries, {} hits, {} misses",
+                    self.cache.len(),
+                    self.hits,
+                    self.misses
+                );
             }
         }
-        
+
         context.record_message();
         Ok(())
     }
@@ -358,37 +369,42 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Demonstrate command pattern
     println!("2. Testing command pattern (Set/Delete/Clear):");
-    actor.handle_message(
-        CacheMessage::Command(CacheCommand::Set {
-            key: "name".to_string(),
-            value: "AirsSys".to_string(),
-        }),
-        &mut context,
-    ).await?;
+    actor
+        .handle_message(
+            CacheMessage::Command(CacheCommand::Set {
+                key: "name".to_string(),
+                value: "AirsSys".to_string(),
+            }),
+            &mut context,
+        )
+        .await?;
 
-    actor.handle_message(
-        CacheMessage::Command(CacheCommand::Set {
-            key: "version".to_string(),
-            value: "0.1.0".to_string(),
-        }),
-        &mut context,
-    ).await?;
+    actor
+        .handle_message(
+            CacheMessage::Command(CacheCommand::Set {
+                key: "version".to_string(),
+                value: "0.1.0".to_string(),
+            }),
+            &mut context,
+        )
+        .await?;
     println!();
 
     // Demonstrate query pattern (simplified - no reply channels)
     println!("3. Testing query pattern:");
-    
-    actor.handle_message(
-        CacheMessage::Query(CacheQuery::Get {
-            key: "name".to_string(),
-        }),
-        &mut context,
-    ).await?;
 
-    actor.handle_message(
-        CacheMessage::Query(CacheQuery::Size),
-        &mut context,
-    ).await?;
+    actor
+        .handle_message(
+            CacheMessage::Query(CacheQuery::Get {
+                key: "name".to_string(),
+            }),
+            &mut context,
+        )
+        .await?;
+
+    actor
+        .handle_message(CacheMessage::Query(CacheQuery::Size), &mut context)
+        .await?;
     println!();
 
     // Demonstrate error handling and circuit breaker
@@ -396,15 +412,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for i in 1..=5 {
         // Simulate failure by setting too many items
         for j in 0..30 {
-            let _ = actor.handle_message(
-                CacheMessage::Command(CacheCommand::Set {
-                    key: format!("key{}", i * 100 + j),
-                    value: format!("value{}", j),
-                }),
-                &mut context,
-            ).await;
+            let _ = actor
+                .handle_message(
+                    CacheMessage::Command(CacheCommand::Set {
+                        key: format!("key{}", i * 100 + j),
+                        value: format!("value{}", j),
+                    }),
+                    &mut context,
+                )
+                .await;
         }
-        
+
         if i < 5 {
             tokio::time::sleep(Duration::from_millis(500)).await;
         }
@@ -413,18 +431,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Demonstrate cache clearing
     println!("5. Clearing cache:");
-    actor.handle_message(
-        CacheMessage::Command(CacheCommand::Clear),
-        &mut context,
-    ).await?;
+    actor
+        .handle_message(CacheMessage::Command(CacheCommand::Clear), &mut context)
+        .await?;
     println!();
 
     // Final stats
     println!("6. Final statistics:");
-    actor.handle_message(
-        CacheMessage::Query(CacheQuery::Stats),
-        &mut context,
-    ).await?;
+    actor
+        .handle_message(CacheMessage::Query(CacheQuery::Stats), &mut context)
+        .await?;
     println!();
 
     // Shutdown
@@ -453,21 +469,27 @@ mod tests {
         let mut context = ActorContext::new(address, broker);
 
         // Set a value
-        actor.handle_message(
-            CacheMessage::Command(CacheCommand::Set {
-                key: "test".to_string(),
-                value: "data".to_string(),
-            }),
-            &mut context,
-        ).await.unwrap();
+        actor
+            .handle_message(
+                CacheMessage::Command(CacheCommand::Set {
+                    key: "test".to_string(),
+                    value: "data".to_string(),
+                }),
+                &mut context,
+            )
+            .await
+            .unwrap();
 
         // Query the value
-        actor.handle_message(
-            CacheMessage::Query(CacheQuery::Get {
-                key: "test".to_string(),
-            }),
-            &mut context,
-        ).await.unwrap();
+        actor
+            .handle_message(
+                CacheMessage::Query(CacheQuery::Get {
+                    key: "test".to_string(),
+                }),
+                &mut context,
+            )
+            .await
+            .unwrap();
 
         // Value should be in cache (verified via printed output)
         assert_eq!(actor.cache.get("test"), Some(&"data".to_string()));
@@ -482,23 +504,27 @@ mod tests {
 
         // Fill cache to trigger storage full
         for i in 0..100 {
-            let _ = actor.handle_message(
-                CacheMessage::Command(CacheCommand::Set {
-                    key: format!("key{}", i),
-                    value: "value".to_string(),
-                }),
-                &mut context,
-            ).await;
+            let _ = actor
+                .handle_message(
+                    CacheMessage::Command(CacheCommand::Set {
+                        key: format!("key{}", i),
+                        value: "value".to_string(),
+                    }),
+                    &mut context,
+                )
+                .await;
         }
 
         // Next insert should fail
-        let result = actor.handle_message(
-            CacheMessage::Command(CacheCommand::Set {
-                key: "overflow".to_string(),
-                value: "data".to_string(),
-            }),
-            &mut context,
-        ).await;
+        let result = actor
+            .handle_message(
+                CacheMessage::Command(CacheCommand::Set {
+                    key: "overflow".to_string(),
+                    value: "data".to_string(),
+                }),
+                &mut context,
+            )
+            .await;
 
         assert!(result.is_err());
     }

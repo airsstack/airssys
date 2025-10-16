@@ -109,7 +109,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for msg in messages {
         match actor.handle_message(msg, &mut context).await {
             Ok(()) => {
-                println!("   ✓ Message processed (total: {})", context.message_count());
+                println!(
+                    "   ✓ Message processed (total: {})",
+                    context.message_count()
+                );
             }
             Err(e) => {
                 println!("   ✗ Error: {e}");
@@ -138,7 +141,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Graceful shutdown
     println!("\n3. Shutting down...");
-    let shutdown_result = actor.handle_message(CounterMessage::Shutdown, &mut context).await;
+    let shutdown_result = actor
+        .handle_message(CounterMessage::Shutdown, &mut context)
+        .await;
     if shutdown_result.is_err() {
         lifecycle.transition_to(ActorState::Stopping);
         actor.post_stop(&mut context).await?;
@@ -153,4 +158,3 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n=== Example Complete ===");
     Ok(())
 }
-
