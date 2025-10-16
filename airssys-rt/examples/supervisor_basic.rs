@@ -1,15 +1,84 @@
-//! Basic supervisor usage example.
+//! Basic Supervisor Usage - Child Lifecycle Management
 //!
-//! This example demonstrates the core supervisor functionality:
-//! - Creating a supervisor with a supervision strategy
-//! - Starting and stopping children
-//! - Basic error handling and restart behavior
-//! - Child lifecycle management
+//! Demonstrates core supervisor functionality for managing child processes with
+//! automatic restart strategies, health monitoring, and graceful shutdown.
 //!
-//! Run with:
+//! # What You'll Learn
+//!
+//! - **Supervisor Creation**: Creating a SupervisorNode with OneForOne strategy
+//! - **Child Specifications**: Defining ChildSpec with factory, restart policy, and shutdown policy
+//! - **Lifecycle Management**: Starting, stopping, and restarting children
+//! - **Restart Policies**: Permanent (always restart), Transient (restart on abnormal exit), Temporary (never restart)
+//! - **Health Monitoring**: Implementing health_check() for child health tracking
+//! - **Graceful Shutdown**: Using ShutdownPolicy and shutdown timeouts
+//!
+//! # Key Concepts
+//!
+//! ## Supervisor Strategies
+//!
+//! - **OneForOne**: When one child fails, only that child is restarted (used in this example)
+//! - **OneForAll**: When one child fails, all children are restarted (see supervisor_strategies.rs)
+//! - **RestForOne**: When one child fails, that child and all children started after it are restarted
+//!
+//! ## Restart Policies
+//!
+//! - **RestartPolicy::Permanent**: Child is always restarted, regardless of exit reason
+//! - **RestartPolicy::Transient**: Child is restarted only if it terminates abnormally (error)
+//! - **RestartPolicy::Temporary**: Child is never restarted, even on failure
+//!
+//! ## Child Lifecycle
+//!
+//! ```text
+//! Created → Starting → Running → Stopping → Stopped
+//!             ↑          ↓
+//!             └─────────┘ (restart on failure)
+//! ```
+//!
+//! ## ChildSpec Components
+//!
+//! - **id**: Unique identifier for the child
+//! - **factory**: Closure that creates new child instance (called on start and restart)
+//! - **restart_policy**: Determines when child should be restarted
+//! - **shutdown_policy**: Graceful vs brutal shutdown with timeout
+//! - **start_timeout**: Maximum time allowed for start() to complete
+//! - **shutdown_timeout**: Maximum time allowed for stop() to complete
+//!
+//! # Run This Example
+//!
 //! ```bash
 //! cargo run --example supervisor_basic
 //! ```
+//!
+//! # Expected Output
+//!
+//! ```text
+//! === Basic Supervisor Example ===
+//!
+//! Step 1: Creating supervisor with OneForOne strategy
+//! ✅ Supervisor created
+//!
+//! Step 3: Starting children
+//! [worker-1] Starting (start count: 1)
+//! ✅ Worker-1 started with ID: worker-1
+//! [worker-2] Starting (start count: 1)
+//! ✅ Worker-2 started with ID: worker-2
+//!
+//! Step 5: Testing automatic restart (Permanent policy)
+//! [worker-1] Stopping (stop count: 1)
+//! [worker-1] Starting (start count: 2)  ← Automatic restart
+//! ✅ Worker-1 restart initiated
+//!
+//! === Worker Statistics ===
+//! Worker-1: started 2 times, stopped 2 times
+//! Worker-2: started 1 times, stopped 1 times
+//! ```
+//!
+//! # See Also
+//!
+//! - [`supervisor_strategies.rs`] - OneForOne, OneForAll, RestForOne strategy comparison
+//! - [`supervisor_builder_phase1.rs`] - Fluent builder API for supervisors
+//! - [`monitoring_supervisor.rs`] - Monitoring integration with supervisors
+//! - [User Guide: Supervisor Patterns](../docs/src/guides/supervisor-patterns.md)
 
 use airssys_rt::monitoring::{InMemoryMonitor, MonitoringConfig};
 use airssys_rt::supervisor::{
@@ -22,13 +91,25 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::sleep;
 
+// =============================================================================
+// Child Implementation - Simple Supervised Worker
+// =============================================================================
+
 /// A simple worker that can be supervised.
+///
+/// Demonstrates the Child trait implementation required for supervision:
+/// - `start()`: Initialize the child (called on start and restart)
+/// - `stop()`: Clean shutdown with timeout enforcement
+/// - `health_check()`: Report child health status for monitoring
+///
+/// Uses Arc<Atomic*> for counters to track lifecycle calls across restarts
+/// (factory creates new instances, but counters persist).
 #[derive(Debug)]
 struct SimpleWorker {
     id: String,
-    start_count: Arc<AtomicU32>,
-    stop_count: Arc<AtomicU32>,
-    should_fail: Arc<AtomicBool>,
+    start_count: Arc<AtomicU32>,  // Shared counter across all instances
+    stop_count: Arc<AtomicU32>,   // Shared counter across all instances
+    should_fail: Arc<AtomicBool>, // Shared failure flag for testing
 }
 
 #[derive(Debug)]
@@ -48,11 +129,15 @@ impl std::error::Error for WorkerError {}
 impl Child for SimpleWorker {
     type Error = WorkerError;
 
+    /// Initialize child on start or restart.
+    ///
+    /// CRITICAL: This is called for BOTH initial start AND every restart.
+    /// Initialize resources, connections, and state here.
     async fn start(&mut self) -> Result<(), Self::Error> {
         let count = self.start_count.fetch_add(1, Ordering::Relaxed) + 1;
         println!("[{}] Starting (start count: {})", self.id, count);
 
-        // Simulate startup failure if flag is set
+        // Simulate startup failure for testing restart behavior
         if self.should_fail.load(Ordering::Relaxed) {
             self.should_fail.store(false, Ordering::Relaxed); // Only fail once
             return Err(WorkerError {
@@ -63,30 +148,55 @@ impl Child for SimpleWorker {
         Ok(())
     }
 
+    /// Gracefully stop child with timeout enforcement.
+    ///
+    /// Clean up resources, close connections, flush buffers.
+    /// Supervisor enforces the timeout from ShutdownPolicy.
     async fn stop(&mut self, _timeout: Duration) -> Result<(), Self::Error> {
         let count = self.stop_count.fetch_add(1, Ordering::Relaxed) + 1;
         println!("[{}] Stopping (stop count: {})", self.id, count);
         Ok(())
     }
 
+    /// Report child health status for monitoring.
+    ///
+    /// Called periodically by monitoring system. Return:
+    /// - ChildHealth::Healthy: Child is functioning normally
+    /// - ChildHealth::Unhealthy(reason): Child needs attention or restart
     async fn health_check(&self) -> ChildHealth {
         ChildHealth::Healthy
     }
 }
 
+// =============================================================================
+// Main Example - Supervisor Lifecycle Demonstration
+// =============================================================================
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("=== Basic Supervisor Example ===\n");
 
-    // Step 1: Create a supervisor with OneForOne strategy
+    // ==========================================================================
+    // Step 1: Create supervisor with OneForOne strategy
+    // ==========================================================================
+    // OneForOne: When one child fails, only that child is restarted
+    // (Other children continue running unaffected)
     println!("Step 1: Creating supervisor with OneForOne strategy");
     let monitor = InMemoryMonitor::new(MonitoringConfig::default());
     let mut supervisor = SupervisorNode::<OneForOne, SimpleWorker, _>::new(OneForOne, monitor);
     println!("✅ Supervisor created\n");
 
+    // ==========================================================================
     // Step 2: Define child specifications
+    // ==========================================================================
+    // ChildSpec defines:
+    // - How to create child instances (factory closure)
+    // - When to restart (RestartPolicy)
+    // - How to shutdown (ShutdownPolicy)
+    // - Timeout constraints
     println!("Step 2: Defining child specifications");
 
+    // Worker 1: Permanent restart policy (always restart on failure)
     let worker1_start_count = Arc::new(AtomicU32::new(0));
     let worker1_stop_count = Arc::new(AtomicU32::new(0));
     let worker1_should_fail = Arc::new(AtomicBool::new(false));
@@ -110,6 +220,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         shutdown_timeout: Duration::from_secs(10),
     };
 
+    // Worker 2: Transient restart policy (only restart on abnormal exit)
     let worker2_start_count = Arc::new(AtomicU32::new(0));
     let worker2_stop_count = Arc::new(AtomicU32::new(0));
     let worker2_should_fail = Arc::new(AtomicBool::new(false));
@@ -135,7 +246,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("✅ Child specifications defined\n");
 
-    // Step 3: Start children
+    // ==========================================================================
+    // Step 3: Start children under supervision
+    // ==========================================================================
+    // Supervisor calls spec.factory() to create instances, then child.start()
     println!("Step 3: Starting children");
     let child1_id = supervisor.start_child(spec1).await?;
     println!("✅ Worker-1 started with ID: {child1_id}");
@@ -143,7 +257,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let child2_id = supervisor.start_child(spec2).await?;
     println!("✅ Worker-2 started with ID: {child2_id}\n");
 
-    // Step 4: Check child states
+    // ==========================================================================
+    // Step 4: Inspect child states
+    // ==========================================================================
     println!("Step 4: Checking child states");
     let child_count = supervisor.child_count();
     println!("Active children: {child_count}");
@@ -154,7 +270,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     println!();
 
-    // Step 5: Simulate child restart (worker-1 with Permanent policy)
+    // ==========================================================================
+    // Step 5: Test automatic restart (Permanent policy)
+    // ==========================================================================
+    // Worker-1 has RestartPolicy::Permanent, so it will restart on failure
     println!("Step 5: Testing automatic restart (Permanent policy)");
     println!("Simulating worker-1 failure...");
     worker1_should_fail.store(true, Ordering::Relaxed);
@@ -170,12 +289,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     sleep(Duration::from_millis(500)).await;
     println!();
 
-    // Step 6: Stop a child
+    // ==========================================================================
+    // Step 6: Graceful child shutdown
+    // ==========================================================================
+    // Gracefully stop worker-2 (calls child.stop() with timeout enforcement)
     println!("Step 6: Gracefully stopping worker-2");
     supervisor.stop_child(&child2_id).await?;
     println!("✅ Worker-2 stopped\n");
 
-    // Step 7: Check final states
+    // ==========================================================================
+    // Step 7: Final state inspection
+    // ==========================================================================
     println!("Step 7: Final state check");
     let child_count = supervisor.child_count();
     println!("Active children: {child_count}");
