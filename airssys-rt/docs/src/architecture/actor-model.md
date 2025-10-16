@@ -461,6 +461,5 @@ Explore these examples to understand the actor model:
 | `supervisor_basic.rs` | Supervision patterns | `cargo run --example supervisor_basic` |
 | `supervisor_strategies.rs` | Restart strategies | `cargo run --example supervisor_strategies` |
 | `monitoring_basic.rs` | Actor monitoring | `cargo run --example monitoring_basic` |
-| `osl_integration_example.rs` | OSL integration | `cargo run --example osl_integration_example` |
 
 All examples are in the `examples/` directory and demonstrate real implementations of these patterns.

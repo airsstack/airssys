@@ -418,46 +418,6 @@ pub enum ErrorAction {
 3. Actor returns `ErrorAction` to supervisor
 4. Supervisor applies restart strategy based on action
 
-## Integration Patterns
-
-### OSL Integration
-
-Actors can use `airssys-osl` for secure system operations. From `examples/osl_integration_example.rs`:
-
-```rust
-use airssys_osl::prelude::*;
-use airssys_rt::{Actor, ActorContext};
-
-struct FileActor {
-    executor: OslExecutor,
-}
-
-#[async_trait]
-impl Actor for FileActor {
-    type Message = FileMessage;
-    type Error = FileError;
-
-    async fn handle_message<B: MessageBroker<Self::Message>>(
-        &mut self,
-        message: Self::Message,
-        context: &mut ActorContext<Self::Message, B>,
-    ) -> Result<(), Self::Error> {
-        match message {
-            FileMessage::Read { path } => {
-                let result = self.executor.read_file(&path)?;
-                // Process file content
-                Ok(())
-            }
-        }
-    }
-}
-```
-
-Run this example:
-```bash
-cargo run --example osl_integration_example
-```
-
 ## Architecture Layers
 
 The runtime is organized in layers:
@@ -485,6 +445,5 @@ Explore these examples to understand the runtime:
 | `supervisor_automatic_health.rs` | Health monitoring | `cargo run --example supervisor_automatic_health` |
 | `monitoring_basic.rs` | Actor monitoring | `cargo run --example monitoring_basic` |
 | `monitoring_supervisor.rs` | Supervisor monitoring | `cargo run --example monitoring_supervisor` |
-| `osl_integration_example.rs` | OSL integration | `cargo run --example osl_integration_example` |
 
 All examples are located in the `examples/` directory and demonstrate real, working implementations of the concepts described in this document.
