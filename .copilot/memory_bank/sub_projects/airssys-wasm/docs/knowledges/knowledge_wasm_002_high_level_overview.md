@@ -127,8 +127,8 @@ The framework emphasizes:
 ## Related Documentation
 
 - **[KNOWLEDGE-WASM-001](knowledge_wasm_001_component_framework_architecture.md)**: Detailed technical architecture
-- **[Core Architecture Design](core_architecture_design.md)**: Two-audience developer experience
-- **[WIT Management Architecture](wit_management_architecture.md)**: Interface management framework
+- **[KNOWLEDGE-WASM-003](knowledge_wasm_003_core_architecture_design.md)**: Two-audience developer experience
+- **[KNOWLEDGE-WASM-004](knowledge_wasm_004_wit_management_architecture.md)**: Interface management framework
 
 ---
 

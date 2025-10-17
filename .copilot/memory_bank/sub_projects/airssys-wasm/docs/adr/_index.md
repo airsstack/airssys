@@ -33,7 +33,7 @@
 
 ### Advanced Feature Decisions (Future)
 - **ADR-017: Component Composition Model** - Component composition and linking strategy
-- **ADR-018: Hot Reloading Architecture** - Dynamic component update mechanism
+- **ADR-018: Runtime Component Reload Architecture** - Dynamic component update mechanism
 - **ADR-019: Distributed Components** - Cross-system component communication
 - **ADR-020: Development Tooling** - Development and debugging tool architecture
 

@@ -2,8 +2,8 @@
 
 **Sub-Project:** airssys-wasm  
 **Last Updated:** 2025-10-17  
-**Total Knowledge Docs:** 3  
-**Active Knowledge Docs:** 3
+**Total Knowledge Docs:** 4  
+**Active Knowledge Docs:** 4
 
 ## Current Knowledge Documentation
 
@@ -25,15 +25,15 @@
   - **Impact**: Critical - defines entire framework foundation
   - **Audience**: Architects and senior developers implementing the framework
 
-- **[Core Architecture Design](core_architecture_design.md)** ✅ **CRITICAL**
+- **[KNOWLEDGE-WASM-003: Core Architecture Design](knowledge_wasm_003_core_architecture_design.md)** ✅ **CRITICAL**
   - **Purpose**: Two-audience developer experience and architectural layers
   - **Scope**: Plugin developers vs host developers, AirsSys integration patterns
-  - **Key Content**: Component interface, deployment patterns, security model
-  - **Status**: Complete foundational design
+  - **Key Content**: Component interface, deployment patterns, security model, implementation phases
+  - **Status**: Complete foundational design (Updated 2025-10-17 - renamed to standard format)
   - **Impact**: Critical - defines framework approach and developer experience
   - **Audience**: Framework designers and integration engineers
 
-- **[WIT Management Architecture](wit_management_architecture.md)** ✅ **CRITICAL**
+- **[KNOWLEDGE-WASM-004: WIT Management Architecture](knowledge_wasm_004_wit_management_architecture.md)** ✅ **CRITICAL**
   - **Purpose**: Complete WIT interface management and component development framework
   - **Scope**: WIT interface design, multicodec integration, development workflows
   - **Key Content**: Component interfaces, host services, development patterns
