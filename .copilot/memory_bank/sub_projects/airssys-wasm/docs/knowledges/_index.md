@@ -2,10 +2,19 @@
 
 **Sub-Project:** airssys-wasm  
 **Last Updated:** 2025-10-17  
-**Total Knowledge Docs:** 2  
-**Active Knowledge Docs:** 2
+**Total Knowledge Docs:** 3  
+**Active Knowledge Docs:** 3
 
 ## Current Knowledge Documentation
+
+### Core Concepts Category ✅
+- **[KNOWLEDGE-WASM-002: High-Level Overview](knowledge_wasm_002_high_level_overview.md)** ✅ **ESSENTIAL**
+  - **Purpose**: Authoritative high-level overview and conceptual foundation
+  - **Scope**: Core concepts, strategic positioning, problem statement, design philosophy
+  - **Key Content**: What airssys-wasm is, problems it solves, key characteristics, target use cases
+  - **Status**: Complete definitive overview (Created 2025-10-17)
+  - **Impact**: Essential - primary reference for understanding the project
+  - **Audience**: Anyone seeking to understand airssys-wasm at conceptual level
 
 ### Architecture & Design Category ✅
 - **[KNOWLEDGE-WASM-001: Component Framework Architecture](knowledge_wasm_001_component_framework_architecture.md)** ✅ **CRITICAL**
@@ -14,6 +23,7 @@
   - **Key Content**: 4-layer architecture, component model, runtime deployment, integration patterns
   - **Status**: Complete foundational design (Updated 2025-10-17 - terminology standardized)
   - **Impact**: Critical - defines entire framework foundation
+  - **Audience**: Architects and senior developers implementing the framework
 
 - **[Core Architecture Design](core_architecture_design.md)** ✅ **CRITICAL**
   - **Purpose**: Two-audience developer experience and architectural layers
@@ -21,13 +31,15 @@
   - **Key Content**: Component interface, deployment patterns, security model
   - **Status**: Complete foundational design
   - **Impact**: Critical - defines framework approach and developer experience
+  - **Audience**: Framework designers and integration engineers
 
 - **[WIT Management Architecture](wit_management_architecture.md)** ✅ **CRITICAL**
   - **Purpose**: Complete WIT interface management and component development framework
   - **Scope**: WIT interface design, multicodec integration, development workflows
   - **Key Content**: Component interfaces, host services, development patterns
   - **Status**: Complete implementation plan
-  - **Impact**: Critical - defines component development and interface management## Planned Knowledge Documentation (Future)
+  - **Impact**: Critical - defines component development and interface management
+  - **Audience**: Component developers and interface designers## Planned Knowledge Documentation (Future)
 
 ### WASM Runtime Category
 - **Component Model Implementation**: WebAssembly Component Model patterns and implementation
