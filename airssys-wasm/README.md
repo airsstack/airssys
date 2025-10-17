@@ -1,8 +1,8 @@
-# airssys-wasm: WebAssembly Component Framework
+# airssys-wasm: WASM Component Framework for Pluggable Systems
 
 ## Project Overview
 
-**airssys-wasm** is a planned WebAssembly component framework designed to provide hot deployment capabilities for modular applications. The framework is designed to enable component-based development with zero-downtime updates and capability-based security.
+**airssys-wasm** is a planned WASM Component Framework for Pluggable Systems designed to provide runtime deployment capabilities for modular applications. The framework is designed to enable component-based development with runtime updates and capability-based security.
 
 ## Planned Architecture
 
@@ -16,9 +16,9 @@ The framework is designed to support various component types including:
 - Browser extensions
 - General-purpose application components
 
-### Hot Deployment System
-The planned hot deployment capabilities include:
-- Zero-downtime updates with Blue-Green and Canary deployment strategies
+### Runtime Deployment System
+The planned runtime deployment capabilities include:
+- Component updates without system restart using Blue-Green and Canary deployment strategies
 - Version rollback capabilities
 - A/B testing with traffic splitting
 - Dynamic system scaling through component addition/removal

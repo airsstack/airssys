@@ -1,36 +1,36 @@
 # airssys-wasm Project Brief
 
 ## Project Overview
-`airssys-wasm` is a revolutionary **Universal Hot-Deployable WASM Component Framework** that brings smart contract-style hot deployment to general-purpose computing. It's the **"CosmWasm for everything"** - enabling developers to build secure, composable, language-agnostic components that can be deployed, updated, and managed without system downtime.
+`airssys-wasm` is a **WASM Component Framework for Pluggable Systems** that enables runtime component deployment for general-purpose computing. Inspired by smart contract deployment patterns (like CosmWasm), it enables developers to build secure, composable, language-agnostic components that can be loaded and updated during runtime.
 
 ## Project Vision
-This is infrastructure-level innovation that creates a **completely new category** of software architecture. Instead of building another plugin system, we're building the **foundational platform** that others will use to solve their specific problems across any domain.
+This framework provides infrastructure for building pluggable systems with WebAssembly components, enabling secure isolation and runtime component management. Rather than building application-specific plugin systems, airssys-wasm provides a foundational platform for component-based architectures across multiple domains.
 
 ## Core Value Propositions
-1. **Universal Component Framework**: Write once, run anywhere with language-agnostic composition
-2. **Hot Deployment**: Zero-downtime updates like smart contracts (no restart required)
+1. **Cross-Platform Component Framework**: Language-agnostic component development with standard WIT interfaces
+2. **Runtime Deployment**: Components can be loaded and updated during runtime without system restart
 3. **Capability-Based Security**: Sandbox isolation by default with fine-grained permissions
-4. **Language Agnostic**: Support for any WASM-compatible language (Rust, C++, Go, Python, etc.)
-5. **Component Composition**: Chain and orchestrate components seamlessly like "Lego bricks"
+4. **Language-Agnostic Development**: Support for any WASM-compatible language (Rust, C++, Go, Python, etc.)
+5. **Component Composition**: Chain and orchestrate components for complex processing pipelines
 
-## Strategic Positioning
-- **"Kubernetes for Components"** - Orchestration and isolation
-- **"App Store for Server Components"** - Hot deployment and distribution  
-- **"Smart Contract Platform for General Computing"** - Secure, composable execution
+## Key Capabilities
+- Component orchestration and isolation
+- Runtime component deployment and management
+- Secure, composable component execution with capability-based security
 
 ## Core Responsibilities
 
-### Universal Component Framework
+### Component Framework
 - Language-agnostic component development with WIT interfaces
-- Universal component lifecycle management (init, execute, shutdown)
+- Component lifecycle management (init, execute, shutdown)
 - Component composition and orchestration engine
 - Dependency resolution and graph execution
 
-### Hot Deployment System  
-- Smart contract-style deployment without host restart
-- Zero-downtime update strategies (Blue-Green, Canary, Rolling)
-- Instant rollback capabilities with version management
-- Traffic routing and load balancing for deployments
+### Runtime Deployment System  
+- Components can be loaded and updated during runtime
+- Multiple deployment strategies (Blue-Green, Canary, Rolling)
+- Version management with rollback capabilities
+- Traffic routing and load balancing for component deployment
 
 ### Security & Isolation
 - Capability-based security with deny-by-default policies
@@ -46,15 +46,15 @@ This is infrastructure-level innovation that creates a **completely new category
 
 ## Target Use Cases & Domains
 
-### Primary Examples (Not Limitations)
+### Target Use Cases (Examples)
 - **AI Agents**: Secure, composable AI agent systems
 - **MCP Tools**: Model Context Protocol tools as WASM components
-- **Microservices**: Lightweight, hot-deployable microservices
+- **Microservices**: Lightweight microservices with runtime updates
 - **Data Processors**: ETL and data transformation pipelines
 - **IoT Controllers**: Edge device controllers and processors
-- **Plugin Systems**: Secure plugin architectures for any application
+- **Plugin Systems**: Secure plugin architectures for applications
 
-### Framework Applications
+### Applicable Domains
 - Enterprise software with secure plugin ecosystems
 - Edge computing with lightweight, secure functions
 - AI/ML infrastructure with composable model pipelines
@@ -64,17 +64,17 @@ This is infrastructure-level innovation that creates a **completely new category
 ## Technical Requirements
 
 ### Core Framework Requirements
-- Universal component interface supporting any domain/use case
-- Hot deployment engine with zero-downtime updates
+- General-purpose component interface supporting multiple domains
+- Runtime deployment engine for component loading and updates
 - Capability-based security system with fine-grained permissions
 - Component composition engine for pipeline orchestration
-- Version management with instant rollback capabilities
+- Version management with rollback capabilities
 
 ### Performance Requirements
-- Component instantiation < 10ms (fast cold starts)
-- Hot deployment < 1 second (zero downtime)
+- Component instantiation < 10ms (cold start time)
+- Component deployment < 1 second (runtime loading)
 - Memory isolation 100% (no component cross-access)
-- Rollback time < 5 seconds (instant recovery)
+- Rollback time < 5 seconds
 - Throughput > 10,000 component calls/second
 
 ### Developer Experience Requirements

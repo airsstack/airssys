@@ -1,24 +1,31 @@
 # airssys-wasm Knowledge Documentation Index
 
 **Sub-Project:** airssys-wasm  
-**Last Updated:** 2025-10-02  
+**Last Updated:** 2025-10-17  
 **Total Knowledge Docs:** 2  
 **Active Knowledge Docs:** 2
 
 ## Current Knowledge Documentation
 
 ### Architecture & Design Category ✅
-- **[Core Architecture Design](core_architecture_design.md)** ✅ **CRITICAL**
-  - **Purpose**: Foundational architecture for WASM component framework
+- **[KNOWLEDGE-WASM-001: Component Framework Architecture](knowledge_wasm_001_component_framework_architecture.md)** ✅ **CRITICAL**
+  - **Purpose**: Foundational architecture for WASM Component Framework for Pluggable Systems
   - **Scope**: Complete architectural decisions and design principles
-  - **Key Content**: 4-layer architecture, component model, integration patterns
-  - **Status**: Complete foundational design
+  - **Key Content**: 4-layer architecture, component model, runtime deployment, integration patterns
+  - **Status**: Complete foundational design (Updated 2025-10-17 - terminology standardized)
   - **Impact**: Critical - defines entire framework foundation
+
+- **[Core Architecture Design](core_architecture_design.md)** ✅ **CRITICAL**
+  - **Purpose**: Two-audience developer experience and architectural layers
+  - **Scope**: Plugin developers vs host developers, AirsSys integration patterns
+  - **Key Content**: Component interface, deployment patterns, security model
+  - **Status**: Complete foundational design
+  - **Impact**: Critical - defines framework approach and developer experience
 
 - **[WIT Management Architecture](wit_management_architecture.md)** ✅ **CRITICAL**
   - **Purpose**: Complete WIT interface management and component development framework
   - **Scope**: WIT interface design, multicodec integration, development workflows
-  - **Key Content**: Universal component interfaces, host services, development patterns
+  - **Key Content**: Component interfaces, host services, development patterns
   - **Status**: Complete implementation plan
   - **Impact**: Critical - defines component development and interface management## Planned Knowledge Documentation (Future)
 

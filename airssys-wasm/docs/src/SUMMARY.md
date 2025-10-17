@@ -6,7 +6,7 @@
 - [Architecture Overview](./architecture.md)
     - [Framework Design](./architecture/framework-design.md)
     - [Component Model](./architecture/component-model.md)
-    - [Hot Deployment System](./architecture/hot-deployment.md)
+    - [Runtime Deployment System](./architecture/runtime-deployment.md)
     - [Security Model](./architecture/security-model.md)
     - [Composition Engine](./architecture/composition-engine.md)
 

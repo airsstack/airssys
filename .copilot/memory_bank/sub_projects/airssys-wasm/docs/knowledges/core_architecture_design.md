@@ -13,14 +13,14 @@ Create a framework for building **pluggable/component-based architecture systems
 - **Host System Developers**: Embed runtime to support WASM plugins in their applications
 
 ### Key Inspiration: Smart Contract Model
-Inspired by **CosmWasm** and **NEAR Protocol** smart contracts:
+Inspired by **CosmWasm** and **NEAR Protocol** smart contract deployment patterns:
 - Engineers create smart contracts → upload to blockchain network
 - **Our Framework**: Engineers create WASM components → deploy to host systems
 - **Difference**: Designed for **general computing**, not blockchain-specific
 
-### Core Value Proposition: Universal Isolation
+### Core Value Proposition: Cross-Platform Isolation
 **Problem Solved**: Traditional containers (Docker) are Linux-specific (cgroups/namespaces), heavy, OS-dependent
-**Solution**: WASM as universal "container" format that provides isolation everywhere
+**Solution**: WASM as cross-platform "container" format providing isolation across all operating systems
 
 ## Core Conceptual Model
 

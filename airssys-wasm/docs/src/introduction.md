@@ -1,10 +1,10 @@
 # Introduction
 
-airssys-wasm is a planned WebAssembly component framework designed for hot deployment and component composition within the AirsSys ecosystem.
+airssys-wasm is a planned WASM Component Framework for Pluggable Systems, enabling runtime component deployment and composition within the AirsSys ecosystem.
 
 ## What is airssys-wasm?
 
-airssys-wasm is a planned component framework that will enable hot deployment of WebAssembly components without system restarts. The framework is designed to provide capability-based security and support multiple programming languages through the WebAssembly Component Model.
+airssys-wasm is a planned component framework that will enable runtime deployment of WebAssembly components without system restarts. The framework is designed to provide capability-based security and support multiple programming languages through the WebAssembly Component Model.
 
 ### Problem Statement
 
@@ -19,10 +19,10 @@ Current software deployment approaches have several identified limitations:
 
 airssys-wasm is designed to address these challenges through:
 
-1. **Hot Deployment**: Deploy and update components without restarting the host system
+1. **Runtime Deployment**: Deploy and update components without restarting the host system
 2. **Capability-Based Security**: Components run in controlled sandboxes with explicit permissions
-3. **Multi-Domain Support**: Framework designed to work across different application domains
-4. **Language Support**: Compatible with any WASM-capable programming language
+3. **General-Purpose Design**: Framework designed to work across different application domains
+4. **Language Agnostic**: Compatible with any WASM-capable programming language
 5. **Component Composition**: Enable component orchestration and pipeline construction
 
 ## Core Concepts
@@ -36,8 +36,8 @@ A **component** is a planned self-contained unit of functionality compiled to We
 - Game mods and extensions
 - General-purpose application components
 
-### Planned Hot Deployment
-Similar to deploying smart contracts to a blockchain, the planned system will allow deploying components to airssys-wasm without stopping the host system:
+### Planned Runtime Deployment
+Inspired by smart contract deployment patterns, the planned system will allow deploying components to airssys-wasm without stopping the host system:
 ```bash
 # Planned deployment commands (future implementation)
 airssys-wasm deploy my-component.wasm

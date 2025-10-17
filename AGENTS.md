@@ -429,6 +429,22 @@ mdbook test docs            # Test code examples in documentation
 #### §7.2 Documentation Quality Standards (MANDATORY)
 **All documentation MUST maintain professional software engineering standards:**
 
+**📋 COMPLETE STANDARDS REFERENCE:**
+**ALL documentation MUST follow the comprehensive standards documented in:**
+`.copilot/memory_bank/workspace/documentation_terminology_standards.md`
+
+This mandatory document covers:
+- Forbidden terms and hyperbolic language
+- Self-promotional claims to avoid
+- Replacement guidelines for professional terminology
+- Performance claims standards (require measurements)
+- Implementation status requirements
+- Comparison standards with data tables
+- Before/After examples
+- Quality checklist and enforcement
+
+**Key Principles:**
+
 **Accuracy and Truthfulness:**
 - **No assumptions**: Document only what is actually implemented or officially planned
 - **No fictional content**: All examples, APIs, and features must be real or explicitly marked as planned/pending  
@@ -438,26 +454,34 @@ mdbook test docs            # Test code examples in documentation
 **Professional Tone and Language:**
 - **No excessive emoticons**: Professional technical documentation avoids casual emoji usage
 - **No hyperbole**: Avoid exaggerated claims like "blazingly fast", "revolutionary", "game-changing"
-- **No self-promotional language**: Avoid subjective claims like "best-in-class", "cutting-edge", "industry-leading"
+- **No self-promotional language**: Avoid subjective claims like "best-in-class", "our framework is superior", "we outperform"
 - **Objective terminology**: Use precise, measurable, and factual language
+
+**Forbidden Terms (Never Use):**
+- ❌ Universal, Hot-deployable, Zero-downtime, Revolutionary, Game-changing
+- ❌ Blazingly fast, Lightning fast, Cutting-edge, Industry-leading
+- ❌ Our framework is..., We provide superior..., Better than..., Best solution
 
 **Content Standards:**
 ```markdown
-// ✅ CORRECT - Factual, sourced, professional
+// ✅ CORRECT - Factual, sourced, professional, objective
 AirsSys OSL provides cross-platform OS abstraction following documented 
 architecture specifications. Current implementation status: foundation setup phase.
 Performance targets: <1ms file operations (documented in tech_context.md).
 
-// ❌ FORBIDDEN - Assumptions, hyperbole, unsourced claims  
-AirsSys OSL is the most advanced 🚀 cross-platform framework that will
-revolutionize system programming! Lightning-fast performance guaranteed! ⚡
+// ❌ FORBIDDEN - Assumptions, hyperbole, self-promotion, unsourced claims  
+Our revolutionary AirsSys OSL is the most advanced 🚀 cross-platform framework 
+that outperforms all competitors! We provide blazingly fast performance 
+guaranteed to revolutionize system programming! ⚡
 ```
 
 **Documentation Verification Requirements:**
+- **Terminology compliance**: Check against `documentation_terminology_standards.md` before committing
 - **Memory bank alignment**: All technical content must align with memory bank specifications
 - **Implementation verification**: API examples must reflect actual or documented planned implementations
 - **Status accuracy**: Current phase and capability descriptions must be factually accurate
 - **No speculative features**: Do not document features without official planning documentation
+- **No self-claims**: Avoid first-person promotional language (our, we provide, we excel)
 
 #### §7.3 Diátaxis Documentation Framework (MANDATORY)
 **All sub-projects MUST organize documentation following the Diátaxis framework - a systematic approach to technical documentation authoring.**
@@ -1072,4 +1096,51 @@ The project uses a comprehensive technical documentation framework:
 - **Phase 2 (Q1 2026)**: airssys-rt implementation and integration
 - **Phase 3 (Q3 2026+)**: airssys-wasm implementation and ecosystem completion
 
+---
+
+## Quick Reference: Essential Documentation
+
+### 📋 Mandatory Standards Documents
+**MUST read before ANY documentation work:**
+
+1. **Documentation Terminology Standards** ⭐ **CRITICAL**
+   - **Location**: `.copilot/memory_bank/workspace/documentation_terminology_standards.md`
+   - **Purpose**: Mandatory standards for all AirsSys documentation
+   - **Content**: Forbidden terms, replacement guidelines, self-claim avoidance, quality checklist
+   - **Version**: 1.0 (Updated 2025-10-17)
+
+2. **Workspace Shared Patterns** ⭐ **CRITICAL**
+   - **Location**: `.copilot/memory_bank/workspace/shared_patterns.md`
+   - **Purpose**: Code standards (imports, modules, dependencies)
+   - **Sections**: §2.1-§5.1 (mandatory compliance)
+
+3. **Microsoft Rust Guidelines** ⭐ **CRITICAL**
+   - **Location**: `.copilot/memory_bank/workspace/microsoft_rust_guidelines.md`
+   - **Purpose**: Production-quality Rust development standards
+   - **Reference**: [Microsoft Rust Guidelines](https://microsoft.github.io/rust-guidelines/)
+
+### 🎯 Current Active Sub-Project
+**Check before starting any work:**
+- **Location**: `.copilot/memory_bank/current_context.md`
+- **Contains**: Active sub-project, status, next steps, strategic context
+
+### 📚 Memory Bank Instructions
+**Essential workflow documentation:**
+- **Location**: `.copilot/instructions/multi_project_memory_bank.instructions.md`
+- **Purpose**: Memory bank system usage, naming conventions, structure standards
+
+### 🔍 Sub-Project Documentation Locations
+```
+.copilot/memory_bank/sub_projects/{sub-project}/
+├── Core files: project_brief.md, tech_context.md, progress.md, etc.
+├── docs/knowledges/: Architecture patterns and domain expertise
+├── docs/adr/: Architectural Decision Records
+├── docs/debts/: Technical debt tracking
+└── tasks/: Task specifications and tracking
+```
+
+---
+
 Remember: The memory bank system is the authoritative source of project context. Always consult it before making any code changes or architectural decisions.
+
+**⚠️ Before ANY documentation work**: Read `documentation_terminology_standards.md` to ensure compliance with professional, objective, and honest language standards.

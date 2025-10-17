@@ -2,7 +2,7 @@
 
 ## Strategic Technology Vision
 
-**airssys-wasm** represents a **paradigm shift** in software architecture - creating the first **Universal Hot-Deployable WASM Component Framework**. This is infrastructure-level innovation that enables smart contract-style deployment for general-purpose computing.
+**airssys-wasm** is a **WASM Component Framework for Pluggable Systems**. This framework provides infrastructure for component-based architectures, enabling runtime deployment patterns inspired by smart contract systems for general-purpose computing.
 
 ## Core Technology Architecture
 
@@ -12,18 +12,18 @@
 - **WIT (WebAssembly Interface Types)**: Language-agnostic interface definition
 - **WASI Preview 2**: Standardized system interface for capabilities
 
-### Hot Deployment Technology
-- **Live Component Registry**: Runtime component management without restart
+### Runtime Deployment Technology
+- **Live Component Registry**: Runtime component management without system restart
 - **Deployment Strategies**: Blue-Green, Canary, Rolling update patterns
-- **Version Management**: Git-like versioning with instant rollback
-- **Traffic Routing**: Load balancing and traffic splitting for deployments
+- **Version Management**: Git-like versioning with rollback capabilities
+- **Traffic Routing**: Load balancing and traffic splitting for component deployment
 
 ## Core Architectural Patterns
 
-### Universal Component Interface
+### Component Interface
 ```rust
-// Language-agnostic component interface for ANY domain
-pub trait UniversalComponent {
+// Language-agnostic component interface for general-purpose use
+pub trait Component {
     // Component lifecycle
     fn init(&mut self, config: ComponentConfig) -> Result<(), ComponentError>;
     fn execute(&self, input: ComponentInput) -> Result<ComponentOutput, ComponentError>;
@@ -36,10 +36,10 @@ pub trait UniversalComponent {
 }
 ```
 
-### Hot Deployment Engine
+### Runtime Deployment Engine
 ```rust
-// Smart contract-style deployment system
-pub struct HotDeploymentEngine {
+// Runtime component deployment system
+pub struct RuntimeDeploymentEngine {
     component_registry: Arc<RwLock<LiveComponentRegistry>>,
     deployment_strategies: HashMap<String, Box<dyn DeploymentStrategy>>,
     version_manager: ComponentVersionManager,
@@ -47,10 +47,10 @@ pub struct HotDeploymentEngine {
 }
 
 pub enum DeploymentStrategy {
-    BlueGreen,          // Instant switchover
+    BlueGreen,          // Switchover to new version
     CanaryDeploy,       // Gradual traffic shifting  
     RollingUpdate,      // Progressive replacement
-    ImmediateReplace,   // Hot swap for development
+    ImmediateReplace,   // Direct replacement for development
 }
 ```
 
@@ -70,15 +70,15 @@ pub enum Capability {
 
 ## Framework Design Principles
 
-### 1. Universal Applicability
-- **Domain Agnostic**: Framework works for AI, web services, IoT, gaming, etc.
+### 1. General-Purpose Design
+- **Domain Agnostic**: Framework supports AI, web services, IoT, gaming, etc.
 - **Language Agnostic**: Support for any WASM-compatible language
-- **Platform Agnostic**: Run on cloud, edge, desktop, embedded systems
+- **Cross-Platform**: Run on cloud, edge, desktop, embedded systems
 
-### 2. Smart Contract Paradigm
-- **Hot Deployment**: Deploy/update without restart (like blockchain)
+### 2. Runtime Deployment Model
+- **Runtime Loading**: Deploy/update components without system restart
 - **Immutable Versions**: Component versions are immutable and auditable
-- **Capability-Based Security**: Permission system like smart contract capabilities
+- **Capability-Based Security**: Fine-grained permission system inspired by smart contract capabilities
 
 ### 3. Developer Experience First
 - **Rich SDK**: Derive macros and builder patterns for easy development
@@ -134,9 +134,9 @@ airssys-wasm/                       # Single crate in airssys workspace
 ├── src/
 │   ├── core/                      # Core framework functionality
 │   │   ├── runtime/               # WASM runtime management
-│   │   ├── registry/              # Hot deployment registry
+│   │   ├── registry/              # Runtime component registry
 │   │   ├── security/              # Capability-based security
-│   │   ├── deployment/            # Zero-downtime deployment
+│   │   ├── deployment/            # Runtime deployment system
 │   │   ├── composition/           # Component orchestration
 │   │   ├── monitoring/            # Observability system
 │   │   └── integration/           # AirsSys ecosystem bridges

@@ -32,7 +32,7 @@ Modern applications require pluggable architectures, but traditional plugin syst
 - **Simple Component Model**: Intuitive component development and composition
 - **Language Freedom**: Support for any WASM-compatible language
 - **Rich Tooling**: Integration with standard WASM development tools
-- **Fast Iteration**: Hot-reloading and rapid development cycles
+- **Fast Iteration**: Runtime component reloading and rapid development cycles
 
 ### Security Experience
 - **Transparent Security**: Clear visibility into component capabilities and permissions
@@ -66,9 +66,19 @@ Modern applications require pluggable architectures, but traditional plugin syst
 - **Ecosystem Growth**: Enable third-party contributions to AirsSys ecosystem
 - **Innovation**: Platform for rapid prototyping and experimentation
 
-## Competitive Advantages
-- **Superior Security**: Better isolation than traditional plugins with deny-by-default policies
-- **Performance**: Better performance than container-based approaches
-- **AirsSys Integration**: Deep integration with system programming components
-- **Component Model**: Modern component architecture supporting true composition
-- **Polyglot Support**: Support for any language that compiles to WASM
+## Technical Characteristics
+
+**Isolation Model:**
+- WebAssembly memory sandboxing with deny-by-default policies
+- Compared to traditional plugins: Memory-isolated vs. shared process space
+- Compared to containers: Lower startup overhead (< 10ms vs. seconds for containers)
+
+**Integration:**
+- AirsSys ecosystem integration (airssys-osl for OS access, airssys-rt for actor hosting)
+- WebAssembly Component Model based architecture
+- Standard WASI interfaces plus extensible host functions
+
+**Language Support:**
+- Any language that compiles to WebAssembly
+- WIT-based interface definitions for language-agnostic communication
+- Examples: Rust, C/C++, Go (TinyGo), Python, JavaScript/TypeScript

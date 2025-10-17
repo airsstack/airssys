@@ -22,15 +22,15 @@
 - ✅ Sub-microsecond performance: 625ns spawn, 737ns msg latency, 4.7M msgs/sec
 
 ### airssys-wasm Current State 📋
-**Vision:** Universal Hot-Deployable WASM Component Framework - "CosmWasm for everything"
-**Status:** Revolutionary architecture complete, ready for implementation
+**Vision:** WASM Component Framework for Pluggable Systems
+**Status:** Architecture complete, terminology standardized, ready for implementation
 **Progress:** Architecture design and strategic planning phase (15%)
 
 ### Key Strategic Insights ✨
-- **Universal Framework**: Not limited to AI/MCP - works for any domain
-- **Smart Contract Paradigm**: Hot deployment without restart (killer feature)
-- **Infrastructure Platform**: Foundation others use vs. solving specific problems
-- **Category Creation**: Defining new software architecture category
+- **General-Purpose Framework**: Not domain-limited - supports AI, web, IoT, gaming, etc.
+- **Runtime Deployment Model**: Component loading/updates inspired by smart contracts
+- **Infrastructure Platform**: Foundation for component-based architectures
+- **Novel Approach**: Combines WASM + runtime deployment + composition
 
 ### Implementation Readiness 🎯
 **Prerequisites:**
@@ -43,7 +43,7 @@
 ### Immediate Next Steps 🚀
 **Phase 1: Core Runtime Foundation** (When dependencies ready)
 1. Core WASM runtime engine with Wasmtime integration
-2. Hot deployment system with zero-downtime capabilities
+2. Runtime deployment system for component loading and updates
 3. Capability-based security implementation
 4. Basic component lifecycle management
 
@@ -52,32 +52,32 @@
 ## airssys-wasm - Current Focus 🎯
 
 ### Status: Architecture Complete - Ready for Implementation (15% Complete)
-- **Active Focus**: Strategic planning and architecture validation
-- **Project Type**: Universal Hot-Deployable WASM Component Framework
-- **Project Priority**: HIGH - Revolutionary infrastructure platform
+- **Active Focus**: Documentation standardization and architecture validation
+- **Project Type**: WASM Component Framework for Pluggable Systems
+- **Project Priority**: HIGH - Infrastructure platform for component-based systems
 - **Technology Stack**: Wasmtime, Component Model, WIT, WASI Preview 2, Tokio runtime
-- **Architecture Model**: Smart contract-style deployment for general computing
-- **Phase**: Architecture design complete, awaiting dependency maturity
-- **Strategic Vision**: "CosmWasm for everything" - universal component framework
-- **Implementation Status**: Ready for Phase 1 when airssys-osl and airssys-rt are mature
+- **Architecture Model**: Runtime component deployment inspired by smart contract patterns
+- **Phase**: Architecture design complete, terminology standardized
+- **Implementation Status**: Ready for Phase 1 when implementation starts
 
 ### What's Been Done ✅
 1. ✅ **Comprehensive Research**: WASM Component Model and architecture research complete
-2. ✅ **Strategic Vision**: Universal Hot-Deployable framework vision established
-3. ✅ **Technology Stack**: Core decisions made (Wasmtime, Component Model, WIT)
-4. ✅ **Architecture Design**: Complete framework architecture designed
-5. ✅ **Documentation Foundation**: mdBook structure with research materials
-6. ✅ **Memory Bank Integration**: Complete implementation plan documented
-7. ✅ **Project Structure**: Workspace-compatible structure designed
-8. ✅ **Core Modules**: Architecture for core/, sdk/, runtime/ defined
-9. ✅ **Security Model**: Capability-based security architecture defined
-10. ✅ **Integration Strategy**: AirsSys ecosystem integration patterns planned
+2. ✅ **Strategic Vision**: WASM Component Framework for Pluggable Systems vision established
+3. ✅ **Terminology Standards**: Professional documentation standards created (2025-10-17)
+4. ✅ **Technology Stack**: Core decisions made (Wasmtime, Component Model, WIT)
+5. ✅ **Architecture Design**: Complete framework architecture designed
+6. ✅ **Documentation Foundation**: mdBook structure with research materials
+7. ✅ **Memory Bank Integration**: Complete implementation plan documented
+8. ✅ **Project Structure**: Workspace-compatible structure designed
+9. ✅ **Core Modules**: Architecture for core/, sdk/, runtime/ defined
+10. ✅ **Security Model**: Capability-based security architecture defined
+11. ✅ **Integration Strategy**: AirsSys ecosystem integration patterns planned
 
-### Revolutionary Aspects 🌟
-1. **Industry First**: No existing universal hot-deployable component framework
-2. **Paradigm Shift**: Smart contract deployment model for general computing
-3. **Category Creation**: Defining new software architecture category
-4. **Ecosystem Platform**: Foundation for next-generation development
+### Key Technical Aspects �
+1. **Novel Approach**: Combines WASM + runtime deployment + composition
+2. **Deployment Model**: Runtime component management inspired by smart contract systems
+3. **Infrastructure Platform**: Foundation for component-based software architectures
+4. **Cross-Platform**: Provides isolation primitives across different operating systems
 
 ### Framework Core Features (Planned)
 - **Hot Deployment**: Zero-downtime updates like smart contracts

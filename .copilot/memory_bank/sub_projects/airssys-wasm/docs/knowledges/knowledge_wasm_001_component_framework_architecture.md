@@ -1,36 +1,37 @@
-# Knowledge Document: Universal Component Framework Architecture
+# Knowledge Document: Component Framework Architecture
 
-**Document ID:** KD-WASM-001  
+**Document ID:** KNOWLEDGE-WASM-001  
 **Created:** 2025-09-30  
+**Updated:** 2025-10-17 (Terminology Standardization)
 **Category:** Core Architecture  
 **Complexity:** High  
 **Dependencies:** Wasmtime, WebAssembly Component Model, WIT
 
 ## Overview
 
-This document captures the complete architectural design for the **Universal Hot-Deployable WASM Component Framework** - a revolutionary infrastructure platform that brings smart contract-style deployment to general-purpose computing.
+This document captures the complete architectural design for the **WASM Component Framework for Pluggable Systems** - an infrastructure platform enabling runtime component deployment with patterns inspired by smart contract systems for general-purpose computing.
 
 ## Strategic Architecture Vision
 
 ### Framework Positioning
-- **"CosmWasm for Everything"**: Universal component framework beyond blockchain
+- **CosmWasm-Inspired**: Component framework inspired by smart contract deployment patterns
 - **Infrastructure Platform**: Foundation that others build upon, not domain-specific solution
-- **Category Creation**: Defining new software architecture category that doesn't exist today
-- **Industry Impact**: Could influence next-generation software development standards
+- **Novel Approach**: Combines WASM + runtime deployment + composition in single framework
+- **Technical Innovation**: Enables runtime component management across multiple domains
 
 ### Core Differentiators
-1. **Hot Deployment**: Smart contract-style deployment without host restart
-2. **Universal Framework**: Works for any domain (AI, web, IoT, gaming, etc.)
+1. **Runtime Deployment**: Component loading and updates without host system restart
+2. **General-Purpose Framework**: Supports multiple domains (AI, web, IoT, gaming, etc.)
 3. **Language Agnostic**: Component development in any WASM-compatible language
 4. **Capability Security**: Fine-grained permission system with deny-by-default
-5. **Component Composition**: Visual pipeline orchestration and chaining
+5. **Component Composition**: Pipeline orchestration and component chaining
 
 ## Core Framework Architecture
 
-### Universal Component Interface
+### Component Interface
 ```rust
-// Works for ANY domain - AI, web services, IoT, gaming, etc.
-pub trait UniversalComponent {
+// General-purpose interface supporting multiple domains
+pub trait Component {
     // Component lifecycle
     fn init(&mut self, config: ComponentConfig) -> Result<(), ComponentError>;
     fn execute(&self, input: ComponentInput) -> Result<ComponentOutput, ComponentError>;
@@ -42,7 +43,7 @@ pub trait UniversalComponent {
     fn health_status(&self) -> HealthStatus;
 }
 
-// Generic input/output for any use case
+// Generic input/output for general-purpose use
 pub struct ComponentInput {
     pub data: Vec<u8>,                     // Raw data payload
     pub metadata: HashMap<String, Value>,  // Structured metadata
@@ -50,11 +51,11 @@ pub struct ComponentInput {
 }
 ```
 
-### Hot Deployment Engine Architecture
+### Runtime Deployment Engine Architecture
 ```rust
-// Smart contract-style deployment system
-pub struct HotDeploymentEngine {
-    // Live component registry (no restart required)
+// Runtime component deployment system
+pub struct RuntimeDeploymentEngine {
+    // Live component registry (load components without system restart)
     component_registry: Arc<RwLock<LiveComponentRegistry>>,
     
     // Multiple deployment strategies
@@ -63,16 +64,16 @@ pub struct HotDeploymentEngine {
     // Git-like version management
     version_manager: ComponentVersionManager,
     
-    // Traffic routing for zero-downtime updates
+    // Traffic routing for component deployment
     traffic_router: TrafficRouter,
 }
 
 // Deployment strategies for different scenarios
 pub enum DeploymentStrategy {
-    BlueGreen,          // Instant switchover (production)
+    BlueGreen,          // Switchover to new version (production)
     CanaryDeploy,       // Gradual traffic shifting (A/B testing)
     RollingUpdate,      // Progressive replacement (large scale)
-    ImmediateReplace,   // Hot swap (development)
+    ImmediateReplace,   // Direct replacement (development)
 }
 ```
 
