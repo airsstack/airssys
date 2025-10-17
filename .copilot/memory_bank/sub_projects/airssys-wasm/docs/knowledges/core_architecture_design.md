@@ -55,7 +55,7 @@ Host System Developer → Creates Host Application → Loads & Executes Componen
 ### Layer 2: WASM Runtime Engine
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ Component Lifecycle: Load, Execute, Unload, Hot-Reload     │
+│ Component Lifecycle: Load, Execute, Unload, Runtime Reload │
 ├─────────────────────────────────────────────────────────────┤
 │ WASM Engine: wasmtime with Component Model support         │
 ├─────────────────────────────────────────────────────────────┤
@@ -227,7 +227,7 @@ interface airssys:runtime/messaging {
 
 ### Phase 3: Advanced Features
 **Focus**: Ecosystem capabilities
-1. **Hot Reloading** for development and production
+1. **Runtime Component Reload** for development and production
 2. **Component Composition** patterns and tools
 3. **Performance Optimization** and monitoring
 4. **Ecosystem Tools** and community features
