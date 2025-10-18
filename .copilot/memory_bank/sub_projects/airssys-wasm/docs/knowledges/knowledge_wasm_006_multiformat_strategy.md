@@ -2,13 +2,16 @@
 
 **Document Type:** Knowledge Documentation  
 **Created:** 2025-10-18  
-**Status:** Complete Multiformat Integration Strategy  
+**Updated:** 2025-10-18  
+**Status:** Complete - Format Compatibility and Error Handling Added  
 **Priority:** Critical - Self-Describing Data Foundation  
 **Related:** KNOWLEDGE-WASM-004 (WIT Interfaces), KNOWLEDGE-WASM-005 (Messaging Architecture)
 
 ## Overview
 
 This document provides comprehensive documentation for **multiformats integration** in airssys-wasm. Multiformats is a collection of protocols for self-describing values, enabling true language-agnostic interoperability and future-proof data formats.
+
+**Key Design Principle:** AirsSys WASM adopts a **"self-describing without negotiation"** approach. The multicodec prefix in every message provides format identification, eliminating the need for format negotiation protocols. Components discover format support at runtime through message handling and fail fast with clear errors for unsupported formats.
 
 ### What are Multiformats?
 
@@ -176,6 +179,731 @@ Is performance critical?
 | JavaScript/TypeScript | MessagePack (0x0201) | JSON (0x0200) | JSON (0x0200) |
 | Go | MessagePack (0x0201) | JSON (0x0200) | JSON (0x0200) |
 | Python | MessagePack (0x0201) | JSON (0x0200) | JSON (0x0200) |
+
+## Format Compatibility and Error Handling
+
+### Design Principle: No Negotiation Required
+
+**Core Philosophy:**
+
+AirsSys WASM adopts a **"self-describing without negotiation"** approach. The multicodec prefix in every message eliminates the need for format negotiation protocols:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Component A                                                 │
+│  ├─ Chooses format: Borsh (0x701)                          │
+│  ├─ Encodes: [0x701][borsh data]                           │
+│  └─ Sends message                                           │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│ Component B                                                 │
+│  ├─ Reads prefix: 0x701                                     │
+│  ├─ Checks: "Do I support codec 0x701?"                     │
+│  │   ├─ YES → Decode with borsh deserializer               │
+│  │   └─ NO  → Return UnsupportedFormat error               │
+│  └─ Process or fail explicitly                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Key Benefits:**
+- ✅ **Zero negotiation overhead** - no handshake required
+- ✅ **Fail-fast behavior** - unsupported formats error immediately
+- ✅ **Component autonomy** - each component chooses supported formats
+- ✅ **Clear error contracts** - explicit format support expectations
+- ✅ **YAGNI compliance** - no speculative negotiation mechanism
+- ✅ **Security** - no capability disclosure or fingerprinting
+
+### Receiver Responsibility Model
+
+**Responsibility:** The **receiver** is responsible for:
+1. Reading the multicodec prefix
+2. Determining if the format is supported
+3. Decoding if supported, or returning clear error if not
+
+**Sender Freedom:** The **sender** is free to:
+1. Choose any serialization format they prefer
+2. Send messages without prior knowledge of receiver capabilities
+3. Handle format errors returned by receivers
+
+### Error Handling Patterns
+
+#### Rust Implementation
+
+**Structured Error Types:**
+
+```rust
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum MulticodecError {
+    #[error("Unsupported serialization format: 0x{codec:x} ({name}). Supported formats: {supported}")]
+    UnsupportedFormat {
+        codec: u64,
+        name: String,
+        supported: String,
+    },
+    
+    #[error("Failed to decode multicodec prefix: {0}")]
+    InvalidPrefix(String),
+    
+    #[error("Deserialization failed for codec 0x{codec:x}: {error}")]
+    DeserializationFailed {
+        codec: u64,
+        error: String,
+    },
+    
+    #[error("Empty message data")]
+    EmptyData,
+}
+
+#[derive(Error, Debug)]
+pub enum MessagingError {
+    #[error("Multicodec error: {0}")]
+    Multicodec(#[from] MulticodecError),
+    
+    #[error("Component does not support format 0x{codec:x}. Please use one of: {supported_list}")]
+    FormatNotSupported {
+        codec: u64,
+        supported_list: String,
+    },
+}
+```
+
+**Component Implementation with Clear Errors:**
+
+```rust
+use borsh::{BorshSerialize, BorshDeserialize};
+use serde::{Serialize, Deserialize};
+
+pub struct Component {
+    // Component only supports these formats
+    supported_codecs: Vec<u64>,
+}
+
+impl Component {
+    pub fn new() -> Self {
+        Self {
+            // This component supports: Borsh, MessagePack, JSON
+            supported_codecs: vec![0x701, 0x0201, 0x0200],
+        }
+    }
+    
+    /// Decode message with explicit format support checking
+    pub fn decode_message<T>(&self, encoded: &[u8]) -> Result<T, MulticodecError>
+    where
+        T: BorshDeserialize + for<'de> Deserialize<'de>
+    {
+        // Decode multicodec prefix
+        let decoded = self.decode_prefix(encoded)?;
+        
+        // Check if format is supported
+        if !self.supported_codecs.contains(&decoded.codec) {
+            return Err(MulticodecError::UnsupportedFormat {
+                codec: decoded.codec,
+                name: self.codec_name(decoded.codec),
+                supported: self.supported_formats_string(),
+            });
+        }
+        
+        // Decode based on format
+        match decoded.codec {
+            0x701 => {
+                // Borsh format
+                T::try_from_slice(&decoded.data)
+                    .map_err(|e| MulticodecError::DeserializationFailed {
+                        codec: 0x701,
+                        error: e.to_string(),
+                    })
+            }
+            0x0201 => {
+                // MessagePack format
+                rmp_serde::from_slice(&decoded.data)
+                    .map_err(|e| MulticodecError::DeserializationFailed {
+                        codec: 0x0201,
+                        error: e.to_string(),
+                    })
+            }
+            0x0200 => {
+                // JSON format
+                serde_json::from_slice(&decoded.data)
+                    .map_err(|e| MulticodecError::DeserializationFailed {
+                        codec: 0x0200,
+                        error: e.to_string(),
+                    })
+            }
+            code => {
+                // This should never happen due to earlier check, but be defensive
+                Err(MulticodecError::UnsupportedFormat {
+                    codec: code,
+                    name: self.codec_name(code),
+                    supported: self.supported_formats_string(),
+                })
+            }
+        }
+    }
+    
+    fn supported_formats_string(&self) -> String {
+        self.supported_codecs.iter()
+            .map(|c| format!("0x{:x} ({})", c, self.codec_name(*c)))
+            .collect::<Vec<_>>()
+            .join(", ")
+    }
+    
+    fn codec_name(&self, codec: u64) -> String {
+        match codec {
+            0x701 => "borsh".to_string(),
+            0x702 => "bincode".to_string(),
+            0x50 => "protobuf".to_string(),
+            0x0200 => "json".to_string(),
+            0x0201 => "msgpack".to_string(),
+            0x0114 => "yaml".to_string(),
+            0x55 => "raw".to_string(),
+            code => format!("unknown-0x{:x}", code),
+        }
+    }
+}
+
+// Usage in handle-message export
+#[export_name = "handle-message"]
+pub extern "C" fn handle_message(
+    sender_ptr: *const u8, sender_len: usize,
+    message_ptr: *const u8, message_len: usize
+) -> i32 {
+    let component = get_component_instance();
+    let message = unsafe { std::slice::from_raw_parts(message_ptr, message_len) };
+    
+    match component.decode_message::<UserData>(message) {
+        Ok(data) => {
+            // Successfully decoded - process message
+            process_user_data(data);
+            0 // Success
+        }
+        Err(MulticodecError::UnsupportedFormat { codec, name, supported }) => {
+            // Clear error message for unsupported format
+            log_error(&format!(
+                "Cannot decode message from sender. Format 0x{:x} ({}) is not supported. \
+                 This component supports: {}",
+                codec, name, supported
+            ));
+            1 // Error code: unsupported format
+        }
+        Err(e) => {
+            // Other errors
+            log_error(&format!("Message decode error: {}", e));
+            2 // Error code: general decode error
+        }
+    }
+}
+```
+
+**Example Error Messages:**
+
+```
+❌ Error: Unsupported serialization format: 0x702 (bincode). 
+         Supported formats: 0x701 (borsh), 0x0201 (msgpack), 0x0200 (json)
+
+❌ Error: Component does not support format 0x50 (protobuf). 
+         Please use one of: borsh, msgpack, json
+
+❌ Error: Deserialization failed for codec 0x701: 
+         unexpected end of buffer while deserializing field 'name'
+```
+
+#### JavaScript/TypeScript Implementation
+
+**Clear Error Handling:**
+
+```javascript
+import { decode as msgpackDecode } from '@msgpack/msgpack';
+import { decode as multicodecDecode } from 'airssys:multicodec-core/codec';
+
+class MulticodecError extends Error {
+    constructor(message, codec, supportedFormats) {
+        super(message);
+        this.name = 'MulticodecError';
+        this.codec = codec;
+        this.supportedFormats = supportedFormats;
+    }
+}
+
+class Component {
+    constructor() {
+        // This component supports MessagePack and JSON only
+        this.supportedCodecs = [0x0201, 0x0200];
+    }
+    
+    /**
+     * Decode message with format validation
+     */
+    decodeMessage(encoded) {
+        // Decode multicodec prefix
+        const decoded = multicodecDecode(encoded);
+        
+        // Check if format is supported
+        if (!this.supportedCodecs.includes(decoded.codec)) {
+            const codecName = this.getCodecName(decoded.codec);
+            const supported = this.supportedCodecs
+                .map(c => `0x${c.toString(16)} (${this.getCodecName(c)})`)
+                .join(', ');
+            
+            throw new MulticodecError(
+                `Unsupported serialization format: 0x${decoded.codec.toString(16)} (${codecName}). ` +
+                `Supported formats: ${supported}`,
+                decoded.codec,
+                this.supportedCodecs
+            );
+        }
+        
+        // Decode based on format
+        switch (decoded.codec) {
+            case 0x0201: // MessagePack
+                try {
+                    return msgpackDecode(decoded.data);
+                } catch (err) {
+                    throw new Error(
+                        `Deserialization failed for codec 0x0201 (msgpack): ${err.message}`
+                    );
+                }
+            
+            case 0x0200: // JSON
+                try {
+                    const text = new TextDecoder().decode(decoded.data);
+                    return JSON.parse(text);
+                } catch (err) {
+                    throw new Error(
+                        `Deserialization failed for codec 0x0200 (json): ${err.message}`
+                    );
+                }
+            
+            default:
+                // Should never reach here due to earlier check
+                throw new MulticodecError(
+                    `Unexpected codec: 0x${decoded.codec.toString(16)}`,
+                    decoded.codec,
+                    this.supportedCodecs
+                );
+        }
+    }
+    
+    getCodecName(codec) {
+        const names = {
+            0x701: 'borsh',
+            0x702: 'bincode',
+            0x50: 'protobuf',
+            0x0200: 'json',
+            0x0201: 'msgpack',
+            0x0114: 'yaml',
+            0x55: 'raw'
+        };
+        return names[codec] || `unknown-0x${codec.toString(16)}`;
+    }
+}
+
+// Export handle-message
+export function handleMessage(sender, message) {
+    const component = new Component();
+    
+    try {
+        const data = component.decodeMessage(message);
+        processUserData(data);
+        return { success: true };
+    } catch (err) {
+        if (err instanceof MulticodecError) {
+            console.error(`Format not supported: ${err.message}`);
+            return { 
+                success: false, 
+                error: 'unsupported_format',
+                message: err.message,
+                codec: err.codec,
+                supported: err.supportedFormats
+            };
+        }
+        
+        console.error(`Message decode error: ${err.message}`);
+        return { 
+            success: false, 
+            error: 'decode_error',
+            message: err.message
+        };
+    }
+}
+```
+
+#### Go Implementation
+
+**Structured Error Handling:**
+
+```go
+package component
+
+import (
+    "fmt"
+    "encoding/json"
+    "github.com/vmihailenco/msgpack/v5"
+    "airssys.dev/multicodec"
+)
+
+type MulticodecError struct {
+    Codec           uint64
+    CodecName       string
+    SupportedFormats []uint64
+    Message         string
+}
+
+func (e *MulticodecError) Error() string {
+    return e.Message
+}
+
+type Component struct {
+    supportedCodecs []uint64
+}
+
+func NewComponent() *Component {
+    return &Component{
+        supportedCodecs: []uint64{0x0201, 0x0200}, // msgpack, json
+    }
+}
+
+// DecodeMessage decodes multicodec-prefixed message
+func (c *Component) DecodeMessage(encoded []byte, result interface{}) error {
+    // Decode multicodec prefix
+    decoded, err := multicodec.Decode(encoded)
+    if err != nil {
+        return fmt.Errorf("multicodec decode failed: %w", err)
+    }
+    
+    // Check if format is supported
+    if !c.isSupported(decoded.Codec) {
+        return &MulticodecError{
+            Codec:     decoded.Codec,
+            CodecName: c.codecName(decoded.Codec),
+            SupportedFormats: c.supportedCodecs,
+            Message: fmt.Sprintf(
+                "Unsupported serialization format: 0x%x (%s). Supported formats: %s",
+                decoded.Codec,
+                c.codecName(decoded.Codec),
+                c.supportedFormatsString(),
+            ),
+        }
+    }
+    
+    // Decode based on format
+    switch decoded.Codec {
+    case 0x0201: // MessagePack
+        err := msgpack.Unmarshal(decoded.Data, result)
+        if err != nil {
+            return fmt.Errorf("deserialization failed for codec 0x0201 (msgpack): %w", err)
+        }
+        return nil
+        
+    case 0x0200: // JSON
+        err := json.Unmarshal(decoded.Data, result)
+        if err != nil {
+            return fmt.Errorf("deserialization failed for codec 0x0200 (json): %w", err)
+        }
+        return nil
+        
+    default:
+        return &MulticodecError{
+            Codec:     decoded.Codec,
+            CodecName: c.codecName(decoded.Codec),
+            SupportedFormats: c.supportedCodecs,
+            Message: fmt.Sprintf("unexpected codec: 0x%x", decoded.Codec),
+        }
+    }
+}
+
+func (c *Component) isSupported(codec uint64) bool {
+    for _, supported := range c.supportedCodecs {
+        if codec == supported {
+            return true
+        }
+    }
+    return false
+}
+
+func (c *Component) codecName(codec uint64) string {
+    names := map[uint64]string{
+        0x701:  "borsh",
+        0x702:  "bincode",
+        0x50:   "protobuf",
+        0x0200: "json",
+        0x0201: "msgpack",
+        0x0114: "yaml",
+        0x55:   "raw",
+    }
+    if name, ok := names[codec]; ok {
+        return name
+    }
+    return fmt.Sprintf("unknown-0x%x", codec)
+}
+
+func (c *Component) supportedFormatsString() string {
+    var formats []string
+    for _, codec := range c.supportedCodecs {
+        formats = append(formats, fmt.Sprintf("0x%x (%s)", codec, c.codecName(codec)))
+    }
+    return strings.Join(formats, ", ")
+}
+
+// HandleMessage export
+//export handle_message
+func HandleMessage(senderPtr, senderLen uint32, messagePtr, messageLen uint32) int32 {
+    component := NewComponent()
+    message := multicodec.BytesFromWasm(messagePtr, messageLen)
+    
+    var userData UserData
+    err := component.DecodeMessage(message, &userData)
+    if err != nil {
+        if mcErr, ok := err.(*MulticodecError); ok {
+            log.Errorf("Format not supported: %s", mcErr.Message)
+            return 1 // Error code: unsupported format
+        }
+        
+        log.Errorf("Message decode error: %v", err)
+        return 2 // Error code: general decode error
+    }
+    
+    // Successfully decoded - process message
+    processUserData(&userData)
+    return 0 // Success
+}
+```
+
+### Format Compatibility Matrix
+
+**Understanding Component Interoperability:**
+
+| Sender Format | Receiver Supports | Result |
+|---------------|-------------------|---------|
+| Borsh (0x701) | Borsh | ✅ Success - Fast decode |
+| Borsh (0x701) | MessagePack only | ❌ Error - Unsupported format |
+| MessagePack (0x0201) | Borsh + MessagePack | ✅ Success - Decode with MessagePack |
+| JSON (0x0200) | JSON + MessagePack | ✅ Success - Decode with JSON |
+| Bincode (0x702) | Borsh + JSON | ❌ Error - Unsupported format |
+
+**Key Insight:** No format is universally required. Components declare what they support through their implementation, not through negotiation.
+
+### Best Practices for Format Selection
+
+#### For Component Developers
+
+**1. Choose Appropriate Supported Formats:**
+
+```rust
+// ✅ GOOD: Support multiple formats for interoperability
+impl Component {
+    fn new() -> Self {
+        Self {
+            // Support both performance (borsh) and cross-language (msgpack)
+            supported_codecs: vec![0x701, 0x0201, 0x0200],
+        }
+    }
+}
+
+// ❌ POOR: Only support language-specific format
+impl Component {
+    fn new() -> Self {
+        Self {
+            // Only borsh - limits interoperability with non-Rust components
+            supported_codecs: vec![0x701],
+        }
+    }
+}
+```
+
+**2. Prioritize Common Formats:**
+
+**Universal Formats** (high interoperability):
+- **MessagePack (0x0201)**: Best cross-language support
+- **JSON (0x0200)**: Universal compatibility, debugging-friendly
+
+**Language-Optimized Formats** (high performance):
+- **Borsh (0x701)**: Rust components
+- **Bincode (0x702)**: Rust-only ecosystems
+
+**Recommendation:** Support at least one universal format (MessagePack or JSON) alongside your preferred performance format.
+
+#### For System Designers
+
+**3. Document Format Requirements:**
+
+```markdown
+## Component: User Authentication Service
+
+**Sends Messages With:**
+- Primary: Borsh (0x701) - for performance
+- Fallback: MessagePack (0x0201) - for non-Rust components
+
+**Accepts Messages In:**
+- Borsh (0x701)
+- MessagePack (0x0201)
+- JSON (0x0200) - debugging/development only
+
+**Integration Notes:**
+- Rust components should use Borsh for best performance
+- Non-Rust components should use MessagePack
+- JSON accepted but not recommended for production
+```
+
+**4. Test Format Compatibility:**
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_unsupported_format_error() {
+        let component = Component::new();
+        
+        // Encode with bincode (0x702)
+        let data = UserData { name: "Alice".into() };
+        let encoded = encode_bincode(&data);
+        
+        // Component doesn't support bincode
+        let result = component.decode_message::<UserData>(&encoded);
+        
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            MulticodecError::UnsupportedFormat { codec, .. } => {
+                assert_eq!(codec, 0x702);
+            }
+            _ => panic!("Expected UnsupportedFormat error"),
+        }
+    }
+    
+    #[test]
+    fn test_cross_format_compatibility() {
+        let component = Component::new();
+        let data = UserData { name: "Bob".into(), age: 30 };
+        
+        // Test all supported formats
+        for codec in &[0x701, 0x0201, 0x0200] {
+            let encoded = encode_with_codec(*codec, &data);
+            let decoded: UserData = component.decode_message(&encoded)
+                .expect(&format!("Failed to decode codec 0x{:x}", codec));
+            
+            assert_eq!(decoded.name, "Bob");
+            assert_eq!(decoded.age, 30);
+        }
+    }
+}
+```
+
+**5. Provide Clear Error Guidance:**
+
+```rust
+// ✅ GOOD: Helpful error message
+Err(MulticodecError::UnsupportedFormat {
+    codec: 0x702,
+    name: "bincode".into(),
+    supported: "0x701 (borsh), 0x0201 (msgpack), 0x0200 (json)".into(),
+})
+
+// ❌ POOR: Vague error message
+Err(anyhow!("Decode failed"))
+```
+
+#### For Application Architects
+
+**6. Design for Graceful Degradation:**
+
+```rust
+impl Component {
+    /// Try to send with optimal format, fallback if unsupported
+    pub fn send_with_fallback(&self, target: &ComponentId, data: &UserData) -> Result<()> {
+        // Try primary format (Borsh - fastest)
+        let encoded = self.encode_borsh(data)?;
+        match send_message(target, &encoded) {
+            Ok(()) => return Ok(()),
+            Err(MessagingError::FormatNotSupported { .. }) => {
+                log_warn("Borsh not supported, trying MessagePack");
+            }
+            Err(e) => return Err(e),
+        }
+        
+        // Fallback to MessagePack (cross-language)
+        let encoded = self.encode_msgpack(data)?;
+        match send_message(target, &encoded) {
+            Ok(()) => return Ok(()),
+            Err(MessagingError::FormatNotSupported { .. }) => {
+                log_warn("MessagePack not supported, trying JSON");
+            }
+            Err(e) => return Err(e),
+        }
+        
+        // Last resort: JSON (universal but slow)
+        let encoded = self.encode_json(data)?;
+        send_message(target, &encoded)
+    }
+}
+```
+
+**Note:** This fallback pattern is optional and adds complexity. Only implement if your use case requires automatic format negotiation. The simpler approach is to fail fast with clear errors.
+
+**7. Monitor Format Usage:**
+
+```rust
+pub struct ComponentMetrics {
+    formats_received: HashMap<u64, AtomicU64>,
+    unsupported_format_errors: AtomicU64,
+}
+
+impl Component {
+    fn track_format_usage(&self, codec: u64) {
+        self.metrics.formats_received
+            .entry(codec)
+            .or_insert_with(|| AtomicU64::new(0))
+            .fetch_add(1, Ordering::Relaxed);
+    }
+    
+    fn track_format_error(&self) {
+        self.metrics.unsupported_format_errors
+            .fetch_add(1, Ordering::Relaxed);
+    }
+}
+```
+
+### Recommended Support Matrix
+
+**Minimum Viable Support** (all components should implement):
+- ✅ **MessagePack (0x0201)** - Universal cross-language format
+- ✅ **JSON (0x0200)** - Debugging and development
+
+**Language-Specific Additions:**
+
+**Rust Components:**
+- ✅ Borsh (0x701) - Primary for Rust-to-Rust
+- ⚠️ Bincode (0x702) - Optional, only for Rust-only systems
+
+**JavaScript Components:**
+- ✅ MessagePack (0x0201) - Primary
+- ✅ JSON (0x0200) - Native support
+
+**Go/Python Components:**
+- ✅ MessagePack (0x0201) - Primary
+- ✅ JSON (0x0200) - Native support
+
+**Performance-Critical Components (any language):**
+- ✅ Add language-native format (Borsh for Rust, etc.)
+- ✅ Keep MessagePack for interoperability
+
+### Summary: Format Compatibility Philosophy
+
+**Core Principles:**
+
+1. **Self-Describing Eliminates Negotiation** - multicodec prefix tells receiver everything
+2. **Receiver Decides** - components declare support through implementation
+3. **Fail Fast, Fail Clear** - unsupported formats error immediately with helpful messages
+4. **Component Autonomy** - no central registry or capability exchange required
+5. **Universal Formats Recommended** - support at least MessagePack or JSON
+6. **Performance Formats Optional** - add language-specific formats when needed
+7. **Test Compatibility** - verify format support in integration tests
+8. **Monitor Usage** - track which formats are actually used in production
+
+This approach balances simplicity (no negotiation) with flexibility (components choose support) while maintaining clear error contracts and interoperability guidance.
 
 ### WIT Interface Definition
 
@@ -784,9 +1512,24 @@ impl Component {
 }
 ```
 
-## Component Manifest Integration
+## Component Manifest Integration (Optional)
 
-### Declaring Supported Formats
+### Optional Format Documentation
+
+**Note:** Manifest format declarations are **optional metadata** for documentation and tooling purposes. They are NOT required for runtime format detection, as multicodec prefixes provide self-describing data. Components discover format support at runtime through message handling.
+
+**Use manifest declarations for:**
+- 📖 **Documentation** - communicating supported formats to integrators
+- 🛠️ **Tooling** - enabling IDE hints and validation
+- 📊 **Metrics** - tracking format usage across ecosystem
+- ⚠️ **Warnings** - detecting potential compatibility issues at build time
+
+**Do NOT use manifest for:**
+- ❌ Runtime format negotiation (not needed - multicodec handles this)
+- ❌ Access control based on formats
+- ❌ Required capability checking
+
+### Example: component.toml (Optional)
 
 **component.toml:**
 
@@ -795,41 +1538,53 @@ impl Component {
 name = "my-component"
 version = "1.0.0"
 
+# Optional: Document supported formats for integrators and tooling
 [multicodec]
-# Primary format this component uses
-primary-format = "borsh"             # Will encode messages with this by default
+# Format this component prefers to send with
+primary-send-format = "borsh"
 
-# All formats this component can decode
-supported-formats = [
-    "borsh",      # 0x701 - Primary for Rust
-    "json",       # 0x0200 - Debugging
+# All formats this component can receive and decode
+supported-receive-formats = [
+    "borsh",      # 0x701 - Optimal for Rust components
     "msgpack",    # 0x0201 - Cross-language compatibility
+    "json",       # 0x0200 - Debugging and development
 ]
 
-# Preferred format for execute() operation
-execute-format = "borsh"
-
-# Preferred format for handle-message()
-message-format = "borsh"
-
-# Format conversion capability
-format-conversion = true             # Can transcode between supported formats
+# Optional: Indicate format flexibility
+flexible-encoding = true             # Can encode to any supported format on demand
 ```
 
-**Host reads this at load time:**
+**Build-time tooling can use this to:**
+- Generate format compatibility reports
+- Warn about potential format mismatches in component graphs
+- Document format requirements in generated API docs
+- Provide IDE autocomplete for format codes
+
+**Example: Build Warning from Tooling:**
+
+```
+⚠️  Warning: Component 'user-service' prefers sending 'borsh' (0x701),
+   but target component 'email-notifier' only supports 'msgpack' and 'json'.
+   
+   Recommendation: Add MessagePack support to 'user-service' for compatibility,
+   or add Borsh support to 'email-notifier' for better performance.
+```
+
+### Host Tooling Integration (Optional)
+
+**Host can optionally read manifest at load time for tooling features:**
 
 ```rust
 impl ComponentManifest {
-    pub fn parse_multicodec_config(&self) -> MulticodecConfig {
-        MulticodecConfig {
-            primary_format: self.get_multicodec_code(&self.multicodec.primary_format),
-            supported_formats: self.multicodec.supported_formats.iter()
+    /// Optional: Parse multicodec config for tooling/documentation
+    pub fn parse_multicodec_config(&self) -> Option<MulticodecConfig> {
+        self.multicodec.as_ref().map(|mc| MulticodecConfig {
+            primary_send_format: self.get_multicodec_code(&mc.primary_send_format),
+            supported_receive_formats: mc.supported_receive_formats.iter()
                 .map(|name| self.get_multicodec_code(name))
                 .collect(),
-            execute_format: self.get_multicodec_code(&self.multicodec.execute_format),
-            message_format: self.get_multicodec_code(&self.multicodec.message_format),
-            format_conversion: self.multicodec.format_conversion,
-        }
+            flexible_encoding: mc.flexible_encoding.unwrap_or(false),
+        })
     }
     
     fn get_multicodec_code(&self, name: &str) -> u64 {
@@ -845,6 +1600,29 @@ impl ComponentManifest {
         }
     }
 }
+
+// Optional: Use for build-time warnings or documentation generation
+impl ComponentLoader {
+    pub fn load_component(&mut self, manifest: ComponentManifest) -> Result<LoadedComponent> {
+        // Load component as usual
+        let component = self.load_wasm(&manifest)?;
+        
+        // Optional: Log format support for debugging
+        if let Some(multicodec_config) = manifest.parse_multicodec_config() {
+            log::debug!(
+                "Component '{}' prefers sending: 0x{:x}, supports receiving: {:?}",
+                manifest.name,
+                multicodec_config.primary_send_format,
+                multicodec_config.supported_receive_formats
+            );
+        }
+        
+        Ok(component)
+    }
+}
+```
+
+**Key Point:** The manifest is purely optional metadata. Runtime format detection always works via multicodec prefixes, regardless of manifest presence.
 ```
 
 ## Performance Considerations
