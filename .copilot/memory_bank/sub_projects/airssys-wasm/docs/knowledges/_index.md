@@ -2,8 +2,8 @@
 
 **Sub-Project:** airssys-wasm  
 **Last Updated:** 2025-10-18  
-**Total Knowledge Docs:** 6  
-**Active Knowledge Docs:** 6
+**Total Knowledge Docs:** 8  
+**Active Knowledge Docs:** 8
 
 ## Current Knowledge Documentation
 
@@ -57,7 +57,30 @@
   - **Impact**: Critical - defines language-agnostic data interchange and future-proof serialization
   - **Audience**: Component developers across all languages, format designers, and interoperability engineers
   - **Standards**: Based on official Protocol Labs multiformats specification (https://github.com/multiformats/multiformats)
-  - **Related**: KNOWLEDGE-WASM-004 (WIT interface definitions)## Planned Knowledge Documentation (Future)
+  - **Related**: KNOWLEDGE-WASM-004 (WIT interface definitions)
+
+- **[KNOWLEDGE-WASM-007: Component Storage Architecture](knowledge_wasm_007_component_storage_architecture.md)** ✅ **CRITICAL**
+  - **Purpose**: Persistent storage architecture for component state management with trait-based backend abstraction
+  - **Scope**: Storage API design, blockchain model comparison, backend abstraction layer, permission model, quota management
+  - **Key Content**: NEAR-style KV storage API, Solana/NEAR/EVM model comparison, `StorageBackend` trait abstraction, pluggable backends (Sled default, RocksDB optional), component namespace isolation, permission-based access control, storage quotas and limits, implementation patterns by language
+  - **Status**: Complete storage architecture with abstraction layer (Updated 2025-10-18)
+  - **Impact**: Critical - defines component persistent storage with pluggable backend architecture
+  - **Audience**: Component developers, runtime implementers, storage system designers, backend engineers
+  - **Research**: Based on production blockchain storage models (Solana AccountsDB, NEAR RocksDB, Ethereum Patricia Trie)
+  - **Related**: KNOWLEDGE-WASM-004 (permission model), KNOWLEDGE-WASM-005 (messaging), KNOWLEDGE-WASM-006 (serialization), KNOWLEDGE-WASM-008 (backend comparison)
+
+- **[KNOWLEDGE-WASM-008: Storage Backend Comparison](knowledge_wasm_008_storage_backend_comparison.md)** ✅ **CRITICAL**
+  - **Purpose**: Comprehensive analysis of storage backend options in Rust ecosystem for informed selection
+  - **Scope**: Detailed comparison of sled vs RocksDB vs alternatives, compilation complexity, production stability, performance benchmarks
+  - **Key Content**: Sled (pure Rust, recommended default) vs RocksDB (C++ bindings, production alternative) detailed analysis, compilation/build experience comparison, performance benchmarks, space efficiency, production readiness assessment, feature matrix, backend selection criteria, migration strategy between backends, redb and fjall alternatives evaluation
+  - **Status**: Complete comprehensive backend comparison (Created 2025-10-18)
+  - **Impact**: Critical - enables informed backend selection with clear tradeoffs documented
+  - **Audience**: System architects, backend engineers, production deployment teams, decision makers
+  - **Key Decision**: Sled as default (pure Rust, fast builds), RocksDB optional (proven stability, C++ complexity)
+  - **Research**: Based on official documentation, production usage analysis, and compilation experience
+  - **Related**: KNOWLEDGE-WASM-007 (storage architecture and abstraction layer)
+
+## Planned Knowledge Documentation (Future)
 
 ### WASM Runtime Category
 - **Component Model Implementation**: WebAssembly Component Model patterns and implementation
