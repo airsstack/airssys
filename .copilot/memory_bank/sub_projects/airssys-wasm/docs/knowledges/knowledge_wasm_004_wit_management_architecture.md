@@ -125,6 +125,103 @@ record execution-context {
     trace-context: option<trace-context>,
 }
 
+/// Component metadata returned by metadata() function
+///
+/// **AUDIENCE SEPARATION**:
+/// - Standard fields (identity, runtime requirements, characteristics) → Read by HOST RUNTIME
+/// - Discovery fields (homepage, repository, tags) → Read by COMPONENTS and HUMANS
+/// - Custom metadata → Read by OTHER COMPONENTS (host is transparent)
+record component-metadata {
+    // === IDENTITY ===
+    name: string,
+    version: string,
+    description: string,
+    author: string,
+    license: string,
+    
+    // === RUNTIME REQUIREMENTS (Host Runtime) ===
+    /// Explicit capability requirements (filesystem, network, etc.)
+    required-capabilities: list<capability>,
+    
+    /// Operation types this component handles (e.g., ["process-data", "transform-image"])
+    supported-operations: list<string>,
+    
+    /// Multicodec formats supported for execute() input/output
+    supported-codecs: list<multicodec-id>,
+    
+    // === RUNTIME CHARACTERISTICS (Host Runtime) ===
+    /// Source language: rust, javascript, go, python, etc.
+    language: string,
+    
+    /// Memory requirements for this component
+    memory-requirements: memory-requirements,
+    
+    /// Maximum execution time in milliseconds (safety timeout limit)
+    timeout-ms: option<u64>,
+    
+    /// Does component maintain state between execute() calls?
+    stateful: bool,
+    
+    // === TECHNICAL METADATA (Host Runtime) ===
+    /// WIT interface version compatibility (e.g., "1.0.0")
+    api-version: string,
+    
+    // === DISCOVERY & DOCUMENTATION (Components + Humans) ===
+    /// Project homepage URL
+    homepage: option<string>,
+    
+    /// Source code repository URL
+    repository: option<string>,
+    
+    /// Searchable tags for categorization (e.g., ["ai", "ml", "image-processing"])
+    tags: list<string>,
+    
+    // === COMPONENT-TO-COMPONENT METADATA (Other Components) ===
+    /// Domain-specific metadata for component discovery and capability negotiation.
+    /// 
+    /// **AUDIENCE**: This field is intended for OTHER COMPONENTS/PLUGINS, not the host runtime.
+    /// The host stores and returns this data but does NOT interpret or act on it.
+    /// 
+    /// **PURPOSE**: 
+    /// - Enable component discovery and capability negotiation
+    /// - Advertise domain-specific characteristics (ML models, data formats, protocols)
+    /// - Support dynamic component composition and routing decisions
+    /// 
+    /// **HOST BEHAVIOR**:
+    /// ✅ Host WILL: Store, return via get-component-metadata(), preserve key-value pairs
+    /// ❌ Host WILL NOT: Parse, validate, or make decisions based on these values
+    /// 
+    /// **VALID USE CASES**:
+    /// - Data format capabilities: [("input-formats", "csv,json,parquet")]
+    /// - ML model characteristics: [("model-type", "llm"), ("context-window", "8192")]
+    /// - Protocol details: [("db-type", "postgresql"), ("protocol-version", "3.0")]
+    /// - Processing hints: [("batch-size-hint", "1000"), ("supports-streaming", "true")]
+    /// 
+    /// **INVALID USE CASES** (use standard fields instead):
+    /// - ❌ Runtime configuration → use component-config in init()
+    /// - ❌ Resource limits → use memory-requirements, timeout-ms
+    /// - ❌ Security capabilities → use required-capabilities
+    /// 
+    /// **RECOMMENDATIONS**:
+    /// - Use namespaced keys for clarity: "ml:model-type", "db:protocol"
+    /// - Document your custom-metadata schema in component README
+    /// - Consider domain-specific WIT extensions for complex typed metadata
+    /// - Keep values simple (strings, numbers as strings)
+    custom-metadata: option<list<tuple<string, string>>>,
+}
+
+/// Memory requirements for component
+record memory-requirements {
+    /// Minimum memory in bytes to function
+    min-memory-bytes: u64,
+    
+    /// Maximum memory in bytes allowed
+    max-memory-bytes: u64,
+    
+    /// Optimal memory allocation in bytes
+    preferred-memory-bytes: u64,
+}
+
 /// Component world - what components export and import
 world component {
     /// Required exports - all components MUST implement
