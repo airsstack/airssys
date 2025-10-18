@@ -329,10 +329,6 @@ interface host-services {
     /// Receive messages from other components
     receive-message: func() -> result<option<incoming-message>, messaging-error>;
     
-    /// Configuration access
-    get-config: func(key: string) -> result<option<string>, config-error>;
-    set-config: func(key: string, value: string) -> result<_, config-error>;
-    
     /// Time and timing services
     current-time-millis: func() -> u64;
     sleep-millis: func(duration: u64);
@@ -341,6 +337,12 @@ interface host-services {
     list-components: func() -> list<component-id>;
     get-component-metadata: func(id: component-id) -> result<component-metadata, component-error>;
 }
+
+/// **NOTE ON CONFIGURATION**:
+/// Components receive configuration via `component-config` in the `init()` function.
+/// Components should manage their own state internally if they need runtime configuration.
+/// If persistent key-value storage is needed in the future, it will be added as a 
+/// capability-gated feature with proper permissions.
 
 /// Advanced host capabilities (capability-gated)
 interface host-capabilities {
