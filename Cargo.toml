@@ -5,6 +5,7 @@ members = [
     "airssys-rt",
     "airssys-wasm",
     "airssys-wasm-component",
+    "airssys-wasm-cli",
 ]
 resolver = "2"
 
@@ -34,9 +35,11 @@ rust-version = "1.88"
 airssys-osl = { path = "airssys-osl" }
 airssys-osl-macros = { path = "airssys-osl-macros" }
 airssys-rt = { path = "airssys-rt" }
+airssys-wasm = { path = "airssys-wasm" }
+airssys-wasm-component = { path = "airssys-wasm-component" }
 
 # Layer 2: Core Runtime Dependencies
-tokio = { version = "1.47", features = ["full"] }
+tokio = { version = "1.48.0", features = ["full"] }
 tokio-stream = { version = "0.1", features = ["sync"] }
 futures = { version = "0.3" }
 
@@ -95,9 +98,19 @@ oauth2 = { version = "5.0.0" }
 base64 = { version = "0.22" }
 url = { version = "2.5" }
 sha2 = { version = "0.10" }
+ed25519-dalek = { version = "2.1", features = ["rand_core"] }
+
+# Git operations
+git2 = { version = "0.18" }
 
 # CLI framework (latest stable)
 clap = { version = "4.5", features = ["derive", "help", "usage", "error-context"] }
+clap_complete = { version = "4.5" }
+
+# CLI user experience
+indicatif = { version = "0.17" }
+console = { version = "0.15" }
+dialoguer = { version = "0.11" }
 
 # Enhanced error handling (latest stable)
 anyhow = { version = "1.0.98" }

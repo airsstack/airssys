@@ -2,12 +2,13 @@
 
 ## Project Overview
 
-**AirsSys** is a collection of system programming components for the AirsStack ecosystem, consisting of four main sub-projects:
+**AirsSys** is a collection of system programming components for the AirsStack ecosystem, consisting of five main sub-projects:
 
 - **airssys-osl**: OS Layer Framework for low-level system programming with security and activity logging
 - **airssys-rt**: Lightweight Erlang-Actor model runtime system for high-concurrency applications  
-- **airssys-wasm**: WebAssembly pluggable system for secure component execution
+- **airssys-wasm**: WebAssembly pluggable system for secure component execution (core library)
 - **airssys-wasm-component**: Procedural macro crate for simplified WASM component development
+- **airssys-wasm-cli**: Command-line tool for WASM component lifecycle management
 
 ## Memory Bank System (CRITICAL)
 
@@ -933,6 +934,13 @@ The project uses a comprehensive technical documentation framework:
 - **Focus**: Procedural macros for WASM component development, syn v2 compatibility
 - **Integration**: Provides macros for airssys-wasm components, serde pattern architecture
 - **Status**: 25% complete - Ready for Phase 2 macro logic implementation
+
+### airssys-wasm-cli (CLI Tool) - FOUNDATION COMPLETE
+- **Phase**: Foundation complete, stub implementations ready
+- **Priority**: Medium - developer tooling for WASM ecosystem
+- **Focus**: Component lifecycle management, Ed25519 signing, multi-source installation
+- **Integration**: Consumes airssys-wasm library, provides developer interface
+- **Status**: 10% complete - Structure and commands defined, awaiting implementation
 
 ### airssys-rt (Runtime System) - PLANNED Q1 2026
 - **Phase**: Planning and architecture design  

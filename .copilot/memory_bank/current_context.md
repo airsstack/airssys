@@ -152,12 +152,14 @@
 
 ## Available Sub-Projects
 1. **airssys-wasm** (Active - 15%) - Universal Hot-Deployable WASM Component Framework
-2. **airssys-rt** (Complete - 100% ✅) - Erlang-Actor model runtime system  
-3. **airssys-osl** (Complete - 100% ✅) - OS Layer Framework for system programming
-4. **airssys-osl-macros** (Complete - 100% ✅) - Procedural macros for OSL executors
-5. **airssys-wasm-component** (Foundation - 25%) - WASM component development macros
+2. **airssys-wasm-cli** (Foundation - 10%) - CLI tool for WASM component lifecycle management
+3. **airssys-rt** (Complete - 100% ✅) - Erlang-Actor model runtime system  
+4. **airssys-osl** (Complete - 100% ✅) - OS Layer Framework for system programming
+5. **airssys-osl-macros** (Complete - 100% ✅) - Procedural macros for OSL executors
+6. **airssys-wasm-component** (Foundation - 25%) - WASM component development macros
 
 ## Context Switch History
+- 2025-10-18: Added airssys-wasm-cli (10%) - CLI tool for WASM component management
 - 2025-10-17: Switched from airssys-rt (100% COMPLETE) to airssys-wasm (user request)
 - 2025-10-16: airssys-rt RT-TASK-011 documentation Phase 4 complete
 - 2025-10-16: airssys-rt RT-TASK-008 performance baseline complete (all 3 phases)

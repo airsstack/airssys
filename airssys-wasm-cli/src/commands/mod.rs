@@ -1,0 +1,14 @@
+pub mod build;
+pub mod completions;
+pub mod config;
+pub mod info;
+pub mod init;
+pub mod install;
+pub mod keygen;
+pub mod list;
+pub mod logs;
+pub mod sign;
+pub mod status;
+pub mod uninstall;
+pub mod update;
+pub mod verify;

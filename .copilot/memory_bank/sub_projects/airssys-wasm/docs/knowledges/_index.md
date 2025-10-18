@@ -2,8 +2,8 @@
 
 **Sub-Project:** airssys-wasm  
 **Last Updated:** 2025-10-18  
-**Total Knowledge Docs:** 8  
-**Active Knowledge Docs:** 8
+**Total Knowledge Docs:** 10  
+**Active Knowledge Docs:** 10
 
 ## Current Knowledge Documentation
 
@@ -80,6 +80,24 @@
   - **Research**: Based on official documentation, production usage analysis, and compilation experience
   - **Related**: KNOWLEDGE-WASM-007 (storage architecture and abstraction layer)
 
+### Installation & Deployment Category ✅
+- **[KNOWLEDGE-WASM-009: Component Installation Architecture](knowledge_wasm_009_component_installation_architecture.md)** ✅ **CRITICAL**
+  - **Purpose**: Complete specification of component installation, distribution, and cryptographic security
+  - **Scope**: Git-based installation, TOML manifest format, Ed25519 digital signatures, multi-source deployment
+  - **Key Content**: Installation philosophy, Component.toml specification, cryptographic ownership model, installation workflows (Git/file/URL), update/uninstall operations, security verification layers
+  - **Status**: Complete architecture design (Created 2025-10-18)
+  - **Impact**: Critical - defines how components are distributed, installed, and secured
+  - **Audience**: Architects, security engineers, component developers, host application developers
+
+### Development Tooling Category ✅
+- **[KNOWLEDGE-WASM-010: CLI Tool Specification](knowledge_wasm_010_cli_tool_specification.md)** ✅ **CRITICAL**
+  - **Purpose**: Complete specification for airssys-wasm-cli command-line tool
+  - **Scope**: Developer workflow automation, component lifecycle management, modern CLI UX patterns
+  - **Key Content**: CLI design philosophy, 14 core commands (keygen, init, build, sign, install, update, uninstall, list, info, logs, status, verify, config, completions), configuration management, error handling, implementation architecture
+  - **Status**: Complete CLI specification (Created 2025-10-18)
+  - **Impact**: Critical - primary developer interface for component development and deployment
+  - **Audience**: Component developers, DevOps engineers, system administrators
+
 ## Planned Knowledge Documentation (Future)
 
 ### WASM Runtime Category
@@ -100,17 +118,17 @@
 - **Resource Management**: Component resource management and isolation
 - **Hot Reloading**: Dynamic component update and reloading patterns
 
+### Development Category (Partially Complete - 2/4)
+- ✅ **Component Installation**: KNOWLEDGE-WASM-009 (Installation architecture and workflows)
+- ✅ **CLI Tooling**: KNOWLEDGE-WASM-010 (airssys-wasm-cli specification)
+- **Testing Strategies**: Component testing, security testing, and performance testing
+- **Debugging Techniques**: Component debugging and troubleshooting approaches
+
 ### Integration Category
 - **AirsSys Integration**: Integration patterns with airssys-osl and airssys-rt
 - **WASI Implementation**: WASI system interface implementation and extensions
 - **Host Functions**: Custom host function design and implementation
 - **Performance Integration**: Performance optimization for integrated systems
-
-### Development Category
-- **Component Development**: Best practices for WASM component development
-- **Tooling Integration**: Integration with WASM development tools and workflows  
-- **Testing Strategies**: Component testing, security testing, and performance testing
-- **Debugging Techniques**: Component debugging and troubleshooting approaches
 
 ## Knowledge Creation Strategy (Future)
 
