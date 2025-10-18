@@ -15,6 +15,7 @@
 - **Serialization**: Multicodec for self-describing, language-agnostic data
 - **Security Model**: Permission-based access control with runtime enforcement
 - **Linking Strategy**: Universal imports with manifest-driven permissions
+- **Messaging Model**: Actor-based push delivery with callback support (see KNOWLEDGE-WASM-005)
 
 ### Key Architectural Benefits
 - **True Language Freedom**: No framework lock-in, engineers use native tools
@@ -23,6 +24,40 @@
 - **Standards-Based**: Built on proven WIT and multiformat specifications
 - **Simplified Linking**: Single universal linker for all components
 - **Runtime Security**: Permission checks at function entry with comprehensive audit trail
+- **Actor Model Messaging**: Event-driven message delivery, no polling required
+
+## Inter-Component Messaging Overview
+
+**Architecture Philosophy**: Components communicate through **actor-based message passing** integrated with airssys-rt.
+
+### Message Delivery Model
+
+**Push-Based (Event-Driven):**
+- Host delivers messages to components via `handle-message` export (no polling)
+- Components receive messages when they arrive (actor model mailbox pattern)
+- Aligns with Erlang/OTP and airssys-rt actor system architecture
+
+**Dual Interaction Patterns:**
+
+1. **Fire-and-Forget (`send-message`)**: One-way asynchronous notifications
+   - Component A calls `send-message(component-b, data)`
+   - Host delivers to Component B via `handle-message(component-a, data)`
+   - No response expected, no correlation needed
+   - Maps to Erlang `gen_server:cast` semantics
+
+2. **Request-Response (`send-request` + callbacks)**: Asynchronous RPC with automatic correlation
+   - Component A calls `send-request(component-b, request, timeout)`
+   - Host delivers to Component B via `handle-message(component-a, request)`
+   - Component B processes and returns result
+   - Host routes result to Component A via `handle-callback(request-id, result)`
+   - Maps to Erlang `gen_server:call` semantics
+
+**Key Distinctions:**
+- `execute`: External RPC from outside world → component (synchronous request-response)
+- `handle-message`: Internal messaging from component → component (asynchronous push delivery)
+- `handle-callback`: Response delivery for request-response pattern (automatic correlation)
+
+**For comprehensive messaging patterns, implementation guides, and examples, see KNOWLEDGE-WASM-005: Inter-Component Messaging Architecture.**
 
 ## WIT Interface Structure
 
@@ -85,12 +120,29 @@ interface component-lifecycle {
     /// Initialize component with configuration
     init: func(config: component-config) -> result<_, component-error>;
     
-    /// Single entrypoint for all operations (Solana-inspired)
+    /// Handle external RPC requests (synchronous request-response)
     /// Self-describing data with multicodec prefix
+    /// Used when external entities call component through host RPC gateway
     execute: func(
         operation: list<u8>,        // Multicodec-prefixed operation data
         context: execution-context
     ) -> result<list<u8>, execution-error>;
+    
+    /// Handle internal component messages (asynchronous push delivery)
+    /// Host delivers messages from other components via this method
+    /// No polling required - messages pushed when they arrive (actor model)
+    handle-message: func(
+        sender: component-id,
+        message: list<u8>          // Multicodec-encoded message
+    ) -> result<_, messaging-error>;
+    
+    /// Handle callback responses from request-response operations
+    /// Host automatically routes responses to this method when using send-request
+    /// Optional: Components only need to implement if they use send-request
+    handle-callback: func(
+        request-id: string,
+        result: result<list<u8>, callback-error>
+    ) -> result<_, messaging-error>;
     
     /// Component metadata and capabilities
     metadata: func() -> component-metadata;
@@ -320,14 +372,31 @@ interface host-services {
         context: option<list<tuple<string, string>>>
     );
     
-    /// Inter-component messaging through airssys-rt
+    /// Send one-way message to another component (fire-and-forget)
+    /// Host delivers message asynchronously via target's handle-message export
+    /// No response expected - use send-request for request-response pattern
+    /// See KNOWLEDGE-WASM-005 for comprehensive messaging patterns
     send-message: func(
         target: component-id, 
         message: list<u8>    // Multicodec-encoded message
     ) -> result<_, messaging-error>;
     
-    /// Receive messages from other components
-    receive-message: func() -> result<option<incoming-message>, messaging-error>;
+    /// Send request expecting callback response (request-response pattern)
+    /// Host automatically routes response to sender's handle-callback export
+    /// Timeout enforced by host - callback receives error if timeout exceeded
+    /// Returns request-id for tracking and cancellation
+    /// See KNOWLEDGE-WASM-005 for comprehensive messaging patterns
+    send-request: func(
+        target: component-id,
+        request: list<u8>,   // Multicodec-encoded request
+        timeout-ms: u64      // Request timeout in milliseconds
+    ) -> result<request-id, messaging-error>;
+    
+    /// Cancel pending request before timeout
+    /// Use when request no longer needed to free host resources
+    cancel-request: func(
+        request-id: string
+    ) -> result<_, messaging-error>;
     
     /// Time and timing services
     current-time-millis: func() -> u64;
