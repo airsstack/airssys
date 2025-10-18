@@ -1,9 +1,9 @@
 # airssys-wasm Knowledge Documentation Index
 
 **Sub-Project:** airssys-wasm  
-**Last Updated:** 2025-10-17  
-**Total Knowledge Docs:** 4  
-**Active Knowledge Docs:** 4
+**Last Updated:** 2025-10-18  
+**Total Knowledge Docs:** 6  
+**Active Knowledge Docs:** 6
 
 ## Current Knowledge Documentation
 
@@ -35,11 +35,29 @@
 
 - **[KNOWLEDGE-WASM-004: WIT Management Architecture](knowledge_wasm_004_wit_management_architecture.md)** ✅ **CRITICAL**
   - **Purpose**: Complete WIT interface management and component development framework
-  - **Scope**: WIT interface design, multicodec integration, development workflows
-  - **Key Content**: Component interfaces, host services, development patterns
-  - **Status**: Complete implementation plan
+  - **Scope**: WIT interface design, multicodec integration, development workflows, messaging overview
+  - **Key Content**: Component interfaces, host services, permission-based security, messaging model
+  - **Status**: Complete implementation plan (Updated 2025-10-18 - actor-based messaging)
   - **Impact**: Critical - defines component development and interface management
-  - **Audience**: Component developers and interface designers## Planned Knowledge Documentation (Future)
+  - **Audience**: Component developers and interface designers
+
+- **[KNOWLEDGE-WASM-005: Inter-Component Messaging Architecture](knowledge_wasm_005_messaging_architecture.md)** ✅ **CRITICAL**
+  - **Purpose**: Comprehensive messaging system architecture for component communication
+  - **Scope**: Actor-based message passing, dual interaction patterns, airssys-rt integration, sequence diagrams
+  - **Key Content**: Fire-and-forget messaging, request-response with callbacks, multicodec message encoding, host runtime implementation, performance optimization, error handling
+  - **Status**: Complete messaging architecture with sequence diagrams (Updated 2025-10-18)
+  - **Impact**: Critical - defines inter-component communication patterns and implementation
+  - **Audience**: Component developers, runtime implementers, and integration engineers
+
+- **[KNOWLEDGE-WASM-006: Multiformat Strategy](knowledge_wasm_006_multiformat_strategy.md)** ✅ **CRITICAL**
+  - **Purpose**: Complete multiformats integration strategy and self-describing data foundation
+  - **Scope**: Multicodec specification, format selection, language-specific implementations, performance characteristics
+  - **Key Content**: Multiformats overview, multicodec table, AirsSys codec reservations (borsh 0x701, bincode 0x702), encoding/decoding patterns, format evolution, component manifest integration
+  - **Status**: Complete multiformat integration strategy (Created 2025-10-18)
+  - **Impact**: Critical - defines language-agnostic data interchange and future-proof serialization
+  - **Audience**: Component developers across all languages, format designers, and interoperability engineers
+  - **Standards**: Based on official Protocol Labs multiformats specification (https://github.com/multiformats/multiformats)
+  - **Related**: KNOWLEDGE-WASM-004 (WIT interface definitions)## Planned Knowledge Documentation (Future)
 
 ### WASM Runtime Category
 - **Component Model Implementation**: WebAssembly Component Model patterns and implementation
