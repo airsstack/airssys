@@ -13,12 +13,16 @@
 - **Rust Components**: Enhanced experience via optional cargo plugin
 - **Interfaces**: WIT-only contracts, no code dependencies
 - **Serialization**: Multicodec for self-describing, language-agnostic data
+- **Security Model**: Permission-based access control with runtime enforcement
+- **Linking Strategy**: Universal imports with manifest-driven permissions
 
 ### Key Architectural Benefits
 - **True Language Freedom**: No framework lock-in, engineers use native tools
 - **Universal Compatibility**: Multicodec ensures evolutionary compatibility
 - **Deep Integration**: Rich Rust ecosystem for host development
 - **Standards-Based**: Built on proven WIT and multiformat specifications
+- **Simplified Linking**: Single universal linker for all components
+- **Runtime Security**: Permission checks at function entry with comprehensive audit trail
 
 ## WIT Interface Structure
 
@@ -140,8 +144,8 @@ record component-metadata {
     license: string,
     
     // === RUNTIME REQUIREMENTS (Host Runtime) ===
-    /// Explicit capability requirements (filesystem, network, etc.)
-    required-capabilities: list<capability>,
+    /// Requested permissions for host capabilities (runtime enforced)
+    requested-permissions: requested-permissions,
     
     /// Operation types this component handles (e.g., ["process-data", "transform-image"])
     supported-operations: list<string>,
@@ -222,18 +226,85 @@ record memory-requirements {
     preferred-memory-bytes: u64,
 }
 
+/// Requested permissions for host capabilities
+///
+/// **PERMISSION-BASED SECURITY MODEL**:
+/// - Component declares what permissions it needs in manifest
+/// - Host enforces permissions at runtime when functions are called
+/// - All components import same interfaces, permissions control access
+/// - Unauthorized access attempts are denied and logged
+record requested-permissions {
+    /// Filesystem access permissions
+    filesystem: list<filesystem-permission>,
+    
+    /// Network access permissions
+    network: list<network-permission>,
+    
+    // Future extensions: database, crypto, ai-model, etc.
+}
+
+/// Filesystem permission declaration
+record filesystem-permission {
+    /// Type of filesystem access requested
+    action: filesystem-action,
+    
+    /// Path pattern using glob syntax (e.g., "/data/**", "/output/*.txt")
+    path-pattern: string,
+}
+
+/// Filesystem actions
+enum filesystem-action {
+    read,      // Read file contents
+    write,     // Write/create files
+    delete,    // Delete files
+    list,      // List directory contents
+}
+
+/// Network permission declaration
+record network-permission {
+    /// Type of network access requested
+    action: network-action,
+    
+    /// Host pattern using wildcards (e.g., "api.example.com", "*.github.com")
+    host-pattern: string,
+    
+    /// Specific port or none for any port
+    port: option<u16>,
+}
+
+/// Network actions
+enum network-action {
+    outbound,  // Make outbound connections
+    inbound,   // Accept inbound connections
+}
+
 /// Component world - what components export and import
+///
+/// **UNIVERSAL IMPORTS**: ALL components import the SAME interfaces.
+/// Security is enforced via runtime permission checks, not import restrictions.
 world component {
     /// Required exports - all components MUST implement
     export component-lifecycle;
     
-    /// Standard imports - always available to components
+    /// Universal imports - SAME for ALL components
     import airssys:host-core/services.{host-services};
+    import airssys:host-core/capabilities.{host-capabilities};  // ← Not optional! All components import this
     import airssys:multicodec-core/codec.{multicodec-utilities};
-    
-    /// Optional imports - based on component needs
-    import airssys:host-core/capabilities.{host-capabilities};
 }
+
+/// **SECURITY MODEL**: Permission-Based Access Control
+///
+/// Components can call any imported function, but host enforces permissions at runtime:
+/// - Component declares requested permissions in component.toml
+/// - Host checks permissions when function is called
+/// - Unauthorized access returns PermissionDenied error and logs violation
+/// - All access attempts are audited for security monitoring
+///
+/// **BENEFITS**:
+/// - Single universal linker for all components (simplified host implementation)
+/// - Clear permission declarations in manifest (easy security review)
+/// - Runtime enforcement with comprehensive audit trail
+/// - No per-component linker configuration needed
 ```
 
 ### Host Services Interface (core/host.wit)
@@ -337,41 +408,57 @@ license = "MIT"
 language = "rust"                   # rust, javascript, go, python, etc.
 
 [wit-dependencies]
-# Required core interfaces (ALL components must include these)
+# Core interfaces - SAME for ALL components (universal imports)
 airssys-component-core = "1.0.0"
 airssys-host-core = "1.0.0"
 airssys-multicodec-core = "1.0.0"
 
-# Optional extension interfaces
+# Optional extension interfaces for domain-specific functionality
 airssys-ai-extensions = "0.5.0"
-airssys-database-extensions = "0.3.0"
 
 [multicodec]
 primary-format = "borsh"            # Preferred multicodec for this component
 supported-formats = ["borsh", "json", "msgpack"]
 
-[capabilities]
-# Capabilities this component requires from host
-required = [
-    "filesystem:read:/models",
-    "network:outbound:api.huggingface.co",
-    "ai:model:load",
+# REQUEST PERMISSIONS - Runtime enforced by host
+# Component can call any imported function, but host checks permissions
+[permissions.filesystem]
+# Read access to model files
+read = ["/models/**", "/config/*.json"]
+# Write access to output directory
+write = ["/output/**", "/cache/*.tmp"]
+
+[permissions.network]
+# Outbound access to AI API
+outbound = [
+    { host = "api.huggingface.co", port = 443 },
+    { host = "*.openai.com", port = 443 },
 ]
 
-[metadata]
-entrypoint = "execute"              # WASM export function name
-memory-limit = "256MB"
-execution-timeout = "60s"
+# If component tries to access filesystem/network without permission → DENIED
+
+[runtime]
+# Memory requirements
+memory-min = "128MB"
+memory-max = "512MB"
+memory-preferred = "256MB"
+
+# Execution timeout (safety limit)
+timeout-ms = 60000
+
+# Does component maintain state?
+stateful = true
 
 # Operations this component supports
-expected-operations = [
+supported-operations = [
     "process-text",
     "analyze-sentiment",
     "get-status",
 ]
 ```
 
-### Host Runtime Implementation (Rust)
+### Host Runtime Implementation (Rust) - Permission-Based Security
+
 ```rust
 // airssys-wasm crate for host developers (always Rust)
 use airssys_wasm::{ComponentRuntime, RuntimeConfig, ComponentId};
@@ -386,12 +473,13 @@ pub struct HostApplication {
 
 impl HostApplication {
     pub fn new() -> Result<Self> {
-        // Configure WASM runtime with deep AirsSys integration
+        // Configure WASM runtime with permission-based security
         let runtime_config = RuntimeConfig::builder()
             .with_osl_security_integration()    // airssys-osl security
             .with_rt_actor_integration()        // airssys-rt actors
             .with_multicodec_support()          // Multicodec framework
-            .with_capability_enforcement()      // Capability-based security
+            .with_universal_linker()            // Single linker for all components
+            .with_permission_enforcement()      // Runtime permission checks
             .build()?;
             
         let wasm_runtime = ComponentRuntime::new(runtime_config)?;
@@ -403,17 +491,23 @@ impl HostApplication {
         })
     }
     
-    pub async fn load_component(&mut self, path: &str) -> Result<ComponentId> {
-        // Parse component manifest
-        let manifest = ComponentManifest::from_wasm_file(path)?;
+    pub async fn load_component(&mut self, component_dir: &Path) -> Result<ComponentId> {
+        // Step 1: Read component.toml (manifest-first strategy)
+        let manifest = ComponentManifest::from_dir(component_dir)?;
         
-        // Validate capabilities against security policy
-        self.security_context.validate_capabilities(&manifest.capabilities)?;
+        // Step 2: Parse requested permissions from manifest
+        let permissions = RequestedPermissions::from_manifest(&manifest)?;
         
-        // Load component as actor in airssys-rt
+        // Step 3: Validate permissions against security policy
+        self.security_context.validate_permissions(&permissions)?;
+        
+        // Step 4: Load component with granted permissions
+        // Host uses SAME universal linker for all components
+        // Permissions enforced at runtime when functions are called
         let component_id = self.wasm_runtime.load_component_as_actor(
-            path,
+            component_dir,
             &manifest,
+            permissions,              // ← Permissions checked at function call
             &self.actor_system,
             &self.security_context
         ).await?;
@@ -427,10 +521,194 @@ impl HostApplication {
         operation: &[u8]  // Already multicodec-encoded
     ) -> Result<Vec<u8>> {
         // Route through airssys-rt message passing
+        // Component can call any host function, but permissions checked at runtime
         self.wasm_runtime.send_message_to_component(component_id, operation).await
     }
 }
+
+/// Host context with permission enforcement
+pub struct HostContext {
+    component_id: ComponentId,
+    permissions: RequestedPermissions,  // Loaded from component.toml
+    filesystem: FileSystemService,
+    network: NetworkService,
+    audit_log: AuditLog,
+}
+
+impl HostContext {
+    /// Read file - PERMISSION CHECKED AT RUNTIME
+    pub fn read_file(&mut self, path: String) -> Result<Vec<u8>, FileError> {
+        // Check permission before executing
+        if !self.permissions.can_read_file(&path) {
+            self.audit_log.log_violation(SecurityViolation {
+                component: self.component_id.clone(),
+                operation: "read-file",
+                resource: path.clone(),
+                reason: "No read permission for this path",
+            });
+            
+            return Err(FileError::PermissionDenied(format!(
+                "Component '{}' lacks read permission for '{}'",
+                self.component_id, path
+            )));
+        }
+        
+        // Permission granted - perform operation
+        self.audit_log.log_access(AccessLog {
+            component: self.component_id.clone(),
+            operation: "read-file",
+            resource: path.clone(),
+            granted: true,
+        });
+        
+        self.filesystem.read(&path)
+    }
+    
+    /// HTTP request - PERMISSION CHECKED AT RUNTIME
+    pub fn http_request(&mut self, request: HttpRequest) -> Result<HttpResponse, HttpError> {
+        if !self.permissions.can_make_http_request(&request.host, request.port) {
+            self.audit_log.log_violation(SecurityViolation {
+                component: self.component_id.clone(),
+                operation: "http-request",
+                resource: format!("{}:{}", request.host, request.port),
+                reason: "No network permission for this host",
+            });
+            
+            return Err(HttpError::PermissionDenied(format!(
+                "Component '{}' lacks network permission for '{}:{}'",
+                self.component_id, request.host, request.port
+            )));
+        }
+        
+        self.audit_log.log_access(AccessLog {
+            component: self.component_id.clone(),
+            operation: "http-request",
+            resource: format!("{}:{}", request.host, request.port),
+            granted: true,
+        });
+        
+        self.network.execute_request(request)
+    }
+}
 ```
+
+## Permission-Based Security Model
+
+### Overview
+
+**Design Principle**: Universal imports with runtime permission enforcement.
+
+All components import the **same WIT interfaces**, but access to host capabilities is controlled through **manifest-declared permissions** that are checked at **runtime** when functions are called.
+
+### Key Concepts
+
+**Universal Linker:**
+- Host creates ONE linker with ALL host functions linked
+- Same linker used for ALL components (no per-component configuration)
+- Massive simplification of host implementation
+
+**Manifest-First Loading:**
+- Host reads `component.toml` before loading WASM binary
+- Permissions parsed from manifest and validated against security policy
+- Component loaded with permission context attached
+
+**Runtime Enforcement:**
+- Every host capability function checks permissions at entry
+- Pattern matching against declared permissions (glob patterns for paths, wildcards for hosts)
+- Unauthorized access returns `PermissionDenied` error
+- All access attempts logged to audit trail
+
+**Deny-by-Default:**
+- Component can call any imported function
+- But without declared permission → access denied
+- Clear error messages indicate missing permissions
+
+### Permission Flow Example
+
+```rust
+// 1. Component code (any language)
+fn execute(operation: &[u8]) -> Result<Vec<u8>> {
+    // Component calls host function
+    let data = host::read_file("/data/input.txt")?;
+    // ↓
+}
+
+// 2. Host function entry
+fn read_file(ctx: &mut HostContext, path: String) -> Result<Vec<u8>> {
+    // Check permissions FIRST
+    if !ctx.permissions.can_read_file(&path) {
+        // Log violation
+        ctx.audit_log.violation("read-file", &path);
+        // Deny access
+        return Err(FileError::PermissionDenied);
+    }
+    // Permission granted - execute
+    ctx.filesystem.read(&path)
+}
+
+// 3. Permission check
+fn can_read_file(&self, path: &str) -> bool {
+    // Check manifest declarations: [permissions.filesystem]
+    // read = ["/data/**", "/config/*.json"]
+    self.filesystem_permissions.iter().any(|perm| {
+        perm.action == Read && perm.pattern.matches(path)
+    })
+}
+```
+
+### Security Guarantees
+
+**Build-Time:**
+- Manifest validation (well-formed permissions)
+- Security policy validation (allowed permissions)
+- WIT interface consistency checks
+
+**Load-Time:**
+- Permission parsing and validation
+- Security policy enforcement
+- Manifest-first strategy (validate before loading WASM)
+
+**Runtime:**
+- Permission checks at every host function call
+- Pattern matching for paths and hosts
+- Comprehensive audit logging
+- Clear error messages for debugging
+
+### Audit Trail
+
+Every access attempt is logged for security monitoring:
+
+```rust
+// Successful access
+AuditLog {
+    component: "my-ai-processor",
+    operation: "read-file",
+    resource: "/data/input.txt",
+    result: "granted",
+    timestamp: "2025-10-18T10:30:00Z",
+}
+
+// Denied access (security violation)
+AuditLog {
+    component: "my-ai-processor",
+    operation: "http-request",
+    resource: "evil.com:80",
+    result: "denied",
+    reason: "No network permission for evil.com",
+    timestamp: "2025-10-18T10:30:05Z",
+}
+```
+
+### Benefits Over Optional Imports
+
+| Aspect | Optional Imports | Permission-Based |
+|--------|------------------|------------------|
+| Host Complexity | Per-component linkers | Single universal linker |
+| Component Consistency | Different imports per component | Same imports for all |
+| Security Enforcement | Link-time (static) | Runtime (dynamic, auditable) |
+| Error Clarity | Link errors (cryptic) | Permission errors (clear) |
+| Audit Trail | Difficult | Comprehensive |
+| Flexibility | Static | Dynamic (change permissions without rebuild) |
 
 ## Component Development Workflows
 
