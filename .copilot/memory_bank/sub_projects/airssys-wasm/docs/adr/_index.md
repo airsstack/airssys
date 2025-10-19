@@ -2,8 +2,8 @@
 
 **Sub-Project:** airssys-wasm  
 **Last Updated:** 2025-10-19  
-**Total ADRs:** 5  
-**Active ADRs:** 5  
+**Total ADRs:** 7  
+**Active ADRs:** 7  
 
 ## Active ADRs
 
@@ -66,6 +66,28 @@
   - Pattern: Inspired by Ethereum proxy contracts, Solana program upgrades (immutability + routing)
 - **File:** `adr_wasm_003_component_lifecycle_management.md`
 
+### ADR-WASM-006: Component Isolation and Sandboxing (Revised)
+- **Status:** Accepted (Revised 2025-10-19)
+- **Date:** 2025-10-19 (Original), 2025-10-19 (Revised)
+- **Category:** Security & Isolation Architecture
+- **Summary:** Erlang-style lightweight process isolation using airssys-rt actors, combined with WASM linear memory sandboxing and hybrid resource enforcement. 4-layer defense in depth (Capability → WASM → Actor → Supervision), ComponentActor dual trait design with WASM lifecycle in Child::start()/stop(), inter-component messaging via MessageBroker (see ADR-WASM-009).
+- **Related:** KNOWLEDGE-WASM-001 (Component Framework), KNOWLEDGE-RT-013 (Actor Performance), ADR-WASM-002 (Runtime), ADR-WASM-003 (Lifecycle), ADR-WASM-005 (Security), ADR-WASM-007 (Storage), ADR-WASM-009 (Communication), ADR-RT-004 (Actor/Child Separation)
+- **Impact:** Critical - Security foundation for untrusted third-party components
+- **Key Decisions:**
+  - Isolation Strategy: Erlang-style lightweight processes (airssys-rt actors, ~625ns spawn, 10,000+ concurrent)
+  - Layer 1: Capability-based security (permission checks at host functions)
+  - Layer 2: WASM linear memory sandbox (512KB-4MB isolated heap, bounds checking)
+  - Layer 3: Actor isolation (private mailbox, message passing only, ~211ns routing)
+  - Layer 4: Supervision trees (automatic restart, health monitoring, graceful shutdown)
+  - ComponentActor: Dual trait (Actor for message handling, Child for WASM lifecycle)
+  - WASM Lifecycle: Child::start() loads WASM, Child::stop() cleans up (supervisor-controlled)
+  - Resource Limits: Hybrid enforcement (Wasmtime: memory/CPU + App-level: storage/network/API quotas)
+  - Inter-Component Communication: MessageBroker routing with host function security (see ADR-WASM-009)
+  - Performance: ~2-11ms spawn, ~1-2MB per component, <5% resource check overhead
+  - Platform: Cross-platform (Tokio + WASM on Linux, macOS, Windows)
+- **Revision Note:** Original proposal used OS process isolation. Revised to use airssys-rt lightweight actors after architectural review. Provides 100,000x faster spawn (625ns vs 50-100ms), 10x less memory (<1KB vs 5-10MB), and cross-platform compatibility.
+- **File:** `adr_wasm_006_component_isolation_and_sandboxing.md`
+
 ### ADR-WASM-007: Storage Backend Selection
 - **Status:** Accepted
 - **Date:** 2025-10-19
@@ -82,6 +104,24 @@
   - Migration: Export/import JSON Lines tool (backend migration and backups)
 - **File:** `adr_wasm_007_storage_backend_selection.md`
 
+### ADR-WASM-009: Component Communication Model
+- **Status:** Accepted
+- **Date:** 2025-10-19
+- **Category:** Communication Architecture
+- **Summary:** Message-passing via airssys-rt MessageBroker with host-mediated security enforcement. Supports fire-and-forget (one-way), request-response (async RPC with callbacks), and pub-sub patterns. Pure pub-sub architecture with ActorSystem as primary subscriber, security enforcement at host function layer (capability validation + quota enforcement + audit logging), multicodec self-describing serialization for cross-language communication.
+- **Related:** KNOWLEDGE-WASM-005 (Messaging Implementation), ADR-WASM-001 (Multicodec), ADR-WASM-005 (Security), ADR-WASM-006 (Isolation), RT-TASK-008 (MessageBroker Performance)
+- **Impact:** Critical - Foundation for all inter-component communication
+- **Key Decisions:**
+  - Architecture: airssys-rt InMemoryMessageBroker (pure pub-sub, ~211ns routing, 4.7M msg/sec)
+  - Patterns: Fire-and-forget (~280ns), Request-response with callbacks (~560ns round-trip), Manual correlation (advanced)
+  - Security: Host function layer (capability checks ~50ns, quota enforcement, audit logging)
+  - Delivery: Push-based (no polling), messages delivered via handle-message export
+  - Serialization: Multicodec self-describing (borsh for inter-component, CBOR/JSON for external)
+  - Performance: ~260ns total overhead (50ns validation + 211ns routing), >3M msg/sec throughput
+  - Integration: ActorSystem subscribes to broker, routes to ComponentActor mailboxes
+  - Timeout: Host runtime enforces request timeouts, automatic callback cleanup
+- **File:** `adr_wasm_009_component_communication_model.md`
+
 ---
 
 ## Planned ADR Categories (Future)
@@ -94,15 +134,15 @@
 
 ### Security Architecture Decisions
 - ~~**ADR-005: Capability-Based Security Model**~~ - ✅ Completed (2025-10-19)
-- **ADR-006: Sandbox Architecture** - Component isolation and sandboxing approach
+- ~~**ADR-006: Sandbox Architecture**~~ - ✅ Completed as Component Isolation (2025-10-19)
 - ~~**ADR-007: Security Policy System**~~ - ✅ Repurposed as Storage Backend Selection
 - **ADR-008: Audit and Logging Strategy** - Security audit logging and compliance
 
 ### Component System Decisions
-- **ADR-009: Component Communication Model** - Inter-component communication approach
+- ~~**ADR-009: Component Communication Model**~~ - ✅ Completed (2025-10-19)
 - **ADR-010: Component Registry Design** - Component discovery and management
 - **ADR-011: Resource Management Strategy** - Component resource limits and monitoring
-- **ADR-012: Component Lifecycle Management** - Loading, instantiation, and cleanup
+- ~~**ADR-012: Component Lifecycle Management**~~ - ✅ Completed as ADR-003 (2025-10-19)
 
 ### Integration Decisions
 - **ADR-013: airssys-osl Integration** - OS layer integration patterns and interfaces
@@ -119,14 +159,14 @@
 ## Decision Priority (Future)
 
 ### Critical Path (Required Before Implementation)
-1. **ADR-001**: WASM Runtime Selection
-2. **ADR-005**: Capability-Based Security Model
-3. **ADR-002**: Component Model Implementation
-4. **ADR-006**: Sandbox Architecture
+1. ~~**ADR-001**: WASM Runtime Selection~~ - ✅ Completed as ADR-002 (2025-10-19)
+2. ~~**ADR-005**: Capability-Based Security Model~~ - ✅ Completed (2025-10-19)
+3. ~~**ADR-002**: Component Model Implementation~~ - ✅ Completed (2025-10-19)
+4. ~~**ADR-006**: Sandbox Architecture~~ - ✅ Completed (2025-10-19)
 
 ### Implementation Phase
 1. **ADR-003**: WASI Implementation Strategy
-2. **ADR-009**: Component Communication Model
+2. ~~**ADR-009**: Component Communication Model~~ - ✅ Completed (2025-10-19)
 3. **ADR-013**: airssys-osl Integration
 4. **ADR-014**: airssys-rt Integration
 
