@@ -2,8 +2,8 @@
 
 **Sub-Project:** airssys-wasm  
 **Last Updated:** 2025-10-19  
-**Total ADRs:** 4  
-**Active ADRs:** 4  
+**Total ADRs:** 5  
+**Active ADRs:** 5  
 
 ## Active ADRs
 
@@ -48,6 +48,23 @@
   - Integration: Layered security (component capabilities + airssys-osl RBAC/ACL + OS permissions)
   - Custom Capabilities: Deferred to Phase 2+ (YAGNI, focus on core foundation)
 - **File:** `adr_wasm_005_capability_based_security_model.md`
+
+### ADR-WASM-003: Component Lifecycle Management
+- **Status:** Accepted
+- **Date:** 2025-10-19
+- **Category:** Component System Architecture
+- **Summary:** Immutable components with automatic retention policies (blockchain-inspired pattern). Three installation sources (Git reproducible, Local fast dev, Remote URL pre-built), 2-state lifecycle (Installed/Uninstalled), routing proxy for blue-green deployment, cryptographic Ed25519 ownership, actor-based isolation, configurable retention (default 24h rollback window with auto-cleanup).
+- **Related:** KNOWLEDGE-WASM-001 (Component Framework), KNOWLEDGE-WASM-009 (Installation), ADR-WASM-002 (Runtime), ADR-WASM-005 (Security), ADR-WASM-007 (Storage)
+- **Impact:** Critical - Foundation for component management and updates
+- **Key Decisions:**
+  - Installation: Git (libgit2 platform-agnostic), Local (fast iteration), Remote URL (offline/CDN)
+  - Lifecycle: 2-state machine (Installed → Uninstalled), immutable like smart contracts
+  - Updates: Blue-green deployment via routing proxy (zero-downtime, <1ms route switch)
+  - Retention: Configurable policies (KeepOldVersion 24h default, DestroyImmediately opt-in, KeepLastN audit)
+  - Ownership: Ed25519 signatures (only private key holder can update/uninstall)
+  - Isolation: Actor-based (ComponentProxyActor routes, ComponentActor executes, supervisor handles crashes)
+  - Pattern: Inspired by Ethereum proxy contracts, Solana program upgrades (immutability + routing)
+- **File:** `adr_wasm_003_component_lifecycle_management.md`
 
 ### ADR-WASM-007: Storage Backend Selection
 - **Status:** Accepted
