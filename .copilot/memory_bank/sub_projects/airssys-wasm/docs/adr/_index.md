@@ -1,9 +1,22 @@
 # airssys-wasm Architecture Decision Records Index
 
 **Sub-Project:** airssys-wasm  
-**Last Updated:** 2025-09-27  
-**Total ADRs:** 0  
-**Active ADRs:** 0  
+**Last Updated:** 2025-10-19  
+**Total ADRs:** 1  
+**Active ADRs:** 1  
+
+## Active ADRs
+
+### ADR-WASM-001: Multicodec Compatibility Strategy
+- **Status:** Accepted
+- **Date:** 2025-10-19
+- **Category:** Serialization & Interoperability
+- **Summary:** Host runtime validates codec compatibility but does NOT translate between codecs. Components are responsible for implementing their own codec support. Fail-fast approach for incompatible codecs.
+- **Related:** KNOWLEDGE-WASM-006 (Multiformat), KNOWLEDGE-WASM-011 (Serialization)
+- **Impact:** Critical - Foundation for inter-component messaging architecture
+- **File:** `adr_wasm_001_multicodec_compatibility_strategy.md`
+
+---
 
 ## Planned ADR Categories (Future)
 

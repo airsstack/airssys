@@ -1,9 +1,9 @@
 # airssys-wasm Knowledge Documentation Index
 
 **Sub-Project:** airssys-wasm  
-**Last Updated:** 2025-10-18  
-**Total Knowledge Docs:** 10  
-**Active Knowledge Docs:** 10
+**Last Updated:** 2025-10-19  
+**Total Knowledge Docs:** 11  
+**Active Knowledge Docs:** 11
 
 ## Current Knowledge Documentation
 
@@ -97,6 +97,17 @@
   - **Status**: Complete CLI specification (Created 2025-10-18)
   - **Impact**: Critical - primary developer interface for component development and deployment
   - **Audience**: Component developers, DevOps engineers, system administrators
+
+### Technical Implementation Category ✅
+- **[KNOWLEDGE-WASM-011: Serialization Strategy - bincode vs borsh](knowledge_wasm_011_serialization_strategy.md)** ✅ **CRITICAL**
+  - **Purpose**: Comprehensive comparison of bincode vs borsh serialization formats for airssys-wasm
+  - **Scope**: Performance benchmarks, schema evolution, cross-language support, production usage analysis
+  - **Key Content**: bincode deep dive (Rust-only, 20% faster), borsh deep dive (cross-language, deterministic), hybrid approach recommendation, use case mapping (storage vs messaging), implementation guidelines, migration strategy
+  - **Status**: Complete analysis with recommendation (Created 2025-10-19)
+  - **Impact**: Critical - foundation decision for component state persistence and inter-component messaging
+  - **Audience**: Architects, runtime implementers, component developers
+  - **Key Decision**: Hybrid approach - bincode for internal Rust-only storage (performance), borsh for cross-language messaging (multicodec 0x701, deterministic)
+  - **Related**: KNOWLEDGE-WASM-006 (multiformat strategy), KNOWLEDGE-WASM-007 (storage architecture), KNOWLEDGE-WASM-005 (messaging)
 
 ## Planned Knowledge Documentation (Future)
 
