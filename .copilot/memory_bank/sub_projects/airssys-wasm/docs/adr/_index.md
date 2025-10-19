@@ -1,9 +1,9 @@
 # airssys-wasm Architecture Decision Records Index
 
 **Sub-Project:** airssys-wasm  
-**Last Updated:** 2025-10-19  
-**Total ADRs:** 7  
-**Active ADRs:** 7  
+**Last Updated:** 2025-10-20  
+**Total ADRs:** 8  
+**Active ADRs:** 8  
 
 ## Active ADRs
 
@@ -121,6 +121,24 @@
   - Integration: ActorSystem subscribes to broker, routes to ComponentActor mailboxes
   - Timeout: Host runtime enforces request timeouts, automatic callback cleanup
 - **File:** `adr_wasm_009_component_communication_model.md`
+
+### ADR-WASM-010: Implementation Strategy and Build Order
+- **Status:** Accepted
+- **Date:** 2025-10-20
+- **Category:** Implementation Planning & Architecture
+- **Summary:** 4-layer phased implementation strategy with Actor System Integration as foundational component (Layer 1, Block 3), NOT an integration layer component. Defines 11 major building blocks with correct dependency order, preventing circular dependencies and architectural rework. Critical correction: airssys-rt integration must come early as foundation (Block 3) because Inter-Component Communication (Block 5) and Component Lifecycle (Block 7) depend on MessageBroker and SupervisorNode.
+- **Related:** All ADRs (implementation guidance), KNOWLEDGE-WASM-001 (Component Framework), KNOWLEDGE-WASM-005 (Messaging), ADR-WASM-006 (Actor Isolation), ADR-WASM-009 (MessageBroker dependency)
+- **Impact:** Critical - Defines entire development roadmap and prevents build order mistakes
+- **Key Decisions:**
+  - Build Order: Foundation (Blocks 1-3) → Core Services (4-7) → Integration (8-9) → Developer Experience (10-11)
+  - Block 3 Position: Actor System Integration is FOUNDATIONAL (Block 3), not integration layer (was incorrectly Block 9)
+  - Rationale: MessageBroker, SupervisorNode, and ComponentActor are core infrastructure, not integrations
+  - Timeline: 11-15 months total (4 months foundation, 5 months core services, 3 months integration, 3 months dev tools)
+  - Parallelization: Blocks within same layer can develop in parallel (e.g., Blocks 1-2, Blocks 4-6, Blocks 8-9, Blocks 10-11)
+  - Layer Gates: Each layer must validate before next layer begins
+  - Performance Targets: Tracked from Block 3 onwards (actor spawn ~625ns, message routing ~211ns)
+- **Mental Model:** "Actor-hosted WASM components from the start" (NOT "WASM components, then integrate actors later")
+- **File:** `adr_wasm_010_implementation_strategy_and_build_order.md`
 
 ---
 
