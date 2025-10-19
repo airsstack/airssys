@@ -2,8 +2,8 @@
 
 **Sub-Project:** airssys-wasm  
 **Last Updated:** 2025-10-19  
-**Total ADRs:** 2  
-**Active ADRs:** 2  
+**Total ADRs:** 3  
+**Active ADRs:** 3  
 
 ## Active ADRs
 
@@ -33,6 +33,22 @@
   - Errors: Isolated crashes (supervisor pattern, production resilience)
 - **File:** `adr_wasm_002_wasm_runtime_engine_selection.md`
 
+### ADR-WASM-005: Capability-Based Security Model
+- **Status:** Accepted
+- **Date:** 2025-10-19
+- **Category:** Security Architecture
+- **Summary:** Fine-grained capability-based security with pattern matching for resources (filesystem globs, network domains, storage namespaces), trust-level system for auto-approval workflows (trusted sources instant install, unknown sources require review), layered integration with airssys-osl RBAC/ACL for defense-in-depth.
+- **Related:** KNOWLEDGE-WASM-001 (Component Framework), KNOWLEDGE-WASM-004 (WIT Management), ADR-WASM-002 (Runtime Engine)
+- **Impact:** Critical - Security foundation for all component operations
+- **Key Decisions:**
+  - Granularity: Fine-grained pattern-based (filesystem globs, network domains, storage namespaces)
+  - Declaration: Component.toml manifest (visible before installation, language-agnostic)
+  - Workflow: Trust levels with auto-approval (trusted instant, unknown review, dev mode bypass)
+  - Enforcement: Host function entry checks with pattern matching (~1-5μs overhead, 0.1% of operation)
+  - Integration: Layered security (component capabilities + airssys-osl RBAC/ACL + OS permissions)
+  - Custom Capabilities: Deferred to Phase 2+ (YAGNI, focus on core foundation)
+- **File:** `adr_wasm_005_capability_based_security_model.md`
+
 ---
 
 ## Planned ADR Categories (Future)
@@ -44,7 +60,7 @@
 - **ADR-004: Performance Optimization Strategy** - JIT vs AOT vs interpreter selection
 
 ### Security Architecture Decisions
-- **ADR-005: Capability-Based Security Model** - Security model implementation and enforcement
+- ~~**ADR-005: Capability-Based Security Model**~~ - ✅ Completed (2025-10-19)
 - **ADR-006: Sandbox Architecture** - Component isolation and sandboxing approach
 - **ADR-007: Security Policy System** - Policy definition and enforcement mechanism
 - **ADR-008: Audit and Logging Strategy** - Security audit logging and compliance
