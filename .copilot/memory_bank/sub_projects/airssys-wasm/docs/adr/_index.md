@@ -2,8 +2,8 @@
 
 **Sub-Project:** airssys-wasm  
 **Last Updated:** 2025-10-19  
-**Total ADRs:** 3  
-**Active ADRs:** 3  
+**Total ADRs:** 4  
+**Active ADRs:** 4  
 
 ## Active ADRs
 
@@ -49,6 +49,22 @@
   - Custom Capabilities: Deferred to Phase 2+ (YAGNI, focus on core foundation)
 - **File:** `adr_wasm_005_capability_based_security_model.md`
 
+### ADR-WASM-007: Storage Backend Selection
+- **Status:** Accepted
+- **Date:** 2025-10-19
+- **Category:** Storage Architecture
+- **Summary:** NEAR-style key-value storage API with Sled as default backend (pure Rust benefits) and RocksDB as optional fallback (proven stability), prefix-based component isolation, application-level quota tracking, NO transactions (actor model sequential processing eliminates need), export/import JSON Lines tool for migration and backups.
+- **Related:** KNOWLEDGE-WASM-007 (Component Storage), KNOWLEDGE-WASM-008 (Backend Comparison), ADR-WASM-005 (Security)
+- **Impact:** Critical - Persistent storage foundation for all components
+- **Key Decisions:**
+  - API: NEAR-style KV (simple get/set/delete/scan_prefix, language-agnostic)
+  - Backend: Sled default (pure Rust, fast builds), RocksDB optional (proven production)
+  - Isolation: Prefix-based namespacing (`component:<id>:` prefix for all keys)
+  - Quota: Application-level tracking (real-time enforcement, periodic reconciliation)
+  - Transactions: NOT required (actor model sequential processing ensures consistency)
+  - Migration: Export/import JSON Lines tool (backend migration and backups)
+- **File:** `adr_wasm_007_storage_backend_selection.md`
+
 ---
 
 ## Planned ADR Categories (Future)
@@ -62,7 +78,7 @@
 ### Security Architecture Decisions
 - ~~**ADR-005: Capability-Based Security Model**~~ - ✅ Completed (2025-10-19)
 - **ADR-006: Sandbox Architecture** - Component isolation and sandboxing approach
-- **ADR-007: Security Policy System** - Policy definition and enforcement mechanism
+- ~~**ADR-007: Security Policy System**~~ - ✅ Repurposed as Storage Backend Selection
 - **ADR-008: Audit and Logging Strategy** - Security audit logging and compliance
 
 ### Component System Decisions
