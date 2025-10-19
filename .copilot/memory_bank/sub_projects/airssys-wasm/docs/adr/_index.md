@@ -2,8 +2,8 @@
 
 **Sub-Project:** airssys-wasm  
 **Last Updated:** 2025-10-19  
-**Total ADRs:** 1  
-**Active ADRs:** 1  
+**Total ADRs:** 2  
+**Active ADRs:** 2  
 
 ## Active ADRs
 
@@ -15,6 +15,23 @@
 - **Related:** KNOWLEDGE-WASM-006 (Multiformat), KNOWLEDGE-WASM-011 (Serialization)
 - **Impact:** Critical - Foundation for inter-component messaging architecture
 - **File:** `adr_wasm_001_multicodec_compatibility_strategy.md`
+
+### ADR-WASM-002: WASM Runtime Engine Selection
+- **Status:** Accepted
+- **Date:** 2025-10-19
+- **Category:** Core Runtime & Execution
+- **Summary:** Wasmtime as primary runtime with JIT compilation, async-first architecture, mandatory engineer-defined memory limits, hybrid fuel+timeout CPU limiting, host-only enforcement, isolated component crashes.
+- **Related:** KNOWLEDGE-WASM-001 (Component Framework), KNOWLEDGE-WASM-003 (Core Architecture)
+- **Impact:** Critical - Most foundational decision, affects all subsequent architecture
+- **Key Decisions:**
+  - Runtime: Wasmtime (Component Model reference implementation)
+  - Compilation: JIT with Cranelift (AOT optional future enhancement)
+  - Async: Mandatory async-first (Tokio integration for airssys-rt)
+  - Memory: REQUIRED in Component.toml (no defaults, engineer-defined)
+  - CPU: Hybrid fuel metering + wall-clock timeout (dual protection)
+  - Enforcement: Host runtime only (Phase 1 simplicity)
+  - Errors: Isolated crashes (supervisor pattern, production resilience)
+- **File:** `adr_wasm_002_wasm_runtime_engine_selection.md`
 
 ---
 
