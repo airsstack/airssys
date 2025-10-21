@@ -741,12 +741,29 @@ impl Default for StorageConfig {
 
 ## Implementation Plan
 
-### Phase 1: Core Module Foundation (Days 1-2)
+**⚠️ CRITICAL: Detailed Phase 1 Action Plan Available**
+
+For comprehensive step-by-step implementation guidance for Phase 1, see:
+**`task_000_phase_1_action_plan.md`** - Complete action plan with:
+- Detailed task breakdown (Tasks 1.1-2.3)
+- Code examples and templates
+- Success criteria for each task
+- Quality checklists and validation steps
+- References to all relevant ADRs and standards
+
+The action plan below provides the overview. Follow the detailed action plan for implementation.
+
+---
+
+### Phase 1: Core Module Foundation (Days 1-4)
+
+**Status:** ready-to-start  
+**Action Plan:** See `task_000_phase_1_action_plan.md` for detailed guidance
 
 #### Task 1.1: Create Core Module Structure
 **Deliverables:**
 - Create `src/core/` directory
-- Create `src/core/mod.rs` with module declarations
+- Create `src/core/mod.rs` with module declarations (declaration-only per §4.3)
 - Create empty files: `component.rs`, `capability.rs`, `error.rs`, `config.rs`
 - Update `src/lib.rs` to include `pub mod core;`
 - Verify compilation (`cargo check` passes)

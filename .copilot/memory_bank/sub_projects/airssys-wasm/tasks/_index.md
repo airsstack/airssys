@@ -31,10 +31,14 @@
 
 | Task ID | Title | Effort | Status | File |
 |---------|-------|--------|--------|------|
-| WASM-TASK-000 | ⚡ Core Abstractions Design | 1-2 weeks | not-started | task_000_core_abstractions_design.md |
+| WASM-TASK-000 | ⚡ Core Abstractions Design | 3-4 weeks | not-started | task_000_core_abstractions_design.md |
+| WASM-TASK-000-P1 | Phase 1: Core Module Foundation | 4 days | ready-to-start | task_000_phase_1_action_plan.md |
 | WASM-TASK-001 | Implementation Roadmap and Phase Planning | Planning | not-started | task_001_implementation_roadmap.md |
 
 **Note:** WASM-TASK-000 MUST be completed before WASM-TASK-001 and all implementation blocks (002-012).
+
+**Action Plans:**
+- **Phase 1 Action Plan** (`task_000_phase_1_action_plan.md`) - Detailed implementation guide for Days 1-4 with code templates, checklists, and validation steps
 
 ### Layer 1: Foundation Tasks (Blocks 1-3)
 **Status:** Specification Complete  
