@@ -43,8 +43,8 @@
 // Universal Abstractions (Phase 1-5)
 pub mod capability;
 pub mod component;
+pub mod error;
 
 // Future phases (will be uncommented as implemented)
-// Phase 4: pub mod error;
 // Phase 5: pub mod config;
 // Phase 6-10: Domain-specific abstractions

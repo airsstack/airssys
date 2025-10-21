@@ -29,10 +29,7 @@ use serde::{Deserialize, Serialize};
 
 // Layer 3: Internal module imports
 use crate::core::capability::Capability;
-
-// TODO(PHASE-4): Replace with comprehensive WasmError from core/error.rs
-// Temporary placeholder for Component trait signatures
-pub type WasmError = String;
+use crate::core::error::WasmError;
 
 /// Unique identifier for a component instance.
 ///
@@ -330,18 +327,19 @@ pub struct ComponentConfig {
 ///
 /// ```rust
 /// use airssys_wasm::core::component::{Component, ComponentConfig, ComponentInput, ComponentOutput, ComponentMetadata, ResourceLimits};
+/// use airssys_wasm::core::error::WasmError;
 ///
 /// struct MyComponent {
 ///     metadata: ComponentMetadata,
 /// }
 ///
 /// impl Component for MyComponent {
-///     fn init(&mut self, _config: ComponentConfig) -> Result<(), String> {
+///     fn init(&mut self, _config: ComponentConfig) -> Result<(), WasmError> {
 ///         // Initialize component state
 ///         Ok(())
 ///     }
 ///
-///     fn execute(&self, _input: ComponentInput) -> Result<ComponentOutput, String> {
+///     fn execute(&self, _input: ComponentInput) -> Result<ComponentOutput, WasmError> {
 ///         // Process input and produce output
 ///         Ok(ComponentOutput {
 ///             data: vec![],
@@ -350,7 +348,7 @@ pub struct ComponentConfig {
 ///         })
 ///     }
 ///
-///     fn shutdown(&mut self) -> Result<(), String> {
+///     fn shutdown(&mut self) -> Result<(), WasmError> {
 ///         // Clean up resources
 ///         Ok(())
 ///     }
