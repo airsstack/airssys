@@ -1,9 +1,9 @@
 # airssys-wasm Architecture Decision Records Index
 
 **Sub-Project:** airssys-wasm  
-**Last Updated:** 2025-10-20  
-**Total ADRs:** 8  
-**Active ADRs:** 8  
+**Last Updated:** 2025-10-21  
+**Total ADRs:** 10  
+**Active ADRs:** 10  
 
 ## Active ADRs
 
@@ -139,6 +139,41 @@
   - Performance Targets: Tracked from Block 3 onwards (actor spawn ~625ns, message routing ~211ns)
 - **Mental Model:** "Actor-hosted WASM components from the start" (NOT "WASM components, then integrate actors later")
 - **File:** `adr_wasm_010_implementation_strategy_and_build_order.md`
+
+### ADR-WASM-011: Module Structure Organization
+- **Status:** Accepted
+- **Date:** 2025-10-21
+- **Category:** Code Architecture & Organization
+- **Summary:** Hybrid block-aligned module structure combining flat domain-driven organization (airssys-rt pattern) with core abstraction layer (airssys-osl pattern). Direct 1:1 mapping to 11 implementation blocks, core/ module prevents circular dependencies, prelude re-exports for ergonomic API, mod.rs declaration-only following workspace §4.3.
+- **Related:** ADR-WASM-010 (Implementation Strategy), KNOWLEDGE-WASM-012 (Module Structure Architecture), Workspace §4.3 (Module Architecture), §2.1 (Imports), §6.1 (YAGNI)
+- **Impact:** Critical - Defines entire crate organization and code structure for all implementations
+- **Key Decisions:**
+  - Organization: Hybrid block-aligned with core (Option 3 from knowledge doc)
+  - Structure: core/ (foundation, zero internal deps) + 11 flat domain modules (runtime/, wit/, actor/, security/, messaging/, storage/, lifecycle/, component/, osl/, monitoring/, installation/) + util/ + prelude/
+  - Dependencies: Acyclic graph enforced (core → runtime/wit → actor/osl → services → management)
+  - Public API: Prelude re-exports for ergonomic imports (airssys_wasm::prelude::*)
+  - Testing: Unit tests co-located, integration tests in tests/ mirror module structure
+  - Standards: mod.rs declaration-only (§4.3), 3-layer imports (§2.1), YAGNI-compliant (§6.1)
+  - Task Alignment: Direct mapping to WASM-TASK-002 through 012 (runtime/ = Block 1, wit/ = Block 2, etc.)
+- **Rationale:** Combines proven patterns from airssys-rt (flat, intuitive) and airssys-osl (core abstractions), prevents circular dependencies, easy contributor navigation, clear task-to-module mapping
+- **File:** `adr_wasm_011_module_structure_organization.md`
+
+### ADR-WASM-012: Comprehensive Core Abstractions Strategy
+- **Status:** Accepted
+- **Date:** 2025-10-21
+- **Category:** Architecture & Type System Design
+- **Summary:** Comprehensive core abstractions covering ALL implementation blocks (1-11). Core module contains universal types (component, capability, error, config) PLUS domain-specific abstractions for each block (runtime, interface, actor, security, messaging, storage, lifecycle, management, bridge, observability). Trait-centric design with zero internal dependencies.
+- **Related:** ADR-WASM-011 (Module Structure), KNOWLEDGE-WASM-012 (Module Architecture), WASM-TASK-000 (Core Design)
+- **Impact:** CRITICAL - Prevents circular dependencies, enables parallel development, ensures API stability
+- **Key Decisions:**
+  - Scope: 14 core files (4 universal + 10 domain-specific)
+  - Pattern: Trait-centric design for extensibility
+  - Dependencies: Zero internal dependencies (core depends on external crates only)
+  - Timeline: WASM-TASK-000 expanded from 1-2 weeks to 3-4 weeks
+  - Development: Abstractions-first (all core complete before block implementation)
+  - Validation: Architectural review, prototype validation, ADR compliance check
+- **Rationale:** Prevents circular dependencies, enables parallel block development, ensures API stability, facilitates testability via traits, provides refactoring safety
+- **File:** `adr_wasm_012_comprehensive_core_abstractions_strategy.md`
 
 ---
 

@@ -300,49 +300,55 @@ Build a production-ready WASM runtime engine using Wasmtime that executes Compon
 
 ---
 
-### Phase 6: Performance Optimization and Benchmarking (Week 6)
+### Phase 6: Performance Baseline Establishment (Week 6)
 
-#### Task 6.1: Instantiation Performance
+#### Task 6.1: Instantiation Performance Baseline
 **Deliverables:**
-- Module caching implementation
-- Instantiation optimization
-- Cold start benchmarks
-- Warm start benchmarks
-- Performance tuning documentation
+- Cold start measurement benchmarks
+- Warm start measurement benchmarks
+- Module caching effectiveness measurement
+- Instantiation timing documentation
+- Performance baseline report
 
 **Success Criteria:**
-- Cold start < 10ms (target)
-- Warm start < 1ms (target)
-- Module caching effective
-- Performance documented
+- Cold start time measured and documented (target: <10ms)
+- Warm start time measured and documented (target: <1ms)
+- Module caching impact quantified
+- Baseline performance characteristics documented
+- No optimization work performed (measure only)
 
-#### Task 6.2: Execution Performance Benchmarks
+#### Task 6.2: Execution Performance Baseline
 **Deliverables:**
-- Criterion benchmark suite
-- Compute-heavy benchmarks
-- Memory-intensive benchmarks
-- Async operation benchmarks
-- Performance regression tests
+- Criterion benchmark suite for execution
+- Compute-heavy operation benchmarks
+- Memory-intensive operation benchmarks
+- Async operation overhead benchmarks
+- Performance baseline documentation
 
 **Success Criteria:**
-- Baseline performance established
-- Benchmarks reproducible
-- No unexpected regressions
-- Performance characteristics documented
+- Execution performance baseline established
+- Benchmarks reproducible and documented
+- Performance characteristics understood
+- Baseline metrics for future comparison
+- No optimization performed (establish baseline first)
 
-#### Task 6.3: Resource Usage Profiling
+#### Task 6.3: Resource Usage Baseline
 **Deliverables:**
 - Memory usage profiling
 - CPU usage profiling
-- Overhead measurements
+- Runtime overhead measurements
 - Resource usage documentation
-- Optimization recommendations
+- Baseline performance report
 
 **Success Criteria:**
-- Resource usage characterized
-- Overhead quantified (<5% target)
-- Bottlenecks identified
-- Optimization path clear
+- Memory footprint characterized and documented
+- CPU overhead quantified and documented
+- Resource usage patterns identified
+- Performance baseline complete
+- Foundation for Phase 2 optimization established
+
+**Note on Performance:**
+This phase focuses on **baseline measurement only**, not optimization. Following the "make it work, make it right, make it fast" principle, we first establish what the current performance characteristics are. Optimization work will be deferred to Phase 2+ based on actual measured needs, not assumptions.
 
 ---
 
@@ -380,11 +386,12 @@ This task is complete when:
    - Clear crash diagnostics available
    - Host stability maintained
 
-6. ✅ **Performance Targets**
-   - Cold start < 10ms
-   - Warm start < 1ms
-   - Execution overhead < 5%
-   - Resource usage documented
+6. ✅ **Performance Baseline**
+   - Cold start time measured and documented
+   - Warm start time measured and documented
+   - Execution overhead measured and documented
+   - Resource usage baseline established
+   - Benchmark suite created for future tracking
 
 7. ✅ **Testing & Documentation**
    - Comprehensive test suite (>90% coverage)
@@ -469,7 +476,7 @@ This task is complete when:
 | 3 | CPU Limiting and Resource Control | not-started | Week 3-4 | Security critical |
 | 4 | Async Execution and Tokio Integration | not-started | Week 4-5 | airssys-rt compat |
 | 5 | Crash Isolation and Recovery | not-started | Week 5-6 | Production readiness |
-| 6 | Performance Optimization and Benchmarking | not-started | Week 6 | Validation |
+| 6 | Performance Baseline Establishment | not-started | Week 6 | Measurement not optimization |
 
 ### Subtasks
 | ID | Description | Status | Updated | Notes |
@@ -489,9 +496,9 @@ This task is complete when:
 | 5.1 | Component Crash Handling | not-started | - | Isolation foundation |
 | 5.2 | Resource Cleanup on Failure | not-started | - | Reliability |
 | 5.3 | Crash Isolation Testing | not-started | - | Production readiness |
-| 6.1 | Instantiation Performance | not-started | - | Performance target |
-| 6.2 | Execution Performance Benchmarks | not-started | - | Baseline metrics |
-| 6.3 | Resource Usage Profiling | not-started | - | Optimization |
+| 6.1 | Instantiation Performance Baseline | not-started | - | Measure cold/warm start |
+| 6.2 | Execution Performance Baseline | not-started | - | Measure execution overhead |
+| 6.3 | Resource Usage Baseline | not-started | - | Measure resource footprint |
 
 ## Progress Log
 
@@ -520,11 +527,19 @@ This task is complete when:
 **Critical Foundation:**
 This block is the absolute foundation. Nothing else can proceed until WASM code can execute safely.
 
+**Module Structure:**
+Following KNOWLEDGE-WASM-012 (Module Structure Architecture), runtime code lives in `src/runtime/`:
+- `runtime/engine.rs` - Wasmtime engine wrapper
+- `runtime/instance.rs` - Component instance management
+- `runtime/limits.rs` - Resource limits (memory, CPU)
+- `runtime/loader.rs` - Component loading
+- `runtime/executor.rs` - Component execution
+
 **Security First:**
 Memory and CPU limits are REQUIRED, not optional. Components MUST declare limits in Component.toml.
 
-**Performance Targets:**
-<10ms cold start is aggressive but achievable with module caching. Measure early and often.
+**Performance Baseline First:**
+Phase 6 focuses on **measurement**, not optimization. We establish baseline performance characteristics before attempting optimization. "Make it work, make it right, make it fast" - we're at phase 1.
 
 **Async Complexity:**
 Wasmtime async support is mature but complex. Follow examples closely and test extensively.
@@ -536,4 +551,4 @@ Production systems will have buggy components. Crash isolation is not optional.
 Include adversarial testing (infinite loops, OOM attempts, malformed components).
 
 **Phase 1 Simplicity:**
-This is Phase 1 - focus on correct, safe implementation. Optimizations can come in Phase 2.
+This is Phase 1 - focus on correct, safe implementation. Optimizations can come in Phase 2 based on measured performance data.

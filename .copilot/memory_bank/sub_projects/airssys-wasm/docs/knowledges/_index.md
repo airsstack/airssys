@@ -1,9 +1,9 @@
 # airssys-wasm Knowledge Documentation Index
 
 **Sub-Project:** airssys-wasm  
-**Last Updated:** 2025-10-19  
-**Total Knowledge Docs:** 11  
-**Active Knowledge Docs:** 11
+**Last Updated:** 2025-10-21  
+**Total Knowledge Docs:** 12  
+**Active Knowledge Docs:** 12
 
 ## Current Knowledge Documentation
 
@@ -32,6 +32,16 @@
   - **Status**: Complete foundational design (Updated 2025-10-17 - renamed to standard format)
   - **Impact**: Critical - defines framework approach and developer experience
   - **Audience**: Framework designers and integration engineers
+
+- **[KNOWLEDGE-WASM-012: Module Structure Architecture](knowledge_wasm_012_module_structure_architecture.md)** ✅ **CRITICAL**
+  - **Purpose**: Complete module structure design for airssys-wasm crate organization
+  - **Scope**: Module organization, dependency rules, public API surface, testing structure
+  - **Key Content**: 3 organizational approaches evaluated, hybrid block-aligned recommendation, dependency graph, prelude pattern, module responsibility matrix, implementation guidelines
+  - **Status**: Complete module structure design (Created 2025-10-21)
+  - **Impact**: Critical - defines entire crate organization and code structure
+  - **Audience**: All implementers, architects, contributors
+  - **Key Decision**: Approach 3 (Hybrid Block-Aligned with Core) - combines airssys-rt flat structure with airssys-osl core abstractions
+  - **Related**: All implementation tasks (WASM-TASK-002 through 012), workspace §4.3 module standards
 
 - **[KNOWLEDGE-WASM-004: WIT Management Architecture](knowledge_wasm_004_wit_management_architecture.md)** ✅ **CRITICAL**
   - **Purpose**: Complete WIT interface management and component development framework

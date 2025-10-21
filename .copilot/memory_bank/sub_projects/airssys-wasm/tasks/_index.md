@@ -1,13 +1,14 @@
 # airssys-wasm Tasks Index
 
-**Last Updated:** 2025-10-20  
-**Total Tasks:** 12  
-**Active Tasks:** 12  
+**Last Updated:** 2025-10-21  
+**Total Tasks:** 13  
+**Active Tasks:** 13  
 **Completed Tasks:** 0
 
 ## Task Summary
 
 ### Active Tasks
+- **[WASM-TASK-000]** ⚡ Core Abstractions Design - `not-started` (Created 2025-10-21) **CRITICAL FOUNDATION**
 - **[WASM-TASK-001]** Implementation Roadmap and Phase Planning - `not-started` (Created 2025-10-20)
 - **[WASM-TASK-002]** Block 1: WASM Runtime Layer - `not-started` (Created 2025-10-20)
 - **[WASM-TASK-003]** Block 2: WIT Interface System - `not-started` (Created 2025-10-20)
@@ -25,12 +26,15 @@
 
 ### Layer 0: Planning & Architecture
 **Status:** Specification Complete  
-**Priority:** Foundation  
+**Priority:** Critical Foundation  
 **Timeline:** Q2 2026
 
 | Task ID | Title | Effort | Status | File |
 |---------|-------|--------|--------|------|
+| WASM-TASK-000 | ⚡ Core Abstractions Design | 1-2 weeks | not-started | task_000_core_abstractions_design.md |
 | WASM-TASK-001 | Implementation Roadmap and Phase Planning | Planning | not-started | task_001_implementation_roadmap.md |
+
+**Note:** WASM-TASK-000 MUST be completed before WASM-TASK-001 and all implementation blocks (002-012).
 
 ### Layer 1: Foundation Tasks (Blocks 1-3)
 **Status:** Specification Complete  
