@@ -8,23 +8,23 @@
 //!
 //! The core module follows a two-tier structure:
 //!
-//! ## Universal Abstractions
+//! ## Universal Abstractions (Phase 1-5: Complete)
 //! - `component` - Component types, metadata, input/output
 //! - `capability` - Capability-based security primitives
 //! - `error` - Error types and result aliases
 //! - `config` - Configuration types and defaults
 //!
-//! ## Domain-Specific Abstractions (Future Phases)
-//! - `runtime` - Runtime engine traits and execution context
-//! - `interface` - WIT interface metadata and type descriptors
-//! - `actor` - Actor integration message envelopes
-//! - `security` - Security policy traits and permission types
-//! - `messaging` - Inter-component messaging protocols
-//! - `storage` - Storage backend traits and operations
-//! - `lifecycle` - Lifecycle state machines and transitions
-//! - `management` - Component registry and management abstractions
-//! - `bridge` - OSL bridge traits and capability mapping
-//! - `observability` - Metrics collection and monitoring traits
+//! ## Domain-Specific Abstractions (Phase 6+: In Progress)
+//! - `runtime` - Runtime engine traits and execution context (Phase 6.1: ✅ Complete)
+//! - `interface` - WIT interface metadata and type descriptors (Phase 6.2: ✅ Complete)
+//! - `actor` - Actor integration message envelopes (Phase 7: Planned)
+//! - `security` - Security policy traits and permission types (Phase 7: Planned)
+//! - `messaging` - Inter-component messaging protocols (Phase 8: Planned)
+//! - `storage` - Storage backend traits and operations (Phase 9: Planned)
+//! - `lifecycle` - Lifecycle state machines and transitions (Phase 10: Planned)
+//! - `management` - Component registry and management abstractions (Phase 11: Planned)
+//! - `bridge` - OSL bridge traits and capability mapping (Phase 12: Planned)
+//! - `observability` - Metrics collection and monitoring traits (Phase 12: Planned)
 //!
 //! # Design Principles
 //!
@@ -40,11 +40,28 @@
 //! - **ADR-WASM-012**: Comprehensive Core Abstractions Strategy
 //! - **Workspace Standards**: §4.3 (Module Architecture), §6.1 (YAGNI)
 
-// Universal Abstractions (Phase 1-5)
+// Universal Abstractions (Phase 1-5: Complete)
 pub mod capability;
 pub mod component;
 pub mod config;
 pub mod error;
 
+// Domain-Specific Abstractions (Phase 6+: In Progress)
+pub mod interface;
+pub mod runtime;
+
 // Future phases (will be uncommented as implemented)
-// Phase 6-10: Domain-specific abstractions
+// Phase 7: actor, security
+// Phase 8: messaging
+// Phase 9: storage
+// Phase 10: lifecycle
+// Phase 11: management
+// Phase 12: bridge, observability
+
+// Re-exports for public API
+pub use capability::{Capability, CapabilitySet, DomainPattern, NamespacePattern, PathPattern, TopicPattern};
+pub use component::{Component, ComponentConfig, ComponentId, ComponentInput, ComponentMetadata, ComponentOutput, ComponentState, InstallationSource, ResourceLimits};
+pub use config::{RuntimeConfig, SecurityConfig, SecurityMode, StorageBackend, StorageConfig};
+pub use error::{WasmError, WasmResult};
+pub use interface::{FunctionSignature, WitInterface};
+pub use runtime::{ComponentHandle, ExecutionContext, ExecutionState, ResourceUsage, RuntimeEngine};

@@ -1,9 +1,21 @@
 # airssys-wasm Technical Debt Index
 
 **Sub-Project:** airssys-wasm  
-**Last Updated:** 2025-09-27  
-**Total Debt Items:** 0  
-**Active Debt Items:** 0  
+**Last Updated:** 2025-10-21  
+**Total Debt Items:** 1  
+**Active Debt Items:** 1  
+
+## Active Debt Items
+
+### DEBT-WASM-001: Deferred WIT Interface Abstractions
+- **File:** `debt_wasm_001_deferred_wit_interface_abstractions.md`
+- **Status:** Active
+- **Category:** DEBT-ARCH
+- **Priority:** Low (Technical), Low (Business)
+- **Created:** 2025-10-21
+- **Summary:** Deferred runtime type abstractions (TypeDescriptor, InterfaceKind, BindingMetadata) following YAGNI analysis
+- **Impact:** Positive maintainability (60% less code), zero functional impact
+- **Re-evaluation:** Block 10 Phase 2+ (Q2 2026+) for multi-language support
 
 ## Anticipated Debt Categories (Future)
 
@@ -38,4 +50,4 @@
 - **Component Model**: Incomplete implementation could limit functionality
 
 ---
-**Note:** Debt tracking will begin when development starts (estimated Q3 2026).
+**Note:** Debt tracking began 2025-10-21 during Phase 6 (WASM-TASK-000) implementation.

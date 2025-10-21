@@ -1008,71 +1008,141 @@ pub struct ResourceUsage {
 #### Task 6.2: Interface Abstractions (`core/interface.rs`) - Block 2
 
 **Deliverables:**
-- `struct InterfaceDefinition` - WIT interface metadata
-- `struct TypeDescriptor` - WIT type system representation
-- `enum InterfaceKind` - Interface classification (import/export)
-- `struct BindingMetadata` - Language binding information
-- Comprehensive rustdoc
+- `struct WitInterface` - WIT interface metadata for validation
+- `struct FunctionSignature` - Function signature with capability requirements
+- Comprehensive rustdoc with YAGNI rationale
+
+**Design Note:**
+Simplified abstractions following YAGNI analysis (§6.1). TypeDescriptor, InterfaceKind, and BindingMetadata were deferred after evidence-based analysis showed zero concrete consumers. See DEBT-WASM-001 for detailed rationale and re-evaluation triggers.
 
 **Core Types:**
 ```rust
-/// WIT interface definition metadata.
+/// WIT interface metadata for version validation and capability checking.
+///
+/// This struct represents a WIT (WebAssembly Interface Type) interface,
+/// providing the minimal information needed for runtime interface validation
+/// and capability-based security enforcement.
+///
+/// # Design Rationale
+///
+/// This is a simplified abstraction following YAGNI principles (§6.1).
+/// Type-level metadata (TypeDescriptor) was intentionally omitted because
+/// wit-bindgen handles type bindings at compile-time, not runtime.
+/// Interface directionality (InterfaceKind) was omitted because the universal
+/// imports pattern means all components have identical import/export structure.
+/// See DEBT-WASM-001 for deferred abstractions and re-evaluation criteria.
+///
+/// # Example
+///
+/// ```rust
+/// use airssys_wasm::core::{WitInterface, FunctionSignature, Capability};
+///
+/// let interface = WitInterface {
+///     name: "wasi:http/incoming-handler".to_string(),
+///     version: "0.2.0".to_string(),
+///     functions: vec![
+///         FunctionSignature {
+///             name: "handle".to_string(),
+///             required_capabilities: vec![
+///                 Capability::NetworkInbound,
+///             ],
+///         },
+///     ],
+/// };
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct InterfaceDefinition {
+pub struct WitInterface {
+    /// Interface name following WIT namespace conventions.
+    /// 
+    /// Format: `namespace:package/interface`
+    /// 
+    /// # Examples
+    /// - `"wasi:http/incoming-handler"`
+    /// - `"wasi:filesystem/types"`
+    /// - `"custom:service/api"`
     pub name: String,
+    
+    /// Semantic version for compatibility checking.
+    /// 
+    /// Used for interface version validation during component loading.
+    /// Follows semver specification (major.minor.patch).
+    /// 
+    /// # Example
+    /// ```
+    /// "0.2.0"
+    /// ```
     pub version: String,
-    pub kind: InterfaceKind,
+    
+    /// Functions exported by this interface.
+    /// 
+    /// Each function specifies its capability requirements for
+    /// security validation during execution.
     pub functions: Vec<FunctionSignature>,
-    pub types: Vec<TypeDescriptor>,
 }
 
-/// Interface classification.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum InterfaceKind {
-    /// Host functions exported to components
-    Export,
-    /// Component functions imported by host
-    Import,
-}
-
-/// Function signature in WIT interface.
+/// Function signature with capability requirements.
+///
+/// Represents a single function in a WIT interface with its security
+/// requirements. Used for capability-based permission checking during
+/// component execution.
+///
+/// # Design Rationale
+///
+/// Parameter and return type metadata were intentionally omitted following
+/// YAGNI analysis. wit-bindgen generates strongly-typed Rust bindings at
+/// compile-time, eliminating the need for runtime type descriptors.
+/// Security validation only requires function name and capabilities.
+/// See DEBT-WASM-001 for detailed rationale.
+///
+/// # Example
+///
+/// ```rust
+/// use airssys_wasm::core::{FunctionSignature, Capability, DomainPattern};
+///
+/// let signature = FunctionSignature {
+///     name: "http_request".to_string(),
+///     required_capabilities: vec![
+///         Capability::NetworkOutbound(DomainPattern::new("api.example.com")),
+///     ],
+/// };
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FunctionSignature {
+    /// Function name for identification and permission matching.
+    /// 
+    /// Used by security middleware to match capability requirements
+    /// against granted permissions during execution.
+    /// 
+    /// # Example
+    /// ```
+    /// "handle"
+    /// ```
     pub name: String,
-    pub parameters: Vec<(String, TypeDescriptor)>,
-    pub return_type: Option<TypeDescriptor>,
+    
+    /// Capabilities required to invoke this function.
+    /// 
+    /// Security middleware validates these capabilities against the
+    /// component's granted CapabilitySet before allowing execution.
+    /// Empty vector means function requires no special capabilities.
+    /// 
+    /// # Example
+    /// ```rust
+    /// vec![
+    ///     Capability::FileRead(PathPattern::new("/data/*")),
+    ///     Capability::NetworkOutbound(DomainPattern::new("*.api.com")),
+    /// ]
+    /// ```
     pub required_capabilities: Vec<Capability>,
-}
-
-/// WIT type system representation.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum TypeDescriptor {
-    Bool,
-    U8, U16, U32, U64,
-    S8, S16, S32, S64,
-    F32, F64,
-    String,
-    List(Box<TypeDescriptor>),
-    Option(Box<TypeDescriptor>),
-    Result { ok: Box<TypeDescriptor>, err: Box<TypeDescriptor> },
-    Record { fields: Vec<(String, TypeDescriptor)> },
-    Variant { cases: Vec<(String, Option<TypeDescriptor>)> },
-}
-
-/// Language binding metadata.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BindingMetadata {
-    pub language: String,
-    pub binding_version: String,
-    pub generator: String,
 }
 ```
 
 **Success Criteria:**
-- All interface types compile and serialize properly
-- TypeDescriptor covers complete WIT type system
-- FunctionSignature includes capability requirements
-- Unit tests for interface metadata creation
+- WitInterface and FunctionSignature compile with serde support
+- All types have comprehensive rustdoc with design rationale
+- DEBT-WASM-001 referenced in documentation
+- Unit tests for interface metadata creation and serialization
+- Integration with Phase 3 Capability type validated
+- Examples demonstrate typical usage patterns
 
 ---
 
