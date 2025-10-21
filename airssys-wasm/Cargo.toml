@@ -8,6 +8,20 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+# Serialization (workspace dependency - §5.1)
+serde = { workspace = true }
+
+# Error handling (workspace dependency - §5.1)
+thiserror = { workspace = true }
+
+# Time handling - chrono DateTime<Utc> standard (§3.2)
+chrono = { workspace = true }
+
+# Async traits for storage, messaging, runtime interfaces (§5.1)
+async-trait = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
 
 [lints]
 workspace = true

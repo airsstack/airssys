@@ -1,14 +1,10 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+//! AirsSys WASM Component Framework
+//!
+//! A comprehensive WebAssembly component framework for building pluggable systems
+//! with capability-based security, runtime deployment, and actor-based hosting.
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+// Core abstractions (foundation)
+pub mod core;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+// Future: Prelude for ergonomic imports (Phase 11)
+// pub mod prelude;
