@@ -28,7 +28,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 
 // Layer 3: Internal module imports
-// (None yet - core has zero internal dependencies)
+use crate::core::capability::Capability;
 
 // TODO(PHASE-4): Replace with comprehensive WasmError from core/error.rs
 // Temporary placeholder for Component trait signatures
@@ -94,12 +94,7 @@ pub struct ResourceLimits {
     pub max_storage_bytes: u64,
 }
 
-/// Capability placeholder (will be replaced in Phase 3 with actual Capability type)
-///
-/// TODO(PHASE-3): Replace with actual Capability enum from core/capability.rs
-pub type Capability = String;
-
-/// Component metadata describing a component.
+/// Component metadata describing the component's identity and requirements.
 ///
 /// # Examples
 ///
@@ -462,7 +457,7 @@ mod tests {
     }
 
     #[test]
-    fn test_resource_limits_serialization() {
+    fn test_resource_limits_serialization() -> Result<(), Box<dyn std::error::Error>> {
         let limits = ResourceLimits {
             max_memory_bytes: 1024,
             max_fuel: 1000,
@@ -470,11 +465,12 @@ mod tests {
             max_storage_bytes: 512,
         };
 
-        let json = serde_json::to_string(&limits).unwrap();
-        let deserialized: ResourceLimits = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&limits)?;
+        let deserialized: ResourceLimits = serde_json::from_str(&json)?;
 
         assert_eq!(limits.max_memory_bytes, deserialized.max_memory_bytes);
         assert_eq!(limits.max_fuel, deserialized.max_fuel);
+        Ok(())
     }
 
     // ============================================================================
@@ -494,7 +490,7 @@ mod tests {
     }
 
     #[test]
-    fn test_component_input_serialization() {
+    fn test_component_input_serialization() -> Result<(), Box<dyn std::error::Error>> {
         let mut metadata = HashMap::new();
         metadata.insert("key".to_string(), "value".to_string());
 
@@ -504,11 +500,12 @@ mod tests {
             metadata,
         };
 
-        let json = serde_json::to_string(&input).unwrap();
-        let deserialized: ComponentInput = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&input)?;
+        let deserialized: ComponentInput = serde_json::from_str(&json)?;
 
         assert_eq!(input.codec, deserialized.codec);
         assert_eq!(input.metadata.get("key"), Some(&"value".to_string()));
+        Ok(())
     }
 
     #[test]
@@ -539,7 +536,7 @@ mod tests {
                 assert_eq!(url, "https://github.com/user/repo.git");
                 assert_eq!(commit, "abc123");
             }
-            _ => panic!("Expected Git variant"),
+            _ => unreachable!("Expected Git variant"),
         }
     }
 
@@ -553,7 +550,7 @@ mod tests {
             InstallationSource::File { path } => {
                 assert_eq!(path, PathBuf::from("/tmp/component.wasm"));
             }
-            _ => panic!("Expected File variant"),
+            _ => unreachable!("Expected File variant"),
         }
     }
 
@@ -567,25 +564,26 @@ mod tests {
             InstallationSource::Url { url } => {
                 assert_eq!(url, "https://example.com/component.wasm");
             }
-            _ => panic!("Expected Url variant"),
+            _ => unreachable!("Expected Url variant"),
         }
     }
 
     #[test]
-    fn test_installation_source_serialization() {
+    fn test_installation_source_serialization() -> Result<(), Box<dyn std::error::Error>> {
         let source = InstallationSource::File {
             path: PathBuf::from("/tmp/component.wasm"),
         };
 
-        let json = serde_json::to_string(&source).unwrap();
-        let deserialized: InstallationSource = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&source)?;
+        let deserialized: InstallationSource = serde_json::from_str(&json)?;
 
         match deserialized {
             InstallationSource::File { path } => {
                 assert_eq!(path, PathBuf::from("/tmp/component.wasm"));
             }
-            _ => panic!("Expected File variant"),
+            _ => unreachable!("Expected File variant"),
         }
+        Ok(())
     }
 
     // ============================================================================
@@ -599,12 +597,13 @@ mod tests {
     }
 
     #[test]
-    fn test_component_state_serialization() {
+    fn test_component_state_serialization() -> Result<(), Box<dyn std::error::Error>> {
         let state = ComponentState::Installed;
-        let json = serde_json::to_string(&state).unwrap();
-        let deserialized: ComponentState = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&state)?;
+        let deserialized: ComponentState = serde_json::from_str(&json)?;
 
         assert_eq!(state, deserialized);
+        Ok(())
     }
 
     // ============================================================================

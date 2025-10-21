@@ -20,8 +20,10 @@ chrono = { workspace = true }
 # Async traits for storage, messaging, runtime interfaces (§5.1)
 async-trait = { workspace = true }
 
-[dev-dependencies]
+# JSON serialization for Custom capability parameters (§5.1)
 serde_json = { workspace = true }
+
+[dev-dependencies]
 
 [lints]
 workspace = true
