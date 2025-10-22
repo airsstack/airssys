@@ -14,15 +14,15 @@
 //! - `error` - Error types and result aliases
 //! - `config` - Configuration types and defaults
 //!
-//! ## Domain-Specific Abstractions (Phase 6+: Complete through Phase 8)
+//! ## Domain-Specific Abstractions (Phase 6+: Complete through Phase 9)
 //! - `runtime` - Runtime engine traits and execution context (Phase 6.1: ✅ Complete)
 //! - `interface` - WIT interface metadata and type descriptors (Phase 6.2: ✅ Complete)
 //! - `actor` - Actor integration message envelopes (Phase 7.1: ✅ Complete)
 //! - `security` - Security policy traits and permission types (Phase 7.2: ✅ Complete)
 //! - `messaging` - Inter-component messaging protocols (Phase 8.1: ✅ Complete)
 //! - `storage` - Storage backend traits and operations (Phase 8.2: ✅ Complete)
-//! - `lifecycle` - Lifecycle state machines and transitions (Phase 9: Planned)
-//! - `management` - Component registry and management abstractions (Phase 9: Planned)
+//! - `lifecycle` - Lifecycle state machines and transitions (Phase 9.1: ✅ Complete)
+//! - `management` - Component registry and management abstractions (Phase 9.2: ✅ Complete)
 //! - `bridge` - OSL bridge traits and capability mapping (Phase 10: Planned)
 //! - `observability` - Metrics collection and monitoring traits (Phase 10: Planned)
 //!
@@ -46,16 +46,17 @@ pub mod component;
 pub mod config;
 pub mod error;
 
-// Domain-Specific Abstractions (Phase 6+: Complete through Phase 8)
+// Domain-Specific Abstractions (Phase 6+: Complete through Phase 9)
 pub mod interface;
 pub mod runtime;
 pub mod actor;  // Phase 7.1: Complete
 pub mod security;  // Phase 7.2: Complete
 pub mod messaging;  // Phase 8.1: Complete
 pub mod storage;  // Phase 8.2: Complete
+pub mod lifecycle;  // Phase 9.1: Complete
+pub mod management;  // Phase 9.2: Complete
 
 // Future phases (will be uncommented as implemented)
- // Phase 9: lifecycle, management
  // Phase 10: bridge, observability
 
 // Re-exports for public API
@@ -69,3 +70,5 @@ pub use actor::{ActorMessage, ActorMetadata, ActorState, SupervisionStrategy};
 pub use security::{IsolationBoundary, PermissionRequest, PermissionResult, SecurityContext, SecurityPolicy, TrustLevel};
 pub use messaging::{DeliveryGuarantee, MessageEnvelope, MessageType};
 pub use storage::{StorageBackend, StorageOperation};
+pub use lifecycle::{LifecycleEvent, LifecycleState, UpdateStrategy, VersionInfo};
+pub use management::{ComponentQuery, ComponentRegistry, InstallationMetadata, RegistryOperation};
