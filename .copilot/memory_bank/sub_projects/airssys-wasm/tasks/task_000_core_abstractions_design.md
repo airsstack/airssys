@@ -1,13 +1,13 @@
 # [WASM-TASK-000] - Core Abstractions Design ⚡ CRITICAL FOUNDATION
 
-**Status:** in-progress (Phases 1-7 complete, Phase 8 next)  
+**Status:** in-progress (Phases 1-8 complete, Phase 9 next)  
 **Added:** 2025-10-21  
 **Updated:** 2025-10-22  
 **Priority:** CRITICAL - Absolute Foundation (Layer 0)  
 **Layer:** 0 - Foundation  
 **Block:** 0 (Pre-Implementation)  
 **Estimated Effort:** 3-4 weeks (expanded from 1-2 weeks per ADR-WASM-012)  
-**Progress:** 75% (9/12 phases complete)  
+**Progress:** 83% (10/12 phases complete)  
 
 ## Overview
 
@@ -1883,7 +1883,7 @@ This task is complete when:
 | 5 | Universal: Configuration Types | ✅ complete | 9-10 | Runtime, Security, Storage configs |
 | 6 | Domain Part 1: Runtime & Interface | ✅ complete | 11-13 | Blocks 1-2 abstractions ⚡ **NEW** |
 | 7 | Domain Part 2: Actor & Security | ✅ complete | 14-16 | Blocks 3-4 abstractions ⚡ **NEW** |
-| 8 | Domain Part 3: Messaging & Storage | ⏳ next | 17-19 | Blocks 5-6 abstractions ⚡ **NEW** |
+| 8 | Domain Part 3: Messaging & Storage | ✅ complete | 17-19 | Blocks 5-6 abstractions ⚡ **NEW** |
 | 9 | Domain Part 4: Lifecycle & Management | not-started | 20-22 | Blocks 7-8 abstractions ⚡ **NEW** |
 | 10 | Domain Part 5: Bridge & Observability | not-started | 23-25 | Blocks 9-10 abstractions ⚡ **NEW** |
 | 11 | Documentation & Integration | not-started | 26 | Comprehensive docs, prelude |
@@ -1907,8 +1907,8 @@ This task is complete when:
 | 6.2 | Implement Interface Abstractions ⚡ | ✅ complete | 2025-10-22 | WitInterface, FunctionSignature (YAGNI) |
 | 7.1 | Implement Actor Abstractions ⚡ | ✅ complete | 2025-10-22 | ActorMessage, SupervisionStrategy |
 | 7.2 | Implement Security Abstractions ⚡ | ✅ complete | 2025-10-22 | SecurityPolicy trait, PermissionRequest |
-| 8.1 | Implement Messaging Abstractions ⚡ | ⏳ next | - | MessageEnvelope, RoutingStrategy |
-| 8.2 | Implement Storage Abstractions ⚡ | not-started | - | StorageBackend trait, Transaction |
+| 8.1 | Implement Messaging Abstractions ⚡ | ✅ complete | 2025-10-22 | MessageEnvelope, RoutingStrategy |
+| 8.2 | Implement Storage Abstractions ⚡ | ✅ complete | 2025-10-22 | StorageBackend trait, Transaction |
 | 9.1 | Implement Lifecycle Abstractions ⚡ | not-started | - | LifecycleState, UpdateStrategy |
 | 9.2 | Implement Management Abstractions ⚡ | not-started | - | ComponentRegistry trait, Query |
 | 10.1 | Implement Bridge Abstractions ⚡ | not-started | - | HostFunction trait, CapabilityMapping |

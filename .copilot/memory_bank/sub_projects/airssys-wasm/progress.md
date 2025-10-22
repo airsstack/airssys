@@ -2,12 +2,12 @@
 
 ## Current Status
 **Phase:** Core Abstractions Implementation (WASM-TASK-000)  
-**Overall Progress:** 75% (9/12 phases complete)
+**Overall Progress:** 83% (10/12 phases complete)
 **Last Updated:** 2025-10-22
 
 ## What Works
 ### ✅ Completed Implementation
-- **Phases 1-7 Complete (Oct 22, 2025)**: Core Module Foundation, Component Abstractions, Capability Abstractions, Error Types, Configuration Types, Runtime & Interface Abstractions, Actor & Security Abstractions
+- **Phases 1-8 Complete (Oct 22, 2025)**: Core Module Foundation, Component Abstractions, Capability Abstractions, Error Types, Configuration Types, Runtime & Interface Abstractions, Actor & Security Abstractions, Messaging & Storage Abstractions
   - **Phase 1 & 2 (Days 1-4)**: Core module + component types/trait
     - Core module structure with zero internal dependencies
     - 11 Component types implemented (ComponentId, ResourceLimits, ComponentMetadata, etc.)
@@ -71,11 +71,31 @@
       - Mock policy implementation demonstrating trait usage in tests
       - 8 unit tests covering permission checks, trust levels, isolation boundaries
       - 445 lines with 100% rustdoc coverage
-    - Integration with Phase 3 Capability types validated
-    - async_trait usage for non-blocking security checks
+  - Integration with Phase 3 Capability types validated
+  - async_trait usage for non-blocking security checks
+  - **Phase 8 (Days 17-19)**: Messaging & Storage abstractions for Block 5-6 foundation
+    - **Messaging Abstractions (core/messaging.rs)**:
+      - MessageEnvelope: Unified message container for actor-based communication with airssys-rt
+      - MessageType enum: FireAndForget, RequestResponse, PubSub patterns
+      - RoutingStrategy trait: Message routing abstraction for custom strategies
+      - DeliveryGuarantee enum: AtMostOnce, AtLeastOnce, ExactlyOnce (feature-gated)
+      - Helper methods: fire_and_forget, request, is_request for ergonomic messaging
+      - Integration with ActorMessage from Phase 7
+      - 10 unit tests validating message patterns, routing, delivery guarantees
+      - ~500 lines with 100% rustdoc coverage
+    - **Storage Abstractions (core/storage.rs)**:
+      - StorageBackend trait: NEAR Protocol-style KV storage API (Send + Sync)
+      - StorageOperation enum: Get, Set, Delete, Exists, Clear operations
+      - StorageTransaction trait: Atomic multi-operation transactions
+      - Namespace isolation and key validation
+      - Performance targets: <1ms get/set, <10ms transactions
+      - 9 unit tests covering storage operations, transactions, namespace isolation
+      - ~490 lines with 100% rustdoc coverage
+    - Integration with Phase 5 config types validated (StorageConfig)
+    - async_trait usage for non-blocking storage I/O
   - **Quality Metrics (All Phases)**:
-    - 197 total tests passing (82 unit + 115 doc tests, 5 trait examples ignored)
-    - ~3,726 total lines across 9 core files (component: 864, capability: 745, error: 864, config: 520, runtime: 526, interface: 538, actor: 433, security: 445)
+    - 204 total tests passing (98 unit + 106 doc tests)
+    - ~4,716 total lines across 11 core files (component: 864, capability: 745, error: 864, config: 520, runtime: 526, interface: 538, actor: 433, security: 445, messaging: ~500, storage: ~490)
     - Zero compiler/clippy warnings
     - 100% rustdoc documentation coverage
     - All workspace standards (§2.1-§6.2) compliant
@@ -102,10 +122,10 @@
 
 ## Current Implementation Status
 
-### WASM-TASK-000: Core Abstractions Design (75% Complete)
-**Status:** In Progress - Phases 1-7 Complete  
+### WASM-TASK-000: Core Abstractions Design (83% Complete)
+**Status:** In Progress - Phases 1-8 Complete  
 **Started:** 2025-10-21  
-**Progress:** 9/12 phases complete
+**Progress:** 10/12 phases complete
 
 #### ✅ Phase 1: Core Module Foundation (COMPLETE - Oct 21, 2025)
 - **Core Module Structure**: ✅ `src/core/mod.rs` with comprehensive documentation
@@ -191,9 +211,31 @@
 - Integration with Phase 3 Capability types validated
 - async_trait usage for non-blocking security checks
 
-#### ⏳ Phase 8: Messaging & Storage Abstractions (Days 17-19) - NEXT
-- Messaging: MessageEnvelope, MessageType, RoutingStrategy, DeliveryGuarantee
-- Storage: StorageBackend trait, StorageOperation, StorageTransaction
+#### ✅ Phase 8: Messaging & Storage Abstractions (COMPLETE - Oct 22, 2025)
+- **Messaging Abstractions (core/messaging.rs)**:
+  - MessageEnvelope: Unified message container for actor-based communication with airssys-rt
+  - MessageType enum: FireAndForget, RequestResponse, PubSub patterns
+  - RoutingStrategy trait: Message routing abstraction for custom strategies
+  - DeliveryGuarantee enum: AtMostOnce, AtLeastOnce, ExactlyOnce (feature-gated)
+  - Helper methods: fire_and_forget, request, is_request for ergonomic messaging
+  - Integration with ActorMessage from Phase 7
+  - 10 unit tests validating message patterns, routing, delivery guarantees
+  - ~500 lines with 100% rustdoc coverage
+- **Storage Abstractions (core/storage.rs)**:
+  - StorageBackend trait: NEAR Protocol-style KV storage API (Send + Sync)
+  - StorageOperation enum: Get, Set, Delete, Exists, Clear operations
+  - StorageTransaction trait: Atomic multi-operation transactions
+  - Namespace isolation and key validation
+  - Performance targets: <1ms get/set, <10ms transactions
+  - 9 unit tests covering storage operations, transactions, namespace isolation
+  - ~490 lines with 100% rustdoc coverage
+- Integration with Phase 5 config types validated (StorageConfig)
+- async_trait usage for non-blocking storage I/O
+
+#### ⏳ Phase 9: Lifecycle & Management Abstractions (Days 20-22) - NEXT
+#### ⏳ Phase 9: Lifecycle & Management Abstractions (Days 20-22) - NEXT
+- Lifecycle: LifecycleState enum, VersionInfo, UpdateStrategy, LifecycleEvent
+- Management: ComponentRegistry trait, InstallationMetadata, ComponentQuery
 
 ### Phase 1: Core Architecture Foundation (Not Started - Pending Dependencies)
 #### ⏳ Planned - Core Runtime System
