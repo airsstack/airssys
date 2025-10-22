@@ -73,16 +73,16 @@
       - 445 lines with 100% rustdoc coverage
   - Integration with Phase 3 Capability types validated
   - async_trait usage for non-blocking security checks
-  - **Phase 8 (Days 17-19)**: Messaging & Storage abstractions for Block 5-6 foundation
+  - **Phase 8 (Days 17-19)**: Messaging & Storage abstractions for Block 5-6 foundation ✅ **COMPLETE (Oct 22, 2025)**
     - **Messaging Abstractions (core/messaging.rs)**:
       - MessageEnvelope: Unified message container for actor-based communication with airssys-rt
       - MessageType enum: FireAndForget, RequestResponse, PubSub patterns
-      - RoutingStrategy trait: Message routing abstraction for custom strategies
       - DeliveryGuarantee enum: AtMostOnce, AtLeastOnce, ExactlyOnce (feature-gated)
       - Helper methods: fire_and_forget, request, is_request for ergonomic messaging
       - Integration with ActorMessage from Phase 7
-      - 10 unit tests validating message patterns, routing, delivery guarantees
-      - ~500 lines with 100% rustdoc coverage
+      - **YAGNI Simplification**: RoutingStrategy trait removed per ADR-WASM-014 (routing handled by MessageBroker)
+      - 9 unit tests validating message patterns and delivery guarantees
+      - 383 lines with 100% rustdoc coverage (127 lines removed: 104 trait + 22 test + 1 export)
     - **Storage Abstractions (core/storage.rs)**:
       - StorageBackend trait: Simplified KV storage API (Send + Sync) with 4 methods
       - StorageOperation enum: Get, Set, Delete, List operations for audit logging
@@ -93,13 +93,14 @@
       - 396 lines with 100% rustdoc coverage (165 lines removed)
     - Integration with Phase 5 config types validated (StorageConfig)
     - async_trait usage for non-blocking storage I/O
+    - **Phase 8 Total Cleanup**: ~292 lines removed (165 StorageTransaction + 127 RoutingStrategy)
   - **Quality Metrics (All Phases)**:
-    - 255 total tests passing (120 unit + 135 doc tests)
-    - 4,551 total lines across 11 core files (component: 864, capability: 745, error: 864, config: 520, runtime: 526, interface: 538, actor: 433, security: 445, messaging: ~500, storage: 396)
+    - 254 total tests passing (119 unit + 135 doc tests)
+    - 4,424 total lines across 11 core files (component: 864, capability: 745, error: 864, config: 520, runtime: 526, interface: 538, actor: 433, security: 445, messaging: 383, storage: 396)
     - Zero compiler/clippy warnings
     - 100% rustdoc documentation coverage
     - All workspace standards (§2.1-§6.2) compliant
-    - All relevant ADRs validated (WASM-001, 002, 003, 005, 006, 007, 010, 011, 012, 013)
+    - All relevant ADRs validated (WASM-001, 002, 003, 005, 006, 007, 010, 011, 012, 013, 014)
     - Microsoft Rust Guidelines compliance (M-ERRORS-CANONICAL-STRUCTS, M-DESIGN-FOR-AI, M-DI-HIERARCHY, M-YAGNI)
 
 ### ✅ Completed Research & Planning

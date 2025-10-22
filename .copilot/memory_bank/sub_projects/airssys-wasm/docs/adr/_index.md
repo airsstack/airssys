@@ -2,8 +2,8 @@
 
 **Sub-Project:** airssys-wasm  
 **Last Updated:** 2025-10-22  
-**Total ADRs:** 11  
-**Active ADRs:** 11  
+**Total ADRs:** 12  
+**Active ADRs:** 12  
 
 ## Active ADRs
 
@@ -191,6 +191,24 @@
   - YAGNI compliance: No current need, actor model eliminates transaction requirement
 - **Rationale:** Actor model sequential message processing ensures operation atomicity without explicit transactions. Per ADR-WASM-007 Decision 5, transactions are unnecessary complexity. Reduces API surface and eliminates Box<dyn> anti-pattern (§6.2).
 - **File:** `adr_wasm_013_storage_transaction_removal.md`
+
+### ADR-WASM-014: RoutingStrategy Removal (YAGNI Simplification)
+- **Status:** Accepted
+- **Date:** 2025-10-22
+- **Category:** Messaging Architecture Simplification
+- **Summary:** Remove unused RoutingStrategy trait from messaging.rs per YAGNI principle. Routing handled exclusively by airssys-rt MessageBroker per ADR-WASM-009 architecture. No pluggable routing strategies in design. Simplifies API surface, removes fictional documentation, eliminates Box<dyn> pattern complexity.
+- **Related:** ADR-WASM-009 (Component Communication Model), ADR-WASM-006 (Actor Isolation), ADR-WASM-005 (Security Model), KNOWLEDGE-WASM-005 (Messaging Architecture)
+- **Impact:** Low - Removes unused abstraction with zero usage across codebase
+- **Key Decisions:**
+  - Remove RoutingStrategy trait (1 method: route)
+  - Remove fictional implementations from documentation (DirectRoutingStrategy, TopicRoutingStrategy, BroadcastRoutingStrategy, CustomRoutingStrategy)
+  - Remove test_routing_strategy_trait_object test
+  - Total removal: ~115 lines of code
+  - MessageBroker handles routing (211ns per message, 4.7M msg/sec)
+  - Host-mediated security prevents custom routing strategies
+  - YAGNI compliance: Speculative abstraction with no identified use case
+- **Rationale:** ADR-WASM-009 specifies fixed MessageBroker architecture with pub-sub routing. Host-mediated security model prevents components from implementing custom routing strategies. Similar anti-pattern to StorageTransaction (ADR-WASM-013).
+- **File:** `adr_wasm_014_routing_strategy_removal.md`
 
 ---
 

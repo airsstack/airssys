@@ -67,5 +67,5 @@ pub use interface::{FunctionSignature, WitInterface};
 pub use runtime::{ComponentHandle, ExecutionContext, ExecutionState, ResourceUsage, RuntimeEngine};
 pub use actor::{ActorMessage, ActorMetadata, ActorState, SupervisionStrategy};
 pub use security::{IsolationBoundary, PermissionRequest, PermissionResult, SecurityContext, SecurityPolicy, TrustLevel};
-pub use messaging::{DeliveryGuarantee, MessageEnvelope, MessageType, RoutingStrategy};
+pub use messaging::{DeliveryGuarantee, MessageEnvelope, MessageType};
 pub use storage::{StorageBackend, StorageOperation};

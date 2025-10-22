@@ -1,9 +1,9 @@
 //! Inter-component messaging abstractions for WASM components.
 //!
-//! These types define the message envelope, routing strategies, delivery guarantees,
-//! and message type classifications needed for Block 5 (Inter-Component Communication).
-//! They provide the foundation for actor-based message passing via airssys-rt
-//! MessageBroker integration, following YAGNI principles (§6.1).
+//! These types define the message envelope, delivery guarantees, and message type
+//! classifications needed for Block 5 (Inter-Component Communication). They provide
+//! the foundation for actor-based message passing via airssys-rt MessageBroker
+//! integration, following YAGNI principles (§6.1).
 //!
 //! # Design Rationale
 //!
@@ -11,10 +11,10 @@
 //!   format (ADR-WASM-001), chrono::DateTime<Utc> per §3.2 for timestamps.
 //!   Contains all metadata needed for three messaging patterns.
 //! - **MessageType**: Covers fire-and-forget, request-response, and pub-sub patterns.
-//! - **RoutingStrategy**: Trait contract for MessageBroker integration (airssys-rt).
 //! - **DeliveryGuarantee**: Three semantics levels (at-most-once, at-least-once,
 //!   exactly-once future). ExactlyOnce marked for future implementation.
 //!
+//! Routing is handled by airssys-rt MessageBroker per ADR-WASM-009.
 //! All types are Clone + Serialize/Deserialize for message passing and persistence.
 //! No internal dependencies beyond core (zero circular deps).
 //!
@@ -41,7 +41,6 @@ use serde::{Deserialize, Serialize};
 
 // Layer 3: Internal (core only)
 use crate::core::component::ComponentId;
-use crate::core::error::WasmResult;
 
 /// Message envelope for actor-based messaging between WASM components.
 ///
@@ -481,111 +480,7 @@ impl MessageType {
     }
 }
 
-/// Routing strategy trait for MessageBroker integration.
-///
-/// Defines the contract for routing MessageEnvelope instances to recipient
-/// components. Implementations handle the four-step routing process:
-///
-/// 1. **Validate**: Check sender capabilities and message structure
-/// 2. **Resolve**: Determine recipient(s) based on to/topic fields
-/// 3. **Deliver**: Send message to recipient mailboxes
-/// 4. **Track**: Log delivery for audit and metrics
-///
-/// # Implementations
-///
-/// - **DirectRoutingStrategy**: Routes to single recipient via `to` field
-/// - **TopicRoutingStrategy**: Routes to multiple subscribers via `topic` field
-/// - **BroadcastRoutingStrategy**: Routes to all components in namespace
-/// - **CustomRoutingStrategy**: Application-specific routing logic
-///
-/// # Performance Requirements
-///
-/// Routing must be fast (<211ns per message based on RT-TASK-008 benchmarks).
-/// Implementations should:
-/// - Pre-compute routing tables during init
-/// - Avoid blocking I/O in route() method
-/// - Use async for external lookups (databases, registries)
-///
-/// # Integration with airssys-rt
-///
-/// This trait aligns with airssys-rt MessageBroker for actor-based routing.
-/// The MessageBroker handles mailbox management and backpressure while
-/// RoutingStrategy determines message destinations.
-///
-/// # Example
-///
-/// ```
-/// use airssys_wasm::core::messaging::{RoutingStrategy, MessageEnvelope};
-/// use airssys_wasm::core::error::WasmResult;
-///
-/// struct DirectRouter;
-///
-/// impl RoutingStrategy for DirectRouter {
-///     fn route(&self, envelope: &MessageEnvelope) -> WasmResult<()> {
-///         Ok(())
-///     }
-/// }
-/// ```
-///
-/// # References
-///
-/// - KNOWLEDGE-WASM-005 §5: Routing Architecture
-/// - ADR-WASM-009: Component Communication Model
-/// - RT-TASK-008: MessageBroker Integration and Performance
-pub trait RoutingStrategy: Send + Sync {
-    /// Route a message envelope to its destination(s).
-    ///
-    /// Validates sender capabilities, resolves recipients, delivers to mailboxes,
-    /// and tracks delivery for audit. Returns error if routing fails (e.g., no
-    /// recipient, capability denied, mailbox full).
-    ///
-    /// # Parameters
-    ///
-    /// - `envelope`: Message to route (contains from, to, topic, payload)
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(())`: Message successfully routed and delivered
-    /// - `Err(WasmError)`: Routing failed (see error for reason)
-    ///
-    /// # Performance Target
-    ///
-    /// Must complete in <211ns per message (RT-TASK-008 benchmark target).
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use airssys_wasm::core::messaging::{RoutingStrategy, MessageEnvelope, MessageType};
-    /// use airssys_wasm::core::component::ComponentId;
-    /// use airssys_wasm::core::error::WasmResult;
-    ///
-    /// struct TestRouter;
-    ///
-    /// impl RoutingStrategy for TestRouter {
-    ///     fn route(&self, envelope: &MessageEnvelope) -> WasmResult<()> {
-    ///         if envelope.to.as_str() == "unknown" {
-    ///             return Err(airssys_wasm::core::error::WasmError::component_not_found(
-    ///                 "unknown"
-    ///             ));
-    ///         }
-    ///         Ok(())
-    ///     }
-    /// }
-    ///
-    /// let router = TestRouter;
-    /// let msg = MessageEnvelope::new(
-    ///     MessageType::FireAndForget,
-    ///     ComponentId::new("sender"),
-    ///     ComponentId::new("receiver"),
-    ///     vec![],
-    ///     0x55,
-    ///     "msg-1".to_string(),
-    /// );
-    ///
-    /// assert!(router.route(&msg).is_ok());
-    /// ```
-    fn route(&self, envelope: &MessageEnvelope) -> WasmResult<()>;
-}
+
 
 /// Delivery guarantee semantics for message passing.
 ///
@@ -923,26 +818,5 @@ mod tests {
         assert_eq!(DeliveryGuarantee::AtLeastOnce.expected_latency_ns(), 560);
     }
 
-    #[test]
-    fn test_routing_strategy_trait_object() {
-        struct TestRouter;
 
-        impl RoutingStrategy for TestRouter {
-            fn route(&self, _envelope: &MessageEnvelope) -> WasmResult<()> {
-                Ok(())
-            }
-        }
-
-        let router: Box<dyn RoutingStrategy> = Box::new(TestRouter);
-        let msg = MessageEnvelope::new(
-            MessageType::FireAndForget,
-            ComponentId::new("a"),
-            ComponentId::new("b"),
-            vec![],
-            0x55,
-            "msg-1".to_string(),
-        );
-
-        assert!(router.route(&msg).is_ok());
-    }
 }
