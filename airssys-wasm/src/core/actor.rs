@@ -336,7 +336,11 @@ mod tests {
             timestamp,
         };
 
-        assert_eq!(msg.age_ms(), 100);
+        let age = msg.age_ms();
+        assert!(
+            (99..=101).contains(&age),
+            "Expected age ~100ms, got {age}ms (timing tolerance)"
+        );
     }
 
     #[test]
