@@ -27,7 +27,7 @@
 //!
 //! - **ADR-WASM-012**: Comprehensive Core Abstractions Strategy
 //! - **Block 7**: Lifecycle Manager implementation
-//! - **Workspace Standards**: §3.2 (DateTime<Utc> standard)
+//! - **Workspace Standards**: §3.2 (`DateTime<Utc>` standard)
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};

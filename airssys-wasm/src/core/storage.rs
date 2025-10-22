@@ -15,7 +15,7 @@
 //!   batching and audit logging. Contains all data needed for execution.
 //!
 //! - **StorageTransaction**: Async trait for atomic multi-operation transactions.
-//!   Uses Box<dyn> pattern (§6.2 exception) for heap-allocated transaction state.
+//!   Uses `Box<dyn>` pattern (§6.2 exception) for heap-allocated transaction state.
 //!
 //! All types are async-first (async_trait) for non-blocking I/O and integration
 //! with tokio runtime (airssys-rt foundation).

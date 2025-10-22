@@ -8,7 +8,7 @@
 //! # Design Rationale
 //!
 //! - **ActorMessage**: Uses ComponentOutput for payload to align with component execution model.
-//!   Timestamps use chrono::DateTime<Utc> per §3.2 for consistency.
+//!   Timestamps use `chrono::DateTime<Utc>` per §3.2 for consistency.
 //! - **SupervisionStrategy**: Covers standard Erlang-style supervision (restart/stop/escalate).
 //! - **ActorState**: Complete lifecycle from initialization to termination.
 //! - **ActorMetadata**: Tracks essential runtime state for monitoring and supervision.

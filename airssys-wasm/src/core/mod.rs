@@ -1,44 +1,163 @@
-//! Core abstractions for airssys-wasm framework.
+//! Core abstractions for the airssys-wasm framework.
 //!
-//! This module contains foundational types, traits, and error definitions
-//! used throughout the entire airssys-wasm crate. It has **ZERO internal
-//! dependencies** within airssys-wasm to prevent circular dependencies.
+//! This module provides foundational types, traits, and error definitions used
+//! throughout the airssys-wasm crate. It maintains **zero internal dependencies**
+//! within airssys-wasm to prevent circular dependency issues.
 //!
-//! # Architecture
+//! # Architecture Overview
 //!
-//! The core module follows a two-tier structure:
+//! The core module implements a two-tier architecture separating universal
+//! abstractions from domain-specific contracts. This design follows the
+//! principles documented in ADR-WASM-012 (Comprehensive Core Abstractions).
 //!
-//! ## Universal Abstractions (Phase 1-5: Complete)
-//! - `component` - Component types, metadata, input/output
-//! - `capability` - Capability-based security primitives
-//! - `error` - Error types and result aliases
-//! - `config` - Configuration types and defaults
+//! ## Tier 1: Universal Abstractions
 //!
-//! ## Domain-Specific Abstractions (Phase 6+: Complete through Phase 9)
-//! - `runtime` - Runtime engine traits and execution context (Phase 6.1: ✅ Complete)
-//! - `interface` - WIT interface metadata and type descriptors (Phase 6.2: ✅ Complete)
-//! - `actor` - Actor integration message envelopes (Phase 7.1: ✅ Complete)
-//! - `security` - Security policy traits and permission types (Phase 7.2: ✅ Complete)
-//! - `messaging` - Inter-component messaging protocols (Phase 8.1: ✅ Complete)
-//! - `storage` - Storage backend traits and operations (Phase 8.2: ✅ Complete)
-//! - `lifecycle` - Lifecycle state machines and transitions (Phase 9.1: ✅ Complete)
-//! - `management` - Component registry and management abstractions (Phase 9.2: ✅ Complete)
-//! - `bridge` - OSL bridge traits and capability mapping (Phase 10.1: ✅ Complete)
-//! - `observability` - Metrics collection and monitoring traits (Phase 10.2: ✅ Complete)
+//! Foundation types used across all framework layers:
+//!
+//! - **[`component`]** - Component identification, metadata, I/O types, and state management
+//! - **[`capability`]** - Capability-based security primitives and pattern matching
+//! - **[`error`]** - Comprehensive error types with context and error handling utilities
+//! - **[`config`]** - Runtime, security, and storage configuration types
+//!
+//! ## Tier 2: Domain-Specific Abstractions
+//!
+//! Trait contracts defining behavior for specialized subsystems:
+//!
+//! ### Runtime & Interface (Phase 6)
+//! - **[`runtime`]** - Runtime engine traits, execution context, and resource tracking
+//! - **[`interface`]** - WIT interface metadata and WebAssembly type descriptors
+//!
+//! ### Actor & Security (Phase 7)
+//! - **[`actor`]** - Actor model integration with message envelopes and supervision
+//! - **[`security`]** - Security policy contracts, isolation boundaries, and trust levels
+//!
+//! ### Messaging & Storage (Phase 8)
+//! - **[`messaging`]** - Inter-component messaging protocols with delivery guarantees
+//! - **[`storage`]** - Storage backend abstractions for component persistence
+//!
+//! ### Lifecycle & Management (Phase 9)
+//! - **[`lifecycle`]** - Component lifecycle state machines and update strategies
+//! - **[`management`]** - Component registry and installation metadata management
+//!
+//! ### Bridge & Observability (Phase 10)
+//! - **[`bridge`]** - Host function traits and capability mapping for OSL integration
+//! - **[`observability`]** - Metrics collection, health monitoring, and event tracking
+//!
+//! # Usage Examples
+//!
+//! ## Basic Component Definition
+//!
+//! ```rust
+//! use airssys_wasm::core::{Component, ComponentId, ComponentMetadata, ComponentConfig};
+//! use airssys_wasm::core::{ComponentInput, ComponentOutput, WasmError, ResourceLimits};
+//! use std::collections::HashMap;
+//!
+//! struct MyComponent {
+//!     metadata: ComponentMetadata,
+//! }
+//!
+//! impl Component for MyComponent {
+//!     fn init(&mut self, config: ComponentConfig) -> Result<(), WasmError> {
+//!         // Component initialization logic
+//!         Ok(())
+//!     }
+//!
+//!     fn execute(&self, input: ComponentInput) -> Result<ComponentOutput, WasmError> {
+//!         // Component execution logic
+//!         Ok(ComponentOutput {
+//!             data: Vec::new(),
+//!             codec: 0x0200, // JSON multicodec
+//!             metadata: HashMap::new(),
+//!         })
+//!     }
+//!
+//!     fn shutdown(&mut self) -> Result<(), WasmError> {
+//!         // Cleanup logic
+//!         Ok(())
+//!     }
+//!
+//!     fn metadata(&self) -> &ComponentMetadata {
+//!         &self.metadata
+//!     }
+//! }
+//! ```
+//!
+//! ## Capability-Based Security
+//!
+//! ```rust
+//! use airssys_wasm::core::{Capability, CapabilitySet, PathPattern, DomainPattern};
+//!
+//! let mut caps = CapabilitySet::new();
+//! caps.grant(Capability::FileRead(PathPattern::new("/data/config.json")));
+//! caps.grant(Capability::FileWrite(PathPattern::new("/data/output.log")));
+//! caps.grant(Capability::NetworkOutbound(DomainPattern::new("api.example.com")));
+//!
+//! assert!(caps.has(&Capability::FileRead(PathPattern::new("/data/config.json"))));
+//! ```
+//!
+//! ## Runtime Configuration
+//!
+//! ```rust
+//! use airssys_wasm::core::{RuntimeConfig, SecurityConfig, SecurityMode};
+//!
+//! let config = RuntimeConfig {
+//!     default_max_fuel: 2_000_000,
+//!     default_execution_timeout_ms: 200,
+//!     ..Default::default()
+//! };
+//!
+//! let security = SecurityConfig {
+//!     mode: SecurityMode::Strict,
+//!     ..Default::default()
+//! };
+//! ```
+//!
+//! ## Error Handling
+//!
+//! ```rust
+//! use airssys_wasm::core::{WasmError, WasmResult};
+//!
+//! fn load_component(id: &str) -> WasmResult<()> {
+//!     if id.is_empty() {
+//!         return Err(WasmError::component_not_found("Component ID cannot be empty"));
+//!     }
+//!     Ok(())
+//! }
+//! ```
 //!
 //! # Design Principles
 //!
-//! 1. **Zero Internal Dependencies** - Core depends ONLY on external crates
-//! 2. **Minimalism (YAGNI)** - Include only types needed by 3+ modules
-//! 3. **Type Safety** - Newtype pattern for IDs, enums for variants
-//! 4. **Stability First** - Core types rarely change (breaking = major version)
-//! 5. **Trait-Centric** - Behavior contracts via traits for testability
+//! This module adheres to strict design principles for maintainability:
+//!
+//! 1. **Zero Internal Dependencies** - Core module depends only on external crates
+//!    (std, serde, chrono, thiserror). No dependencies on other airssys-wasm modules.
+//!
+//! 2. **YAGNI (You Aren't Gonna Need It)** - Types included only when needed by
+//!    three or more modules, preventing speculative abstractions (§6.1).
+//!
+//! 3. **Type Safety First** - Newtype pattern for identifiers, enums for variants,
+//!    compile-time guarantees over runtime checks.
+//!
+//! 4. **Stability Contract** - Core types change rarely. Breaking changes require
+//!    major version increment. Backward compatibility prioritized.
+//!
+//! 5. **Trait-Centric Design** - Behavior defined through trait contracts enabling
+//!    testing, mocking, and multiple implementations (Microsoft Guidelines M-MOCKABLE-SYSCALLS).
+//!
+//! 6. **Import Organization** - Follows §2.1 three-layer import structure:
+//!    standard library, external crates, internal modules.
+//!
+//! # Module Organization
+//!
+//! Per workspace standard §4.3, this `mod.rs` file contains **only** module
+//! declarations and re-exports. Implementation code resides in individual module files.
 //!
 //! # References
 //!
 //! - **ADR-WASM-011**: Module Structure Organization
 //! - **ADR-WASM-012**: Comprehensive Core Abstractions Strategy
-//! - **Workspace Standards**: §4.3 (Module Architecture), §6.1 (YAGNI)
+//! - **Workspace Standards**: §2.1 (Imports), §4.3 (Modules), §6.1 (YAGNI), §6.2 (Avoid dyn)
+//! - **Microsoft Rust Guidelines**: M-DESIGN-FOR-AI, M-DI-HIERARCHY, M-MOCKABLE-SYSCALLS
 
 // Universal Abstractions (Phase 1-5: Complete)
 pub mod capability;

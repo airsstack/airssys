@@ -8,7 +8,7 @@
 //! # Design Rationale
 //!
 //! - **MessageEnvelope**: Uses ComponentId for routing, multicodec for serialization
-//!   format (ADR-WASM-001), chrono::DateTime<Utc> per §3.2 for timestamps.
+//!   format (ADR-WASM-001), `chrono::DateTime<Utc>` per §3.2 for timestamps.
 //!   Contains all metadata needed for three messaging patterns.
 //! - **MessageType**: Covers fire-and-forget, request-response, and pub-sub patterns.
 //! - **DeliveryGuarantee**: Three semantics levels (at-most-once, at-least-once,
