@@ -1728,31 +1728,33 @@ impl StorageManager {
 - RocksDB backend
 
 ### Phase 2: Advanced Features
-**Transactions:**
+
+**Transactions: REJECTED (See ADR-WASM-013)**
+
+Transactions were explicitly rejected in favor of actor model sequential processing guarantees. The actor model provides equivalent consistency guarantees without the complexity of transaction management:
+
+- **Actor Sequential Processing**: Each component processes messages sequentially (one at a time)
+- **No Concurrent Access**: Component storage accessed only by owning component actor
+- **Atomicity**: Message handler execution is atomic at storage operation level
+- **Consistency**: Sequential execution eliminates race conditions and lost updates
+- **Blockchain Precedent**: EVM, Solana, NEAR all use sequential execution without storage transactions
+
+**Rationale**: Actor model message boundaries provide natural transaction semantics. Multi-key operations within a single message handler are atomic due to sequential processing. No need for explicit transaction API.
+
+**Reference**: ADR-WASM-007 Decision 5, ADR-WASM-013
+
+**~~Transactions (Rejected):~~**
 ```wit
-interface storage-transactions {
-    /// Begin transaction
-    transaction-begin: func() -> storage-result<transaction-id>;
-    
-    /// Commit transaction
-    transaction-commit: func(txn: transaction-id) -> storage-result<unit>;
-    
-    /// Rollback transaction
-    transaction-rollback: func(txn: transaction-id) -> storage-result<unit>;
-    
-    /// Transactional get
-    transaction-get: func(
-        txn: transaction-id,
-        key: string
-    ) -> storage-result<option<list<u8>>>;
-    
-    /// Transactional set
-    transaction-set: func(
-        txn: transaction-id,
-        key: string,
-        value: list<u8>
-    ) -> storage-result<unit>;
-}
+// REJECTED: Not needed due to actor model sequential processing
+// See ADR-WASM-013 for complete rationale
+//
+// interface storage-transactions {
+//     transaction-begin: func() -> storage-result<transaction-id>;
+//     transaction-commit: func(txn: transaction-id) -> storage-result<unit>;
+//     transaction-rollback: func(txn: transaction-id) -> storage-result<unit>;
+//     transaction-get: func(txn: transaction-id, key: string) -> storage-result<option<list<u8>>>;
+//     transaction-set: func(txn: transaction-id, key: string, value: list<u8>) -> storage-result<unit>;
+// }
 ```
 
 **Range Queries:**

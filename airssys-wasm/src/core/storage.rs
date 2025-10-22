@@ -118,10 +118,6 @@ use crate::core::error::WasmResult;
 ///     async fn list_keys(&self, namespace: &str, prefix: &[u8]) -> WasmResult<Vec<Vec<u8>>> {
 ///         Ok(vec![])
 ///     }
-///
-///     async fn begin_transaction(&self) -> WasmResult<Box<dyn airssys_wasm::core::storage::StorageTransaction>> {
-///         unimplemented!()
-///     }
 /// }
 /// ```
 ///
@@ -257,46 +253,14 @@ pub trait StorageBackend: Send + Sync {
     /// # }
     /// ```
     async fn list_keys(&self, namespace: &str, prefix: &[u8]) -> WasmResult<Vec<Vec<u8>>>;
-
-    /// Begin a new transaction for atomic operations.
-    ///
-    /// Creates a transaction that can batch multiple operations (get/set/delete)
-    /// for atomic commit. Not all backends support transactions (e.g., simple
-    /// file-based storage).
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(transaction)`: Transaction ready for operations
-    /// - `Err(WasmError::Unsupported)`: Backend doesn't support transactions
-    /// - `Err(WasmError)`: Backend failure
-    ///
-    /// # Performance Target
-    ///
-    /// <5ms commit for up to 100 operations (ADR-WASM-007)
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// # use airssys_wasm::core::storage::{StorageBackend, StorageOperation};
-    /// # async fn example(backend: &dyn StorageBackend) {
-    /// let mut txn = backend.begin_transaction().await.unwrap();
-    /// txn.add_operation(StorageOperation::Set {
-    ///     namespace: "component:my-app".to_string(),
-    ///     key: b"key1".to_vec(),
-    ///     value: b"value1".to_vec(),
-    /// }).await.unwrap();
-    /// txn.commit().await.unwrap();
-    /// # }
-    /// ```
-    async fn begin_transaction(&self) -> WasmResult<Box<dyn StorageTransaction>>;
 }
 
-/// Storage operation for transaction batching and audit logging.
+/// Storage operation for audit logging and monitoring.
 ///
 /// Represents a single storage operation (get/set/delete/list) with all
 /// data needed for execution. Used for:
-/// - Batching operations in transactions
 /// - Audit logging of storage activity
+/// - Monitoring and observability
 /// - Undo/redo capabilities (future)
 ///
 /// Each variant contains the namespace and operation-specific data.
@@ -412,141 +376,7 @@ impl StorageOperation {
     }
 }
 
-/// Transaction trait for atomic multi-operation storage.
-///
-/// Provides batch execution of storage operations with atomicity guarantees.
-/// Operations are added to the transaction, then committed (apply all) or
-/// rolled back (discard all) as a unit.
-///
-/// # Atomicity Semantics
-///
-/// - **Add**: Operations are queued but not executed immediately
-/// - **Commit**: All operations execute atomically (all succeed or all fail)
-/// - **Rollback**: All pending operations discarded, no changes applied
-///
-/// # Box<dyn> Pattern (§6.2 Exception)
-///
-/// The trait uses `Box<Self>` for commit/rollback to consume the transaction
-/// and prevent reuse. This is a justified exception to §6.2 (avoid dyn) because:
-/// - Transaction state must be heap-allocated (varies by backend)
-/// - One-time use pattern (commit/rollback consumes transaction)
-/// - Cannot use generics (trait object needed for runtime polymorphism)
-///
-/// # Example
-///
-/// ```no_run
-/// # use airssys_wasm::core::storage::{StorageBackend, StorageOperation};
-/// # async fn example(backend: &dyn StorageBackend) {
-/// let mut txn = backend.begin_transaction().await.unwrap();
-///
-/// txn.add_operation(StorageOperation::Set {
-///     namespace: "component:my-app".to_string(),
-///     key: b"key1".to_vec(),
-///     value: b"value1".to_vec(),
-/// }).await.unwrap();
-///
-/// txn.add_operation(StorageOperation::Set {
-///     namespace: "component:my-app".to_string(),
-///     key: b"key2".to_vec(),
-///     value: b"value2".to_vec(),
-/// }).await.unwrap();
-///
-/// txn.commit().await.unwrap();
-/// # }
-/// ```
-///
-/// # References
-///
-/// - KNOWLEDGE-WASM-007 §6: Transaction Support
-/// - ADR-WASM-007: Storage Backend Selection (transaction requirements)
-#[async_trait]
-pub trait StorageTransaction: Send + Sync {
-    /// Add an operation to the transaction batch.
-    ///
-    /// Operations are queued but not executed until commit(). Multiple operations
-    /// can be added before committing. Operations are executed in the order added.
-    ///
-    /// # Parameters
-    ///
-    /// - `op`: Storage operation to add (Get/Set/Delete/List)
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(())`: Operation added to batch
-    /// - `Err(WasmError)`: Operation invalid or batch full
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// # use airssys_wasm::core::storage::{StorageTransaction, StorageOperation};
-    /// # async fn example(txn: &mut dyn StorageTransaction) {
-    /// txn.add_operation(StorageOperation::Set {
-    ///     namespace: "component:test".to_string(),
-    ///     key: b"counter".to_vec(),
-    ///     value: b"42".to_vec(),
-    /// }).await.unwrap();
-    /// # }
-    /// ```
-    async fn add_operation(&mut self, op: StorageOperation) -> WasmResult<()>;
 
-    /// Commit all pending operations atomically.
-    ///
-    /// Executes all operations in order. If any operation fails, the entire
-    /// transaction is rolled back and no changes are applied. Consumes the
-    /// transaction (cannot be reused after commit).
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(())`: All operations succeeded
-    /// - `Err(WasmError)`: At least one operation failed (all rolled back)
-    ///
-    /// # Performance Target
-    ///
-    /// <5ms for up to 100 operations (ADR-WASM-007)
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// # use airssys_wasm::core::storage::{StorageBackend, StorageOperation};
-    /// # async fn example(backend: &dyn StorageBackend) {
-    /// let mut txn = backend.begin_transaction().await.unwrap();
-    /// txn.add_operation(StorageOperation::Set {
-    ///     namespace: "component:test".to_string(),
-    ///     key: b"key".to_vec(),
-    ///     value: b"value".to_vec(),
-    /// }).await.unwrap();
-    ///
-    /// txn.commit().await.unwrap();
-    /// # }
-    /// ```
-    async fn commit(self: Box<Self>) -> WasmResult<()>;
-
-    /// Rollback all pending operations.
-    ///
-    /// Discards all operations without executing them. Use for explicit abort
-    /// or error handling. Consumes the transaction (cannot be reused after rollback).
-    ///
-    /// # Returns
-    ///
-    /// Always returns `Ok(())` (rollback cannot fail)
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// # use airssys_wasm::core::storage::{StorageBackend, StorageOperation};
-    /// # async fn example(backend: &dyn StorageBackend) {
-    /// let mut txn = backend.begin_transaction().await.unwrap();
-    /// txn.add_operation(StorageOperation::Set {
-    ///     namespace: "component:test".to_string(),
-    ///     key: b"temp".to_vec(),
-    ///     value: b"data".to_vec(),
-    /// }).await.unwrap();
-    ///
-    /// txn.rollback().await.unwrap();
-    /// # }
-    /// ```
-    async fn rollback(self: Box<Self>) -> WasmResult<()>;
-}
 
 #[cfg(test)]
 #[allow(clippy::panic)]
@@ -694,27 +524,6 @@ mod tests {
         async fn list_keys(&self, _namespace: &str, _prefix: &[u8]) -> WasmResult<Vec<Vec<u8>>> {
             Ok(vec![])
         }
-
-        async fn begin_transaction(&self) -> WasmResult<Box<dyn StorageTransaction>> {
-            Ok(Box::new(MockTransaction))
-        }
-    }
-
-    struct MockTransaction;
-
-    #[async_trait]
-    impl StorageTransaction for MockTransaction {
-        async fn add_operation(&mut self, _op: StorageOperation) -> WasmResult<()> {
-            Ok(())
-        }
-
-        async fn commit(self: Box<Self>) -> WasmResult<()> {
-            Ok(())
-        }
-
-        async fn rollback(self: Box<Self>) -> WasmResult<()> {
-            Ok(())
-        }
     }
 
     #[tokio::test]
@@ -750,69 +559,4 @@ mod tests {
         assert!(backend.list_keys("ns", b"").await.is_ok());
     }
 
-    #[tokio::test]
-    async fn test_storage_transaction_trait_object() {
-        let backend = MockBackend;
-        let mut txn = backend.begin_transaction().await.unwrap_or_else(|e| {
-            panic!("begin_transaction should succeed: {e}")
-        });
-
-        let op = StorageOperation::Set {
-            namespace: "component:test".to_string(),
-            key: b"key".to_vec(),
-            value: b"value".to_vec(),
-        };
-
-        assert!(txn.add_operation(op).await.is_ok());
-        assert!(txn.commit().await.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_storage_transaction_lifecycle() {
-        let backend = MockBackend;
-        let mut txn = backend.begin_transaction().await.unwrap_or_else(|e| {
-            panic!("begin_transaction should succeed: {e}")
-        });
-
-        txn.add_operation(StorageOperation::Set {
-            namespace: "component:test".to_string(),
-            key: b"k1".to_vec(),
-            value: b"v1".to_vec(),
-        })
-        .await
-        .unwrap_or_else(|e| {
-            panic!("add_operation should succeed: {e}")
-        });
-
-        txn.add_operation(StorageOperation::Set {
-            namespace: "component:test".to_string(),
-            key: b"k2".to_vec(),
-            value: b"v2".to_vec(),
-        })
-        .await
-        .unwrap_or_else(|e| {
-            panic!("add_operation should succeed: {e}")
-        });
-
-        assert!(txn.commit().await.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_storage_transaction_rollback() {
-        let backend = MockBackend;
-        let mut txn = backend.begin_transaction().await.unwrap_or_else(|e| {
-            panic!("begin_transaction should succeed: {e}")
-        });
-
-        txn.add_operation(StorageOperation::Delete {
-            namespace: "component:test".to_string(),
-            key: b"temp".to_vec(),
-        })
-        .await
-        .unwrap_or_else(|e| {
-            panic!("add_operation should succeed: {e}")
-        });
-
-        assert!(txn.rollback().await.is_ok());
-    }
 }

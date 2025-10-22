@@ -1,9 +1,9 @@
 # airssys-wasm Architecture Decision Records Index
 
 **Sub-Project:** airssys-wasm  
-**Last Updated:** 2025-10-21  
-**Total ADRs:** 10  
-**Active ADRs:** 10  
+**Last Updated:** 2025-10-22  
+**Total ADRs:** 11  
+**Active ADRs:** 11  
 
 ## Active ADRs
 
@@ -174,6 +174,23 @@
   - Validation: Architectural review, prototype validation, ADR compliance check
 - **Rationale:** Prevents circular dependencies, enables parallel block development, ensures API stability, facilitates testability via traits, provides refactoring safety
 - **File:** `adr_wasm_012_comprehensive_core_abstractions_strategy.md`
+
+### ADR-WASM-013: StorageTransaction Removal (YAGNI Simplification)
+- **Status:** Accepted
+- **Date:** 2025-10-22
+- **Category:** Storage Architecture Simplification
+- **Summary:** Remove unused StorageTransaction trait from storage.rs per YAGNI principle. Actor model sequential processing eliminates need for transactions. Aligns with ADR-WASM-007 Decision 5 rationale. Simplifies API surface, reduces maintenance burden, eliminates Box<dyn> pattern complexity.
+- **Related:** ADR-WASM-007 (Storage Backend Selection, Decision 5), ADR-WASM-006 (Actor Isolation), KNOWLEDGE-WASM-007 (Component Storage)
+- **Impact:** Low - Removes unused abstraction with zero usage across codebase
+- **Key Decisions:**
+  - Remove StorageTransaction trait (3 methods: add_operation, commit, rollback)
+  - Remove begin_transaction() method from StorageBackend trait
+  - Remove MockTransaction test implementation and 3 related tests
+  - Total removal: ~165 lines of code
+  - Actor model sequential processing provides sufficient consistency guarantees
+  - YAGNI compliance: No current need, actor model eliminates transaction requirement
+- **Rationale:** Actor model sequential message processing ensures operation atomicity without explicit transactions. Per ADR-WASM-007 Decision 5, transactions are unnecessary complexity. Reduces API surface and eliminates Box<dyn> anti-pattern (§6.2).
+- **File:** `adr_wasm_013_storage_transaction_removal.md`
 
 ---
 

@@ -68,4 +68,4 @@ pub use runtime::{ComponentHandle, ExecutionContext, ExecutionState, ResourceUsa
 pub use actor::{ActorMessage, ActorMetadata, ActorState, SupervisionStrategy};
 pub use security::{IsolationBoundary, PermissionRequest, PermissionResult, SecurityContext, SecurityPolicy, TrustLevel};
 pub use messaging::{DeliveryGuarantee, MessageEnvelope, MessageType, RoutingStrategy};
-pub use storage::{StorageBackend, StorageOperation, StorageTransaction};
+pub use storage::{StorageBackend, StorageOperation};

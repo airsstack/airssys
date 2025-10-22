@@ -84,23 +84,23 @@
       - 10 unit tests validating message patterns, routing, delivery guarantees
       - ~500 lines with 100% rustdoc coverage
     - **Storage Abstractions (core/storage.rs)**:
-      - StorageBackend trait: NEAR Protocol-style KV storage API (Send + Sync)
-      - StorageOperation enum: Get, Set, Delete, Exists, Clear operations
-      - StorageTransaction trait: Atomic multi-operation transactions
+      - StorageBackend trait: Simplified KV storage API (Send + Sync) with 4 methods
+      - StorageOperation enum: Get, Set, Delete, List operations for audit logging
       - Namespace isolation and key validation
-      - Performance targets: <1ms get/set, <10ms transactions
-      - 9 unit tests covering storage operations, transactions, namespace isolation
-      - ~490 lines with 100% rustdoc coverage
+      - Performance targets: <1ms get/set operations
+      - **YAGNI Simplification**: StorageTransaction trait removed per ADR-WASM-013
+      - 9 unit tests covering storage operations and namespace isolation
+      - 396 lines with 100% rustdoc coverage (165 lines removed)
     - Integration with Phase 5 config types validated (StorageConfig)
     - async_trait usage for non-blocking storage I/O
   - **Quality Metrics (All Phases)**:
-    - 204 total tests passing (98 unit + 106 doc tests)
-    - ~4,716 total lines across 11 core files (component: 864, capability: 745, error: 864, config: 520, runtime: 526, interface: 538, actor: 433, security: 445, messaging: ~500, storage: ~490)
+    - 255 total tests passing (120 unit + 135 doc tests)
+    - 4,551 total lines across 11 core files (component: 864, capability: 745, error: 864, config: 520, runtime: 526, interface: 538, actor: 433, security: 445, messaging: ~500, storage: 396)
     - Zero compiler/clippy warnings
     - 100% rustdoc documentation coverage
     - All workspace standards (§2.1-§6.2) compliant
-    - All relevant ADRs validated (WASM-001, 002, 003, 005, 006, 007, 010, 011, 012)
-    - Microsoft Rust Guidelines compliance (M-ERRORS-CANONICAL-STRUCTS, M-DESIGN-FOR-AI, M-DI-HIERARCHY)
+    - All relevant ADRs validated (WASM-001, 002, 003, 005, 006, 007, 010, 011, 012, 013)
+    - Microsoft Rust Guidelines compliance (M-ERRORS-CANONICAL-STRUCTS, M-DESIGN-FOR-AI, M-DI-HIERARCHY, M-YAGNI)
 
 ### ✅ Completed Research & Planning
 - **Comprehensive Research**: Extensive WASM Component Model and architecture research completed
@@ -222,15 +222,16 @@
   - 10 unit tests validating message patterns, routing, delivery guarantees
   - ~500 lines with 100% rustdoc coverage
 - **Storage Abstractions (core/storage.rs)**:
-  - StorageBackend trait: NEAR Protocol-style KV storage API (Send + Sync)
-  - StorageOperation enum: Get, Set, Delete, Exists, Clear operations
-  - StorageTransaction trait: Atomic multi-operation transactions
+  - StorageBackend trait: Simplified KV storage API (Send + Sync) with 4 methods (get, set, delete, list_keys)
+  - StorageOperation enum: Get, Set, Delete, List operations for audit logging
   - Namespace isolation and key validation
-  - Performance targets: <1ms get/set, <10ms transactions
-  - 9 unit tests covering storage operations, transactions, namespace isolation
-  - ~490 lines with 100% rustdoc coverage
+  - Performance targets: <1ms get/set operations
+  - **YAGNI Simplification**: StorageTransaction trait removed per ADR-WASM-013 (actor model provides consistency guarantees)
+  - 9 unit tests covering storage operations, namespace isolation, trait ergonomics
+  - 396 lines with 100% rustdoc coverage (165 lines removed from transaction cleanup)
 - Integration with Phase 5 config types validated (StorageConfig)
 - async_trait usage for non-blocking storage I/O
+- **ADR-WASM-013**: Transaction support removal documented with actor model rationale
 
 #### ⏳ Phase 9: Lifecycle & Management Abstractions (Days 20-22) - NEXT
 #### ⏳ Phase 9: Lifecycle & Management Abstractions (Days 20-22) - NEXT
