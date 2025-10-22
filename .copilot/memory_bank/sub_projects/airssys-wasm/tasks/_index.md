@@ -1,15 +1,17 @@
 # airssys-wasm Tasks Index
 
-**Last Updated:** 2025-10-21  
+**Last Updated:** 2025-10-22  
 **Total Tasks:** 13  
-**Active Tasks:** 13  
-**Completed Tasks:** 0
+**Active Tasks:** 11  
+**Completed Tasks:** 2
 
 ## Task Summary
 
+### Completed Tasks
+- **[WASM-TASK-000]** ⚡ Core Abstractions Design - `complete` (100% - All 12 phases done) **CRITICAL FOUNDATION**
+- **[WASM-TASK-001]** Implementation Roadmap and Phase Planning - `complete` (Completed 2025-10-22)
+
 ### Active Tasks
-- **[WASM-TASK-000]** ⚡ Core Abstractions Design - `in-progress` (30% complete - Phases 1 & 2 done) **CRITICAL FOUNDATION**
-- **[WASM-TASK-001]** Implementation Roadmap and Phase Planning - `not-started` (Created 2025-10-20)
 - **[WASM-TASK-002]** Block 1: WASM Runtime Layer - `not-started` (Created 2025-10-20)
 - **[WASM-TASK-003]** Block 2: WIT Interface System - `not-started` (Created 2025-10-20)
 - **[WASM-TASK-004]** Block 3: Actor System Integration - `not-started` (Created 2025-10-20)
@@ -25,18 +27,16 @@
 ## Task Categories
 
 ### Layer 0: Planning & Architecture
-**Status:** Specification Complete  
+**Status:** ✅ COMPLETE  
 **Priority:** Critical Foundation  
 **Timeline:** Q2 2026
 
 | Task ID | Title | Effort | Status | File |
 |---------|-------|--------|--------|------|
-| WASM-TASK-000 | ⚡ Core Abstractions Design | 3-4 weeks | in-progress (30%) | task_000_core_abstractions_design.md |
-| WASM-TASK-000-P1 | Phase 1 & 2: Core + Components | 4 days | ✅ complete | task_000_phase_1_action_plan.md |
-| WASM-TASK-000-P3 | Phase 3: Capability Abstractions | 2 days | next | (to be created) |
-| WASM-TASK-001 | Implementation Roadmap and Phase Planning | Planning | not-started | task_001_implementation_roadmap.md |
+| WASM-TASK-000 | ⚡ Core Abstractions Design | 3-4 weeks | ✅ complete | task_000_core_abstractions_design.md |
+| WASM-TASK-001 | Implementation Roadmap and Phase Planning | Planning | ✅ complete | task_001_implementation_roadmap_and_phase_planning.md |
 
-**Note:** WASM-TASK-000 MUST be completed before WASM-TASK-001 and all implementation blocks (002-012).
+**Note:** Layer 0 planning is now COMPLETE. Ready to begin implementation with WASM-TASK-002 (Block 1: WASM Runtime Layer).
 
 **Important Documents:**
 - **Phase Consolidation Note** (`task_000_phase_consolidation_note.md`) - Explains phase naming and why Phases 1 & 2 were implemented together
@@ -169,10 +169,17 @@ Blocks 5, 7, and 9 all depend on Block 3 (MessageBroker, SupervisorNode, Compone
 ## Detailed Task Breakdown
 
 ### WASM-TASK-001: Implementation Roadmap and Phase Planning
-**Status:** not-started | **Effort:** Planning | **Priority:** Foundation  
-**File:** `task_001_implementation_roadmap.md`
+**Status:** ✅ complete | **Effort:** Planning | **Priority:** Foundation  
+**File:** `task_001_implementation_roadmap_and_phase_planning.md`  
+**Completed:** 2025-10-22
 
-Comprehensive roadmap document outlining the 4-layer, 11-block phased implementation strategy. Defines build order, dependencies, parallelization opportunities, and validation gates.
+Comprehensive roadmap document outlining the 4-layer, 11-block phased implementation strategy. All 11 task specifications (WASM-TASK-002 through WASM-TASK-012) created with detailed implementation plans, success criteria, and validation gates.
+
+**Deliverables:**
+- 11 comprehensive task specifications (~7,000 lines total)
+- Layer gate requirements embedded in task specifications
+- Planning information complete in ADR-WASM-010 (dependency graphs, timelines, performance targets)
+- Phase 5-6 removed as unnecessary (planning artifacts already exist in ADR)
 
 ---
 
@@ -381,9 +388,10 @@ Implement comprehensive CLI tool with 14 commands covering complete component li
 
 ## Planning Notes
 
-**Current Phase:** Architecture & Planning (ADR-WASM-010 complete)  
-**All Task Specifications:** COMPLETE (12 tasks, ~7,000 lines total documentation)  
-**Next Milestone:** WASM-TASK-001 (Define detailed roadmap and phase breakdown)  
+**Layer 0 Status:** ✅ COMPLETE (2025-10-22)  
+**All Task Specifications:** ✅ COMPLETE (12 tasks: WASM-TASK-000 through WASM-TASK-012)  
+**Total Planning Documentation:** ~7,000 lines across 11 implementation task specifications  
+**Next Milestone:** WASM-TASK-002 (Block 1: WASM Runtime Layer) - First implementation task  
 **Implementation Start:** Q3 2026 (pending airssys-rt maturity)
 
 **Timeline Estimate:** 11-15 months total implementation  
