@@ -23,8 +23,8 @@
 //! - `storage` - Storage backend traits and operations (Phase 8.2: ✅ Complete)
 //! - `lifecycle` - Lifecycle state machines and transitions (Phase 9.1: ✅ Complete)
 //! - `management` - Component registry and management abstractions (Phase 9.2: ✅ Complete)
-//! - `bridge` - OSL bridge traits and capability mapping (Phase 10: Planned)
-//! - `observability` - Metrics collection and monitoring traits (Phase 10: Planned)
+//! - `bridge` - OSL bridge traits and capability mapping (Phase 10.1: ✅ Complete)
+//! - `observability` - Metrics collection and monitoring traits (Phase 10.2: ✅ Complete)
 //!
 //! # Design Principles
 //!
@@ -55,9 +55,8 @@ pub mod messaging;  // Phase 8.1: Complete
 pub mod storage;  // Phase 8.2: Complete
 pub mod lifecycle;  // Phase 9.1: Complete
 pub mod management;  // Phase 9.2: Complete
-
-// Future phases (will be uncommented as implemented)
- // Phase 10: bridge, observability
+pub mod bridge;  // Phase 10.1: Complete
+pub mod observability;  // Phase 10.2: Complete
 
 // Re-exports for public API
 pub use capability::{Capability, CapabilitySet, DomainPattern, NamespacePattern, PathPattern, TopicPattern};
@@ -72,3 +71,5 @@ pub use messaging::{DeliveryGuarantee, MessageEnvelope, MessageType};
 pub use storage::{StorageBackend, StorageOperation};
 pub use lifecycle::{LifecycleEvent, LifecycleState, UpdateStrategy, VersionInfo};
 pub use management::{ComponentQuery, ComponentRegistry, InstallationMetadata, RegistryOperation};
+pub use bridge::{CapabilityMapping, HostCallContext, HostFunction, HostFunctionCategory};
+pub use observability::{EventSeverity, HealthStatus, Metric, MetricType, MetricsCollector, MetricsSnapshot, ObservabilityEvent};
