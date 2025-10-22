@@ -186,7 +186,7 @@ pub struct ComponentInput {
 ///     metadata: HashMap::new(),
 /// };
 /// ```
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ComponentOutput {
     /// Output data (multicodec-encoded)
     pub data: Vec<u8>,
@@ -516,6 +516,23 @@ mod tests {
 
         assert_eq!(output.codec, 0x51);
         assert_eq!(output.data, vec![4, 5, 6]);
+    }
+
+    #[test]
+    fn test_component_output_equality() {
+        let output1 = ComponentOutput {
+            data: vec![1, 2, 3],
+            codec: 0x0200,
+            metadata: HashMap::new(),
+        };
+
+        let output2 = ComponentOutput {
+            data: vec![1, 2, 3],
+            codec: 0x0200,
+            metadata: HashMap::new(),
+        };
+
+        assert_eq!(output1, output2);
     }
 
     // ============================================================================

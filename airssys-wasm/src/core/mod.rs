@@ -14,17 +14,17 @@
 //! - `error` - Error types and result aliases
 //! - `config` - Configuration types and defaults
 //!
-//! ## Domain-Specific Abstractions (Phase 6+: In Progress)
+//! ## Domain-Specific Abstractions (Phase 6+: Complete for Phase 7)
 //! - `runtime` - Runtime engine traits and execution context (Phase 6.1: ✅ Complete)
 //! - `interface` - WIT interface metadata and type descriptors (Phase 6.2: ✅ Complete)
-//! - `actor` - Actor integration message envelopes (Phase 7: Planned)
-//! - `security` - Security policy traits and permission types (Phase 7: Planned)
+//! - `actor` - Actor integration message envelopes (Phase 7: Complete)
+//! - `security` - Security policy traits and permission types (Phase 7: Complete)
 //! - `messaging` - Inter-component messaging protocols (Phase 8: Planned)
-//! - `storage` - Storage backend traits and operations (Phase 9: Planned)
-//! - `lifecycle` - Lifecycle state machines and transitions (Phase 10: Planned)
-//! - `management` - Component registry and management abstractions (Phase 11: Planned)
-//! - `bridge` - OSL bridge traits and capability mapping (Phase 12: Planned)
-//! - `observability` - Metrics collection and monitoring traits (Phase 12: Planned)
+//! - `storage` - Storage backend traits and operations (Phase 8: Planned)
+//! - `lifecycle` - Lifecycle state machines and transitions (Phase 9: Planned)
+//! - `management` - Component registry and management abstractions (Phase 9: Planned)
+//! - `bridge` - OSL bridge traits and capability mapping (Phase 10: Planned)
+//! - `observability` - Metrics collection and monitoring traits (Phase 10: Planned)
 //!
 //! # Design Principles
 //!
@@ -46,17 +46,16 @@ pub mod component;
 pub mod config;
 pub mod error;
 
-// Domain-Specific Abstractions (Phase 6+: In Progress)
+// Domain-Specific Abstractions (Phase 6+: Complete for Phase 7)
 pub mod interface;
 pub mod runtime;
+pub mod actor;  // Phase 7.1: Complete
+pub mod security;  // Phase 7.2: Complete
 
 // Future phases (will be uncommented as implemented)
-// Phase 7: actor, security
-// Phase 8: messaging
-// Phase 9: storage
-// Phase 10: lifecycle
-// Phase 11: management
-// Phase 12: bridge, observability
+ // Phase 8: messaging, storage
+ // Phase 9: lifecycle, management
+ // Phase 10: bridge, observability
 
 // Re-exports for public API
 pub use capability::{Capability, CapabilitySet, DomainPattern, NamespacePattern, PathPattern, TopicPattern};
@@ -65,3 +64,5 @@ pub use config::{RuntimeConfig, SecurityConfig, SecurityMode, StorageBackend, St
 pub use error::{WasmError, WasmResult};
 pub use interface::{FunctionSignature, WitInterface};
 pub use runtime::{ComponentHandle, ExecutionContext, ExecutionState, ResourceUsage, RuntimeEngine};
+pub use actor::{ActorMessage, ActorMetadata, ActorState, SupervisionStrategy};
+pub use security::{IsolationBoundary, PermissionRequest, PermissionResult, SecurityContext, SecurityPolicy, TrustLevel};

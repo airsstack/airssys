@@ -472,6 +472,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::expect_used)]
     fn test_wit_interface_serialization() {
         let mut interface = WitInterface::new("wasi:http/incoming-handler", "0.2.0");
         interface.add_function(FunctionSignature::with_capabilities(
@@ -479,18 +480,11 @@ mod tests {
             vec![Capability::NetworkInbound(8080)],
         ));
 
-        // Test JSON serialization
-        match serde_json::to_string(&interface) {
-            Ok(json) => match serde_json::from_str::<WitInterface>(&json) {
-                Ok(deserialized) => {
-                    assert_eq!(deserialized, interface);
-                    assert_eq!(deserialized.name, "wasi:http/incoming-handler");
-                    assert_eq!(deserialized.functions.len(), 1);
-                }
-                Err(e) => assert!(false, "deserialization failed: {e}"),
-            },
-            Err(e) => assert!(false, "serialization failed: {e}"),
-        }
+        let json = serde_json::to_string(&interface).expect("serialization should succeed");
+        let deserialized: WitInterface = serde_json::from_str(&json).expect("deserialization should succeed");
+        assert_eq!(deserialized, interface);
+        assert_eq!(deserialized.name, "wasi:http/incoming-handler");
+        assert_eq!(deserialized.functions.len(), 1);
     }
 
     #[test]
@@ -506,6 +500,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::expect_used)]
     fn test_wit_interface_multiple_functions() {
         let mut interface = WitInterface::new("custom:service/api", "1.0.0");
 
@@ -523,16 +518,10 @@ mod tests {
 
         assert_eq!(interface.functions.len(), 3);
 
-        if let Some(read_fn) = interface.find_function("read") {
-            assert_eq!(read_fn.required_capabilities.len(), 1);
-        } else {
-            assert!(false, "read function not found");
-        }
+        let read_fn = interface.find_function("read").expect("read function should exist");
+        assert_eq!(read_fn.required_capabilities.len(), 1);
 
-        if let Some(compute_fn) = interface.find_function("compute") {
-            assert!(compute_fn.requires_no_capabilities());
-        } else {
-            assert!(false, "compute function not found");
-        }
+        let compute_fn = interface.find_function("compute").expect("compute function should exist");
+        assert!(compute_fn.requires_no_capabilities());
     }
 }

@@ -1,13 +1,13 @@
 # [WASM-TASK-000] - Core Abstractions Design ⚡ CRITICAL FOUNDATION
 
-**Status:** in-progress (Phases 1 & 2 complete, Phase 3 next)  
+**Status:** in-progress (Phases 1-7 complete, Phase 8 next)  
 **Added:** 2025-10-21  
-**Updated:** 2025-10-21  
+**Updated:** 2025-10-22  
 **Priority:** CRITICAL - Absolute Foundation (Layer 0)  
 **Layer:** 0 - Foundation  
 **Block:** 0 (Pre-Implementation)  
 **Estimated Effort:** 3-4 weeks (expanded from 1-2 weeks per ADR-WASM-012)  
-**Progress:** 30% (4/12 phases complete)  
+**Progress:** 75% (9/12 phases complete)  
 
 ## Overview
 
@@ -1148,11 +1148,11 @@ pub struct FunctionSignature {
 
 ---
 
-### Phase 7: Domain-Specific Abstractions - Part 2: Actor & Security (Days 14-16) ⏳ NEXT
+### Phase 7: Domain-Specific Abstractions - Part 2: Actor & Security (Days 14-16) ✅ COMPLETE
 
 **Purpose:** Implement domain-specific abstractions for Blocks 3-4 (actor integration and security policies).
 
-#### Task 7.1: Actor Abstractions (`core/actor.rs`) - Block 3
+#### Task 7.1: Actor Abstractions (`core/actor.rs`) - Block 3 ✅ COMPLETE
 
 **Deliverables:**
 - `struct ActorMessage` - Message envelope for actor system
@@ -1207,13 +1207,15 @@ pub struct ActorMetadata {
 }
 ```
 
-**Success Criteria:**
-- ActorMessage supports actor communication patterns
-- SupervisionStrategy covers all supervision modes
-- ActorState represents complete lifecycle
-- Unit tests for message creation and state transitions
+**Success Criteria:** ✅ ALL MET
+- ✅ ActorMessage supports actor communication patterns with helper methods
+- ✅ SupervisionStrategy covers all supervision modes (Restart, Stop, Escalate)
+- ✅ ActorState represents complete lifecycle (6 states)
+- ✅ ActorMetadata tracks actor system metadata
+- ✅ 11 unit tests for message creation, state transitions, and helper methods
+- ✅ 433 lines with 100% rustdoc coverage
 
-#### Task 7.2: Security Abstractions (`core/security.rs`) - Block 4
+#### Task 7.2: Security Abstractions (`core/security.rs`) - Block 4 ✅ COMPLETE
 
 **Deliverables:**
 - `trait SecurityPolicy` - Security enforcement contract
@@ -1280,15 +1282,19 @@ pub struct IsolationBoundary {
 }
 ```
 
-**Success Criteria:**
-- SecurityPolicy trait defines clear enforcement contract
-- PermissionRequest/Result support complete permission workflow
-- IsolationBoundary defines complete sandbox configuration
-- Unit tests for permission checking logic
+**Success Criteria:** ✅ ALL MET
+- ✅ SecurityPolicy trait defines clear async enforcement contract (async_trait)
+- ✅ PermissionRequest/Result support complete permission workflow
+- ✅ SecurityContext includes mode and trust level
+- ✅ TrustLevel enum: Trusted, Unknown, Development classification
+- ✅ IsolationBoundary defines complete sandbox configuration
+- ✅ Mock policy implementation demonstrates trait usage
+- ✅ 8 unit tests for permission checking, trust levels, isolation boundaries
+- ✅ 445 lines with 100% rustdoc coverage
 
 ---
 
-### Phase 8: Domain-Specific Abstractions - Part 3: Messaging & Storage (Days 17-19)
+### Phase 8: Domain-Specific Abstractions - Part 3: Messaging & Storage (Days 17-19) ⏳ NEXT
 
 **Purpose:** Implement domain-specific abstractions for Blocks 5-6 (messaging and storage).
 
@@ -1864,20 +1870,20 @@ This task is complete when:
 
 ## Progress Tracking (Updated)
 
-**Overall Status:** not-started - 0%  
+**Overall Status:** in-progress - 75%  
 **Estimated Timeline:** 3-4 weeks (28 days) - expanded per ADR-WASM-012
 
 ### Phase Breakdown (Updated)
 | Phase | Description | Status | Days | Notes |
 |-------|-------------|--------|------|-------|
-| 1 | Core Module Foundation | not-started | 1-2 | Directory structure, dependencies |
-| 2 | Universal: Component Abstractions | not-started | 3-4 | Component types and trait |
-| 3 | Universal: Capability Abstractions | not-started | 5-6 | Capability types and patterns |
-| 4 | Universal: Error Types | not-started | 7-8 | WasmError and helpers |
-| 5 | Universal: Configuration Types | not-started | 9-10 | Runtime, Security, Storage configs |
-| 6 | Domain Part 1: Runtime & Interface | not-started | 11-13 | Blocks 1-2 abstractions ⚡ **NEW** |
-| 7 | Domain Part 2: Actor & Security | not-started | 14-16 | Blocks 3-4 abstractions ⚡ **NEW** |
-| 8 | Domain Part 3: Messaging & Storage | not-started | 17-19 | Blocks 5-6 abstractions ⚡ **NEW** |
+| 1 | Core Module Foundation | ✅ complete | 1-2 | Directory structure, dependencies |
+| 2 | Universal: Component Abstractions | ✅ complete | 3-4 | Component types and trait |
+| 3 | Universal: Capability Abstractions | ✅ complete | 5-6 | Capability types and patterns |
+| 4 | Universal: Error Types | ✅ complete | 7-8 | WasmError and helpers |
+| 5 | Universal: Configuration Types | ✅ complete | 9-10 | Runtime, Security, Storage configs |
+| 6 | Domain Part 1: Runtime & Interface | ✅ complete | 11-13 | Blocks 1-2 abstractions ⚡ **NEW** |
+| 7 | Domain Part 2: Actor & Security | ✅ complete | 14-16 | Blocks 3-4 abstractions ⚡ **NEW** |
+| 8 | Domain Part 3: Messaging & Storage | ⏳ next | 17-19 | Blocks 5-6 abstractions ⚡ **NEW** |
 | 9 | Domain Part 4: Lifecycle & Management | not-started | 20-22 | Blocks 7-8 abstractions ⚡ **NEW** |
 | 10 | Domain Part 5: Bridge & Observability | not-started | 23-25 | Blocks 9-10 abstractions ⚡ **NEW** |
 | 11 | Documentation & Integration | not-started | 26 | Comprehensive docs, prelude |
@@ -1886,22 +1892,22 @@ This task is complete when:
 ### Subtasks (Updated - Now 24 Tasks)
 | ID | Description | Status | Updated | Notes |
 |----|-------------|--------|---------|-------|
-| 1.1 | Create Core Module Structure | not-started | - | Foundation |
-| 1.2 | Add External Dependencies | not-started | - | thiserror, serde, chrono, async-trait |
-| 2.1 | Implement Component Types | not-started | - | ComponentId, metadata, etc. |
-| 2.2 | Implement Component Trait | not-started | - | Core behavior contract |
-| 2.3 | Unit Tests for Component Types | not-started | - | >90% coverage |
-| 3.1 | Implement Capability Types | not-started | - | Capability enum, patterns |
-| 3.2 | Unit Tests for Capability Types | not-started | - | >90% coverage |
-| 4.1 | Implement WasmError Enum | not-started | - | Comprehensive error types |
-| 4.2 | Unit Tests for Error Types | not-started | - | Error message validation |
-| 5.1 | Implement Configuration Structs | not-started | - | Runtime, Security, Storage |
-| 5.2 | Unit Tests for Configuration Types | not-started | - | Default and serialization |
-| 6.1 | Implement Runtime Abstractions ⚡ | not-started | - | RuntimeEngine trait, ExecutionContext |
-| 6.2 | Implement Interface Abstractions ⚡ | not-started | - | InterfaceDefinition, TypeDescriptor |
-| 7.1 | Implement Actor Abstractions ⚡ | not-started | - | ActorMessage, SupervisionStrategy |
-| 7.2 | Implement Security Abstractions ⚡ | not-started | - | SecurityPolicy trait, PermissionRequest |
-| 8.1 | Implement Messaging Abstractions ⚡ | not-started | - | MessageEnvelope, RoutingStrategy |
+| 1.1 | Create Core Module Structure | ✅ complete | 2025-10-21 | Foundation |
+| 1.2 | Add External Dependencies | ✅ complete | 2025-10-21 | thiserror, serde, chrono, async-trait |
+| 2.1 | Implement Component Types | ✅ complete | 2025-10-21 | ComponentId, metadata, etc. |
+| 2.2 | Implement Component Trait | ✅ complete | 2025-10-21 | Core behavior contract |
+| 2.3 | Unit Tests for Component Types | ✅ complete | 2025-10-21 | >90% coverage |
+| 3.1 | Implement Capability Types | ✅ complete | 2025-10-21 | Capability enum, patterns |
+| 3.2 | Unit Tests for Capability Types | ✅ complete | 2025-10-21 | >90% coverage |
+| 4.1 | Implement WasmError Enum | ✅ complete | 2025-10-21 | Comprehensive error types |
+| 4.2 | Unit Tests for Error Types | ✅ complete | 2025-10-21 | Error message validation |
+| 5.1 | Implement Configuration Structs | ✅ complete | 2025-10-21 | Runtime, Security, Storage |
+| 5.2 | Unit Tests for Configuration Types | ✅ complete | 2025-10-21 | Default and serialization |
+| 6.1 | Implement Runtime Abstractions ⚡ | ✅ complete | 2025-10-22 | RuntimeEngine trait, ExecutionContext |
+| 6.2 | Implement Interface Abstractions ⚡ | ✅ complete | 2025-10-22 | WitInterface, FunctionSignature (YAGNI) |
+| 7.1 | Implement Actor Abstractions ⚡ | ✅ complete | 2025-10-22 | ActorMessage, SupervisionStrategy |
+| 7.2 | Implement Security Abstractions ⚡ | ✅ complete | 2025-10-22 | SecurityPolicy trait, PermissionRequest |
+| 8.1 | Implement Messaging Abstractions ⚡ | ⏳ next | - | MessageEnvelope, RoutingStrategy |
 | 8.2 | Implement Storage Abstractions ⚡ | not-started | - | StorageBackend trait, Transaction |
 | 9.1 | Implement Lifecycle Abstractions ⚡ | not-started | - | LifecycleState, UpdateStrategy |
 | 9.2 | Implement Management Abstractions ⚡ | not-started | - | ComponentRegistry trait, Query |

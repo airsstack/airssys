@@ -23,6 +23,12 @@ async-trait = { workspace = true }
 # JSON serialization for Custom capability parameters (§5.1)
 serde_json = { workspace = true }
 
+# UUID for message IDs in actor.rs (§5.1)
+uuid = { workspace = true }
+
+# Tokio for async tests in security.rs and future modules
+tokio = { workspace = true, features = ["macros", "rt"] }
+
 [dev-dependencies]
 
 [lints]
