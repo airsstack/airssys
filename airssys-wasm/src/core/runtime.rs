@@ -63,8 +63,14 @@
 //! }
 //! ```
 
-use async_trait::async_trait;
+// Layer 1: Standard library imports
+use std::sync::Arc;
 
+// Layer 2: External crate imports
+use async_trait::async_trait;
+use wasmtime::component::Component;
+
+// Layer 3: Internal module imports
 use super::{
     capability::CapabilitySet,
     component::{ComponentId, ComponentInput, ComponentOutput, ResourceLimits},
@@ -77,12 +83,18 @@ use super::{
 /// the loaded component in subsequent operations. The actual implementation is
 /// provided by the runtime engine (e.g., Wasmtime's `Component` handle).
 ///
-/// # Design Rationale
+/// # Design Rationale (Option A - WASM-TASK-002 Phase 3)
+///
+/// This handle stores `Arc<Component>` directly for simplicity:
+/// - Component handle owns the component (no caching complexity)
+/// - Simpler architecture following YAGNI principles
+/// - Efficient cloning via Arc (cheap reference counting)
+/// - No need for engine-level caching in Block 1
 ///
 /// Using an opaque type (rather than exposing Wasmtime's types directly) allows:
 /// - Core abstractions to remain independent of runtime implementation
 /// - Future runtime engine swapping without breaking core API
-/// - Implementation-specific optimizations (caching, pooling, etc.)
+/// - Implementation-specific optimizations (pooling, etc.) in future blocks
 ///
 /// # Example
 ///
@@ -90,24 +102,48 @@ use super::{
 /// let handle = engine.load_component(&component_id, bytes).await?;
 /// let output = engine.execute(&handle, "process", input, context).await?;
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct ComponentHandle {
+    /// Component identifier for logging and debugging.
     id: String,
+    
+    /// Compiled Wasmtime component (Arc for cheap cloning).
+    component: Arc<Component>,
 }
 
 impl ComponentHandle {
-    /// Create a new component handle.
+    /// Create a new component handle with compiled component.
     ///
-    /// This is typically called internally by runtime implementations
-    /// and not directly by users.
+    /// This is called internally by runtime implementations after successful
+    /// component compilation.
     #[doc(hidden)]
-    pub fn new(id: impl Into<String>) -> Self {
-        Self { id: id.into() }
+    pub fn new(id: impl Into<String>, component: Arc<Component>) -> Self {
+        Self {
+            id: id.into(),
+            component,
+        }
     }
 
     /// Get the component ID associated with this handle.
     pub fn id(&self) -> &str {
         &self.id
+    }
+    
+    /// Get reference to the underlying Wasmtime component.
+    ///
+    /// This is used internally by the runtime engine for instantiation.
+    #[doc(hidden)]
+    pub fn component(&self) -> &Component {
+        &self.component
+    }
+}
+
+impl std::fmt::Debug for ComponentHandle {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ComponentHandle")
+            .field("id", &self.id)
+            .field("component", &"Arc<Component>")
+            .finish()
     }
 }
 

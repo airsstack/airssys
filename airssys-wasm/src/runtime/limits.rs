@@ -318,6 +318,13 @@ use crate::core::error::{WasmError, WasmResult};
 /// - **No Defaults**: Must be explicitly declared in Component.toml
 /// - **Enforcement**: Pre-instantiation validation + runtime enforcement
 ///
+/// # CPU Limits (Phase 3)
+///
+/// - **Fuel**: MANDATORY - must be explicitly declared in Component.toml
+/// - **Timeout**: MANDATORY - wall-clock timeout in seconds
+/// - **Dual-layer protection**: Fuel metering (deterministic) + timeout (wall-clock)
+/// - **No Defaults**: Following ADR-WASM-002 explicit security philosophy
+///
 /// # Design Philosophy
 ///
 /// Explicit limits force engineers to think about resource requirements and prevent
@@ -329,26 +336,34 @@ use crate::core::error::{WasmError, WasmResult};
 /// ```rust,ignore
 /// use airssys_wasm::runtime::limits::ResourceLimits;
 ///
-/// // Valid configuration
+/// // Valid configuration with CPU limits
 /// let limits = ResourceLimits::builder()
 ///     .max_memory_bytes(2 * 1024 * 1024)  // 2MB
+///     .max_fuel(1_000_000)                // 1M fuel units
+///     .timeout_seconds(30)                // 30s timeout
 ///     .build()?;
 ///
 /// // Invalid - below minimum (512KB)
 /// let result = ResourceLimits::builder()
 ///     .max_memory_bytes(256 * 1024)
+///     .max_fuel(1_000_000)
+///     .timeout_seconds(30)
 ///     .build();
 /// assert!(result.is_err());
 ///
 /// // Invalid - above maximum (4MB)
 /// let result = ResourceLimits::builder()
 ///     .max_memory_bytes(8 * 1024 * 1024)
+///     .max_fuel(1_000_000)
+///     .timeout_seconds(30)
 ///     .build();
 /// assert!(result.is_err());
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ResourceLimits {
     max_memory_bytes: u64,
+    max_fuel: u64,
+    timeout_seconds: u64,
 }
 
 impl ResourceLimits {
@@ -357,6 +372,18 @@ impl ResourceLimits {
 
     /// Maximum memory limit: 4MB (4,194,304 bytes).
     pub const MAX_MEMORY_BYTES: u64 = 4 * 1024 * 1024;
+
+    /// Minimum fuel limit: 1,000 fuel units (very small programs).
+    pub const MIN_FUEL: u64 = 1_000;
+
+    /// Maximum fuel limit: 100,000,000 fuel units (long-running operations).
+    pub const MAX_FUEL: u64 = 100_000_000;
+
+    /// Minimum timeout: 1 second.
+    pub const MIN_TIMEOUT_SECONDS: u64 = 1;
+
+    /// Maximum timeout: 300 seconds (5 minutes).
+    pub const MAX_TIMEOUT_SECONDS: u64 = 300;
 
     /// Create a new ResourceLimitsBuilder for constructing validated limits.
     ///
@@ -367,6 +394,8 @@ impl ResourceLimits {
     ///
     /// let limits = ResourceLimits::builder()
     ///     .max_memory_bytes(1024 * 1024)
+    ///     .max_fuel(1_000_000)
+    ///     .timeout_seconds(30)
     ///     .build()?;
     /// ```
     pub fn builder() -> ResourceLimitsBuilder {
@@ -380,18 +409,64 @@ impl ResourceLimits {
     /// ```rust,ignore
     /// let limits = ResourceLimits::builder()
     ///     .max_memory_bytes(2 * 1024 * 1024)
+    ///     .max_fuel(1_000_000)
+    ///     .timeout_seconds(30)
     ///     .build()?;
     /// assert_eq!(limits.max_memory_bytes(), 2 * 1024 * 1024);
     /// ```
     pub fn max_memory_bytes(&self) -> u64 {
         self.max_memory_bytes
     }
+
+    /// Get the maximum fuel allowed.
+    ///
+    /// Fuel represents deterministic CPU usage - each WASM instruction
+    /// consumes fuel units. When fuel is exhausted, execution stops.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// let limits = ResourceLimits::builder()
+    ///     .max_memory_bytes(1024 * 1024)
+    ///     .max_fuel(1_000_000)
+    ///     .timeout_seconds(30)
+    ///     .build()?;
+    /// assert_eq!(limits.max_fuel(), 1_000_000);
+    /// ```
+    pub fn max_fuel(&self) -> u64 {
+        self.max_fuel
+    }
+
+    /// Get the wall-clock timeout in seconds.
+    ///
+    /// This is a fail-safe mechanism to prevent components from running
+    /// indefinitely even if fuel limits are misconfigured or bypassed.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// let limits = ResourceLimits::builder()
+    ///     .max_memory_bytes(1024 * 1024)
+    ///     .max_fuel(1_000_000)
+    ///     .timeout_seconds(30)
+    ///     .build()?;
+    /// assert_eq!(limits.timeout_seconds(), 30);
+    /// ```
+    pub fn timeout_seconds(&self) -> u64 {
+        self.timeout_seconds
+    }
 }
 
 /// Builder for constructing validated ResourceLimits.
 ///
-/// This builder enforces the 512KB-4MB memory range and validates configuration
+/// This builder enforces resource limit ranges and validates configuration
 /// before constructing ResourceLimits instances.
+///
+/// # Mandatory Fields (ADR-WASM-002)
+///
+/// - `max_memory_bytes`: 512KB-4MB range
+/// - `max_fuel`: 1,000-100,000,000 range
+/// - `timeout_seconds`: 1-300 seconds range
 ///
 /// # Examples
 ///
@@ -400,11 +475,15 @@ impl ResourceLimits {
 ///
 /// let limits = ResourceLimits::builder()
 ///     .max_memory_bytes(1024 * 1024)
+///     .max_fuel(1_000_000)
+///     .timeout_seconds(30)
 ///     .build()?;
 /// ```
 #[derive(Debug, Default)]
 pub struct ResourceLimitsBuilder {
     max_memory_bytes: Option<u64>,
+    max_fuel: Option<u64>,
+    timeout_seconds: Option<u64>,
 }
 
 impl ResourceLimitsBuilder {
@@ -412,6 +491,8 @@ impl ResourceLimitsBuilder {
     pub fn new() -> Self {
         Self {
             max_memory_bytes: None,
+            max_fuel: None,
+            timeout_seconds: None,
         }
     }
 
@@ -428,23 +509,61 @@ impl ResourceLimitsBuilder {
         self
     }
 
+    /// Set the maximum fuel units.
+    ///
+    /// Fuel represents deterministic CPU usage. Each WASM instruction
+    /// consumes fuel units. When fuel is exhausted, execution stops.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// let builder = ResourceLimits::builder()
+    ///     .max_fuel(1_000_000);
+    /// ```
+    pub fn max_fuel(mut self, fuel: u64) -> Self {
+        self.max_fuel = Some(fuel);
+        self
+    }
+
+    /// Set the wall-clock timeout in seconds.
+    ///
+    /// This is a fail-safe mechanism to prevent components from running
+    /// indefinitely even if fuel limits are misconfigured or bypassed.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// let builder = ResourceLimits::builder()
+    ///     .timeout_seconds(30);
+    /// ```
+    pub fn timeout_seconds(mut self, seconds: u64) -> Self {
+        self.timeout_seconds = Some(seconds);
+        self
+    }
+
     /// Build the ResourceLimits, validating all constraints.
     ///
     /// # Errors
     ///
     /// Returns `WasmError::InvalidConfiguration` if:
     /// - Memory limit is not set (MANDATORY field)
-    /// - Memory limit is below 512KB minimum
-    /// - Memory limit is above 4MB maximum
+    /// - Memory limit is below 512KB minimum or above 4MB maximum
+    /// - Fuel limit is not set (MANDATORY field)
+    /// - Fuel limit is below 1,000 minimum or above 100,000,000 maximum
+    /// - Timeout is not set (MANDATORY field)
+    /// - Timeout is below 1 second or above 300 seconds
     ///
     /// # Examples
     ///
     /// ```rust,ignore
     /// let limits = ResourceLimits::builder()
     ///     .max_memory_bytes(1024 * 1024)
+    ///     .max_fuel(1_000_000)
+    ///     .timeout_seconds(30)
     ///     .build()?;
     /// ```
     pub fn build(self) -> WasmResult<ResourceLimits> {
+        // Validate memory limits
         let max_memory_bytes = self.max_memory_bytes.ok_or_else(|| {
             WasmError::invalid_configuration(
                 "max_memory_bytes is MANDATORY and must be explicitly set"
@@ -467,7 +586,57 @@ impl ResourceLimitsBuilder {
             )));
         }
 
-        Ok(ResourceLimits { max_memory_bytes })
+        // Validate fuel limits
+        let max_fuel = self.max_fuel.ok_or_else(|| {
+            WasmError::invalid_configuration(
+                "max_fuel is MANDATORY and must be explicitly set (ADR-WASM-002)"
+            )
+        })?;
+
+        if max_fuel < ResourceLimits::MIN_FUEL {
+            return Err(WasmError::invalid_configuration(format!(
+                "max_fuel ({}) is below minimum ({})",
+                max_fuel,
+                ResourceLimits::MIN_FUEL
+            )));
+        }
+
+        if max_fuel > ResourceLimits::MAX_FUEL {
+            return Err(WasmError::invalid_configuration(format!(
+                "max_fuel ({}) exceeds maximum ({})",
+                max_fuel,
+                ResourceLimits::MAX_FUEL
+            )));
+        }
+
+        // Validate timeout
+        let timeout_seconds = self.timeout_seconds.ok_or_else(|| {
+            WasmError::invalid_configuration(
+                "timeout_seconds is MANDATORY and must be explicitly set (ADR-WASM-002)"
+            )
+        })?;
+
+        if timeout_seconds < ResourceLimits::MIN_TIMEOUT_SECONDS {
+            return Err(WasmError::invalid_configuration(format!(
+                "timeout_seconds ({}) is below minimum ({})",
+                timeout_seconds,
+                ResourceLimits::MIN_TIMEOUT_SECONDS
+            )));
+        }
+
+        if timeout_seconds > ResourceLimits::MAX_TIMEOUT_SECONDS {
+            return Err(WasmError::invalid_configuration(format!(
+                "timeout_seconds ({}) exceeds maximum ({})",
+                timeout_seconds,
+                ResourceLimits::MAX_TIMEOUT_SECONDS
+            )));
+        }
+
+        Ok(ResourceLimits {
+            max_memory_bytes,
+            max_fuel,
+            timeout_seconds,
+        })
     }
 }
 
@@ -491,7 +660,7 @@ impl ResourceLimitsBuilder {
 /// let config = MemoryConfig {
 ///     max_memory_bytes: 2 * 1024 * 1024,
 /// };
-/// let limits = ResourceLimits::try_from(config)?;
+/// config.validate()?;
 /// ```
 ///
 /// # Deserialization
@@ -510,6 +679,43 @@ impl ResourceLimitsBuilder {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MemoryConfig {
     pub max_memory_bytes: u64,
+}
+
+/// CPU configuration from Component.toml.
+///
+/// This struct represents the `[resources.cpu]` section in Component.toml
+/// and provides MANDATORY fuel and timeout limits (ADR-WASM-002).
+///
+/// # Component.toml Format
+///
+/// ```toml
+/// [resources.cpu]
+/// max_fuel = 1000000          # 1M fuel units (MANDATORY)
+/// timeout_seconds = 30        # 30s timeout (MANDATORY)
+/// ```
+///
+/// # Design Philosophy (ADR-WASM-002)
+///
+/// Both fields are MANDATORY with no defaults:
+/// - Forces engineers to explicitly declare CPU resource requirements
+/// - Prevents unbounded execution and resource exhaustion
+/// - Dual-layer protection: fuel (deterministic) + timeout (wall-clock)
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// use airssys_wasm::runtime::limits::CpuConfig;
+///
+/// let config = CpuConfig {
+///     max_fuel: 1_000_000,
+///     timeout_seconds: 30,
+/// };
+/// config.validate()?;
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CpuConfig {
+    pub max_fuel: u64,
+    pub timeout_seconds: u64,
 }
 
 impl MemoryConfig {
@@ -555,12 +761,91 @@ impl MemoryConfig {
     }
 }
 
-impl TryFrom<MemoryConfig> for ResourceLimits {
+impl CpuConfig {
+    /// Validate the CPU configuration.
+    ///
+    /// This method validates that the CPU configuration meets the required
+    /// constraints for both fuel and timeout limits.
+    ///
+    /// # Errors
+    ///
+    /// Returns `WasmError::InvalidConfiguration` if:
+    /// - Fuel limit is below 1,000 minimum or above 100,000,000 maximum
+    /// - Timeout is below 1 second or above 300 seconds
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// use airssys_wasm::runtime::limits::CpuConfig;
+    ///
+    /// let config = CpuConfig {
+    ///     max_fuel: 1_000_000,
+    ///     timeout_seconds: 30,
+    /// };
+    /// config.validate()?;
+    /// ```
+    pub fn validate(&self) -> WasmResult<()> {
+        // Validate fuel limits
+        if self.max_fuel < ResourceLimits::MIN_FUEL {
+            return Err(WasmError::invalid_configuration(format!(
+                "max_fuel ({}) is below minimum ({})",
+                self.max_fuel,
+                ResourceLimits::MIN_FUEL
+            )));
+        }
+
+        if self.max_fuel > ResourceLimits::MAX_FUEL {
+            return Err(WasmError::invalid_configuration(format!(
+                "max_fuel ({}) exceeds maximum ({})",
+                self.max_fuel,
+                ResourceLimits::MAX_FUEL
+            )));
+        }
+
+        // Validate timeout
+        if self.timeout_seconds < ResourceLimits::MIN_TIMEOUT_SECONDS {
+            return Err(WasmError::invalid_configuration(format!(
+                "timeout_seconds ({}) is below minimum ({})",
+                self.timeout_seconds,
+                ResourceLimits::MIN_TIMEOUT_SECONDS
+            )));
+        }
+
+        if self.timeout_seconds > ResourceLimits::MAX_TIMEOUT_SECONDS {
+            return Err(WasmError::invalid_configuration(format!(
+                "timeout_seconds ({}) exceeds maximum ({})",
+                self.timeout_seconds,
+                ResourceLimits::MAX_TIMEOUT_SECONDS
+            )));
+        }
+
+        Ok(())
+    }
+}
+
+/// Combined resource configuration for conversion to ResourceLimits.
+///
+/// This struct combines memory and CPU configuration for conversion
+/// to the unified ResourceLimits structure.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ResourceConfig {
+    pub memory: MemoryConfig,
+    pub cpu: CpuConfig,
+}
+
+impl TryFrom<ResourceConfig> for ResourceLimits {
     type Error = WasmError;
 
-    fn try_from(config: MemoryConfig) -> WasmResult<Self> {
+    fn try_from(config: ResourceConfig) -> WasmResult<Self> {
+        // Validate individual configs first
+        config.memory.validate()?;
+        config.cpu.validate()?;
+
+        // Build ResourceLimits
         ResourceLimits::builder()
-            .max_memory_bytes(config.max_memory_bytes)
+            .max_memory_bytes(config.memory.max_memory_bytes)
+            .max_fuel(config.cpu.max_fuel)
+            .timeout_seconds(config.cpu.timeout_seconds)
             .build()
     }
 }
@@ -940,10 +1225,14 @@ mod tests {
     fn test_resource_limits_builder_valid() {
         let limits = ResourceLimits::builder()
             .max_memory_bytes(1024 * 1024)
+            .max_fuel(10_000)
+            .timeout_seconds(30)
             .build()
             .expect("Should build valid limits");
 
         assert_eq!(limits.max_memory_bytes(), 1024 * 1024);
+        assert_eq!(limits.max_fuel(), 10_000);
+        assert_eq!(limits.timeout_seconds(), 30);
     }
 
     #[test]
@@ -958,6 +1247,8 @@ mod tests {
     fn test_resource_limits_below_minimum() {
         let result = ResourceLimits::builder()
             .max_memory_bytes(256 * 1024)
+            .max_fuel(10_000)
+            .timeout_seconds(30)
             .build();
 
         assert!(result.is_err());
@@ -969,6 +1260,8 @@ mod tests {
     fn test_resource_limits_above_maximum() {
         let result = ResourceLimits::builder()
             .max_memory_bytes(8 * 1024 * 1024)
+            .max_fuel(10_000)
+            .timeout_seconds(30)
             .build();
 
         assert!(result.is_err());
@@ -980,6 +1273,8 @@ mod tests {
     fn test_resource_limits_at_minimum() {
         let limits = ResourceLimits::builder()
             .max_memory_bytes(ResourceLimits::MIN_MEMORY_BYTES)
+            .max_fuel(10_000)
+            .timeout_seconds(30)
             .build()
             .expect("Should build at minimum");
 
@@ -990,6 +1285,8 @@ mod tests {
     fn test_resource_limits_at_maximum() {
         let limits = ResourceLimits::builder()
             .max_memory_bytes(ResourceLimits::MAX_MEMORY_BYTES)
+            .max_fuel(10_000)
+            .timeout_seconds(30)
             .build()
             .expect("Should build at maximum");
 
@@ -997,19 +1294,31 @@ mod tests {
     }
 
     #[test]
-    fn test_memory_config_to_resource_limits() {
-        let config = MemoryConfig {
+    fn test_resource_config_to_resource_limits() {
+        let memory_config = MemoryConfig {
             max_memory_bytes: 2 * 1024 * 1024,
+        };
+        let cpu_config = CpuConfig {
+            max_fuel: 10_000,
+            timeout_seconds: 30,
+        };
+        let config = ResourceConfig {
+            memory: memory_config,
+            cpu: cpu_config,
         };
 
         let limits = ResourceLimits::try_from(config).expect("Should convert config");
         assert_eq!(limits.max_memory_bytes(), 2 * 1024 * 1024);
+        assert_eq!(limits.max_fuel(), 10_000);
+        assert_eq!(limits.timeout_seconds(), 30);
     }
 
     #[test]
     fn test_component_resource_limiter_new() {
         let limits = ResourceLimits::builder()
             .max_memory_bytes(2 * 1024 * 1024)
+            .max_fuel(10_000)
+            .timeout_seconds(30)
             .build()
             .expect("Should build limits");
 
@@ -1171,6 +1480,8 @@ mod tests {
     fn test_component_resource_limiter_peak_tracking() {
         let limits = ResourceLimits::builder()
             .max_memory_bytes(2 * 1024 * 1024)
+            .max_fuel(10_000)
+            .timeout_seconds(30)
             .build()
             .expect("Should build limits");
 
@@ -1196,6 +1507,8 @@ mod tests {
     fn test_component_resource_limiter_allocation_count() {
         let limits = ResourceLimits::builder()
             .max_memory_bytes(2 * 1024 * 1024)
+            .max_fuel(10_000)
+            .timeout_seconds(30)
             .build()
             .expect("Should build limits");
 
@@ -1223,6 +1536,8 @@ mod tests {
     fn test_component_resource_limiter_reset_metrics() {
         let limits = ResourceLimits::builder()
             .max_memory_bytes(2 * 1024 * 1024)
+            .max_fuel(10_000)
+            .timeout_seconds(30)
             .build()
             .expect("Should build limits");
 
@@ -1245,6 +1560,8 @@ mod tests {
     fn test_component_resource_limiter_metrics_snapshot() {
         let limits = ResourceLimits::builder()
             .max_memory_bytes(2 * 1024 * 1024)
+            .max_fuel(10_000)
+            .timeout_seconds(30)
             .build()
             .expect("Should build limits");
 
@@ -1270,6 +1587,8 @@ mod tests {
     fn test_component_resource_limiter_create_oom_error() {
         let limits = ResourceLimits::builder()
             .max_memory_bytes(512 * 1024)
+            .max_fuel(10_000)
+            .timeout_seconds(30)
             .build()
             .expect("Should build limits");
 
@@ -1289,6 +1608,8 @@ mod tests {
     fn test_oom_detection_at_exact_limit() {
         let limits = ResourceLimits::builder()
             .max_memory_bytes(1024 * 1024)
+            .max_fuel(10_000)
+            .timeout_seconds(30)
             .build()
             .expect("Should build limits");
 
@@ -1304,6 +1625,8 @@ mod tests {
     fn test_oom_rejection_one_byte_over() {
         let limits = ResourceLimits::builder()
             .max_memory_bytes(1024 * 1024)
+            .max_fuel(10_000)
+            .timeout_seconds(30)
             .build()
             .expect("Should build limits");
 
@@ -1319,6 +1642,8 @@ mod tests {
     fn test_oom_multiple_allocations_leading_to_limit() {
         let limits = ResourceLimits::builder()
             .max_memory_bytes(1024 * 1024)
+            .max_fuel(10_000)
+            .timeout_seconds(30)
             .build()
             .expect("Should build limits");
 
@@ -1348,6 +1673,8 @@ mod tests {
     fn test_oom_metrics_accuracy_after_rejection() {
         let limits = ResourceLimits::builder()
             .max_memory_bytes(512 * 1024)
+            .max_fuel(10_000)
+            .timeout_seconds(30)
             .build()
             .expect("Should build limits");
 
@@ -1370,6 +1697,8 @@ mod tests {
     fn test_oom_error_contains_correct_details() {
         let limits = ResourceLimits::builder()
             .max_memory_bytes(1024 * 1024)
+            .max_fuel(10_000)
+            .timeout_seconds(30)
             .build()
             .expect("Should build limits");
 
@@ -1388,6 +1717,8 @@ mod tests {
     fn test_is_near_oom_threshold_detection() {
         let limits = ResourceLimits::builder()
             .max_memory_bytes(1024 * 1024)
+            .max_fuel(10_000)
+            .timeout_seconds(30)
             .build()
             .expect("Should build limits");
 
@@ -1415,6 +1746,8 @@ mod tests {
     fn test_peak_exceeded_oom_threshold() {
         let limits = ResourceLimits::builder()
             .max_memory_bytes(1024 * 1024)
+            .max_fuel(10_000)
+            .timeout_seconds(30)
             .build()
             .expect("Should build limits");
 

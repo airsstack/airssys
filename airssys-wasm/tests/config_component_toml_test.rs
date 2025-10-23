@@ -18,6 +18,10 @@ version = "2.0.0"
 
 [resources.memory]
 max_bytes = 2097152
+
+[resources.cpu]
+max_fuel = 10000
+timeout_seconds = 30
 "#;
 
     fs::write(&toml_path, toml_content).unwrap();
@@ -40,6 +44,8 @@ max_bytes = 2097152
 
     let limits = config.to_resource_limits().unwrap();
     assert_eq!(limits.max_memory_bytes(), 2097152);
+    assert_eq!(limits.max_fuel(), 10000);
+    assert_eq!(limits.timeout_seconds(), 30);
 }
 
 #[test]
@@ -127,6 +133,7 @@ version = "1.0.0"
 max_bytes = 1048576
 
 [resources.cpu]
+max_fuel = 50000
 timeout_seconds = 120
 "#;
 
@@ -145,6 +152,17 @@ timeout_seconds = 120
             .unwrap()
             .max_bytes,
         1048576
+    );
+    assert_eq!(
+        config
+            .resources
+            .as_ref()
+            .unwrap()
+            .cpu
+            .as_ref()
+            .unwrap()
+            .max_fuel,
+        Some(50000)
     );
     assert_eq!(
         config
@@ -180,6 +198,10 @@ version = "1.0.0"
 
 [resources.memory]
 max_bytes = {memory_bytes}
+
+[resources.cpu]
+max_fuel = 10000
+timeout_seconds = 30
 "#
         );
 
@@ -205,12 +227,18 @@ version = "1.5.0"
 
 [resources.memory]
 max_bytes = 3145728
+
+[resources.cpu]
+max_fuel = 10000
+timeout_seconds = 30
 "#;
 
     let config = ComponentConfigToml::from_str(toml_content).unwrap();
 
     let limits = config.to_resource_limits().unwrap();
     assert_eq!(limits.max_memory_bytes(), 3145728);
+    assert_eq!(limits.max_fuel(), 10000);
+    assert_eq!(limits.timeout_seconds(), 30);
 
     assert_eq!(config.component.name, "roundtrip-test");
     assert_eq!(config.component.version, "1.5.0");

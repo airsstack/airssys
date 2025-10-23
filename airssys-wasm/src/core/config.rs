@@ -29,7 +29,8 @@
 //! max_bytes = 1048576  # 1MB (MANDATORY: 512KB-4MB range)
 //!
 //! [resources.cpu]
-//! timeout_seconds = 60  # Optional
+//! max_fuel = 10000  # MANDATORY (1,000-100,000,000 range)
+//! timeout_seconds = 60  # MANDATORY (1-300 seconds range)
 //! "#;
 //!
 //! let config = ComponentConfigToml::from_str(toml_content).unwrap();
@@ -78,7 +79,7 @@ use thiserror::Error;
 
 // Layer 3: Internal module imports
 use crate::core::error::WasmError;
-use crate::runtime::limits::{MemoryConfig, ResourceLimits};
+use crate::runtime::limits::{CpuConfig, MemoryConfig, ResourceConfig, ResourceLimits};
 
 // ============================================================================
 // Component.toml Parsing Errors
@@ -116,6 +117,35 @@ pub enum ConfigError {
          See ADR-WASM-002 Section 2.4.2 for rationale."
     )]
     MissingMemoryConfig,
+
+    /// Missing [resources.cpu] section in Component.toml.
+    ///
+    /// CPU limits are MANDATORY per ADR-WASM-002. Components must explicitly
+    /// declare CPU resource requirements (fuel and timeout).
+    #[error(
+        "Missing [resources.cpu] section in Component.toml\n\
+         \n\
+         CPU limits are MANDATORY per ADR-WASM-002.\n\
+         \n\
+         Add the following section to your Component.toml:\n\
+         \n\
+         [resources.cpu]\n\
+         max_fuel = 1000000       # 1M fuel units (MANDATORY)\n\
+         timeout_seconds = 30     # 30s timeout (MANDATORY)\n\
+         \n\
+         See ADR-WASM-002 Section 2.4.3 for rationale."
+    )]
+    MissingCpuConfig,
+
+    /// Invalid configuration detected.
+    ///
+    /// This error indicates that a configuration value is missing or invalid,
+    /// with a custom message describing the specific problem.
+    #[error("Invalid configuration: {message}")]
+    InvalidConfiguration {
+        /// Descriptive message explaining what is invalid.
+        message: String,
+    },
 
     /// Invalid resource limits detected during validation.
     ///
@@ -184,26 +214,42 @@ pub struct MemoryConfigToml {
     pub max_bytes: usize,
 }
 
-/// CPU configuration from [resources.cpu] section (optional).
+/// CPU configuration from [resources.cpu] section.
 ///
-/// Timeout configuration for component execution. If not specified,
-/// runtime defaults will be used.
+/// Contains fuel metering and execution timeout configuration.
+/// Both fields are MANDATORY following ADR-WASM-002 explicit security philosophy.
 ///
 /// # Examples
 ///
 /// ```toml
 /// [resources.cpu]
-/// timeout_seconds = 60
+/// max_fuel = 1000000        # MANDATORY - 1M fuel units
+/// timeout_seconds = 30      # MANDATORY - 30s timeout
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CpuConfigToml {
-    /// Execution timeout in seconds.
+    /// Maximum fuel units (MANDATORY).
+    ///
+    /// Fuel represents deterministic CPU usage. Each WASM instruction
+    /// consumes fuel units. When fuel is exhausted, execution stops.
+    ///
+    /// Range: 1,000 - 100,000,000 fuel units
+    pub max_fuel: Option<u64>,
+
+    /// Execution timeout in seconds (MANDATORY).
+    ///
+    /// Wall-clock timeout that stops execution even if fuel remains.
+    /// Provides fail-safe protection against infinite loops or
+    /// misconfigured fuel limits.
+    ///
+    /// Range: 1 - 300 seconds
     pub timeout_seconds: Option<u64>,
 }
 
 /// Resource configuration from [resources] section.
 ///
-/// Contains memory configuration (MANDATORY) and optional CPU configuration.
+/// Contains memory configuration (MANDATORY) and CPU configuration (MANDATORY).
+/// Following ADR-WASM-002, both memory and CPU limits must be explicitly declared.
 ///
 /// # Examples
 ///
@@ -212,14 +258,15 @@ pub struct CpuConfigToml {
 /// max_bytes = 1048576
 ///
 /// [resources.cpu]
-/// timeout_seconds = 60
+/// max_fuel = 1000000
+/// timeout_seconds = 30
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ResourcesConfigToml {
     /// Memory configuration (MANDATORY).
     pub memory: Option<MemoryConfigToml>,
 
-    /// CPU configuration (optional).
+    /// CPU configuration (MANDATORY).
     #[serde(default)]
     pub cpu: Option<CpuConfigToml>,
 }
@@ -229,11 +276,14 @@ pub struct ResourcesConfigToml {
 /// Represents the complete Component.toml file structure with component
 /// metadata and resource configuration.
 ///
-/// # Validation Rules
+/// # Validation Rules (ADR-WASM-002)
 ///
 /// - `[component]` section is required
-/// - `[resources.memory]` section is MANDATORY (ADR-WASM-002)
-/// - Memory limits must be in range 512KB-4MB
+/// - `[resources.memory]` section is MANDATORY
+///   - Memory limits must be in range 512KB-4MB
+/// - `[resources.cpu]` section is MANDATORY
+///   - Fuel limit must be in range 1,000-100,000,000
+///   - Timeout must be in range 1-300 seconds
 ///
 /// # Examples
 ///
@@ -247,6 +297,10 @@ pub struct ResourcesConfigToml {
 ///
 /// [resources.memory]
 /// max_bytes = 1048576
+///
+/// [resources.cpu]
+/// max_fuel = 10000
+/// timeout_seconds = 60
 /// "#;
 ///
 /// let config = ComponentConfigToml::from_str(toml_content).unwrap();
@@ -310,6 +364,10 @@ impl ComponentConfigToml {
     ///
     /// [resources.memory]
     /// max_bytes = 1048576
+    ///
+    /// [resources.cpu]
+    /// max_fuel = 10000
+    /// timeout_seconds = 60
     /// "#;
     ///
     /// let config = ComponentConfigToml::from_str(toml_content).unwrap();
@@ -322,18 +380,21 @@ impl ComponentConfigToml {
 
     /// Validate Component.toml configuration.
     ///
-    /// Ensures [resources.memory] section exists and memory limits are valid.
+    /// Ensures [resources.memory] and [resources.cpu] sections exist and
+    /// all limits are valid (ADR-WASM-002).
     ///
     /// # Errors
     ///
     /// - `ConfigError::MissingMemoryConfig` - Missing [resources.memory] section
-    /// - `ConfigError::InvalidResourceLimits` - Memory limits out of range
+    /// - `ConfigError::MissingCpuConfig` - Missing [resources.cpu] section
+    /// - `ConfigError::InvalidResourceLimits` - Resource limits out of range
     fn validate(&self) -> Result<(), ConfigError> {
         let resources = self
             .resources
             .as_ref()
             .ok_or(ConfigError::MissingMemoryConfig)?;
 
+        // Validate memory configuration (MANDATORY)
         let memory_config = resources
             .memory
             .as_ref()
@@ -344,6 +405,34 @@ impl ComponentConfigToml {
         };
 
         memory.validate()?;
+
+        // Validate CPU configuration (MANDATORY)
+        let cpu_config = resources
+            .cpu
+            .as_ref()
+            .ok_or(ConfigError::MissingCpuConfig)?;
+
+        let max_fuel = cpu_config
+            .max_fuel
+            .ok_or_else(|| ConfigError::InvalidConfiguration {
+                message: "max_fuel is MANDATORY and must be explicitly set (ADR-WASM-002)"
+                    .to_string(),
+            })?;
+
+        let timeout_seconds = cpu_config
+            .timeout_seconds
+            .ok_or_else(|| ConfigError::InvalidConfiguration {
+                message:
+                    "timeout_seconds is MANDATORY and must be explicitly set (ADR-WASM-002)"
+                        .to_string(),
+            })?;
+
+        let cpu = CpuConfig {
+            max_fuel,
+            timeout_seconds,
+        };
+
+        cpu.validate()?;
 
         Ok(())
     }
@@ -370,6 +459,10 @@ impl ComponentConfigToml {
     ///
     /// [resources.memory]
     /// max_bytes = 1048576
+    ///
+    /// [resources.cpu]
+    /// max_fuel = 10000
+    /// timeout_seconds = 60
     /// "#;
     ///
     /// let config = ComponentConfigToml::from_str(toml_content).unwrap();
@@ -382,16 +475,44 @@ impl ComponentConfigToml {
             .as_ref()
             .ok_or(ConfigError::MissingMemoryConfig)?;
 
-        let memory_config = resources
+        // Extract and validate memory config
+        let memory_config_toml = resources
             .memory
             .as_ref()
             .ok_or(ConfigError::MissingMemoryConfig)?;
 
         let memory = MemoryConfig {
-            max_memory_bytes: memory_config.max_bytes as u64,
+            max_memory_bytes: memory_config_toml.max_bytes as u64,
         };
 
-        let limits = ResourceLimits::try_from(memory)?;
+        // Extract and validate CPU config
+        let cpu_config_toml = resources
+            .cpu
+            .as_ref()
+            .ok_or(ConfigError::MissingCpuConfig)?;
+
+        let max_fuel = cpu_config_toml.max_fuel.ok_or_else(|| {
+            ConfigError::InvalidConfiguration {
+                message: "max_fuel is MANDATORY and must be explicitly set (ADR-WASM-002)"
+                    .to_string(),
+            }
+        })?;
+
+        let timeout_seconds = cpu_config_toml.timeout_seconds.ok_or_else(|| {
+            ConfigError::InvalidConfiguration {
+                message: "timeout_seconds is MANDATORY and must be explicitly set (ADR-WASM-002)"
+                    .to_string(),
+            }
+        })?;
+
+        let cpu = CpuConfig {
+            max_fuel,
+            timeout_seconds,
+        };
+
+        // Build ResourceConfig and convert to ResourceLimits
+        let resource_config = ResourceConfig { memory, cpu };
+        let limits = ResourceLimits::try_from(resource_config)?;
 
         Ok(limits)
     }
@@ -1000,6 +1121,10 @@ version = "1.0.0"
 
 [resources.memory]
 max_bytes = 1048576
+
+[resources.cpu]
+max_fuel = 10000
+timeout_seconds = 30
         "#;
 
         let config = ComponentConfigToml::from_str(toml_content).unwrap();
@@ -1073,6 +1198,10 @@ version = "1.0.0"
 
 [resources.memory]
 max_bytes = 524288
+
+[resources.cpu]
+max_fuel = 10000
+timeout_seconds = 30
         "#;
 
         let config = ComponentConfigToml::from_str(toml_content).unwrap();
@@ -1091,6 +1220,10 @@ version = "1.0.0"
 
 [resources.memory]
 max_bytes = 4194304
+
+[resources.cpu]
+max_fuel = 10000
+timeout_seconds = 30
         "#;
 
         let config = ComponentConfigToml::from_str(toml_content).unwrap();
@@ -1109,15 +1242,21 @@ version = "1.0.0"
 
 [resources.memory]
 max_bytes = 2097152
+
+[resources.cpu]
+max_fuel = 10000
+timeout_seconds = 30
         "#;
 
         let config = ComponentConfigToml::from_str(toml_content).unwrap();
         let limits = config.to_resource_limits().unwrap();
         assert_eq!(limits.max_memory_bytes(), 2097152);
+        assert_eq!(limits.max_fuel(), 10000);
+        assert_eq!(limits.timeout_seconds(), 30);
     }
 
     #[test]
-    fn test_component_config_with_optional_cpu() {
+    fn test_component_config_with_cpu() {
         let toml_content = r#"
 [component]
 name = "test-component"
@@ -1127,6 +1266,7 @@ version = "1.0.0"
 max_bytes = 1048576
 
 [resources.cpu]
+max_fuel = 50000
 timeout_seconds = 60
         "#;
 
@@ -1135,6 +1275,10 @@ timeout_seconds = 60
         assert_eq!(
             config.resources.as_ref().unwrap().memory.as_ref().unwrap().max_bytes,
             1048576
+        );
+        assert_eq!(
+            config.resources.as_ref().unwrap().cpu.as_ref().unwrap().max_fuel,
+            Some(50000)
         );
         assert_eq!(
             config.resources.as_ref().unwrap().cpu.as_ref().unwrap().timeout_seconds,

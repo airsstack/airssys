@@ -11,12 +11,16 @@ use wasmtime::ResourceLimiter;
 fn test_two_components_independent_limits() {
     let limits_a = ResourceLimits::builder()
         .max_memory_bytes(1024 * 1024)
+        .max_fuel(10_000)
+        .timeout_seconds(30)
         .build()
         .expect("valid memory limit");
     let mut limiter_a = ComponentResourceLimiter::new(limits_a);
 
     let limits_b = ResourceLimits::builder()
         .max_memory_bytes(2 * 1024 * 1024)
+        .max_fuel(10_000)
+        .timeout_seconds(30)
         .build()
         .expect("valid memory limit");
     let mut limiter_b = ComponentResourceLimiter::new(limits_b);
@@ -44,6 +48,8 @@ fn test_two_components_independent_limits() {
 fn test_component_oom_does_not_affect_other() {
     let limits = ResourceLimits::builder()
         .max_memory_bytes(1024 * 1024)
+        .max_fuel(10_000)
+        .timeout_seconds(30)
         .build()
         .expect("valid memory limit");
 
@@ -67,6 +73,8 @@ fn test_component_oom_does_not_affect_other() {
 fn test_multiple_components_concurrent_allocation() {
     let limits = ResourceLimits::builder()
         .max_memory_bytes(1024 * 1024)
+        .max_fuel(10_000)
+        .timeout_seconds(30)
         .build()
         .expect("valid memory limit");
 
@@ -92,10 +100,14 @@ fn test_multiple_components_concurrent_allocation() {
 fn test_component_usage_isolation() {
     let limits_a = ResourceLimits::builder()
         .max_memory_bytes(1024 * 1024)
+        .max_fuel(10_000)
+        .timeout_seconds(30)
         .build()
         .expect("valid memory limit");
     let limits_b = ResourceLimits::builder()
         .max_memory_bytes(2 * 1024 * 1024)
+        .max_fuel(10_000)
+        .timeout_seconds(30)
         .build()
         .expect("valid memory limit");
 

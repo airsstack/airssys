@@ -11,6 +11,8 @@ use wasmtime::ResourceLimiter;
 fn test_component_cannot_see_other_memory() {
     let limits = ResourceLimits::builder()
         .max_memory_bytes(1024 * 1024)
+        .max_fuel(10_000)
+        .timeout_seconds(30)
         .build()
         .expect("valid memory limit");
 
@@ -35,10 +37,14 @@ fn test_component_cannot_see_other_memory() {
 fn test_oom_isolation_security() {
     let limits_a = ResourceLimits::builder()
         .max_memory_bytes(512 * 1024)
+        .max_fuel(10_000)
+        .timeout_seconds(30)
         .build()
         .expect("valid memory limit");
     let limits_b = ResourceLimits::builder()
         .max_memory_bytes(2 * 1024 * 1024)
+        .max_fuel(10_000)
+        .timeout_seconds(30)
         .build()
         .expect("valid memory limit");
 
@@ -58,14 +64,20 @@ fn test_oom_isolation_security() {
 fn test_limit_independence() {
     let limits_512kb = ResourceLimits::builder()
         .max_memory_bytes(512 * 1024)
+        .max_fuel(10_000)
+        .timeout_seconds(30)
         .build()
         .expect("valid memory limit");
     let limits_1mb = ResourceLimits::builder()
         .max_memory_bytes(1024 * 1024)
+        .max_fuel(10_000)
+        .timeout_seconds(30)
         .build()
         .expect("valid memory limit");
     let limits_4mb = ResourceLimits::builder()
         .max_memory_bytes(4 * 1024 * 1024)
+        .max_fuel(10_000)
+        .timeout_seconds(30)
         .build()
         .expect("valid memory limit");
 
@@ -98,6 +110,8 @@ fn test_limit_independence() {
 fn test_component_failure_isolation() {
     let limits = ResourceLimits::builder()
         .max_memory_bytes(1024 * 1024)
+        .max_fuel(10_000)
+        .timeout_seconds(30)
         .build()
         .expect("valid memory limit");
 

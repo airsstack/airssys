@@ -11,6 +11,8 @@ use wasmtime::ResourceLimiter;
 fn test_single_component_respects_limit() {
     let limits = ResourceLimits::builder()
         .max_memory_bytes(1024 * 1024)
+        .max_fuel(10_000)
+        .timeout_seconds(30)
         .build()
         .expect("valid memory limit");
     let mut limiter = ComponentResourceLimiter::new(limits);
@@ -32,6 +34,8 @@ fn test_single_component_respects_limit() {
 fn test_oom_at_maximum_allocation() {
     let limits = ResourceLimits::builder()
         .max_memory_bytes(ResourceLimits::MAX_MEMORY_BYTES)
+        .max_fuel(10_000)
+        .timeout_seconds(30)
         .build()
         .expect("valid memory limit");
     let mut limiter = ComponentResourceLimiter::new(limits);
@@ -49,6 +53,8 @@ fn test_oom_at_maximum_allocation() {
 fn test_oom_at_minimum_allocation() {
     let limits = ResourceLimits::builder()
         .max_memory_bytes(ResourceLimits::MIN_MEMORY_BYTES)
+        .max_fuel(10_000)
+        .timeout_seconds(30)
         .build()
         .expect("valid memory limit");
     let mut limiter = ComponentResourceLimiter::new(limits);
@@ -66,6 +72,8 @@ fn test_oom_at_minimum_allocation() {
 fn test_gradual_memory_growth() {
     let limits = ResourceLimits::builder()
         .max_memory_bytes(1024 * 1024)
+        .max_fuel(10_000)
+        .timeout_seconds(30)
         .build()
         .expect("valid memory limit");
     let mut limiter = ComponentResourceLimiter::new(limits);
@@ -98,6 +106,8 @@ fn test_gradual_memory_growth() {
 fn test_memory_usage_tracking() {
     let limits = ResourceLimits::builder()
         .max_memory_bytes(1024 * 1024)
+        .max_fuel(10_000)
+        .timeout_seconds(30)
         .build()
         .expect("valid memory limit");
     let mut limiter = ComponentResourceLimiter::new(limits);

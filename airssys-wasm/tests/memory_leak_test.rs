@@ -11,6 +11,8 @@ use wasmtime::ResourceLimiter;
 fn test_repeated_allocations_stable_usage() {
     let limits = ResourceLimits::builder()
         .max_memory_bytes(1024 * 1024)
+        .max_fuel(10_000)
+        .timeout_seconds(30)
         .build()
         .expect("valid memory limit");
     let mut limiter = ComponentResourceLimiter::new(limits);
@@ -27,6 +29,8 @@ fn test_repeated_allocations_stable_usage() {
 fn test_allocation_deallocation_cycle() {
     let limits = ResourceLimits::builder()
         .max_memory_bytes(1024 * 1024)
+        .max_fuel(10_000)
+        .timeout_seconds(30)
         .build()
         .expect("valid memory limit");
     let mut limiter = ComponentResourceLimiter::new(limits);
@@ -51,6 +55,8 @@ fn test_allocation_deallocation_cycle() {
 fn test_long_running_stable_memory() {
     let limits = ResourceLimits::builder()
         .max_memory_bytes(1024 * 1024)
+        .max_fuel(10_000)
+        .timeout_seconds(30)
         .build()
         .expect("valid memory limit");
     let mut limiter = ComponentResourceLimiter::new(limits);

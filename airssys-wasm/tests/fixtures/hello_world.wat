@@ -1,16 +1,20 @@
-;; Minimal WebAssembly Component Model component for testing
-;; Returns a constant value from a simple function
+;; Minimal WebAssembly Component for testing
+;; Simple arithmetic component - no memory, no imports required
 
 (component
-  (core module $m
-    (func (export "hello") (result i32)
+  (core module $M
+    ;; Export a simple function that returns 42
+    (func $hello (export "hello") (result i32)
       i32.const 42
     )
   )
   
-  (core instance $i (instantiate $m))
+  ;; Instantiate the core module
+  (core instance $m (instantiate $M))
   
+  ;; Lift the core function to a component function
+  ;;  () -> s32 signature (no parameters, returns signed 32-bit integer)
   (func (export "hello") (result s32)
-    (canon lift (core func $i "hello"))
+    (canon lift (core func $m "hello"))
   )
 )

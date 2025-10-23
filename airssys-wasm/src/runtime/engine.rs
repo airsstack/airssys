@@ -46,7 +46,9 @@ use std::sync::{Arc, RwLock};
 
 // Layer 2: External crate imports
 use async_trait::async_trait;
-use wasmtime::{Config, Engine};
+use tokio::time::{timeout, Duration};
+use wasmtime::{Config, Engine, Store};
+use wasmtime::component::{Component, Linker};
 
 // Layer 3: Internal module imports
 use crate::core::{
@@ -152,8 +154,10 @@ impl WasmEngine {
         // Enable fuel metering for CPU limiting
         config.consume_fuel(true);
         
-        // Enable epoch-based interruption for timeouts
-        config.epoch_interruption(true);
+        // TODO(WASM-TASK-002): Epoch interruption disabled temporarily
+        // When enabled without proper deadline setup, it causes immediate trap
+        // Will be re-enabled in Phase 3 Task 3.3 with proper epoch management
+        // config.epoch_interruption(true);
         
         // Create Wasmtime engine
         let engine = Engine::new(&config).map_err(|e| {
@@ -175,6 +179,61 @@ impl WasmEngine {
     pub(crate) fn engine(&self) -> &Engine {
         &self.inner.engine
     }
+    
+    /// Internal execution helper (without timeout wrapper).
+    ///
+    /// Performs the actual component execution with fuel metering.
+    /// Called by `execute()` which wraps this with tokio timeout.
+    async fn execute_internal(
+        &self,
+        handle: &ComponentHandle,
+        function: &str,
+        _input: ComponentInput,
+        context: ExecutionContext,
+    ) -> WasmResult<ComponentOutput> {
+        // Create Store with fuel configuration
+        let mut store = Store::new(&self.inner.engine, ());
+        
+        // Set fuel for CPU metering (hybrid limiting)
+        store
+            .set_fuel(context.limits.max_fuel)
+            .map_err(|e| WasmError::execution_failed(format!("Failed to set fuel: {e}")))?;
+        
+        // Create linker for component instantiation
+        let linker = Linker::new(&self.inner.engine);
+        
+        // Instantiate component
+        let instance = linker
+            .instantiate_async(&mut store, handle.component())
+            .await
+            .map_err(|e| {
+                WasmError::execution_failed(format!(
+                    "Failed to instantiate component '{}': {e}",
+                    context.component_id.as_str()
+                ))
+            })?;
+        
+        // Get typed function (Component Model: () -> s32)
+        // Component Model requires typed function interfaces
+        let func = instance
+            .get_typed_func::<(), (i32,)>(&mut store, function)
+            .map_err(|e| {
+                WasmError::execution_failed(format!(
+                    "Function '{function}' not found or type mismatch: {e}"
+                ))
+            })?;
+        
+        // Call function (async because engine has async_support enabled)
+        let (result,) = func
+            .call_async(&mut store, ())
+            .await
+            .map_err(|e| {
+                WasmError::execution_failed(format!("Function '{function}' execution failed: {e}"))
+            })?;
+        
+        // Convert result to ComponentOutput
+        Ok(ComponentOutput::from_i32(result))
+    }
 }
 
 // Implement RuntimeEngine trait for WasmEngine
@@ -183,30 +242,46 @@ impl RuntimeEngine for WasmEngine {
     async fn load_component(
         &self,
         component_id: &ComponentId,
-        _bytes: &[u8],
+        bytes: &[u8],
     ) -> WasmResult<ComponentHandle> {
-        // Phase 1 stub implementation - actual loading logic in Phase 1 Task 1.2
-        // TODO(WASM-TASK-002): Implement component loading in Phase 1 Task 1.2
-        Ok(ComponentHandle::new(component_id.as_str()))
+        // Parse component bytes into Wasmtime Component
+        let component = Component::new(&self.inner.engine, bytes).map_err(|e| {
+            WasmError::component_load_failed(
+                component_id.as_str(),
+                format!("Failed to parse WebAssembly component: {e}"),
+            )
+        })?;
+        
+        // Wrap in Arc for cheap cloning (Option A - WASM-TASK-002)
+        let component_arc = Arc::new(component);
+        
+        // Return handle with component reference
+        Ok(ComponentHandle::new(component_id.as_str(), component_arc))
     }
     
     async fn execute(
         &self,
-        _handle: &ComponentHandle,
-        _function: &str,
-        _input: ComponentInput,
-        _context: ExecutionContext,
+        handle: &ComponentHandle,
+        function: &str,
+        input: ComponentInput,
+        context: ExecutionContext,
     ) -> WasmResult<ComponentOutput> {
-        // Phase 1 stub implementation - execution in Phase 2
-        // TODO(WASM-TASK-002): Implement execution in Phase 2
-        Err(WasmError::execution_failed(
-            "Component execution not yet implemented (Phase 2)",
-        ))
+        // Wrap execution with timeout (hybrid CPU limiting)
+        let timeout_duration = Duration::from_millis(context.timeout_ms);
+        
+        match timeout(timeout_duration, self.execute_internal(handle, function, input, context.clone())).await {
+            Ok(result) => result,
+            Err(_elapsed) => {
+                // Timeout exceeded - return ExecutionTimeout error
+                Err(WasmError::execution_timeout(context.timeout_ms, None))
+            }
+        }
     }
     
     fn resource_usage(&self, _handle: &ComponentHandle) -> ResourceUsage {
-        // Phase 1 stub implementation - resource tracking in Phase 3
-        // TODO(WASM-TASK-002): Implement resource tracking in Phase 3
+        // Stub implementation - real tracking requires persistent Store
+        // TODO(Phase 4): Implement stateful resource tracking
+        // For now, return zero values as Store is dropped after execution
         ResourceUsage {
             memory_bytes: 0,
             fuel_consumed: 0,

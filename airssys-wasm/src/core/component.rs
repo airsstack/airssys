@@ -198,6 +198,71 @@ pub struct ComponentOutput {
     pub metadata: HashMap<String, String>,
 }
 
+impl ComponentOutput {
+    /// Create output from i32 value (simple MVP for Block 1).
+    ///
+    /// Encodes i32 as little-endian bytes for basic component testing.
+    /// Complex type system with multicodec support deferred to Block 2.
+    ///
+    /// # Codec
+    ///
+    /// Uses codec 0x0000 (raw binary) for simple i32 encoding.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::component::ComponentOutput;
+    ///
+    /// let output = ComponentOutput::from_i32(42);
+    /// assert_eq!(output.to_i32().unwrap(), 42);
+    /// ```
+    pub fn from_i32(value: i32) -> Self {
+        Self {
+            data: value.to_le_bytes().to_vec(),
+            codec: 0x0000, // Raw binary codec
+            metadata: HashMap::new(),
+        }
+    }
+
+    /// Decode i32 from output data (simple MVP for Block 1).
+    ///
+    /// Expects little-endian encoded i32 in data field.
+    ///
+    /// # Returns
+    ///
+    /// - `Some(i32)`: Successfully decoded i32 value
+    /// - `None`: Data length is not exactly 4 bytes
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::component::ComponentOutput;
+    ///
+    /// let output = ComponentOutput::from_i32(42);
+    /// assert_eq!(output.to_i32(), Some(42));
+    ///
+    /// // Invalid data length
+    /// let invalid = ComponentOutput {
+    ///     data: vec![1, 2, 3],
+    ///     codec: 0,
+    ///     metadata: std::collections::HashMap::new(),
+    /// };
+    /// assert_eq!(invalid.to_i32(), None);
+    /// ```
+    pub fn to_i32(&self) -> Option<i32> {
+        if self.data.len() == 4 {
+            Some(i32::from_le_bytes([
+                self.data[0],
+                self.data[1],
+                self.data[2],
+                self.data[3],
+            ]))
+        } else {
+            None
+        }
+    }
+}
+
 /// Installation source for components.
 ///
 /// Supports three installation methods per ADR-WASM-003:

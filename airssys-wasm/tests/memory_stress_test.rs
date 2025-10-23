@@ -11,6 +11,8 @@ use wasmtime::ResourceLimiter;
 fn test_high_frequency_allocations() {
     let limits = ResourceLimits::builder()
         .max_memory_bytes(1024 * 1024)
+        .max_fuel(10_000)
+        .timeout_seconds(30)
         .build()
         .expect("valid memory limit");
     let mut limiter = ComponentResourceLimiter::new(limits);
@@ -27,6 +29,8 @@ fn test_high_frequency_allocations() {
 fn test_concurrent_components_high_load() {
     let limits = ResourceLimits::builder()
         .max_memory_bytes(1024 * 1024)
+        .max_fuel(10_000)
+        .timeout_seconds(30)
         .build()
         .expect("valid memory limit");
 
@@ -53,6 +57,8 @@ fn test_concurrent_components_high_load() {
 fn test_oom_recovery_stress() {
     let limits = ResourceLimits::builder()
         .max_memory_bytes(1024 * 1024)
+        .max_fuel(10_000)
+        .timeout_seconds(30)
         .build()
         .expect("valid memory limit");
     let mut limiter = ComponentResourceLimiter::new(limits);
@@ -72,6 +78,8 @@ fn test_oom_recovery_stress() {
 fn test_edge_case_allocations() {
     let limits = ResourceLimits::builder()
         .max_memory_bytes(1024 * 1024)
+        .max_fuel(10_000)
+        .timeout_seconds(30)
         .build()
         .expect("valid memory limit");
     let mut limiter = ComponentResourceLimiter::new(limits);
