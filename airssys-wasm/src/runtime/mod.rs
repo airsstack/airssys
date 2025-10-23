@@ -68,8 +68,13 @@
 
 // Module declarations (§4.3 - mod.rs declaration-only pattern)
 pub mod engine;
+pub mod limits;
 pub mod loader;
 
 // Public re-exports for ergonomic imports
 pub use engine::WasmEngine;
+pub use limits::{
+    ComponentResourceLimiter, MemoryConfig, MemoryMetrics, ResourceLimits,
+    ResourceLimitsBuilder,
+};
 pub use loader::ComponentLoader;

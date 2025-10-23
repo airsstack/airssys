@@ -1,14 +1,41 @@
 //! Configuration types for airssys-wasm runtime and components.
 //!
 //! This module defines configuration patterns for runtime execution, security
-//! enforcement, and storage backends. All configuration types provide sensible
-//! defaults and support serialization to TOML/JSON for file-based configuration.
+//! enforcement, storage backends, and Component.toml parsing. All configuration
+//! types provide sensible defaults and support serialization to TOML/JSON for
+//! file-based configuration.
 //!
 //! # Configuration Categories
 //!
+//! - **ComponentConfigToml**: Component.toml parsing with resource limit validation
 //! - **RuntimeConfig**: WASM engine execution settings
 //! - **SecurityConfig**: Capability enforcement and audit settings
 //! - **StorageConfig**: Storage backend and quota settings
+//!
+//! # Component.toml Parsing
+//!
+//! Components must declare resource limits in `Component.toml` following ADR-WASM-002.
+//! The `[resources.memory]` section is MANDATORY with limits between 512KB-4MB.
+//!
+//! ```
+//! use airssys_wasm::core::config::ComponentConfigToml;
+//!
+//! let toml_content = r#"
+//! [component]
+//! name = "my-component"
+//! version = "1.0.0"
+//!
+//! [resources.memory]
+//! max_bytes = 1048576  # 1MB (MANDATORY: 512KB-4MB range)
+//!
+//! [resources.cpu]
+//! timeout_seconds = 60  # Optional
+//! "#;
+//!
+//! let config = ComponentConfigToml::from_str(toml_content).unwrap();
+//! let limits = config.to_resource_limits().unwrap();
+//! assert_eq!(limits.max_memory_bytes(), 1048576);
+//! ```
 //!
 //! # Default Constants
 //!
@@ -41,10 +68,344 @@
 //! ```
 
 // Layer 1: Standard library imports
-use std::path::PathBuf;
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 // Layer 2: Third-party crate imports
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
+
+// Layer 3: Internal module imports
+use crate::core::error::WasmError;
+use crate::runtime::limits::{MemoryConfig, ResourceLimits};
+
+// ============================================================================
+// Component.toml Parsing Errors
+// ============================================================================
+
+/// Errors that can occur during Component.toml parsing and validation.
+///
+/// These errors provide user-friendly messages with references to ADR-WASM-002
+/// for context and guidance on correct configuration.
+///
+/// # Examples
+///
+/// ```
+/// use airssys_wasm::core::config::ConfigError;
+///
+/// let error = ConfigError::MissingMemoryConfig;
+/// println!("{}", error);
+/// ```
+#[derive(Debug, Error)]
+pub enum ConfigError {
+    /// Missing [resources.memory] section in Component.toml.
+    ///
+    /// Memory limits are MANDATORY per ADR-WASM-002. Components must explicitly
+    /// declare memory requirements.
+    #[error(
+        "Missing [resources.memory] section in Component.toml\n\
+         \n\
+         Memory limits are MANDATORY per ADR-WASM-002.\n\
+         \n\
+         Add the following section to your Component.toml:\n\
+         \n\
+         [resources.memory]\n\
+         max_bytes = 1048576  # 1MB (range: 512KB-4MB)\n\
+         \n\
+         See ADR-WASM-002 Section 2.4.2 for rationale."
+    )]
+    MissingMemoryConfig,
+
+    /// Invalid resource limits detected during validation.
+    ///
+    /// This error wraps WasmError from the runtime module,
+    /// providing context about which specific limit validation failed.
+    #[error("Invalid resource limits: {0}")]
+    InvalidResourceLimits(#[from] WasmError),
+
+    /// Failed to parse Component.toml file.
+    ///
+    /// The TOML file has syntax errors or invalid structure.
+    #[error("Failed to parse Component.toml: {0}")]
+    TomlParseError(#[from] toml::de::Error),
+
+    /// Failed to read Component.toml file.
+    ///
+    /// File may not exist or lacks read permissions.
+    #[error("Failed to read Component.toml: {0}")]
+    IoError(#[from] std::io::Error),
+}
+
+// ============================================================================
+// Component.toml Configuration Structures
+// ============================================================================
+
+/// Component metadata from [component] section.
+///
+/// Basic identification and versioning information for the component.
+///
+/// # Examples
+///
+/// ```toml
+/// [component]
+/// name = "my-component"
+/// version = "0.1.0"
+/// ```
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ComponentMetadataToml {
+    /// Component name.
+    pub name: String,
+
+    /// Component version (semver format recommended).
+    pub version: String,
+}
+
+/// Memory configuration from [resources.memory] section.
+///
+/// **MANDATORY** per ADR-WASM-002. No defaults - explicit declaration required.
+///
+/// # Valid Range
+///
+/// - Minimum: 512KB (524,288 bytes)
+/// - Maximum: 4MB (4,194,304 bytes)
+///
+/// # Examples
+///
+/// ```toml
+/// [resources.memory]
+/// max_bytes = 1048576  # 1MB
+/// ```
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct MemoryConfigToml {
+    /// Maximum memory in bytes (MANDATORY).
+    ///
+    /// Range: 512KB-4MB (524,288-4,194,304 bytes).
+    pub max_bytes: usize,
+}
+
+/// CPU configuration from [resources.cpu] section (optional).
+///
+/// Timeout configuration for component execution. If not specified,
+/// runtime defaults will be used.
+///
+/// # Examples
+///
+/// ```toml
+/// [resources.cpu]
+/// timeout_seconds = 60
+/// ```
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CpuConfigToml {
+    /// Execution timeout in seconds.
+    pub timeout_seconds: Option<u64>,
+}
+
+/// Resource configuration from [resources] section.
+///
+/// Contains memory configuration (MANDATORY) and optional CPU configuration.
+///
+/// # Examples
+///
+/// ```toml
+/// [resources.memory]
+/// max_bytes = 1048576
+///
+/// [resources.cpu]
+/// timeout_seconds = 60
+/// ```
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ResourcesConfigToml {
+    /// Memory configuration (MANDATORY).
+    pub memory: Option<MemoryConfigToml>,
+
+    /// CPU configuration (optional).
+    #[serde(default)]
+    pub cpu: Option<CpuConfigToml>,
+}
+
+/// Top-level Component.toml configuration.
+///
+/// Represents the complete Component.toml file structure with component
+/// metadata and resource configuration.
+///
+/// # Validation Rules
+///
+/// - `[component]` section is required
+/// - `[resources.memory]` section is MANDATORY (ADR-WASM-002)
+/// - Memory limits must be in range 512KB-4MB
+///
+/// # Examples
+///
+/// ```
+/// use airssys_wasm::core::config::ComponentConfigToml;
+///
+/// let toml_content = r#"
+/// [component]
+/// name = "my-component"
+/// version = "0.1.0"
+///
+/// [resources.memory]
+/// max_bytes = 1048576
+/// "#;
+///
+/// let config = ComponentConfigToml::from_str(toml_content).unwrap();
+/// assert_eq!(config.component.name, "my-component");
+/// ```
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ComponentConfigToml {
+    /// Component metadata.
+    pub component: ComponentMetadataToml,
+
+    /// Resource configuration (optional in TOML, but memory is validated as MANDATORY).
+    #[serde(default)]
+    pub resources: Option<ResourcesConfigToml>,
+}
+
+impl ComponentConfigToml {
+    /// Parse Component.toml from file path.
+    ///
+    /// Reads and parses the TOML file, then validates resource limits.
+    ///
+    /// # Errors
+    ///
+    /// - `ConfigError::IoError` - File read failure
+    /// - `ConfigError::TomlParseError` - TOML parsing failure
+    /// - `ConfigError::MissingMemoryConfig` - Missing [resources.memory] section
+    /// - `ConfigError::InvalidResourceLimits` - Memory limits out of range
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use airssys_wasm::core::config::ComponentConfigToml;
+    ///
+    /// let config = ComponentConfigToml::from_file("Component.toml").unwrap();
+    /// println!("Component: {} v{}", config.component.name, config.component.version);
+    /// ```
+    pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, ConfigError> {
+        let content = fs::read_to_string(path)?;
+        Self::from_str(&content)
+    }
+
+    /// Parse Component.toml from string.
+    ///
+    /// Parses TOML content and validates resource limits.
+    /// This is a convenience method that delegates to the `FromStr` trait implementation.
+    ///
+    /// # Errors
+    ///
+    /// - `ConfigError::TomlParseError` - TOML parsing failure
+    /// - `ConfigError::MissingMemoryConfig` - Missing [resources.memory] section
+    /// - `ConfigError::InvalidResourceLimits` - Memory limits out of range
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::config::ComponentConfigToml;
+    ///
+    /// let toml_content = r#"
+    /// [component]
+    /// name = "test"
+    /// version = "1.0.0"
+    ///
+    /// [resources.memory]
+    /// max_bytes = 1048576
+    /// "#;
+    ///
+    /// let config = ComponentConfigToml::from_str(toml_content).unwrap();
+    /// assert_eq!(config.component.name, "test");
+    /// ```
+    #[allow(clippy::should_implement_trait)]
+    pub fn from_str(content: &str) -> Result<Self, ConfigError> {
+        content.parse()
+    }
+
+    /// Validate Component.toml configuration.
+    ///
+    /// Ensures [resources.memory] section exists and memory limits are valid.
+    ///
+    /// # Errors
+    ///
+    /// - `ConfigError::MissingMemoryConfig` - Missing [resources.memory] section
+    /// - `ConfigError::InvalidResourceLimits` - Memory limits out of range
+    fn validate(&self) -> Result<(), ConfigError> {
+        let resources = self
+            .resources
+            .as_ref()
+            .ok_or(ConfigError::MissingMemoryConfig)?;
+
+        let memory_config = resources
+            .memory
+            .as_ref()
+            .ok_or(ConfigError::MissingMemoryConfig)?;
+
+        let memory = MemoryConfig {
+            max_memory_bytes: memory_config.max_bytes as u64,
+        };
+
+        memory.validate()?;
+
+        Ok(())
+    }
+
+    /// Convert to ResourceLimits for runtime usage.
+    ///
+    /// Extracts resource limits from Component.toml configuration and converts
+    /// to ResourceLimits structure used by the runtime.
+    ///
+    /// # Errors
+    ///
+    /// - `ConfigError::MissingMemoryConfig` - Missing [resources.memory] section
+    /// - `ConfigError::InvalidResourceLimits` - Invalid resource configuration
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::config::ComponentConfigToml;
+    ///
+    /// let toml_content = r#"
+    /// [component]
+    /// name = "test"
+    /// version = "1.0.0"
+    ///
+    /// [resources.memory]
+    /// max_bytes = 1048576
+    /// "#;
+    ///
+    /// let config = ComponentConfigToml::from_str(toml_content).unwrap();
+    /// let limits = config.to_resource_limits().unwrap();
+    /// assert_eq!(limits.max_memory_bytes(), 1048576);
+    /// ```
+    pub fn to_resource_limits(&self) -> Result<ResourceLimits, ConfigError> {
+        let resources = self
+            .resources
+            .as_ref()
+            .ok_or(ConfigError::MissingMemoryConfig)?;
+
+        let memory_config = resources
+            .memory
+            .as_ref()
+            .ok_or(ConfigError::MissingMemoryConfig)?;
+
+        let memory = MemoryConfig {
+            max_memory_bytes: memory_config.max_bytes as u64,
+        };
+
+        let limits = ResourceLimits::try_from(memory)?;
+
+        Ok(limits)
+    }
+}
+
+impl FromStr for ComponentConfigToml {
+    type Err = ConfigError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let config: ComponentConfigToml = toml::from_str(s)?;
+        config.validate()?;
+        Ok(config)
+    }
+}
 
 // ============================================================================
 // RuntimeConfig Default Constants
@@ -403,6 +764,10 @@ pub enum StorageBackend {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used)]
+    #![allow(clippy::expect_used)]
+    #![allow(clippy::panic)]
+
     use super::*;
 
     // ============================================================================
@@ -620,5 +985,160 @@ mod tests {
         let debug_str = format!("{security:?}");
         assert!(debug_str.contains("SecurityConfig"));
         assert!(debug_str.contains("Strict"));
+    }
+
+    // ============================================================================
+    // Component.toml Parsing Tests
+    // ============================================================================
+
+    #[test]
+    fn test_component_config_valid() {
+        let toml_content = r#"
+[component]
+name = "test-component"
+version = "1.0.0"
+
+[resources.memory]
+max_bytes = 1048576
+        "#;
+
+        let config = ComponentConfigToml::from_str(toml_content).unwrap();
+        assert_eq!(config.component.name, "test-component");
+        assert_eq!(config.component.version, "1.0.0");
+        assert_eq!(
+            config.resources.as_ref().unwrap().memory.as_ref().unwrap().max_bytes,
+            1048576
+        );
+    }
+
+    #[test]
+    fn test_component_config_missing_memory_section() {
+        let toml_content = r#"
+[component]
+name = "test-component"
+version = "1.0.0"
+        "#;
+
+        let result = ComponentConfigToml::from_str(toml_content);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        eprintln!("Error: {err:?}");
+        assert!(matches!(err, ConfigError::MissingMemoryConfig));
+    }
+
+    #[test]
+    fn test_component_config_memory_below_minimum() {
+        let toml_content = r#"
+[component]
+name = "test-component"
+version = "1.0.0"
+
+[resources.memory]
+max_bytes = 262144
+        "#;
+
+        let result = ComponentConfigToml::from_str(toml_content);
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            ConfigError::InvalidResourceLimits(_)
+        ));
+    }
+
+    #[test]
+    fn test_component_config_memory_above_maximum() {
+        let toml_content = r#"
+[component]
+name = "test-component"
+version = "1.0.0"
+
+[resources.memory]
+max_bytes = 5242880
+        "#;
+
+        let result = ComponentConfigToml::from_str(toml_content);
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            ConfigError::InvalidResourceLimits(_)
+        ));
+    }
+
+    #[test]
+    fn test_component_config_minimum_valid_memory() {
+        let toml_content = r#"
+[component]
+name = "test-component"
+version = "1.0.0"
+
+[resources.memory]
+max_bytes = 524288
+        "#;
+
+        let config = ComponentConfigToml::from_str(toml_content).unwrap();
+        assert_eq!(
+            config.resources.as_ref().unwrap().memory.as_ref().unwrap().max_bytes,
+            524288
+        );
+    }
+
+    #[test]
+    fn test_component_config_maximum_valid_memory() {
+        let toml_content = r#"
+[component]
+name = "test-component"
+version = "1.0.0"
+
+[resources.memory]
+max_bytes = 4194304
+        "#;
+
+        let config = ComponentConfigToml::from_str(toml_content).unwrap();
+        assert_eq!(
+            config.resources.as_ref().unwrap().memory.as_ref().unwrap().max_bytes,
+            4194304
+        );
+    }
+
+    #[test]
+    fn test_component_config_to_resource_limits() {
+        let toml_content = r#"
+[component]
+name = "test-component"
+version = "1.0.0"
+
+[resources.memory]
+max_bytes = 2097152
+        "#;
+
+        let config = ComponentConfigToml::from_str(toml_content).unwrap();
+        let limits = config.to_resource_limits().unwrap();
+        assert_eq!(limits.max_memory_bytes(), 2097152);
+    }
+
+    #[test]
+    fn test_component_config_with_optional_cpu() {
+        let toml_content = r#"
+[component]
+name = "test-component"
+version = "1.0.0"
+
+[resources.memory]
+max_bytes = 1048576
+
+[resources.cpu]
+timeout_seconds = 60
+        "#;
+
+        let config = ComponentConfigToml::from_str(toml_content).unwrap();
+        assert_eq!(config.component.name, "test-component");
+        assert_eq!(
+            config.resources.as_ref().unwrap().memory.as_ref().unwrap().max_bytes,
+            1048576
+        );
+        assert_eq!(
+            config.resources.as_ref().unwrap().cpu.as_ref().unwrap().timeout_seconds,
+            Some(60)
+        );
     }
 }

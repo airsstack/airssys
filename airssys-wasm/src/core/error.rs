@@ -231,6 +231,29 @@ pub enum WasmError {
         attempted: u64,
     },
 
+    /// Component ran out of memory during execution.
+    ///
+    /// This error occurs when a WASM component's memory allocation request
+    /// exceeds the configured memory limit. This is distinct from
+    /// `ResourceLimitExceeded` in that it specifically indicates runtime
+    /// OOM conditions detected by Wasmtime's ResourceLimiter.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::error::WasmError;
+    ///
+    /// let err = WasmError::out_of_memory(2 * 1024 * 1024, 3 * 1024 * 1024);
+    /// assert!(err.to_string().contains("Out of memory"));
+    /// ```
+    #[error("Out of memory: limit {limit_bytes} bytes, requested {requested_bytes} bytes")]
+    OutOfMemory {
+        /// Memory limit in bytes
+        limit_bytes: u64,
+        /// Requested memory allocation in bytes
+        requested_bytes: u64,
+    },
+
     /// Capability denied - component lacks required permission.
     ///
     /// # Examples
@@ -602,6 +625,28 @@ impl WasmError {
         }
     }
 
+    /// Create an out of memory error.
+    ///
+    /// This error indicates that a WASM component's memory allocation request
+    /// exceeded the configured memory limit during runtime execution.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::error::WasmError;
+    ///
+    /// let err = WasmError::out_of_memory(2 * 1024 * 1024, 3 * 1024 * 1024);
+    /// assert!(err.to_string().contains("Out of memory"));
+    /// assert!(err.to_string().contains("2097152")); // 2MB limit
+    /// assert!(err.to_string().contains("3145728")); // 3MB requested
+    /// ```
+    pub fn out_of_memory(limit_bytes: u64, requested_bytes: u64) -> Self {
+        Self::OutOfMemory {
+            limit_bytes,
+            requested_bytes,
+        }
+    }
+
     /// Create a capability denied error.
     ///
     /// # Examples
@@ -852,6 +897,26 @@ mod tests {
         assert!(msg.contains("memory"));
         assert!(msg.contains("67108864")); // 64MB
         assert!(msg.contains("134217728")); // 128MB
+    }
+
+    #[test]
+    fn test_out_of_memory() {
+        let err = WasmError::out_of_memory(2 * 1024 * 1024, 3 * 1024 * 1024);
+        let msg = err.to_string();
+        assert!(msg.contains("Out of memory"));
+        assert!(msg.contains("2097152")); // 2MB limit
+        assert!(msg.contains("3145728")); // 3MB requested
+    }
+
+    #[test]
+    fn test_out_of_memory_at_exact_limit() {
+        let limit = 4 * 1024 * 1024; // 4MB
+        let requested = limit + 1; // Just over limit
+        let err = WasmError::out_of_memory(limit, requested);
+        let msg = err.to_string();
+        assert!(msg.contains("Out of memory"));
+        assert!(msg.contains(&limit.to_string()));
+        assert!(msg.contains(&requested.to_string()));
     }
 
     #[test]

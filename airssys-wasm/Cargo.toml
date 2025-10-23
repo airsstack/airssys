@@ -33,9 +33,18 @@ tokio = { workspace = true, features = ["macros", "rt", "fs"] }
 wasmtime = { version = "24.0", features = ["component-model", "async", "cranelift"] }
 wasmtime-wasi = { version = "24.0" }
 
+# Anyhow for Wasmtime ResourceLimiter trait (required by wasmtime API)
+anyhow = { workspace = true }
+
+# TOML parsing for Component.toml configuration (WASM-TASK-002 Phase 2)
+toml = { workspace = true }
+
 [dev-dependencies]
 # WAT compiler for test fixtures
 wat = "1.0"
+
+# Temporary file/directory management for integration tests
+tempfile = "3.8"
 
 [lints]
 workspace = true

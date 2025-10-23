@@ -180,7 +180,11 @@ pub mod observability;  // Phase 10.2: Complete
 // Re-exports for public API
 pub use capability::{Capability, CapabilitySet, DomainPattern, NamespacePattern, PathPattern, TopicPattern};
 pub use component::{Component, ComponentConfig, ComponentId, ComponentInput, ComponentMetadata, ComponentOutput, ComponentState, InstallationSource, ResourceLimits};
-pub use config::{RuntimeConfig, SecurityConfig, SecurityMode, StorageBackend as StorageBackendType, StorageConfig};
+pub use config::{
+    ComponentConfigToml, ComponentMetadataToml, ConfigError, CpuConfigToml, MemoryConfigToml,
+    ResourcesConfigToml, RuntimeConfig, SecurityConfig, SecurityMode,
+    StorageBackend as StorageBackendType, StorageConfig,
+};
 pub use error::{WasmError, WasmResult};
 pub use interface::{FunctionSignature, WitInterface};
 pub use runtime::{ComponentHandle, ExecutionContext, ExecutionState, ResourceUsage, RuntimeEngine};
