@@ -89,3 +89,9 @@ oauth2_test_resources/
 # Local environment configuration
 .env.local
 .env.*.local
+
+# === WASM TEST FIXTURES ===
+# Generated WASM binaries from WAT sources (compiled at test runtime)
+# Keep WAT (text) sources in git, but not compiled binaries
+tests/fixtures/*.wasm
+**/tests/fixtures/*.wasm

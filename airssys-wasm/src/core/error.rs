@@ -71,6 +71,25 @@ use crate::core::capability::Capability;
 /// ```
 #[derive(Error, Debug)]
 pub enum WasmError {
+    /// Engine initialization failed during startup.
+    ///
+    /// Occurs when the Wasmtime engine cannot be created due to invalid
+    /// configuration or system constraints.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::error::WasmError;
+    ///
+    /// let err = WasmError::engine_initialization("Failed to initialize Cranelift compiler");
+    /// assert!(err.to_string().contains("Engine initialization failed"));
+    /// ```
+    #[error("Engine initialization failed: {reason}")]
+    EngineInitialization {
+        /// Reason for initialization failure
+        reason: String,
+    },
+
     /// Component loading failed during instantiation.
     ///
     /// # Examples
@@ -90,6 +109,44 @@ pub enum WasmError {
         /// Optional source error for debugging
         #[source]
         source: Option<Box<dyn std::error::Error + Send + Sync>>,
+    },
+
+    /// Component parsing failed - invalid WASM format.
+    ///
+    /// Occurs when component bytes do not conform to WebAssembly binary format
+    /// or Component Model specifications.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::error::WasmError;
+    ///
+    /// let err = WasmError::component_parse_failed("Invalid magic number");
+    /// assert!(err.to_string().contains("parse failed"));
+    /// ```
+    #[error("Component parse failed: {reason}")]
+    ComponentParseFailed {
+        /// Reason for parse failure
+        reason: String,
+    },
+
+    /// Component validation failed - semantic errors.
+    ///
+    /// Occurs when component is syntactically valid but fails semantic
+    /// validation (invalid imports, type mismatches, etc.).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::error::WasmError;
+    ///
+    /// let err = WasmError::component_validation_failed("Missing required import 'wasi:filesystem'");
+    /// assert!(err.to_string().contains("validation failed"));
+    /// ```
+    #[error("Component validation failed: {reason}")]
+    ComponentValidationFailed {
+        /// Reason for validation failure
+        reason: String,
     },
 
     /// Component execution failed during function call.
@@ -363,6 +420,22 @@ pub enum WasmError {
 pub type WasmResult<T> = Result<T, WasmError>;
 
 impl WasmError {
+    /// Create an engine initialization error.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::error::WasmError;
+    ///
+    /// let err = WasmError::engine_initialization("Failed to initialize Cranelift compiler");
+    /// assert!(err.to_string().contains("Engine initialization failed"));
+    /// ```
+    pub fn engine_initialization(reason: impl Into<String>) -> Self {
+        Self::EngineInitialization {
+            reason: reason.into(),
+        }
+    }
+
     /// Create a component load error.
     ///
     /// # Examples
@@ -382,6 +455,38 @@ impl WasmError {
             component_id: component_id.into(),
             reason: reason.into(),
             source: None,
+        }
+    }
+
+    /// Create a component parse failed error.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::error::WasmError;
+    ///
+    /// let err = WasmError::component_parse_failed("Invalid WASM magic number");
+    /// assert!(err.to_string().contains("parse failed"));
+    /// ```
+    pub fn component_parse_failed(reason: impl Into<String>) -> Self {
+        Self::ComponentParseFailed {
+            reason: reason.into(),
+        }
+    }
+
+    /// Create a component validation failed error.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::error::WasmError;
+    ///
+    /// let err = WasmError::component_validation_failed("Missing required import");
+    /// assert!(err.to_string().contains("validation failed"));
+    /// ```
+    pub fn component_validation_failed(reason: impl Into<String>) -> Self {
+        Self::ComponentValidationFailed {
+            reason: reason.into(),
         }
     }
 

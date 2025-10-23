@@ -57,5 +57,8 @@
 // Core abstractions (foundation)
 pub mod core;
 
+// Runtime implementation layer (Block 1 - WASM-TASK-002)
+pub mod runtime;
+
 // Prelude for ergonomic imports
 pub mod prelude;

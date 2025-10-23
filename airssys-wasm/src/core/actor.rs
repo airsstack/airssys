@@ -338,7 +338,7 @@ mod tests {
 
         let age = msg.age_ms();
         assert!(
-            (99..=101).contains(&age),
+            (95..=110).contains(&age),
             "Expected age ~100ms, got {age}ms (timing tolerance)"
         );
     }

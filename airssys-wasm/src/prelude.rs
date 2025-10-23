@@ -72,6 +72,8 @@
 // (none required for re-exports)
 
 // Layer 3: Internal module imports
+
+// Core abstractions
 pub use crate::core::{
     // Universal Abstractions
     
@@ -166,3 +168,6 @@ pub use crate::core::{
     MetricsSnapshot,
     ObservabilityEvent,
 };
+
+// Runtime implementation (Block 1 - WASM-TASK-002)
+pub use crate::runtime::{ComponentLoader, WasmEngine};
