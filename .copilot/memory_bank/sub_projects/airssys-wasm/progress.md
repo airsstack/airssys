@@ -1,19 +1,19 @@
 # airssys-wasm Progress
 
 ## Current Status
-**Phase:** Block 1 Phase 3 Task 3.2 Complete - Timeout Infrastructure Foundation  
-**Overall Progress:** 32% complete (WASM-TASK-000 100%, WASM-TASK-002 Phase 2 100%, Phase 3 Task 3.2 100%)  
-**Last Updated:** 2025-10-24 (WASM-TASK-002 Phase 3 Task 3.2 completion - 208 tests passing)
+**Phase:** Block 1 Phase 3 Task 3.1 & 3.2 Complete - CPU Limiting Infrastructure  
+**Overall Progress:** 35% complete (WASM-TASK-000 100%, WASM-TASK-002 Phase 1-2 100%, Phase 3 Task 3.1 & 3.2 100%)  
+**Last Updated:** 2025-10-24 (WASM-TASK-002 Phase 3 Task 3.1 & 3.2 completion - 208 tests passing)
 
 ## What Works
 ### ✅ Completed Tasks
 
-#### WASM-TASK-002: Block 1 - WASM Runtime Layer (Phase 3 Task 3.2) - ✅ **TASK 3.2 COMPLETE (Oct 24, 2025)**
-**Status:** Phase 3 Task 3.2 Complete (Timeout Infrastructure Foundation)  
-**Completion:** 32% of overall project (Phase 3 Task 3.2 of WASM-TASK-002)  
+#### WASM-TASK-002: Block 1 - WASM Runtime Layer (Phase 3) - ✅ **TASK 3.1 & 3.2 COMPLETE (Oct 24, 2025)**
+**Status:** Phase 3 Task 3.1 & 3.2 Complete (CPU Limiting Infrastructure)  
+**Completion:** 35% of overall project (Phase 3 Tasks 3.1 & 3.2 of WASM-TASK-002)  
 **Test Coverage:** 208 operational tests passing (203 unit + 5 integration)
 
-**Task 3.2 Deliverables:**
+**Task 3.1 & 3.2 Deliverables:**
 - **Component Loading and Instantiation** ✅
   - `runtime/engine.rs`: Complete Wasmtime engine setup (338 lines)
   - Component loading from bytes with validation

@@ -1,9 +1,9 @@
 # airssys-wasm Technical Debt Index
 
 **Sub-Project:** airssys-wasm  
-**Last Updated:** 2025-10-21  
-**Total Debt Items:** 1  
-**Active Debt Items:** 1  
+**Last Updated:** 2025-10-24  
+**Total Debt Items:** 2  
+**Active Debt Items:** 2  
 
 ## Active Debt Items
 
@@ -16,6 +16,16 @@
 - **Summary:** Deferred runtime type abstractions (TypeDescriptor, InterfaceKind, BindingMetadata) following YAGNI analysis
 - **Impact:** Positive maintainability (60% less code), zero functional impact
 - **Re-evaluation:** Block 10 Phase 2+ (Q2 2026+) for multi-language support
+
+### DEBT-WASM-002: Epoch-Based Preemption Future Enhancement
+- **File:** `debt_wasm_002_epoch_preemption_future_enhancement.md`
+- **Status:** Active
+- **Category:** DEBT-PERF
+- **Priority:** Low (Business), Medium (Technical)
+- **Created:** 2025-10-24
+- **Summary:** Wasmtime epoch-based preemption not implemented; using tokio timeout wrapper instead for simplicity
+- **Impact:** Cannot interrupt running WASM code mid-execution; acceptable for trusted components
+- **Implementation:** Future enhancement when malicious component handling becomes critical
 
 ## Anticipated Debt Categories (Future)
 

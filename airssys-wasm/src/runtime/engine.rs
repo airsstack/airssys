@@ -154,11 +154,6 @@ impl WasmEngine {
         // Enable fuel metering for CPU limiting
         config.consume_fuel(true);
         
-        // TODO(WASM-TASK-002): Epoch interruption disabled temporarily
-        // When enabled without proper deadline setup, it causes immediate trap
-        // Will be re-enabled in Phase 3 Task 3.3 with proper epoch management
-        // config.epoch_interruption(true);
-        
         // Create Wasmtime engine
         let engine = Engine::new(&config).map_err(|e| {
             WasmError::engine_initialization(format!("Failed to create Wasmtime engine: {e}"))
