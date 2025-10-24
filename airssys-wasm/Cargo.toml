@@ -46,5 +46,25 @@ wat = "1.0"
 # Temporary file/directory management for integration tests
 tempfile = "3.8"
 
+# Criterion for benchmarking
+criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
+
+# Resource-conscious benchmark configuration
+[[bench]]
+name = "instantiation_benchmarks"
+harness = false
+
+[[bench]]
+name = "execution_benchmarks"
+harness = false
+
+[[bench]]
+name = "memory_benchmarks"
+harness = false
+
+[[bench]]
+name = "crash_handling_benchmarks"
+harness = false
+
 [lints]
 workspace = true
