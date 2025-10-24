@@ -1,6 +1,6 @@
 # [WASM-TASK-002] - Block 1: WASM Runtime Layer
 
-**Status:** in-progress (Phase 3 Task 3.1 & 3.2 complete, Task 3.3 pending)  
+**Status:** in-progress (Phase 3 complete - 50%)  
 **Added:** 2025-10-20  
 **Updated:** 2025-10-24  
 **Priority:** Critical Path - Foundation Layer  
@@ -473,7 +473,7 @@ This task is complete when:
 |-------|-------------|--------|-------------------|-------|
 | 1 | Wasmtime Setup and Basic Execution | ✅ complete | Week 1-2 | Foundation |
 | 2 | Memory Management and Sandboxing | ✅ complete | Week 2-3 | Security critical |
-| 3 | CPU Limiting and Resource Control | in-progress | Week 3-4 | Task 3.1 & 3.2 complete |
+| 3 | CPU Limiting and Resource Control | ✅ complete | Week 3-4 | All tasks complete |
 | 4 | Async Execution and Tokio Integration | not-started | Week 4-5 | airssys-rt compat |
 | 5 | Crash Isolation and Recovery | not-started | Week 5-6 | Production readiness |
 | 6 | Performance Baseline Establishment | not-started | Week 6 | Measurement not optimization |
@@ -489,7 +489,7 @@ This task is complete when:
 | 2.3 | Memory Isolation Verification | ✅ complete | 2025-10-23 | Security validation |
 | 3.1 | Fuel Metering Implementation | ✅ complete | 2025-10-24 | CPU protection layer 1 |
 | 3.2 | Wall-Clock Timeout Protection | ✅ complete | 2025-10-24 | CPU protection layer 2 |
-| 3.3 | CPU Limit Testing and Tuning | not-started | - | Security validation |
+| 3.3 | CPU Limit Testing and Tuning | ✅ complete | 2025-10-24 | Security validation |
 | 4.1 | Async WASM Function Support | not-started | - | Async foundation |
 | 4.2 | Async Host Function Calls | not-started | - | Host integration |
 | 4.3 | Async Integration Testing | not-started | - | Async validation |
@@ -502,14 +502,17 @@ This task is complete when:
 
 ## Progress Log
 
-### 2025-10-24 - Phase 3 Task 3.1 & 3.2 Complete
+### 2025-10-24 - Phase 3 COMPLETE (CPU Limiting and Resource Control)
 - ✅ Task 3.1: Fuel Metering Implementation complete
 - ✅ Task 3.2: Wall-Clock Timeout Protection infrastructure complete
+- ✅ Task 3.3: CPU Limit Testing and Tuning complete
 - Component loading and instantiation working (runtime/engine.rs - 338 lines)
-- Fuel metering enabled, epoch interruption documented for Task 3.3
-- 208 tests passing (203 unit + 5 integration)
-- Zero warnings, clean codebase
-- **Next:** Task 3.3 - CPU Limit Testing and Tuning
+- Fuel metering enabled with pragmatic tokio timeout wrapper
+- Epoch-based preemption documented as DEBT-WASM-002 (future enhancement)
+- 214 tests passing (203 unit + 7 CPU limit integration + 4 other integration)
+- Zero warnings, clean production code
+- **Progress:** 50% complete (Phases 1-3 complete)
+- **Next:** Phase 4 - Async Execution and Tokio Integration
 
 ### 2025-10-23 - Phase 2 Complete
 - ✅ All Phase 2 tasks complete (Memory Management and Sandboxing)
