@@ -71,6 +71,7 @@ pub mod async_host;
 pub mod engine;
 pub mod limits;
 pub mod loader;
+pub mod store_manager;
 
 // Public re-exports for ergonomic imports
 pub use async_host::{
@@ -83,3 +84,4 @@ pub use limits::{
     ResourceLimitsBuilder,
 };
 pub use loader::ComponentLoader;
+pub use store_manager::StoreWrapper;
