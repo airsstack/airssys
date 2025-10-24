@@ -67,11 +67,16 @@
 //! - **Workspace Standards**: §2.1 (imports), §4.3 (mod.rs pattern)
 
 // Module declarations (§4.3 - mod.rs declaration-only pattern)
+pub mod async_host;
 pub mod engine;
 pub mod limits;
 pub mod loader;
 
 // Public re-exports for ergonomic imports
+pub use async_host::{
+    create_host_context, AsyncFileReadFunction, AsyncHostRegistry, AsyncHttpFetchFunction,
+    AsyncSleepFunction,
+};
 pub use engine::WasmEngine;
 pub use limits::{
     ComponentResourceLimiter, MemoryConfig, MemoryMetrics, ResourceLimits,
