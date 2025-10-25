@@ -1,0 +1,11 @@
+package test:component@1.0.0;
+
+use test:types/types.{test-result};
+
+interface component {
+    execute: func() -> test-result;
+}
+
+world test-world {
+    export component;
+}

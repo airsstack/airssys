@@ -1,0 +1,92 @@
+// build.rs template for airssys-wasm
+// Validates WIT and generates Rust bindings using wit-bindgen CLI
+
+use std::env;
+use std::path::PathBuf;
+use std::process::Command;
+
+fn main() {
+    println!("cargo:rerun-if-changed=wit/");
+    println!("cargo:rerun-if-changed=build.rs");
+
+    let wit_dir = PathBuf::from("wit");
+    let out_dir = PathBuf::from("src").join("generated");
+
+    // Ensure output directory exists
+    std::fs::create_dir_all(&out_dir)
+        .expect("Failed to create generated bindings directory");
+
+    // Stage 1: Validate WIT with wasm-tools (better error messages)
+    println!("cargo:warning=Validating WIT definitions...");
+    validate_wit(&wit_dir);
+
+    // Stage 2: Generate Rust bindings with wit-bindgen
+    println!("cargo:warning=Generating Rust bindings from WIT...");
+    generate_bindings(&wit_dir, &out_dir);
+
+    println!("cargo:warning=WIT bindings generated successfully in {}", out_dir.display());
+}
+
+fn validate_wit(wit_dir: &PathBuf) {
+    let wasm_tools = env::var("WASM_TOOLS").unwrap_or_else(|_| "wasm-tools".to_string());
+
+    let output = Command::new(&wasm_tools)
+        .args(&[
+            "component",
+            "wit",
+            wit_dir.to_str().unwrap(),
+        ])
+        .output()
+        .expect("Failed to execute wasm-tools. Is it installed? Run: cargo install wasm-tools");
+
+    if !output.status.success() {
+        eprintln!("\n==================== WIT VALIDATION FAILED ====================");
+        eprintln!("{}", String::from_utf8_lossy(&output.stderr));
+        eprintln!("================================================================\n");
+        panic!("WIT validation failed. Fix WIT syntax errors and rebuild.");
+    }
+
+    // Print validation output if verbose
+    if env::var("AIRSSYS_BUILD_VERBOSE").is_ok() {
+        println!("cargo:warning=WIT validation output:");
+        println!("cargo:warning={}", String::from_utf8_lossy(&output.stdout));
+    }
+}
+
+fn generate_bindings(wit_dir: &PathBuf, out_dir: &PathBuf) {
+    let wit_bindgen = env::var("WIT_BINDGEN").unwrap_or_else(|_| "wit-bindgen".to_string());
+
+    // Determine world name (will be defined in Phase 2 WIT implementation)
+    // For now, use a placeholder or auto-detect from WIT
+    let world = env::var("AIRSSYS_WORLD").unwrap_or_else(|_| "airssys-world".to_string());
+
+    let output = Command::new(&wit_bindgen)
+        .args(&[
+            "rust",
+            "--out-dir", out_dir.to_str().unwrap(),
+            "--world", &world,
+            "--ownership", "borrowing-duplicate-if-necessary",
+            "--format",  // Run rustfmt on generated code
+            wit_dir.to_str().unwrap(),
+        ])
+        .output()
+        .expect("Failed to execute wit-bindgen. Is it installed? Run: cargo install wit-bindgen-cli");
+
+    if !output.status.success() {
+        eprintln!("\n==================== BINDING GENERATION FAILED ====================");
+        eprintln!("stdout: {}", String::from_utf8_lossy(&output.stdout));
+        eprintln!("stderr: {}", String::from_utf8_lossy(&output.stderr));
+        eprintln!("===================================================================\n");
+        eprintln!("Ensure wit-bindgen is installed:");
+        eprintln!("  cargo install wit-bindgen-cli --version 0.47.0");
+        eprintln!();
+        eprintln!("Required version: 0.47.0");
+        panic!("wit-bindgen failed - see errors above");
+    }
+
+    // Print generation output if verbose
+    if env::var("AIRSSYS_BUILD_VERBOSE").is_ok() {
+        println!("cargo:warning=Binding generation output:");
+        println!("cargo:warning={}", String::from_utf8_lossy(&output.stdout));
+    }
+}
