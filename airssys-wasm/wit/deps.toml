@@ -1,2 +1,0 @@
-airssys:component-core = { path = "airssys-component-core" }
-airssys:host-core = { path = "airssys-host-core" }

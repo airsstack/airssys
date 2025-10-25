@@ -2,7 +2,7 @@
 
 **Sub-Project:** airssys-wasm  
 **Last Updated:** 2025-10-22  
-**Total ADRs:** 12  
+**Total ADRs:** 13  
 **Active ADRs:** 12  
 
 ## Active ADRs
@@ -209,6 +209,23 @@
   - YAGNI compliance: Speculative abstraction with no identified use case
 - **Rationale:** ADR-WASM-009 specifies fixed MessageBroker architecture with pub-sub routing. Host-mediated security model prevents components from implementing custom routing strategies. Similar anti-pattern to StorageTransaction (ADR-WASM-013).
 - **File:** `adr_wasm_014_routing_strategy_removal.md`
+
+### ADR-WASM-015: WIT Package Structure Organization
+- **Status:** Accepted
+- **Date:** 2025-10-25
+- **Category:** Interface Design & Organization
+- **Summary:** Adopt directory-based package structure with semantic naming following pattern `airssys:{directory}-{type}@{version}`. Resolves discrepancy between WASM-TASK-003 Phase 1 plan (6 separate WIT files) and delivery (2 consolidated packages). Establishes 7-package structure: 4 core packages (types, component, capabilities, host) and 3 extension packages (filesystem, network, process).
+- **Related:** WASM-TASK-003 Phase 1, ADR-WASM-011 (Module Structure), KNOWLEDGE-WASM-004 (WIT Management)
+- **Impact:** High - Defines definitive WIT package organization, resolves structural inconsistency, enables proper Phase 2 continuation
+- **Key Decisions:**
+  - Package naming: `airssys:{directory}-{type}@{version}` (e.g., `airssys:core-types@1.0.0`)
+  - Directory structure: `core/` for required interfaces, `ext/` for optional capabilities
+  - Granular packages: 7 packages instead of 2 consolidated packages
+  - Migration strategy: Split current consolidated interfaces into granular packages
+  - Cross-package dependencies: Managed via updated `deps.toml`
+  - Versioning: Independent semantic versioning per package
+- **Rationale:** Provides semantic clarity, consistent naming patterns, granular versioning, and WebAssembly Component Model alignment. Resolves Phase 1 delivery mismatch while maintaining functional interfaces.
+- **File:** `adr_wasm_015_wit_package_structure_organization.md`
 
 ---
 
