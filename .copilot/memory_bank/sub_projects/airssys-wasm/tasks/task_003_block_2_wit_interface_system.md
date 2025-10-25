@@ -569,7 +569,330 @@ Capability annotations are security-critical. Review thoroughly.
 **Current Status:** 🔄 COMPLETE REWORK IN PROGRESS - Previous work abandoned due to fundamental flaws.
 
 **Action Items:**
-- Remove all existing WIT files and structure
-- Research actual WIT/wasm-tools requirements thoroughly
-- Create new implementation plan based on real constraints
-- Rebuild from foundation with proper validation
+- ✅ Remove all existing WIT files and structure (COMPLETED)
+- ⏳ Research actual WIT/wasm-tools requirements thoroughly
+- ⏳ Create new implementation plan based on real constraints
+- ⏳ Rebuild from foundation with proper validation
+
+---
+
+## Phase 1 Complete Rework Implementation Plan
+
+**Generated:** 2025-10-25  
+**Status:** 🔄 READY FOR EXECUTION  
+**Duration:** 9 days (54 hours total)  
+**Approach:** Evidence-based implementation with validation at every step
+
+### Executive Summary
+
+**Root Cause:** Planning-implementation mismatch, invalid WIT package structure, inadequate wasm-tools research  
+**Current State:** Git commit e8e8282 - All previous work cleaned up and abandoned  
+**Priority:** CRITICAL PATH - Blocks WASM-TASK-004 through 012
+
+### Implementation Strategy
+
+This plan follows the **PRIMARY DEVELOPMENT BEHAVIOR RULES** from AGENTS.md:
+- ✅ **No assumptions** - All decisions backed by documented WIT/wasm-tools specifications
+- ✅ **Evidence-based** - Every step validated against actual tooling requirements
+- ✅ **Research-first** - Proper investigation before implementation
+- ✅ **Validation-driven** - wasm-tools validation at every step
+
+---
+
+## Phase 1: Research and Foundation (Days 1-3, 18 hours)
+
+### Task 1.1: WIT Ecosystem Research (Day 1, 6 hours)
+
+**Objective:** Establish evidence-based understanding of WIT tooling requirements
+
+**Research Activities:**
+1. **wasm-tools Documentation Study** (2 hours)
+2. **WIT Specification Deep Dive** (2 hours)  
+3. **Practical Validation Testing** (2 hours)
+
+**Deliverables:**
+- `docs/research/wit_ecosystem_investigation.md` - Complete research findings
+- `docs/research/wasm_tools_validation_guide.md` - Validation command reference
+- `docs/research/wit_syntax_constraints.md` - Documented constraints from specification
+
+**Success Criteria:**
+- ✅ Understand exact wasm-tools validation requirements
+- ✅ Know valid package structure patterns
+- ✅ Documented dependency resolution rules
+- ✅ Test packages validate successfully
+- ✅ Clear understanding of tooling limitations
+
+---
+
+### Task 1.2: Package Structure Design Based on Evidence (Day 2, 6 hours)
+
+**Objective:** Design validatable 7-package structure per ADR-WASM-015
+
+**Planned Structure (7 Packages):**
+```
+airssys-wasm/wit/
+├── core/
+│   ├── types.wit           → airssys:core-types@1.0.0
+│   ├── component.wit        → airssys:core-component@1.0.0
+│   ├── capabilities.wit     → airssys:core-capabilities@1.0.0
+│   └── host.wit            → airssys:core-host@1.0.0
+├── ext/
+│   ├── filesystem.wit       → airssys:ext-filesystem@1.0.0
+│   ├── network.wit          → airssys:ext-network@1.0.0
+│   └── process.wit         → airssys:ext-process@1.0.0
+└── deps.toml               # Cross-package dependencies
+```
+
+**Deliverables:**
+- `docs/adr/adr_wasm_016_validated_package_structure.md` - Evidence-based structure ADR
+- `wit/structure_plan.md` - Detailed directory and package organization
+- `wit/deps.toml.template` - Dependency configuration template
+
+**Success Criteria:**
+- ✅ 7-package structure clearly defined
+- ✅ All naming follows ADR-WASM-015 conventions
+- ✅ Dependency graph has no cycles
+- ✅ Structure validates with wasm-tools
+- ✅ Clear rationale for every organizational decision
+
+---
+
+### Task 1.3: Build System Integration Research (Day 3, 6 hours)
+
+**Objective:** Understand wit-bindgen integration requirements
+
+**Research Activities:**
+1. **wit-bindgen Documentation Study** (2 hours)
+2. **Multi-Package Binding Generation** (2 hours)
+3. **Cargo Integration Testing** (2 hours)
+
+**Deliverables:**
+- `docs/research/wit_bindgen_integration_guide.md` - Build system integration guide
+- `tests/build_system/test-crate/` - Working test crate with bindings
+- `build.rs.template` - Template build script for airssys-wasm
+
+**Success Criteria:**
+- ✅ Understand exact wit-bindgen requirements
+- ✅ Know how to configure multi-package generation
+- ✅ Test crate successfully generates bindings
+- ✅ Bindings compile without errors
+- ✅ Clear documentation of build process
+
+---
+
+## Phase 2: Implementation Foundation (Days 4-6, 18 hours)
+
+### Task 2.1: Core Package Implementation (Day 4, 6 hours)
+
+**Objective:** Implement and validate 4 core WIT packages
+
+**Implementation Order:**
+1. **airssys:core-types@1.0.0** (90 minutes) - Common types and errors
+2. **airssys:core-capabilities@1.0.0** (90 minutes) - Permission types and actions
+3. **airssys:core-component@1.0.0** (90 minutes) - Component lifecycle interface
+4. **airssys:core-host@1.0.0** (90 minutes) - Host services interface
+
+**Deliverables:**
+- `wit/core/types.wit` - Validated common types package
+- `wit/core/capabilities.wit` - Validated capability types package
+- `wit/core/component.wit` - Validated component lifecycle package
+- `wit/core/host.wit` - Validated host services package
+- `docs/wit/core_packages_validation_log.md` - Validation results
+
+**Success Criteria:**
+- ✅ All 4 core packages validate individually
+- ✅ All 4 core packages validate together
+- ✅ Package naming follows ADR-WASM-015
+- ✅ All dependencies resolve correctly
+- ✅ Zero validation errors or warnings
+
+---
+
+### Task 2.2: Extension Package Implementation (Day 5, 6 hours)
+
+**Objective:** Implement and validate 3 extension WIT packages
+
+**Implementation Order:**
+1. **airssys:ext-filesystem@1.0.0** (2 hours) - Filesystem interface definition
+2. **airssys:ext-network@1.0.0** (2 hours) - Network interface definition
+3. **airssys:ext-process@1.0.0** (2 hours) - Process interface definition
+
+**Deliverables:**
+- `wit/ext/filesystem.wit` - Validated filesystem package
+- `wit/ext/network.wit` - Validated network package
+- `wit/ext/process.wit` - Validated process package
+- `docs/wit/extension_packages_validation_log.md` - Validation results
+
+**Success Criteria:**
+- ✅ All 3 extension packages validate individually
+- ✅ All 3 extension packages validate together
+- ✅ Core + extension packages validate together (complete wit/)
+- ✅ All cross-package imports resolve correctly
+- ✅ Zero validation errors or warnings
+
+---
+
+### Task 2.3: Dependency Configuration and Validation (Day 6, 6 hours)
+
+**Objective:** Configure and validate complete package dependency graph
+
+**Activities:**
+1. **deps.toml Configuration** (2 hours)
+2. **Complete System Validation** (2 hours)
+3. **Documentation and Examples** (2 hours)
+
+**Deliverables:**
+- `wit/deps.toml` - Complete dependency configuration
+- `wit/README.md` - Package structure documentation
+- `wit/VALIDATION.md` - Validation procedures and troubleshooting
+- `docs/wit/complete_structure_validation.md` - Final validation report
+
+**Success Criteria:**
+- ✅ deps.toml correctly configured
+- ✅ All 7 packages validate as complete system
+- ✅ World definition compiles correctly
+- ✅ All dependencies resolve without errors
+- ✅ Comprehensive documentation complete
+
+---
+
+## Phase 3: Build System Integration (Days 7-9, 18 hours)
+
+### Task 3.1: wit-bindgen Build Configuration (Day 7, 6 hours)
+
+**Objective:** Configure wit-bindgen for automatic Rust binding generation
+
+**Activities:**
+1. **build.rs Implementation** (3 hours)
+2. **Cargo.toml Configuration** (1.5 hours)
+3. **Generated Code Integration** (1.5 hours)
+
+**Deliverables:**
+- `build.rs` - Complete build script
+- `Cargo.toml` - Updated dependencies
+- `src/bindings.rs` - Generated bindings integration
+- `docs/build/wit_bindgen_integration.md` - Build system documentation
+
+**Success Criteria:**
+- ✅ Bindings generate automatically on `cargo build`
+- ✅ All 7 packages generate bindings
+- ✅ Generated code compiles without errors
+- ✅ Rebuild triggers work correctly
+- ✅ Clear documentation for build process
+
+---
+
+### Task 3.2: Permission System Integration (Day 8, 6 hours)
+
+**Objective:** Implement permission parsing and validation from WIT types
+
+**Activities:**
+1. **Permission Data Structures** (2 hours)
+2. **Component.toml Parser** (2 hours)
+3. **Integration Tests** (2 hours)
+
+**Deliverables:**
+- `src/core/permissions.rs` - Permission types and validation
+- `tests/permission_parsing_tests.rs` - Permission parsing tests
+- `docs/permissions/permission_system_integration.md` - Integration documentation
+
+**Success Criteria:**
+- ✅ Permission types match WIT definitions
+- ✅ Component.toml parsing works correctly
+- ✅ Pattern validation catches invalid patterns
+- ✅ >90% test coverage for permission logic
+- ✅ Clear error messages for validation failures
+
+---
+
+### Task 3.3: End-to-End Validation (Day 9, 6 hours)
+
+**Objective:** Validate complete WIT interface system with integration tests
+
+**Activities:**
+1. **Complete System Integration Test** (3 hours)
+2. **Documentation Completion** (2 hours)
+3. **Final Validation** (1 hour)
+
+**Deliverables:**
+- `tests/complete_wit_system_test.rs` - End-to-end integration test
+- `wit/REFERENCE.md` - Complete WIT interface reference
+- `wit/TROUBLESHOOTING.md` - Common issues and solutions
+- `docs/wit/phase_1_completion_report.md` - Final validation report
+
+**Success Criteria:**
+- ✅ All tests passing (unit + integration)
+- ✅ Zero compiler warnings
+- ✅ Zero clippy warnings
+- ✅ Complete documentation
+- ✅ All Phase 1 objectives met
+
+---
+
+## Success Criteria and Acceptance
+
+### Phase 1 Complete When:
+
+1. **WIT Package Validation** ✅
+2. **Build System Integration** ✅
+3. **Permission System** ✅
+4. **Documentation** ✅
+5. **Testing & Quality** ✅
+6. **Evidence-Based Implementation** ✅
+
+### Quality Gates:
+
+**Before Task Completion:**
+```bash
+# All must pass:
+cargo test --all-features
+cargo clippy --all-targets --all-features
+wasm-tools component wit wit/
+cargo build --release
+cargo doc --no-deps
+```
+
+**Expected Output:**
+- Tests: 100% passing
+- Clippy: 0 warnings
+- wasm-tools: 0 validation errors
+- Build: Success
+- Docs: Complete with 0 warnings
+
+---
+
+## Risk Mitigation
+
+### Risk 1: WIT Specification Changes
+**Mitigation:** Pin wasm-tools version, document exact version used, plan for version migration
+
+### Risk 2: wit-bindgen Compatibility Issues  
+**Mitigation:** Test binding generation early, have fallback manual bindings ready, document workarounds
+
+### Risk 3: Package Structure Validation Failures
+**Mitigation:** Validate after each small change, maintain rollback points, comprehensive testing
+
+### Risk 4: Circular Dependencies
+**Mitigation:** Design dependency graph upfront, validate deps.toml early, use topological sort
+
+### Risk 5: Build System Complexity
+**Mitigation:** Keep build.rs simple, document all configuration, test on clean builds
+
+---
+
+## Conclusion
+
+This rework plan addresses all identified critical issues:
+
+✅ **Evidence-based approach** - Every decision validated with wasm-tools  
+✅ **Proper research phase** - Understand tooling before implementation  
+✅ **Validated package structure** - ADR-WASM-015's 7-package design with validation  
+✅ **Incremental validation** - Validate after each step, not at the end  
+✅ **Comprehensive testing** - Unit, integration, and end-to-end validation  
+✅ **Complete documentation** - Research, implementation, and troubleshooting guides
+
+**Estimated Duration:** 9 days (54 hours total)  
+**Dependencies:** None - ready to start immediately  
+**Blocking:** WASM-TASK-004 through 012 await completion
+
+**Next Action:** User review and approval to proceed with Task 1.1 (WIT Ecosystem Research)

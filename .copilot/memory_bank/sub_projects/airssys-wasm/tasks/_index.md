@@ -203,26 +203,31 @@ Implemented Wasmtime Component Model integration with memory management (512KB-4
 ---
 
 ### WASM-TASK-003: Block 2 - WIT Interface System
-**Status:** 🔄 rework-required | **Effort:** 3-4 weeks | **Priority:** Critical Path  
+**Status:** 🔄 rework-in-progress | **Effort:** 9 days (54 hours) | **Priority:** Critical Path  
 **File:** `task_003_block_2_wit_interface_system.md`
 
-**CRITICAL ISSUE:** Complete rework required due to fundamental planning and implementation failures.
+**COMPLETE REWORK PLAN READY:** 9-day evidence-based implementation plan addressing all critical failures.
 
-**Problems Identified:**
+**Problems Identified (2025-10-25):**
 - Planning-implementation mismatch (original plan vs delivery completely misaligned)
 - Package structure chaos (ADR-WASM-015 reveals broken organization)
 - Missing wasm-tools consideration (planning failed to account for validation requirements)
 - Invalid WIT packages (current structure cannot be validated)
 - Inadequate research (foundation assumptions about WIT ecosystem were incorrect)
 
-**Required Action:** Complete task rework from scratch with proper research into actual WIT/wasm-tools requirements.
+**Resolution:** Complete task rework with comprehensive 9-day plan:
+- **Phase 1:** Research and Foundation (Days 1-3) - WIT ecosystem research, package structure design, build system research
+- **Phase 2:** Implementation Foundation (Days 4-6) - 7-package structure implementation (4 core + 3 extension)
+- **Phase 3:** Build System Integration (Days 7-9) - wit-bindgen integration, permission system, end-to-end validation
 
-**Original Deliverables (Abandoned):**
-- Core WIT interface definitions
-- Host service interfaces (storage, network, filesystem)
-- Rust binding generation
-- Interface validation tooling
-- Capability annotation system
+**Key Features of New Plan:**
+- Evidence-based approach (no assumptions)
+- wasm-tools validation at every step
+- ADR-WASM-015's 7-package structure implementation
+- Comprehensive testing and documentation
+- Risk mitigation for all identified issues
+
+**Current Status:** Git commit e8e8282 - All previous work cleaned up, ready to start Task 1.1 (WIT Ecosystem Research).
 
 ---
 
