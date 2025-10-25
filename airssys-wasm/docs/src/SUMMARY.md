@@ -18,6 +18,11 @@
     - [Practical Component Guide](./researches/component-based-plugin-rust-practical-guide.md)
     - [WASM AI Engineering](./researches/wasm-ai-overview.md)
     - [WASM Modular Systems](./researches/wasm-with-modular.md)
+    - [WIT Ecosystem Research](./researches/wit-ecosystem-research.md)
+        - [Tooling Versions](./researches/tooling_versions.md)
+        - [wasm-tools Commands](./researches/wasm_tools_commands_reference.md)
+        - [WIT Specification](./researches/wit_specification_constraints.md)
+        - [Validation Guide](./researches/wasm_tools_validation_guide.md)
 
 ## Implementation Guide
 - [Implementation Overview](./implementation.md)

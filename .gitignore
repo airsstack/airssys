@@ -95,3 +95,5 @@ oauth2_test_resources/
 # Keep WAT (text) sources in git, but not compiled binaries
 tests/fixtures/*.wasm
 **/tests/fixtures/*.wasm
+*.wasm
+.research
