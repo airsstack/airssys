@@ -31,6 +31,20 @@
     - [Deployment Strategies](./implementation/deployment-strategies.md)
     - [Composition Patterns](./implementation/composition-patterns.md)
 
+## WIT Design & Implementation
+- [Overview](./wit/README.md)
+- [WIT Package Structure](./wit/package_structure_design.md)
+- [WIT Implementation Guide](./wit/implementation_guide.md)
+- [Package Content Design](./wit/package_content_design.md)
+- Reference Materials
+    - [Dependency Graph](./wit/reference/dependency_graph.md)
+    - [Import Patterns](./wit/reference/import_patterns.md)
+    - [Type Sharing Strategy](./wit/reference/type_sharing_strategy.md)
+- Validation & Structure
+    - [Structure Plan](./wit/validation/structure_plan.md)
+    - [Validation Checklist](./wit/validation/validation_checklist.md)
+- [deps.toml Configuration](./researches/deps_toml_format_specification.md)
+
 ## API Reference
 - [API Overview](./api.md)
     - [Core Framework API](./api/core-api.md)

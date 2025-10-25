@@ -1,0 +1,168 @@
+# deps.toml Template - AirsSys WIT Package Dependencies
+#
+# This template shows the deps.toml configuration for all 7 packages
+# in the airssys-wasm WIT structure (ADR-WASM-015).
+#
+# Phase 2 Implementation: Copy relevant section to each package directory
+
+# =============================================================================
+# CORE PACKAGE: types (No Dependencies)
+# =============================================================================
+# Location: wit/core/types/deps.toml
+# Package: airssys:core-types@1.0.0
+# Dependencies: None (foundation package)
+
+[dependencies]
+# (none - foundation package)
+
+# This file can be empty or contain just comments.
+# Having an explicit [dependencies] section with comment is clearer.
+
+
+# =============================================================================
+# CORE PACKAGE: component (Depends on types)
+# =============================================================================
+# Location: wit/core/component/deps.toml
+# Package: airssys:core-component@1.0.0
+# Dependencies: core-types
+
+[dependencies]
+types = { path = "../types" }
+
+# Path explanation:
+# - Current location: wit/core/component/
+# - Target location: wit/core/types/
+# - Relative path: ../ (up to wit/core/), then types/
+
+
+# =============================================================================
+# CORE PACKAGE: capabilities (Depends on types)
+# =============================================================================
+# Location: wit/core/capabilities/deps.toml
+# Package: airssys:core-capabilities@1.0.0
+# Dependencies: core-types
+
+[dependencies]
+types = { path = "../types" }
+
+# Path explanation:
+# - Current location: wit/core/capabilities/
+# - Target location: wit/core/types/
+# - Relative path: ../ (up to wit/core/), then types/
+
+
+# =============================================================================
+# CORE PACKAGE: host (Depends on types + capabilities)
+# =============================================================================
+# Location: wit/core/host/deps.toml
+# Package: airssys:core-host@1.0.0
+# Dependencies: core-types, core-capabilities
+
+[dependencies]
+types = { path = "../types" }
+capabilities = { path = "../capabilities" }
+
+# Path explanation:
+# - Current location: wit/core/host/
+# - Target 1 (types): wit/core/types/
+#   Relative path: ../ (up to wit/core/), then types/
+# - Target 2 (capabilities): wit/core/capabilities/
+#   Relative path: ../ (up to wit/core/), then capabilities/
+
+
+# =============================================================================
+# EXTENSION PACKAGE: filesystem (Depends on types + capabilities)
+# =============================================================================
+# Location: wit/ext/filesystem/deps.toml
+# Package: airssys:ext-filesystem@1.0.0
+# Dependencies: core-types, core-capabilities
+
+[dependencies]
+types = { path = "../../core/types" }
+capabilities = { path = "../../core/capabilities" }
+
+# Path explanation:
+# - Current location: wit/ext/filesystem/
+# - Target 1 (types): wit/core/types/
+#   Relative path: ../../ (up to wit/), then core/types/
+# - Target 2 (capabilities): wit/core/capabilities/
+#   Relative path: ../../ (up to wit/), then core/capabilities/
+
+
+# =============================================================================
+# EXTENSION PACKAGE: network (Depends on types + capabilities)
+# =============================================================================
+# Location: wit/ext/network/deps.toml
+# Package: airssys:ext-network@1.0.0
+# Dependencies: core-types, core-capabilities
+
+[dependencies]
+types = { path = "../../core/types" }
+capabilities = { path = "../../core/capabilities" }
+
+# Path explanation:
+# - Current location: wit/ext/network/
+# - Target 1 (types): wit/core/types/
+#   Relative path: ../../ (up to wit/), then core/types/
+# - Target 2 (capabilities): wit/core/capabilities/
+#   Relative path: ../../ (up to wit/), then core/capabilities/
+
+
+# =============================================================================
+# EXTENSION PACKAGE: process (Depends on types + capabilities)
+# =============================================================================
+# Location: wit/ext/process/deps.toml
+# Package: airssys:ext-process@1.0.0
+# Dependencies: core-types, core-capabilities
+
+[dependencies]
+types = { path = "../../core/types" }
+capabilities = { path = "../../core/capabilities" }
+
+# Path explanation:
+# - Current location: wit/ext/process/
+# - Target 1 (types): wit/core/types/
+#   Relative path: ../../ (up to wit/), then core/types/
+# - Target 2 (capabilities): wit/core/capabilities/
+#   Relative path: ../../ (up to wit/), then core/capabilities/
+
+
+# =============================================================================
+# USAGE NOTES
+# =============================================================================
+
+# 1. Path Resolution
+#    - Paths are relative to the directory containing deps.toml
+#    - Use ../ to go up one directory level
+#    - Use forward slashes / (Unix-style paths)
+#    - Path points to directory containing the dependency's .wit file
+
+# 2. Dependency Names
+#    - Left side (types, capabilities) is just a reference name
+#    - Use the package concept name for clarity
+#    - Be consistent across all deps.toml files
+
+# 3. Validation
+#    - Validate individual package: wasm-tools component wit ./wit/core/types/
+#    - Validate all packages: wasm-tools component wit ./wit/
+
+# 4. Implementation Order (Phase 2)
+#    Day 4 - Core packages (topological order):
+#      1. core/types/deps.toml (no dependencies)
+#      2. core/component/deps.toml (depends on types)
+#      3. core/capabilities/deps.toml (depends on types)
+#      4. core/host/deps.toml (depends on types + capabilities)
+#    
+#    Day 5 - Extension packages (can be parallel):
+#      5. ext/filesystem/deps.toml (depends on types + capabilities)
+#      6. ext/network/deps.toml (depends on types + capabilities)
+#      7. ext/process/deps.toml (depends on types + capabilities)
+
+# 5. Common Issues
+#    - Wrong path: Verify relative path calculation
+#    - Missing deps.toml: Create file even if no dependencies
+#    - Circular dependencies: Our design has zero (validated in dependency_graph.md)
+
+# =============================================================================
+# END OF TEMPLATE
+# =============================================================================
