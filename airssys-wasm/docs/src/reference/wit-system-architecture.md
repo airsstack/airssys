@@ -2,7 +2,6 @@
 
 **Document Type:** REFERENCE - System Architecture Documentation  
 **Created:** 2025-10-26  
-**Status:** Complete - Phase 2 Implementation  
 **Scope:** Complete WIT package architecture for airssys-wasm framework
 
 ---
@@ -909,31 +908,15 @@ use airssys_wasm::bindings::ext_process::*;
 
 ---
 
-## Next Steps: Phase 3 Integration
+## Binding Generation Overview
 
-### What Phase 3 Will Consume
+The WIT interfaces are designed for Rust binding generation using wit-bindgen. The complete 4-package system can be integrated into a Rust crate with automatic binding generation from WIT sources.
 
-**Input Artifacts:**
-- ✅ 13 validated WIT files (core + 3 extensions)
-- ✅ 4 deps.toml configuration files
-- ✅ Complete package system (1,627 lines)
-- ✅ Zero validation errors
+### Generated Bindings Structure
 
-**Integration Requirements:**
-1. **wit-bindgen CLI Integration** - Generate Rust bindings from WIT packages
-2. **Cargo Build Configuration** - Automatic binding generation on build
-3. **Permission System Implementation** - Parse and validate component permissions
-4. **Component.toml Integration** - Component metadata and permission declarations
+Generated Rust code will follow this structure:
 
-### wit-bindgen Workflow
-
-**Phase 3 will implement:**
-
-```bash
-# Generate Rust bindings for all packages
-wit-bindgen rust --out-dir src/bindings wit/
-
-# Generated structure:
+```
 src/bindings/
 ├── core/
 │   ├── types.rs
@@ -954,45 +937,10 @@ src/bindings/
     └── signals.rs
 ```
 
-**Build Integration:**
-- `build.rs` script for automatic regeneration
-- Detect WIT file changes and trigger rebuild
-- Validate generated bindings compile
-- Integration tests for generated code
+### Using Generated Bindings
 
-### Multi-Package Binding Generation
-
-**Challenge:** Generate bindings for 4 independent packages
-
-**Solution:**
+**Host Services Implementation:**
 ```rust
-// build.rs
-fn main() {
-    // Generate bindings for each package
-    wit_bindgen_rust::generate_from_path("wit/core");
-    wit_bindgen_rust::generate_from_path("wit/ext/filesystem");
-    wit_bindgen_rust::generate_from_path("wit/ext/network");
-    wit_bindgen_rust::generate_from_path("wit/ext/process");
-}
-```
-
-### Rust Code Organization
-
-**Crate Structure:**
-```
-airssys-wasm/
-├── src/
-│   ├── bindings/       ← Generated from WIT
-│   ├── core/           ← Core runtime implementation
-│   ├── runtime/        ← WASM runtime (from WASM-TASK-002)
-│   ├── permissions/    ← Permission validation (Phase 3)
-│   └── lib.rs
-└── wit/               ← WIT source (this phase)
-```
-
-**Generated Bindings Usage:**
-```rust
-// Host implementing host-services interface
 use airssys_wasm::bindings::core::host_services::HostServices;
 
 impl HostServices for MyHost {
@@ -1003,11 +951,12 @@ impl HostServices for MyHost {
     fn send_message(&self, target: ComponentId, message: &[u8]) -> Result<(), MessagingError> {
         // Implementation
     }
-    
-    // ... 6 more host service functions
+    // ... additional host service functions
 }
+```
 
-// Component implementing component-lifecycle interface
+**Component Lifecycle Implementation:**
+```rust
 use airssys_wasm::bindings::core::component_lifecycle::ComponentLifecycle;
 
 impl ComponentLifecycle for MyComponent {
@@ -1018,227 +967,69 @@ impl ComponentLifecycle for MyComponent {
     fn execute(&self, operation: &[u8], context: ExecutionContext) -> Result<Vec<u8>, ExecutionError> {
         // Execute operation
     }
-    
-    // ... 5 more lifecycle functions
+    // ... additional lifecycle functions
 }
 ```
 
-### Permission System Implementation
-
-**Phase 3 Task 3.2 will implement:**
-
-**1. Component.toml Permission Parsing:**
-```toml
-[permissions]
-filesystem = [
-    { action = "read", path-pattern = "/data/*" },
-    { action = "write", path-pattern = "/data/output/*" }
-]
-network = [
-    { action = "outbound", host-pattern = "api.example.com", port = 443 }
-]
-```
-
-**2. Rust Permission Types:**
-```rust
-// Generated from capabilities.wit
-pub struct FilesystemPermission {
-    pub action: FilesystemAction,
-    pub path_pattern: String,
-}
-
-pub enum FilesystemAction {
-    Read,
-    Write,
-    Delete,
-    List,
-}
-
-// Permission validation
-pub fn validate_permissions(
-    requested: &RequestedPermissions,
-    granted: &RequestedPermissions
-) -> PermissionResult {
-    // Check if requested ⊆ granted
-}
-```
-
-**3. Integration Points:**
-```rust
-// Component loading validates permissions
-let component = ComponentLoader::load("my-component.wasm")?;
-let manifest = component.parse_toml()?;
-let requested = manifest.permissions;
-let granted = security_policy.grant_permissions(&component.id(), &requested)?;
-
-if !validate_permissions(&requested, &granted).is_granted() {
-    return Err(WasmError::CapabilityDenied(/* details */));
-}
-```
-
-### Validation Strategy
-
-**How to validate generated Rust code works:**
-
-**1. Compilation Tests:**
-```rust
-#[test]
-fn test_bindings_compile() {
-    // Ensure generated bindings compile
-    use airssys_wasm::bindings::core::*;
-    use airssys_wasm::bindings::ext_filesystem::*;
-    // If this compiles, bindings are syntactically correct
-}
-```
-
-**2. Type Safety Tests:**
-```rust
-#[test]
-fn test_type_conversions() {
-    let component_id = ComponentId {
-        namespace: "test".into(),
-        name: "component".into(),
-        version: "1.0.0".into(),
-    };
-    
-    // Verify types match WIT spec
-    assert_eq!(component_id.namespace, "test");
-}
-```
-
-**3. Interface Implementation Tests:**
-```rust
-struct MockComponent;
-
-impl ComponentLifecycle for MockComponent {
-    fn init(&self, _config: ComponentConfig) -> Result<(), ComponentError> {
-        Ok(())
-    }
-    
-    fn execute(&self, operation: &[u8], _context: ExecutionContext) 
-        -> Result<Vec<u8>, ExecutionError> 
-    {
-        Ok(operation.to_vec())
-    }
-    
-    // ... implement all 7 functions
-}
-
-#[test]
-fn test_component_lifecycle_implementation() {
-    let component = MockComponent;
-    let config = ComponentConfig::default();
-    assert!(component.init(config).is_ok());
-}
-```
-
-**4. End-to-End Integration Tests:**
-```rust
-#[test]
-fn test_wit_to_rust_round_trip() {
-    // Load WIT package
-    let wit_package = load_wit("wit/core");
-    
-    // Generate bindings
-    let bindings = generate_bindings(&wit_package);
-    
-    // Verify bindings match WIT spec
-    assert_eq!(bindings.interfaces.len(), 4); // types, capabilities, lifecycle, host
-    assert!(bindings.has_function("init"));
-    assert!(bindings.has_function("execute"));
-}
-```
-
-### Integration Points
-
-**How core package connects to extension packages:**
-
-**Component.toml Declares Dependencies:**
-```toml
-[dependencies]
-core = "1.0.0"              # Always required
-filesystem = "1.0.0"        # Optional
-network = "1.0.0"           # Optional
-process = "1.0.0"           # Optional
-
-[permissions]
-filesystem = [/* permissions */]
-network = [/* permissions */]
-```
-
-**Rust Imports:**
+**Extension Package Usage:**
 ```rust
 // Component using filesystem extension
 use airssys_wasm::bindings::core::*;
 use airssys_wasm::bindings::ext_filesystem::*;
 
 impl MyComponent {
-    fn process_file(&self, path: &str) {
-        // Use filesystem operations
-        let data = filesystem::read_file(path)?;
-        // Process data
+    fn process_file(&self, path: &str) -> Result<Vec<u8>, FilesystemError> {
+        // Use filesystem operations from generated bindings
+        filesystem::read_all(path)
     }
 }
 ```
 
-**Host Bridges:**
-```rust
-// Host implementing all interfaces
-use airssys_wasm::bindings::core::host_services::HostServices;
-use airssys_wasm::bindings::ext_filesystem::filesystem::Filesystem;
+### Integration Architecture
 
+**Full System Implementation:**
+```rust
 pub struct AirsHost {
-    // Core services
     logger: Logger,
     message_broker: MessageBroker,
-    
-    // Extension services
-    filesystem: FilesystemService,  // Implements Filesystem interface
-    network: NetworkService,        // Implements Socket + Connection
-    process: ProcessService,        // Implements Lifecycle + Signals
+    filesystem: FilesystemService,
+    network: NetworkService,
+    process: ProcessService,
 }
 
-impl HostServices for AirsHost { /* impl */ }
-impl Filesystem for AirsHost { /* impl */ }
-impl Socket for AirsHost { /* impl */ }
-impl Connection for AirsHost { /* impl */ }
-impl Lifecycle for AirsHost { /* impl */ }
-impl Signals for AirsHost { /* impl */ }
+// Host implements all interface combinations
+impl HostServices for AirsHost { /* ... */ }
+impl Filesystem for AirsHost { /* ... */ }
+impl Socket for AirsHost { /* ... */ }
+impl Connection for AirsHost { /* ... */ }
+impl Lifecycle for AirsHost { /* ... */ }
+impl Signals for AirsHost { /* ... */ }
 ```
 
-### Known Constraints
-
-**From WIT Architecture:**
+### Known Architecture Constraints
 
 **1. Component Model v0.1 Limitations:**
-- ❌ No cross-package type imports
-- ✅ Workaround: Each extension has own types.wit
-- ✅ Migration: v0.2 will enable cross-package imports (DEBT-WASM-003)
+- No cross-package type imports in current Component Model version
+- Workaround: Each extension package has independent types.wit
+- Future versions will enable type reuse across packages
 
-**2. Resource Type Complexity:**
-- Process package uses `resource process-handle` (advanced WIT feature)
-- wit-bindgen must support resource types correctly
-- Validation required for resource method generation
+**2. Resource Types:**
+- Process package uses advanced `resource` types for process handles
+- Requires full resource type support in binding generation
 
-**3. Binding Generation Performance:**
-- 13 WIT files to process
-- ~1,600 lines to generate bindings for
-- Estimated build overhead: ~2-3 seconds
+**3. Type Namespacing:**
+- Generated code must properly namespace types by package
+- Core types: `core::types::ComponentId`
+- Extension types: `ext_filesystem::types::Path`
 
 **4. Generated Code Size:**
-- Estimated: ~3,000-4,000 lines of generated Rust code
-- All generated code must be checked into git (CI requirement)
-- Regeneration only on WIT file changes
+- Approximately 3,000-4,000 lines of generated Rust code from 1,627 WIT lines
+- All generated code included in repository
 
-**5. Type Name Collisions:**
-- Multiple packages have `types.wit`
-- wit-bindgen must namespace correctly: `core::types`, `ext_filesystem::types`
-- Verify no type name conflicts in generated code
-
-**6. Permission System Complexity:**
-- Component.toml must be parsed and validated
-- Permission patterns must match against requests
-- Security-critical code requiring extensive testing
+**5. Permission Validation:**
+- Component.toml declares required permissions from capabilities.wit
+- Permission validation matches component declarations against granted permissions
+- Pattern matching (glob paths, domain patterns, command patterns) required
 
 ---
 
@@ -1272,7 +1063,4 @@ impl Signals for AirsHost { /* impl */ }
 ---
 
 **Document Version:** 1.0.0  
-**Last Updated:** 2025-10-26  
-**Author:** AI Agent (WASM-TASK-003 Phase 2 Task 2.3)  
-**Status:** Complete - Phase 2 Implementation  
-**Next Phase:** Phase 3 - Build System Integration
+**Last Updated:** 2025-10-26
