@@ -1,0 +1,438 @@
+package airssys:core@1.0.0;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// AIRSSYS WASM CORE INTERFACES
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// NOTE: Component Model v0.1 (wasm-tools 1.240.0) does not support cross-interface
+// type references or selective imports within packages. This consolidated interface
+// file maintains logical separation through clear section comments while respecting
+// the tooling limitations. See DEBT-WASM-003 for future migration strategy.
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LAYER 0: FOUNDATION TYPES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface types {
+    // ─────────────────────────────────────────────────────────────────────────
+    // Component Identity
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Component unique identifier
+    record component-id {
+        namespace: string,
+        name: string,
+        version: string,
+    }
+    
+    /// Request correlation identifier
+    type request-id = string;
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Timestamps
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// High-precision timestamp
+    record timestamp {
+        seconds: u64,
+        nanoseconds: u32,
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Error Types
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Component lifecycle errors
+    variant component-error {
+        initialization-failed(string),
+        configuration-invalid(string),
+        resource-exhausted(string),
+        internal-error(string),
+    }
+    
+    /// Execution operation errors
+    variant execution-error {
+        invalid-input(string),
+        processing-failed(string),
+        timeout(string),
+        resource-limit-exceeded(string),
+    }
+    
+    /// Filesystem operation errors
+    variant file-error {
+        not-found(string),
+        permission-denied(string),
+        already-exists(string),
+        io-error(string),
+    }
+    
+    /// Network operation errors
+    variant network-error {
+        connection-failed(string),
+        timeout(string),
+        invalid-url(string),
+        protocol-error(string),
+    }
+    
+    /// Process operation errors
+    variant process-error {
+        spawn-failed(string),
+        not-found(string),
+        permission-denied(string),
+        timeout(string),
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Status Types
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Component health status
+    enum health-status {
+        healthy,
+        degraded,
+        unhealthy,
+        unknown,
+    }
+    
+    /// Logging severity levels
+    enum log-level {
+        trace,
+        debug,
+        info,
+        warn,
+        error,
+    }
+    
+    /// Execution result status
+    variant execution-status {
+        success,
+        failed,
+        timeout,
+        cancelled,
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LAYER 1: CAPABILITIES AND PERMISSIONS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface capabilities {
+    // ─────────────────────────────────────────────────────────────────────────
+    // Foundation Types (Duplicated for interface isolation)
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    record component-id {
+        namespace: string,
+        name: string,
+        version: string,
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Filesystem Permissions
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Filesystem operation permission
+    record filesystem-permission {
+        action: filesystem-action,
+        path-pattern: string,
+    }
+    
+    /// Filesystem operation types
+    enum filesystem-action {
+        read,
+        write,
+        delete,
+        list-dir,
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Network Permissions
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Network operation permission
+    record network-permission {
+        action: network-action,
+        host-pattern: string,
+        port: option<u16>,
+    }
+    
+    /// Network operation types
+    enum network-action {
+        outbound,
+        inbound,
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Process Permissions
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Process operation permission
+    record process-permission {
+        action: process-action,
+        command-pattern: string,
+    }
+    
+    /// Process operation types
+    enum process-action {
+        spawn,
+        kill,
+        signal,
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Permission Aggregation
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Complete set of component permissions
+    record requested-permissions {
+        filesystem: list<filesystem-permission>,
+        network: list<network-permission>,
+        process: list<process-permission>,
+    }
+    
+    /// Permission check result
+    variant permission-result {
+        granted,
+        denied(string),
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LAYER 2: COMPONENT LIFECYCLE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface component-lifecycle {
+    // ─────────────────────────────────────────────────────────────────────────
+    // Foundation Types (Duplicated for interface isolation)
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    record component-id {
+        namespace: string,
+        name: string,
+        version: string,
+    }
+    
+    type request-id = string;
+    
+    variant component-error {
+        initialization-failed(string),
+        configuration-invalid(string),
+        resource-exhausted(string),
+        internal-error(string),
+    }
+    
+    variant execution-error {
+        invalid-input(string),
+        processing-failed(string),
+        timeout(string),
+        resource-limit-exceeded(string),
+    }
+    
+    enum health-status {
+        healthy,
+        degraded,
+        unhealthy,
+        unknown,
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Configuration Types
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Component initialization configuration
+    record component-config {
+        env-vars: list<tuple<string, string>>,
+        config-data: option<list<u8>>,
+        resource-limits: resource-limits,
+    }
+    
+    /// Resource consumption limits
+    record resource-limits {
+        max-memory-bytes: u64,
+        max-cpu-time-ms: u64,
+        max-execution-time-ms: u64,
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Execution Context
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Context for component execution
+    record execution-context {
+        request-id: request-id,
+        timeout-ms: u64,
+        caller-info: option<caller-info>,
+    }
+    
+    /// Information about execution caller
+    record caller-info {
+        component-id: option<component-id>,
+        external-source: option<string>,
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Component Metadata
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Component metadata and capabilities
+    record component-metadata {
+        name: string,
+        version: string,
+        description: string,
+        author: string,
+        supported-operations: list<string>,
+        memory-requirements: memory-requirements,
+    }
+    
+    /// Memory resource requirements
+    record memory-requirements {
+        min-memory-bytes: u64,
+        max-memory-bytes: u64,
+        preferred-memory-bytes: u64,
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Lifecycle Functions
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Initialize component with configuration
+    init: func(config: component-config) -> result<_, component-error>;
+    
+    /// Execute external RPC operation
+    execute: func(
+        operation: list<u8>,
+        context: execution-context
+    ) -> result<list<u8>, execution-error>;
+    
+    /// Handle inter-component message
+    handle-message: func(
+        sender: component-id,
+        message: list<u8>
+    ) -> result<_, component-error>;
+    
+    /// Handle async callback from request
+    handle-callback: func(
+        request-id: request-id,
+        callback-result: result<list<u8>, string>
+    ) -> result<_, component-error>;
+    
+    /// Get component metadata
+    metadata: func() -> component-metadata;
+    
+    /// Check component health status
+    health: func() -> health-status;
+    
+    /// Gracefully shutdown component
+    shutdown: func() -> result<_, component-error>;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LAYER 3: HOST SERVICES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface host-services {
+    // ─────────────────────────────────────────────────────────────────────────
+    // Foundation Types (Duplicated for interface isolation)
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    record component-id {
+        namespace: string,
+        name: string,
+        version: string,
+    }
+    
+    type request-id = string;
+    
+    variant component-error {
+        initialization-failed(string),
+        configuration-invalid(string),
+        resource-exhausted(string),
+        internal-error(string),
+    }
+    
+    enum log-level {
+        trace,
+        debug,
+        info,
+        warn,
+        error,
+    }
+    
+    record timestamp {
+        seconds: u64,
+        nanoseconds: u32,
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Messaging Types
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Inter-component messaging errors
+    variant messaging-error {
+        component-not-found(string),
+        send-failed(string),
+        timeout(string),
+        invalid-message(string),
+    }
+    
+    /// Component metadata for introspection
+    record component-metadata {
+        name: string,
+        version: string,
+        description: string,
+        status: string,
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Logging
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Log message with severity and optional context
+    log: func(
+        level: log-level,
+        message: string,
+        context: option<list<tuple<string, string>>>
+    );
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Messaging
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Send fire-and-forget message to component
+    send-message: func(
+        target: component-id,
+        message: list<u8>
+    ) -> result<_, messaging-error>;
+    
+    /// Send request and get request ID for callback
+    send-request: func(
+        target: component-id,
+        request: list<u8>,
+        timeout-ms: u64
+    ) -> result<request-id, messaging-error>;
+    
+    /// Cancel pending request by ID
+    cancel-request: func(
+        request-id: request-id
+    ) -> result<_, messaging-error>;
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Timing
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Get current time in milliseconds since epoch
+    current-time-millis: func() -> u64;
+    
+    /// Sleep for specified duration
+    sleep-millis: func(duration-ms: u64);
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Introspection
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// List all loaded component IDs
+    list-components: func() -> list<component-id>;
+    
+    /// Get metadata for specific component
+    get-component-metadata: func(id: component-id) -> result<component-metadata, component-error>;
+}

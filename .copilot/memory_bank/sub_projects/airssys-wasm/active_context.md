@@ -128,35 +128,46 @@
 ## Next Steps
 **IMMEDIATE NEXT TASK: Phase 2 - Implementation Foundation (Days 4-6)**
 
-**Phase 2 Objectives:**
-- Implement 4 core WIT packages (types, capabilities, component, host)
-- Implement 3 extension WIT packages (filesystem, network, process)
-- Configure complete dependency graph with deps.toml
-- Validate complete 7-package system
+### 🔴 CRITICAL BLOCKER RESOLVED - 2025-10-26
 
-**Prerequisites (ALL MET):**
-- ✅ WIT ecosystem thoroughly researched
-- ✅ wasm-tools 1.240.0 validation workflow established
-- ✅ 7-package structure fully designed
-- ✅ Acyclic dependency graph validated
-- ✅ Implementation guides complete
+**Discovery:** Component Model v0.1 (wasm-tools 1.240.0) does NOT support:
+- Cross-package imports
+- Selective imports with `.{types}` syntax
+- Qualified type references in record definitions
 
-**Phase 2 Task Breakdown:**
-1. **Task 2.1:** Core Package Implementation (Day 4, 6 hours)
-   - airssys:core-types@1.0.0 (90 min)
-   - airssys:core-capabilities@1.0.0 (90 min)
-   - airssys:core-component@1.0.0 (90 min)
-   - airssys:core-host@1.0.0 (90 min)
+**Resolution:** Consolidated to single-package architecture
+- ✅ Created `airssys:core@1.0.0` with 4 interfaces
+- ✅ Interfaces: types, capabilities, component-lifecycle, host-services
+- ✅ Type duplication (5% of file size - acceptable for v0.1)
+- ✅ DEBT-WASM-003 created documenting limitation and migration path
+- ✅ Core.wit fully validated (exit code 0)
 
-2. **Task 2.2:** Extension Package Implementation (Day 5, 6 hours)
-   - airssys:ext-filesystem@1.0.0 (2 hours)
-   - airssys:ext-network@1.0.0 (2 hours)
-   - airssys:ext-process@1.0.0 (2 hours)
+**Impact:** Original ADR-WASM-015 7-package design deferred to Component Model v0.2
 
-3. **Task 2.3:** Dependency Configuration (Day 6, 6 hours)
-   - Configure deps.toml (2 hours)
-   - Complete system validation (2 hours)
-   - Documentation and troubleshooting (2 hours)
+**Phase 2 Objectives (UPDATED):**
+- Implement single consolidated `airssys:core@1.0.0` package ✅ DONE
+- Implement single consolidated `airssys:ext@1.0.0` package for extensions
+- Configure complete validation
+- Prepare for Phase 3 build integration
+
+**Phase 2 Task Breakdown (REVISED):**
+1. **Task 2.1:** Core Package Implementation ✅ COMPLETE (Oct 26, 2025)
+   - ✅ airssys:core@1.0.0 with 4 interfaces (414 lines)
+   - ✅ types interface (foundation types)
+   - ✅ capabilities interface (permissions)
+   - ✅ component-lifecycle interface (lifecycle management)
+   - ✅ host-services interface (host functions)
+   - ✅ Validated and ready
+
+2. **Task 2.2:** Extension Package Implementation (NEXT)
+   - Create airssys:ext@1.0.0 with filesystem, network, process interfaces
+   - Use same consolidated single-package pattern
+   - Estimated: 4-6 hours
+
+3. **Task 2.3:** Complete System Validation & Handoff (AFTER 2.2)
+   - Cross-package validation patterns
+   - Documentation and examples
+   - Estimated: 2-3 hours
 
 **After Phase 2:**
 - Phase 3: Build System Integration (Days 7-9)

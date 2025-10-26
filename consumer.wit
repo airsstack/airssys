@@ -1,0 +1,7 @@
+package test:consumer@1.0.0;
+
+use test:demo/types@1.0.0.{component-id};
+
+interface consumer {
+    get-id: func() -> component-id;
+}

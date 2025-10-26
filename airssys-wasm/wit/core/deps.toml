@@ -1,0 +1,9 @@
+# Core WIT Package Dependencies
+# 
+# This is a standalone core package with no external dependencies.
+# It contains all foundation types and interfaces for the AirsSys WASM framework.
+#
+# Component Model v0.1 Limitation Note:
+# Cross-interface type references are not supported in this version of wasm-tools.
+# Therefore, types are duplicated across interfaces for proper isolation.
+# See DEBT-WASM-003 for migration strategy when Component Model v0.2 is available.
