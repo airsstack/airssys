@@ -1,0 +1,123 @@
+package airssys:core@1.0.0;
+
+// ═════════════════════════════════════════════════════════════════════════════
+// LAYER 3: HOST SERVICES INTERFACE
+// ═════════════════════════════════════════════════════════════════════════════
+//
+// This interface defines the host-provided services available to components,
+// including logging, inter-component messaging, timing, and component introspection.
+//
+// Note: Foundation types are duplicated here for interface isolation
+// (Component Model v0.1 limitation). See types.wit for source definitions.
+
+interface host-services {
+    // ─────────────────────────────────────────────────────────────────────────
+    // Foundation Types (Duplicated for interface isolation)
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Component unique identifier (duplicated from types interface)
+    record component-id {
+        namespace: string,
+        name: string,
+        version: string,
+    }
+    
+    /// Request correlation identifier (duplicated from types interface)
+    type request-id = string;
+    
+    /// Component lifecycle errors (duplicated from types interface)
+    variant component-error {
+        initialization-failed(string),
+        configuration-invalid(string),
+        resource-exhausted(string),
+        internal-error(string),
+    }
+    
+    /// Logging severity levels (duplicated from types interface)
+    enum log-level {
+        trace,
+        debug,
+        info,
+        warn,
+        error,
+    }
+    
+    /// High-precision timestamp (duplicated from types interface)
+    record timestamp {
+        seconds: u64,
+        nanoseconds: u32,
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Messaging Types
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Inter-component messaging errors
+    variant messaging-error {
+        component-not-found(string),
+        send-failed(string),
+        timeout(string),
+        invalid-message(string),
+    }
+    
+    /// Component metadata for introspection queries
+    record component-metadata {
+        name: string,
+        version: string,
+        description: string,
+        status: string,
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Logging
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Log a message with severity level and optional context
+    log: func(
+        level: log-level,
+        message: string,
+        context: option<list<tuple<string, string>>>
+    );
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Messaging
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Send fire-and-forget message to another component
+    send-message: func(
+        target: component-id,
+        message: list<u8>
+    ) -> result<_, messaging-error>;
+    
+    /// Send request message and get request ID for callback correlation
+    send-request: func(
+        target: component-id,
+        request: list<u8>,
+        timeout-ms: u64
+    ) -> result<request-id, messaging-error>;
+    
+    /// Cancel a pending request by its ID
+    cancel-request: func(
+        request-id: request-id
+    ) -> result<_, messaging-error>;
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Timing
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Get current time in milliseconds since Unix epoch
+    current-time-millis: func() -> u64;
+    
+    /// Sleep for specified duration in milliseconds
+    sleep-millis: func(duration-ms: u64);
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Introspection
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// List all currently loaded component IDs
+    list-components: func() -> list<component-id>;
+    
+    /// Get metadata for a specific component
+    get-component-metadata: func(id: component-id) -> result<component-metadata, component-error>;
+}

@@ -1,0 +1,141 @@
+package airssys:core@1.0.0;
+
+// ═════════════════════════════════════════════════════════════════════════════
+// LAYER 2: COMPONENT LIFECYCLE INTERFACE
+// ═════════════════════════════════════════════════════════════════════════════
+//
+// This interface defines the complete component lifecycle management contract
+// including initialization, execution, messaging, and graceful shutdown.
+//
+// Note: Foundation types are duplicated here for interface isolation
+// (Component Model v0.1 limitation). See types.wit for source definitions.
+
+interface component-lifecycle {
+    // ─────────────────────────────────────────────────────────────────────────
+    // Foundation Types (Duplicated for interface isolation)
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Component unique identifier (duplicated from types interface)
+    record component-id {
+        namespace: string,
+        name: string,
+        version: string,
+    }
+    
+    /// Request correlation identifier (duplicated from types interface)
+    type request-id = string;
+    
+    /// Component lifecycle errors (duplicated from types interface)
+    variant component-error {
+        initialization-failed(string),
+        configuration-invalid(string),
+        resource-exhausted(string),
+        internal-error(string),
+    }
+    
+    /// Execution operation errors (duplicated from types interface)
+    variant execution-error {
+        invalid-input(string),
+        processing-failed(string),
+        timeout(string),
+        resource-limit-exceeded(string),
+    }
+    
+    /// Component health status (duplicated from types interface)
+    enum health-status {
+        healthy,
+        degraded,
+        unhealthy,
+        unknown,
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Configuration Types
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Component initialization configuration with environment and resources
+    record component-config {
+        env-vars: list<tuple<string, string>>,
+        config-data: option<list<u8>>,
+        resource-limits: resource-limits,
+    }
+    
+    /// Resource consumption limits for component execution
+    record resource-limits {
+        max-memory-bytes: u64,
+        max-cpu-time-ms: u64,
+        max-execution-time-ms: u64,
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Execution Context
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Context information for component execution
+    record execution-context {
+        request-id: request-id,
+        timeout-ms: u64,
+        caller-info: option<caller-info>,
+    }
+    
+    /// Information about the caller of a component execution
+    record caller-info {
+        component-id: option<component-id>,
+        external-source: option<string>,
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Component Metadata
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Component metadata for discovery and introspection
+    record component-metadata {
+        name: string,
+        version: string,
+        description: string,
+        author: string,
+        supported-operations: list<string>,
+        memory-requirements: memory-requirements,
+    }
+    
+    /// Memory resource requirements for component
+    record memory-requirements {
+        min-memory-bytes: u64,
+        max-memory-bytes: u64,
+        preferred-memory-bytes: u64,
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Lifecycle Functions
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Initialize component with configuration
+    init: func(config: component-config) -> result<_, component-error>;
+    
+    /// Execute external RPC operation on component
+    execute: func(
+        operation: list<u8>,
+        context: execution-context
+    ) -> result<list<u8>, execution-error>;
+    
+    /// Handle inter-component message received from another component
+    handle-message: func(
+        sender: component-id,
+        message: list<u8>
+    ) -> result<_, component-error>;
+    
+    /// Handle async callback from a previously sent request
+    handle-callback: func(
+        request-id: request-id,
+        callback-result: result<list<u8>, string>
+    ) -> result<_, component-error>;
+    
+    /// Get component metadata
+    metadata: func() -> component-metadata;
+    
+    /// Check component health status
+    health: func() -> health-status;
+    
+    /// Gracefully shutdown component
+    shutdown: func() -> result<_, component-error>;
+}
