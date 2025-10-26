@@ -5,12 +5,12 @@ package airssys:core@1.0.0;
 // ═════════════════════════════════════════════════════════════════════════════
 //
 // This interface defines the core foundation types used throughout the AirsSys
-// WASM framework. All other interfaces depend on and duplicate these types for
-// interface isolation (Component Model v0.1 limitation).
+// WASM framework. All other interfaces import and reuse these types using WIT
+// `use` statements, enabling clean type dependency management across interfaces.
 //
-// Note: Component Model v0.1 (wasm-tools 1.240.0) does not support cross-interface
-// type references. Therefore, types defined here are re-exported/duplicated in
-// dependent interfaces. See DEBT-WASM-003 for migration strategy.
+// Note: Component Model v0.1 supports cross-interface type reuse through `use`
+// statements within the same package. This provides clean type dependency
+// management while maintaining interface isolation.
 
 interface types {
     // ─────────────────────────────────────────────────────────────────────────

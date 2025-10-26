@@ -8,20 +8,15 @@ package airssys:core@1.0.0;
 // components. It provides fine-grained permission types for filesystem, network,
 // and process operations.
 //
-// Note: Foundation types are duplicated here for interface isolation
-// (Component Model v0.1 limitation). See types.wit for source definitions.
+// Note: Foundation types are imported from the types interface using WIT `use`
+// statements. This allows type reuse across interfaces within the same package.
 
 interface capabilities {
-    // ─────────────────────────────────────────────────────────────────────────
-    // Foundation Types (Duplicated for interface isolation)
-    // ─────────────────────────────────────────────────────────────────────────
+    use types.{component-id};
     
-    /// Component unique identifier (duplicated from types interface)
-    record component-id {
-        namespace: string,
-        name: string,
-        version: string,
-    }
+    // ─────────────────────────────────────────────────────────────────────────
+    // Filesystem Permissions
+    // ─────────────────────────────────────────────────────────────────────────
     
     // ─────────────────────────────────────────────────────────────────────────
     // Filesystem Permissions

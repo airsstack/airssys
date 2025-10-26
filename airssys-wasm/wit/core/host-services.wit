@@ -7,46 +7,11 @@ package airssys:core@1.0.0;
 // This interface defines the host-provided services available to components,
 // including logging, inter-component messaging, timing, and component introspection.
 //
-// Note: Foundation types are duplicated here for interface isolation
-// (Component Model v0.1 limitation). See types.wit for source definitions.
+// Note: Foundation types are imported from the types interface using WIT `use`
+// statements. This allows type reuse across interfaces within the same package.
 
 interface host-services {
-    // ─────────────────────────────────────────────────────────────────────────
-    // Foundation Types (Duplicated for interface isolation)
-    // ─────────────────────────────────────────────────────────────────────────
-    
-    /// Component unique identifier (duplicated from types interface)
-    record component-id {
-        namespace: string,
-        name: string,
-        version: string,
-    }
-    
-    /// Request correlation identifier (duplicated from types interface)
-    type request-id = string;
-    
-    /// Component lifecycle errors (duplicated from types interface)
-    variant component-error {
-        initialization-failed(string),
-        configuration-invalid(string),
-        resource-exhausted(string),
-        internal-error(string),
-    }
-    
-    /// Logging severity levels (duplicated from types interface)
-    enum log-level {
-        trace,
-        debug,
-        info,
-        warn,
-        error,
-    }
-    
-    /// High-precision timestamp (duplicated from types interface)
-    record timestamp {
-        seconds: u64,
-        nanoseconds: u32,
-    }
+    use types.{component-id, request-id, component-error, log-level, timestamp};
     
     // ─────────────────────────────────────────────────────────────────────────
     // Messaging Types
