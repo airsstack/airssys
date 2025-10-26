@@ -1,0 +1,175 @@
+package airssys:ext-network@1.0.0;
+
+// ═════════════════════════════════════════════════════════════════════════════
+// NETWORK EXTENSION: SOCKET OPERATIONS INTERFACE
+// ═════════════════════════════════════════════════════════════════════════════
+//
+// This interface defines core socket operations: create, bind, listen, accept,
+// send, and receive. It uses the `use` statement to import types from the local
+// types interface, following the Component Model v0.1 pattern.
+
+interface socket {
+    use types.{
+        network-error,
+        address-family,
+        socket-type,
+        protocol,
+        socket-address,
+        socket-handle,
+        socket-options,
+        send-result,
+        receive-result,
+    };
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Socket Lifecycle Operations
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Create a new socket
+    /// 
+    /// Requires: network capability depending on address family
+    /// Arguments:
+    ///   - address-family: IPv4 or IPv6
+    ///   - socket-type: stream (TCP) or datagram (UDP)
+    ///   - protocol: TCP or UDP protocol
+    /// Returns: socket handle or error
+    create-socket: func(address-family: address-family, socket-type: socket-type, protocol: protocol) -> result<socket-handle, network-error>;
+    
+    /// Close a socket and release associated resources
+    /// 
+    /// Arguments:
+    ///   - handle: Socket handle to close
+    /// Returns: success or error
+    close-socket: func(handle: socket-handle) -> result<_, network-error>;
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Socket Binding Operations
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Bind socket to local address and port
+    /// 
+    /// Arguments:
+    ///   - handle: Socket handle
+    ///   - address: Local address to bind to
+    /// Returns: success or error
+    bind: func(handle: socket-handle, address: socket-address) -> result<_, network-error>;
+    
+    /// Listen for incoming connections (server mode)
+    /// 
+    /// Arguments:
+    ///   - handle: Socket handle (must be bound first)
+    ///   - backlog: Number of pending connections to queue
+    /// Returns: success or error
+    listen: func(handle: socket-handle, backlog: u32) -> result<_, network-error>;
+    
+    /// Accept an incoming connection
+    /// 
+    /// Arguments:
+    ///   - handle: Listening socket handle
+    /// Returns: new connected socket handle or error
+    accept: func(handle: socket-handle) -> result<socket-handle, network-error>;
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Socket Option Management
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Get current socket options
+    /// 
+    /// Arguments:
+    ///   - handle: Socket handle
+    /// Returns: current socket options or error
+    get-socket-options: func(handle: socket-handle) -> result<socket-options, network-error>;
+    
+    /// Set socket options
+    /// 
+    /// Arguments:
+    ///   - handle: Socket handle
+    ///   - options: Socket options to set
+    /// Returns: success or error
+    set-socket-options: func(handle: socket-handle, options: socket-options) -> result<_, network-error>;
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Data Transfer Operations
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Send data on connected socket (stream) or to address (datagram)
+    /// 
+    /// Requires: network capability
+    /// Arguments:
+    ///   - handle: Socket handle
+    ///   - data: Data to send
+    /// Returns: send result with bytes-sent or error
+    send: func(handle: socket-handle, data: list<u8>) -> result<send-result, network-error>;
+    
+    /// Send data to specific address (datagram sockets)
+    /// 
+    /// Requires: network capability
+    /// Arguments:
+    ///   - handle: Socket handle
+    ///   - data: Data to send
+    ///   - address: Destination address
+    /// Returns: send result with bytes-sent or error
+    send-to: func(handle: socket-handle, data: list<u8>, address: socket-address) -> result<send-result, network-error>;
+    
+    /// Receive data from socket
+    /// 
+    /// Requires: network capability
+    /// Arguments:
+    ///   - handle: Socket handle
+    ///   - max-bytes: Maximum bytes to receive
+    /// Returns: receive result with data or error
+    receive: func(handle: socket-handle, max-bytes: u32) -> result<receive-result, network-error>;
+    
+    /// Receive data and sender address from socket
+    /// 
+    /// Requires: network capability
+    /// Arguments:
+    ///   - handle: Socket handle
+    ///   - max-bytes: Maximum bytes to receive
+    /// Returns: receive result with data and sender or error
+    receive-from: func(handle: socket-handle, max-bytes: u32) -> result<receive-result, network-error>;
+    
+    /// Send all provided data, retrying until complete or error
+    /// 
+    /// Requires: network capability
+    /// Arguments:
+    ///   - handle: Socket handle
+    ///   - data: Data to send completely
+    /// Returns: success or error
+    send-all: func(handle: socket-handle, data: list<u8>) -> result<_, network-error>;
+    
+    /// Receive until buffer full or connection closes
+    /// 
+    /// Requires: network capability
+    /// Arguments:
+    ///   - handle: Socket handle
+    ///   - max-bytes: Maximum bytes to receive
+    /// Returns: receive result with data or error
+    receive-all: func(handle: socket-handle, max-bytes: u32) -> result<receive-result, network-error>;
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Socket State Operations
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Get local socket address
+    /// 
+    /// Arguments:
+    ///   - handle: Socket handle
+    /// Returns: local socket address or error
+    get-local-address: func(handle: socket-handle) -> result<socket-address, network-error>;
+    
+    /// Get remote socket address
+    /// 
+    /// Arguments:
+    ///   - handle: Socket handle
+    /// Returns: remote socket address or error
+    get-remote-address: func(handle: socket-handle) -> result<socket-address, network-error>;
+    
+    /// Shutdown reading, writing, or both
+    /// 
+    /// Arguments:
+    ///   - handle: Socket handle
+    ///   - how: "read", "write", or "both"
+    /// Returns: success or error
+    shutdown: func(handle: socket-handle, how: string) -> result<_, network-error>;
+}

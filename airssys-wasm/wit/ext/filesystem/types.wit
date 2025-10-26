@@ -1,0 +1,171 @@
+package airssys:ext-filesystem@1.0.0;
+
+// ═════════════════════════════════════════════════════════════════════════════
+// FILESYSTEM EXTENSION: FOUNDATION TYPES INTERFACE
+// ═════════════════════════════════════════════════════════════════════════════
+//
+// This interface defines the core types for filesystem operations in AirsSys WASM.
+// It serves as the single source of truth for error types, path types, and file
+// metadata structures used across filesystem and metadata operation interfaces.
+//
+// Note: Component Model v0.1 supports cross-interface type reuse through `use`
+// statements within the same package. This enables type sharing across the
+// filesystem.wit and metadata.wit interfaces.
+
+interface types {
+    // ─────────────────────────────────────────────────────────────────────────
+    // Filesystem Operation Errors
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Comprehensive filesystem operation error types
+    variant filesystem-error {
+        /// File or directory not found
+        not-found(string),
+        /// Operation not permitted by capabilities or OS
+        permission-denied(string),
+        /// File or directory already exists
+        already-exists(string),
+        /// I/O operation failed (disk error, etc.)
+        io-error(string),
+        /// Invalid path or path component
+        invalid-path(string),
+        /// Operation would exceed resource limits
+        resource-exhausted(string),
+        /// Invalid file operation parameter
+        invalid-argument(string),
+        /// Directory not empty (for rmdir operations)
+        directory-not-empty(string),
+        /// Not a directory (for operations requiring directory)
+        not-a-directory(string),
+        /// Not a file (for operations requiring file)
+        not-a-file(string),
+        /// Symbolic link loop detected
+        too-many-symlinks(string),
+        /// Path component too long
+        name-too-long(string),
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Path Types
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Filesystem path representation (UTF-8 string)
+    type path = string;
+    
+    /// Absolute path from filesystem root
+    type absolute-path = string;
+    
+    /// Relative path (relative to some base directory)
+    type relative-path = string;
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // File Metadata
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// File type enumeration
+    enum file-type {
+        regular,
+        directory,
+        symlink,
+        block-device,
+        char-device,
+        fifo,
+        socket,
+        unknown,
+    }
+    
+    /// File permissions (Unix-style octal representation)
+    record file-permissions {
+        /// Permissions as octal value (0o755, 0o644, etc.)
+        mode: u32,
+    }
+    
+    /// File metadata record containing size, timestamps, and permissions
+    record file-metadata {
+        /// Full path to the file
+        path: path,
+        /// File type (regular, directory, symlink, etc.)
+        file-type: file-type,
+        /// File size in bytes
+        size: u64,
+        /// File permissions
+        permissions: file-permissions,
+        /// Last access time (seconds since Unix epoch)
+        accessed-time: u64,
+        /// Last modification time (seconds since Unix epoch)
+        modified-time: u64,
+        /// Creation/change time (seconds since Unix epoch)
+        created-time: u64,
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Directory Listing
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Directory entry with filename and type
+    record directory-entry {
+        /// Entry name (filename or directory name)
+        name: string,
+        /// Type of entry
+        entry-type: file-type,
+    }
+    
+    /// Directory listing result with entries and metadata
+    record directory-listing {
+        /// Path of directory being listed
+        directory-path: path,
+        /// Entries in the directory
+        entries: list<directory-entry>,
+        /// Total number of entries
+        entry-count: u32,
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // File Operation Parameters
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// File open mode enumeration
+    enum open-mode {
+        /// Open for reading only
+        read,
+        /// Open for writing only (truncate if exists)
+        write,
+        /// Open for reading and writing
+        read-write,
+        /// Open for appending at end of file
+        append,
+    }
+    
+    /// File operation options
+    record file-open-options {
+        /// Mode to open file in
+        mode: open-mode,
+        /// Create file if it doesn't exist
+        create: bool,
+        /// Only create if file doesn't exist (fails if exists)
+        create-new: bool,
+        /// Truncate existing file to zero size
+        truncate: bool,
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // File Content Operations
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// File handle for reading/writing operations
+    type file-handle = u64;
+    
+    /// Read result containing data and bytes read
+    record read-result {
+        /// Data read from file
+        data: list<u8>,
+        /// Number of bytes actually read
+        bytes-read: u32,
+    }
+    
+    /// Write result containing bytes written
+    record write-result {
+        /// Number of bytes written
+        bytes-written: u32,
+    }
+}
