@@ -1,19 +1,63 @@
 # ADR-WASM-015: WIT Package Structure Organization
 
-**Status:** Accepted  
+**Status:** Accepted (with 2025-10-26 constraint resolution update)  
 **Date:** 2025-10-25  
+**Updated:** 2025-10-26 (Discovery of Component Model v0.1 cross-interface type reuse)  
 **Category:** Interface Design & Organization  
-**Related:** WASM-TASK-003 Phase 1, ADR-WASM-011 (Module Structure), KNOWLEDGE-WASM-004 (WIT Management)  
+**Related:** WASM-TASK-003 Phase 1, ADR-WASM-011 (Module Structure), KNOWLEDGE-WASM-004 (WIT Management), DEBT-WASM-003  
 
 ## Context
 
 During WASM-TASK-003 Phase 1 implementation, a discrepancy was identified between the original plan (6 separate WIT files) and the delivered structure (2 packages with consolidated interfaces). This ADR establishes the definitive WIT package structure organization to resolve this discrepancy and provide clear guidance for future WIT interface development.
 
+### Update 2025-10-26: Constraint Resolution
+
+**Discovery**: Component Model v0.1 *does* support cross-interface type reuse within packages using `use` statements, enabling:
+- Single-package multi-file organization with clean type imports
+- Zero type duplication via `use types.{...}` statements  
+- Proper interface isolation with clear dependency declarations
+- Clean architecture while supporting existing v0.1 constraints
+
+**Current Implementation (Phase 2 Task 2.1)**:
+- Single package: `airssys:core@1.0.0`
+- Four focused files: types.wit, capabilities.wit, component-lifecycle.wit, host-services.wit
+- Uses: `use types.{component-id, request-id, ...}` for cross-interface type imports
+- Result: 92 lines of duplication eliminated, clean architecture established
+
+**7-Package Design Status**:
+- ✅ Still valid as design preference (not technical constraint)
+- ⚠️  Remains blocked by cross-package type import limitations in v0.1
+- 🔄 Deferred to Task 2.2 decision: separate packages vs. consolidated packages for extensions
+- 📋 See DEBT-WASM-003 for migration path when v0.2 available
+
 ## Decision
 
-Adopt a directory-based package structure with semantic naming following the pattern `airssys:{directory}-{type}@{version}`.
+### Current Implementation (Phase 2 Task 2.1 - 2025-10-26)
 
-### Package Structure
+**Adopt single-package multi-file organization with cross-interface type imports:**
+
+```
+wit/
+├── core/
+│   ├── types.wit                → Layer 0: Foundation types (source of truth)
+│   ├── capabilities.wit         → Layer 1: Permissions (uses types.{...})
+│   ├── component-lifecycle.wit  → Layer 2: Lifecycle (uses types.{...})
+│   ├── host-services.wit        → Layer 3: Host services (uses types.{...})
+│   └── deps.toml                → Package: airssys:core@1.0.0
+└── [future extensions...]
+```
+
+**Benefits of this approach:**
+- ✅ Single source of truth for types (types.wit)
+- ✅ Clean dependencies via `use types.{component-id, ...}` statements
+- ✅ Zero type duplication (eliminated 92 lines)
+- ✅ Proper interface isolation maintained
+- ✅ Clear layered architecture
+- ✅ Practical working solution for v0.1 constraints
+
+### Original 7-Package Design (Future Consideration)
+
+The original directory-based package structure design remains valid for future implementation:
 
 ```
 wit/
@@ -28,6 +72,16 @@ wit/
 │   └── process.wit        → package: airssys:ext-process@1.0.0
 └── deps.toml
 ```
+
+**When to migrate to 7-package design:**
+- Component Model v0.2 adds cross-package type imports support
+- Cross-package `use` statements work properly in wasm-tools 1.300.0+
+- Design preference favors separate packages for independent versioning
+
+**Decision for Task 2.2:**
+- Implement extension packages (filesystem, network, process) as separate packages OR
+- Follow current pattern with single airssys:extensions@1.0.0 package
+- See DEBT-WASM-003 for guidance on package organization strategy
 
 ### Naming Convention
 

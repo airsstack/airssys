@@ -61,7 +61,87 @@
 
 ## WIT Interface Structure
 
-### Core WIT Organization
+### Core WIT Organization (Updated 2025-10-26)
+
+**Multi-File Package with Cross-Interface Imports:**
+
+The airssys:core package uses multiple `.wit` files organized in a single package with proper `use` statements for type reuse. This approach maintains interface isolation while eliminating type duplication.
+
+```
+airssys-wasm/
+├── wit/
+│   ├── core/                       # Single package: airssys:core@1.0.0
+│   │   ├── types.wit              # Layer 0: Foundation types (source of truth)
+│   │   ├── capabilities.wit       # Layer 1: Permissions (imports from types)
+│   │   ├── component-lifecycle.wit# Layer 2: Component lifecycle (imports from types)
+│   │   ├── host-services.wit      # Layer 3: Host services (imports from types)
+│   │   └── deps.toml              # Package configuration
+│   ├── extensions/                 # Future: Optional domain extensions
+│   │   ├── filesystem/
+│   │   │   ├── types.wit          # Extension-specific types
+│   │   │   └── operations.wit     # Filesystem operations
+│   │   ├── network/
+│   │   │   ├── types.wit          # Extension-specific types
+│   │   │   └── operations.wit     # Network operations
+│   │   └── process/
+│   │       ├── types.wit          # Extension-specific types
+│   │       └── operations.wit     # Process operations
+│   └── examples/                   # Reference implementations
+```
+
+### Type Reuse with `use` Statements (2025-10-26 Discovery)
+
+Component Model v0.1 supports cross-interface type reuse **within packages** using `use` statements:
+
+**types.wit** - Source of truth:
+```wit
+package airssys:core@1.0.0;
+
+interface types {
+    record component-id { /* ... */ }
+    type request-id = string;
+    // ... other types
+}
+```
+
+**capabilities.wit** - Imports types:
+```wit
+package airssys:core@1.0.0;
+
+interface capabilities {
+    use types.{component-id};    // ← Import from same package
+    
+    record permission {
+        id: component-id,        // ← Use imported type
+        action: string,
+    }
+}
+```
+
+**component-lifecycle.wit** - Imports multiple types:
+```wit
+package airssys:core@1.0.0;
+
+interface component-lifecycle {
+    use types.{component-id, request-id, component-error, execution-error, health-status};
+    
+    // All imported types can be used directly
+    handle-message: func(
+        sender: component-id,
+        message: list<u8>
+    ) -> result<_, component-error>;
+}
+```
+
+**Benefits:**
+- ✅ Single source of truth for each type
+- ✅ Clean dependency declarations
+- ✅ Zero type duplication
+- ✅ Proper interface isolation
+- ✅ Clear which types each interface depends on
+
+### Original Package Structure (Future Planning)
+
 ```
 airssys-wasm/
 ├── wit/
@@ -88,6 +168,8 @@ airssys-wasm/
 │       ├── ai-agent.wit          # AI agent example
 │       └── data-pipeline.wit     # Data processing pipeline
 ```
+
+**Note**: The original 7-package design from ADR-WASM-015 remains a valid future option. When cross-package type imports are supported in Component Model v0.2, extension packages can be restructured as separate packages with shared types.
 
 ### Package Naming Convention
 ```
