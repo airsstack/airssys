@@ -11,18 +11,22 @@
 
 ### Phase 2 Objective
 
-Implement all 7 WIT packages with complete validation, building on Phase 1's research and design:
+Implement all WIT packages with complete validation, building on Phase 1's research and design:
 
-**Core Packages (4):**
-1. `airssys:core-types@1.0.0` - Common types and errors
-2. `airssys:core-capabilities@1.0.0` - Permission types
-3. `airssys:core-component@1.0.0` - Component lifecycle
-4. `airssys:core-host@1.0.0` - Host services
+**Core Package (Task 2.1) - ✅ COMPLETE:**
+- `airssys:core@1.0.0` - Single package with 4 multi-file interfaces
+  - types.wit (Foundation types - Layer 0)
+  - capabilities.wit (Permissions - Layer 1)
+  - component-lifecycle.wit (Lifecycle management - Layer 2)
+  - host-services.wit (Host services - Layer 3)
 
-**Extension Packages (3):**
-5. `airssys:ext-filesystem@1.0.0` - Filesystem operations
-6. `airssys:ext-network@1.0.0` - Network operations
-7. `airssys:ext-process@1.0.0` - Process operations
+**Extension Packages (Task 2.2) - PLANNED:**
+- `airssys:ext-filesystem@1.0.0` - Filesystem operations
+- `airssys:ext-network@1.0.0` - Network operations
+- `airssys:ext-process@1.0.0` - Process operations
+
+**Architecture Decision:**
+Due to Component Model v0.1 limitations (no cross-package type imports), core packages were consolidated into a single `airssys:core@1.0.0` package with 4 logically-separated interfaces via multi-file organization. This pragmatic approach maintains clean code organization without the complexity of nested single-file subdirectories. Extension packages will follow the same pattern or be similarly consolidated. See DEBT-WASM-003 for v0.2 migration strategy.
 
 ### Phase 1 Achievement Summary
 
