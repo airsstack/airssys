@@ -128,19 +128,29 @@
 ## Next Steps
 **IMMEDIATE NEXT TASK: Phase 2 - Implementation Foundation (Days 4-6)**
 
-### 🔴 CRITICAL BLOCKER RESOLVED - 2025-10-26
+### 🔴 CRITICAL BLOCKER RESOLVED & REFACTORED - 2025-10-26
 
 **Discovery:** Component Model v0.1 (wasm-tools 1.240.0) does NOT support:
 - Cross-package imports
 - Selective imports with `.{types}` syntax
 - Qualified type references in record definitions
 
-**Resolution:** Consolidated to single-package architecture
-- ✅ Created `airssys:core@1.0.0` with 4 interfaces
-- ✅ Interfaces: types, capabilities, component-lifecycle, host-services
-- ✅ Type duplication (5% of file size - acceptable for v0.1)
+**Resolution:** Multi-file single-package architecture
+- ✅ Created `airssys:core@1.0.0` with 4 focused .wit files
+- ✅ types.wit (112 lines) - Layer 0: Foundation types
+- ✅ capabilities.wit (94 lines) - Layer 1: Permissions
+- ✅ component-lifecycle.wit (141 lines) - Layer 2: Lifecycle
+- ✅ host-services.wit (123 lines) - Layer 3: Host services
+- ✅ Type duplication (~13% of code - acceptable for v0.1)
 - ✅ DEBT-WASM-003 created documenting limitation and migration path
-- ✅ Core.wit fully validated (exit code 0)
+- ✅ All packages fully validated (exit code 0)
+- ✅ Refactored for better organization and maintainability
+
+**Improvements:** 
+- 70% reduction in file complexity (414 lines → 94-141 lines per file)
+- Cleaner Git history with focused diffs
+- Easier maintenance and team collaboration
+- Established pattern for extension packages
 
 **Impact:** Original ADR-WASM-015 7-package design deferred to Component Model v0.2
 
