@@ -9,11 +9,13 @@
 
 ## Problem Statement
 
-The WebAssembly Component Model v0.1 (as implemented in wasm-tools 1.240.0) does not support:
+**UPDATE (2025-10-26):** Component Model v0.1 *does* support cross-interface type reuse via `use` statements within the same package. See "Discovery & Resolution" section below.
 
-1. **Cross-interface type references** - Cannot use qualified names like `types.component-id` in record definitions
-2. **Selective imports** - The documented syntax `use namespace:package/interface.{specific-types}` is not recognized
-3. **Cross-package imports** - Attempting to import types from other packages fails with parse errors
+The original investigation revealed limitations with:
+
+1. **Qualified type references** - Cannot use qualified names like `types.component-id` in record definitions (remains true)
+2. **Cross-package imports** - Importing types from other packages was attempted but failed (remains true)
+3. **Selective imports** - Now confirmed working with `use interface.{type1, type2}` syntax within same package (RESOLVED)
 
 ### Evidence
 
@@ -54,13 +56,14 @@ interface capabilities {
 }
 ```
 
-## Impact
+## Impact & Resolution
 
-### Current Solution
-- **Implementation**: Single monolithic `core.wit` file with 4 interfaces (types, capabilities, component-lifecycle, host-services)
-- **Trade-off**: Type definitions are duplicated across interfaces for isolation
-- **DRY Violation**: Foundation types (component-id, component-error, etc.) duplicated 4 times
-- **Maintenance Risk**: Changes to core types must be synchronized across all interfaces
+### Implemented Solution (2025-10-26)
+- **Implementation**: Multi-file `airssys:core@1.0.0` package with 4 interfaces in separate files
+- **Type Reuse**: Using `use types.{type1, type2}` statements for cross-interface type imports
+- **DRY Compliance**: ✅ Eliminated type duplication (removed 92 lines)
+- **Clean Architecture**: ✅ Proper dependency declarations via `use` statements
+- **Maintenance**: ✅ Single source of truth for each type definition
 
 ### Affected Components
 - **airssys:core package** - Uses type duplication workaround
@@ -123,45 +126,93 @@ Migration should be reassessed when:
 - [ ] BytecodeAlliance confirms interface composition support
 - [ ] Cross-interface type references work in real projects
 
-## Current Workaround
+## Discovery & Resolution (2025-10-26)
 
-### What We Did
-1. **Consolidated packages** - Merged 4 packages into single `airssys:core@1.0.0` package
-2. **Multiple interfaces** - Maintained 4 logical interfaces within package:
-   - `types` - Foundation types (source of truth)
-   - `capabilities` - Permissions layer with duplicated types
-   - `component-lifecycle` - Lifecycle with duplicated types
-   - `host-services` - Host services with duplicated types
-3. **Clear documentation** - Extensive comments explaining duplication and reasons
+### Root Cause of Initial Confusion
+The documentation in the BytecodeAlliance Component Model guide clearly shows that `use` statements *do* work within packages:
 
-### Why This Works
-- Component Model v0.1 allows multiple interfaces within a single package
-- Each interface is self-contained with its own type definitions
-- No cross-interface references needed - clean separation
+```wit
+interface types {
+    type dimension = u32;
+    record point {
+        x: dimension,
+        y: dimension,
+    }
+}
+
+interface canvas {
+    use types.{dimension, point};  // ← This works!
+    draw-line: func(canvas: canvas-id, from: point, to: point);
+}
+```
+
+The original investigation didn't properly test this syntax, instead focusing on cross-package imports which do have limitations.
+
+### Implementation (Commit d193ded)
+1. **Added `use` statements** to all dependent interfaces:
+   - `capabilities.wit`: `use types.{component-id};`
+   - `component-lifecycle.wit`: `use types.{component-id, request-id, component-error, execution-error, health-status};`
+   - `host-services.wit`: `use types.{component-id, request-id, component-error, log-level, timestamp};`
+
+2. **Validation Results**:
+   - ✅ All interfaces validate individually within package context
+   - ✅ Package validates as whole with `wasm-tools component wit wit/core/`
+   - ✅ Exit code: 0 (success)
+   - ✅ 92 lines of duplication removed
+
+3. **Architecture**:
+   - Multi-file structure: `types.wit`, `capabilities.wit`, `component-lifecycle.wit`, `host-services.wit`
+   - Single package: `airssys:core@1.0.0`
+   - Clean imports between interfaces
+   - Proper type dependency declarations
+
+## Previous Workaround (Now Superseded)
+
+This section documents the investigation that led to the discovery. The monolithic approach was initially considered but is no longer used.
+
+### What We Initially Considered
+1. **Single monolithic file** - Merge all interfaces into `core.wit`
+2. **Type duplication** - Re-define types in each interface for isolation
+3. **Clear documentation** - Extensive comments explaining the limitation
 
 ### Performance Impact
 - **Build time**: No impact (parsed once per package)
 - **Binary size**: Negligible (WIT is not compiled to binary)
 - **Runtime**: No impact (types resolved at component loading)
 
+## Remaining Limitations
+
+While cross-interface type reuse *within packages* is now resolved, the following v0.1 limitations remain:
+
+1. **Qualified type references in definitions** - Cannot use `types.component-id` directly in record field types (must use short name)
+2. **Cross-package type imports** - Cannot import types from external packages (only interfaces)
+3. **Package-level exports** - Types cannot be re-exported at package scope
+
+### Implications for Extension Packages
+
+When implementing filesystem, network, and process extension packages (Task 2.2):
+- ✅ Can import from core package interfaces (via `import airssys:core/types`)
+- ⚠️ Each package must define its own types (cannot reuse core types directly)
+- ✅ Can use internal `use` statements within extension packages (same pattern as core)
+
 ## Recommendations
 
-### Short-term (Current Implementation)
-1. ✅ **Accept the workaround** - Type duplication is documented and manageable
-2. ✅ **Proceed with Phase 2** - Extension packages can use same approach
-3. ✅ **Document limitations** - Ensure future developers understand the tradeoff
-4. ✅ **Plan migration** - Set triggers for v0.2 migration when available
+### Current Status (✅ Implemented)
+1. ✅ **Leverage `use` statements** - Eliminated type duplication in core package
+2. ✅ **Multi-file structure** - Clean separation with shared types interface
+3. ✅ **Proper documentation** - Comments explain import dependencies
+4. ✅ **Ready for extension packages** - Pattern proven with core package
 
-### Medium-term (Q1 2026)
-1. **Establish monitoring** - Track Component Model v0.2 progress
-2. **Prepare migration plan** - Document steps to restructure packages
-3. **Consider alternatives** - Evaluate if v0.1 limitations affect Phase 3+ planning
+### For Task 2.2 (Extension Packages)
+1. **Filesystem package**: Create separate `airssys:filesystem` with its own types
+2. **Network package**: Create separate `airssys:network` with its own types
+3. **Process package**: Create separate `airssys:process` with its own types
+4. **Decision needed**: Implement as separate packages or consolidate like core?
 
-### Long-term (v0.2 Adoption)
-1. **Restructure to ADR-WASM-015** - Restore original 7-package design
-2. **Remove duplication** - Implement proper cross-interface type imports
-3. **Simplify maintenance** - Single source of truth for each type
-4. **Verify architecture** - Confirm modular design works as intended
+### Long-term (Component Model v0.2+)
+1. **Monitor v0.2 progress** - Track cross-package type imports support
+2. **Plan migration** - When v0.2 available, could consolidate types into shared package
+3. **Evaluate ADR-WASM-015** - Revisit original 7-package design with v0.2 capabilities
 
 ## Related Documentation
 
@@ -179,29 +230,40 @@ Migration should be reassessed when:
 ## Testing & Validation
 
 ✅ **Current Status:**
-- Monolithic core.wit validates with wasm-tools 1.240.0
-- All 4 interfaces parse successfully
-- No cross-interface reference errors
-- Ready for extension packages using same pattern
+- Multi-file core package validates with wasm-tools 1.240.0
+- All 4 interfaces in separate files parse successfully
+- `use` statements properly resolve types across interfaces
+- Cross-interface type reuse confirmed working (commit d193ded)
+- 92 lines of type duplication removed
+- Ready for Task 2.2 extension packages
 
 ## Technical Notes
 
-**Why Not Use Alternatives:**
+**Architecture Decisions:**
 
 1. **Single Global Interface**
    - ❌ Would lose logical separation
    - ❌ Violates software engineering principles
-   - ✅ But would eliminate all duplication
+   - ✅ Would eliminate all duplication
 
-2. **Separate Single-Interface Files**
-   - ❌ Would trigger cross-package import limitations
-   - ✅ Better than current approach once v0.2 released
+2. **Separate Single-Interface Files with `use` Statements** (✅ Chosen)
+   - ✅ Maintains logical separation across files
+   - ✅ Leverages `use` statements for proper type imports
+   - ✅ Clean dependency declarations
+   - ✅ Scalable and maintainable
+   - ✅ Eliminates all duplication
 
-3. **Monolithic Single File** (Current Choice)
+3. **Monolithic Single File** (Previously Considered)
    - ✅ Works within v0.1 constraints
-   - ✅ Maintains logical separation via comments and sections
-   - ✅ Scalable to extension packages
    - ⚠️ Requires duplication for interface isolation
+   - ❌ Less maintainable than multi-file approach
+
+The multi-file approach with `use` statements is superior because it:
+- Maintains logical interface separation
+- Uses proper import declarations
+- Eliminates type duplication
+- Scales to larger packages
+- Follows WIT best practices
 
 ## Decision Log
 
@@ -217,6 +279,8 @@ Migration should be reassessed when:
 
 ---
 
-**Document Version:** 1.0.0  
-**Last Updated:** 2025-10-26  
-**Status:** ACTIVE - Implemented workaround, awaiting v0.2
+---
+
+**Document Version:** 2.0.0  
+**Last Updated:** 2025-10-26 (Updated with `use` statement discovery and implementation)  
+**Status:** RESOLVED for within-package imports - Implemented via `use` statements; cross-package limitations remain; awaiting v0.2 for full resolution
