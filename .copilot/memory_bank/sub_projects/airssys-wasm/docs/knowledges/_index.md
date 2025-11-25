@@ -1,9 +1,9 @@
 # airssys-wasm Knowledge Documentation Index
 
 **Sub-Project:** airssys-wasm  
-**Last Updated:** 2025-10-21  
-**Total Knowledge Docs:** 12  
-**Active Knowledge Docs:** 12
+**Last Updated:** 2025-11-24  
+**Total Knowledge Docs:** 13  
+**Active Knowledge Docs:** 13
 
 ## Current Knowledge Documentation
 
@@ -68,6 +68,15 @@
   - **Audience**: Component developers across all languages, format designers, and interoperability engineers
   - **Standards**: Based on official Protocol Labs multiformats specification (https://github.com/multiformats/multiformats)
   - **Related**: KNOWLEDGE-WASM-004 (WIT interface definitions)
+
+- **[KNOWLEDGE-WASM-013: Core WIT Package Structure](knowledge_wasm_013_core_wit_package_structure.md)** ✅ **CRITICAL**
+  - **Purpose**: Comprehensive explanation of airssys:core@1.0.0 WIT package structure and host-component contract
+  - **Scope**: 4-layer interface architecture, bidirectional contract, type reuse patterns, implementation directions
+  - **Key Content**: Layer 0 (types.wit - shared vocabulary), Layer 1 (capabilities.wit - security model), Layer 2 (component-lifecycle.wit - component contract), Layer 3 (host-services.wit - host services), bidirectional relationship diagram, Component Model v0.1 type reuse via use statements
+  - **Status**: Complete architectural knowledge (Created 2025-11-24)
+  - **Impact**: Critical - defines the foundational contract between host and components
+  - **Audience**: Component developers, host runtime implementers, framework architects
+  - **Related**: KNOWLEDGE-WASM-004 (WIT management), WASM-TASK-003 (WIT implementation), DEBT-WASM-003 (Component Model v0.1 limitations)
 
 - **[KNOWLEDGE-WASM-007: Component Storage Architecture](knowledge_wasm_007_component_storage_architecture.md)** ✅ **CRITICAL**
   - **Purpose**: Persistent storage architecture for component state management with trait-based backend abstraction
