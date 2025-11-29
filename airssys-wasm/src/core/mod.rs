@@ -169,6 +169,7 @@ pub mod error;
 pub mod permission;
 pub mod manifest;
 pub mod permission_checker;
+pub mod permission_wit;  // WIT Permission Integration Layer
 
 // Domain-Specific Abstractions (Phase 6+: Complete through Phase 9)
 pub mod interface;
@@ -194,6 +195,12 @@ pub use error::{WasmError, WasmResult};
 pub use permission::{PermissionManifest, FilesystemPermissions, NetworkPermissions, NetworkEndpoint, StoragePermissions};
 pub use manifest::{ComponentManifest, PackageInfo, RuntimeConfig as ManifestRuntimeConfig};
 pub use permission_checker::PermissionChecker;
+pub use permission_wit::{
+    WitComponentId, WitPermissionManifest, WitFilesystemPermissions, WitNetworkPermissions,
+    WitNetworkEndpoint, WitStoragePermissions, WitPermissionResult,
+    check_file_read_wit, check_file_write_wit, check_file_delete_wit,
+    check_directory_list_wit, check_network_outbound_wit, check_storage_access_wit,
+};
 pub use interface::{FunctionSignature, WitInterface};
 pub use runtime::{ComponentHandle, ExecutionContext, ExecutionState, ResourceUsage, RuntimeEngine};
 pub use actor::{ActorMessage, ActorMetadata, ActorState, SupervisionStrategy};
