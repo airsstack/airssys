@@ -1,3 +1,5 @@
+#![allow(clippy::unwrap_used)] // Test code is allowed to use unwrap for clarity
+
 //! Security-focused isolation verification tests.
 //!
 //! Verifies 100% memory isolation (MANDATORY per ADR-WASM-006).

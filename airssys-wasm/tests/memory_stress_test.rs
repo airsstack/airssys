@@ -1,3 +1,5 @@
+#![allow(clippy::unwrap_used)] // Test code is allowed to use unwrap for clarity
+
 //! Memory stress tests under high load.
 //!
 //! Verifies system behavior under high-frequency allocations and concurrent components.

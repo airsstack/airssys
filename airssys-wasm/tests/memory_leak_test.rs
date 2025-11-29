@@ -1,3 +1,5 @@
+#![allow(clippy::unwrap_used)] // Test code is allowed to use unwrap for clarity
+
 //! Memory leak detection tests.
 //!
 //! Validates proper resource cleanup and leak prevention.

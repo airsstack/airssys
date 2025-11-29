@@ -165,6 +165,11 @@ pub mod component;
 pub mod config;
 pub mod error;
 
+// Permission System (WASM-TASK-003 Phase 3 Task 3.2: Complete)
+pub mod permission;
+pub mod manifest;
+pub mod permission_checker;
+
 // Domain-Specific Abstractions (Phase 6+: Complete through Phase 9)
 pub mod interface;
 pub mod runtime;
@@ -186,6 +191,9 @@ pub use config::{
     StorageBackend as StorageBackendType, StorageConfig,
 };
 pub use error::{WasmError, WasmResult};
+pub use permission::{PermissionManifest, FilesystemPermissions, NetworkPermissions, NetworkEndpoint, StoragePermissions};
+pub use manifest::{ComponentManifest, PackageInfo, RuntimeConfig as ManifestRuntimeConfig};
+pub use permission_checker::PermissionChecker;
 pub use interface::{FunctionSignature, WitInterface};
 pub use runtime::{ComponentHandle, ExecutionContext, ExecutionState, ResourceUsage, RuntimeEngine};
 pub use actor::{ActorMessage, ActorMetadata, ActorState, SupervisionStrategy};

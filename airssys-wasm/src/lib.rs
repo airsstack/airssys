@@ -63,7 +63,13 @@ pub mod runtime;
 // Generated WIT bindings (build.rs output)
 // Note: This module contains auto-generated code from wit-bindgen
 // DO NOT EDIT - Regenerated on every build when WIT files change
-#[allow(warnings, clippy::all)]
+#[allow(
+    warnings,
+    clippy::all,
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic
+)]
 pub mod wit_bindings {
     include!("generated/airssys_component.rs");
 }

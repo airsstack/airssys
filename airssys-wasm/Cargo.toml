@@ -42,6 +42,12 @@ anyhow = { workspace = true }
 # TOML parsing for Component.toml configuration (WASM-TASK-002 Phase 2)
 toml = { workspace = true }
 
+# Pattern matching for permission validation (WASM-TASK-003 Phase 3 Task 3.2)
+glob = "0.3"
+
+# LRU cache for permission check performance optimization (WASM-TASK-003 Phase 3 Task 3.2)
+lru = "0.12"
+
 [dev-dependencies]
 # WAT compiler for test fixtures (workspace dependency)
 wat = { workspace = true }

@@ -1,3 +1,5 @@
+#![allow(clippy::unwrap_used)] // Test code is allowed to use unwrap for clarity
+
 //! Component memory boundary tests.
 //!
 //! Verifies single-component memory limit enforcement per ADR-WASM-002.

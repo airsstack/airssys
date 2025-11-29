@@ -1,3 +1,5 @@
+#![allow(clippy::unwrap_used)] // Test code is allowed to use unwrap for clarity
+
 //! Cross-component memory isolation tests.
 //!
 //! Verifies 100% isolation between component instances per ADR-WASM-006.
