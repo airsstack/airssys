@@ -8,6 +8,9 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+# WIT bindings runtime support (required by generated code) - §5.1
+wit-bindgen = { workspace = true }
+
 # Serialization (workspace dependency - §5.1)
 serde = { workspace = true }
 
@@ -29,9 +32,9 @@ uuid = { workspace = true }
 # Tokio for async tests in security.rs and future modules
 tokio = { workspace = true, features = ["macros", "rt", "fs"] }
 
-# Wasmtime runtime dependencies (WASM-TASK-002 Phase 1)
-wasmtime = { version = "24.0", features = ["component-model", "async", "cranelift"] }
-wasmtime-wasi = { version = "24.0" }
+# Wasmtime runtime dependencies (WASM-TASK-002 Phase 1) - §5.1
+wasmtime = { workspace = true }
+wasmtime-wasi = { workspace = true }
 
 # Anyhow for Wasmtime ResourceLimiter trait (required by wasmtime API)
 anyhow = { workspace = true }
@@ -40,14 +43,14 @@ anyhow = { workspace = true }
 toml = { workspace = true }
 
 [dev-dependencies]
-# WAT compiler for test fixtures
-wat = "1.0"
+# WAT compiler for test fixtures (workspace dependency)
+wat = { workspace = true }
 
 # Temporary file/directory management for integration tests
-tempfile = "3.8"
+tempfile = { workspace = true }
 
 # Criterion for benchmarking
-criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
+criterion = { workspace = true }
 
 # Benchmark configuration
 [[bench]]

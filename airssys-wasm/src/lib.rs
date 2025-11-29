@@ -60,5 +60,13 @@ pub mod core;
 // Runtime implementation layer (Block 1 - WASM-TASK-002)
 pub mod runtime;
 
+// Generated WIT bindings (build.rs output)
+// Note: This module contains auto-generated code from wit-bindgen
+// DO NOT EDIT - Regenerated on every build when WIT files change
+#[allow(warnings, clippy::all)]
+pub mod wit_bindings {
+    include!("generated/airssys_component.rs");
+}
+
 // Prelude for ergonomic imports
 pub mod prelude;

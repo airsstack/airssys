@@ -1,0 +1,43 @@
+package airssys:core@1.0.0;
+
+// ═════════════════════════════════════════════════════════════════════════════
+// AIRSSYS COMPONENT WORLD
+// ═════════════════════════════════════════════════════════════════════════════
+//
+// This world defines the complete contract for AirsSys WASM components:
+// - What the component exports (component-lifecycle interface)
+// - What the host provides (host-services interface)
+// - What capabilities are available (capabilities interface)
+//
+// Components must implement the exported interfaces and may use the imported
+// host services for logging, messaging, and timing operations.
+
+/// The main world for AirsSys WASM components
+///
+/// Components built for this world must:
+/// 1. Export component-lifecycle interface (init, execute, shutdown, etc.)
+/// 2. Import host-services interface (logging, messaging, timing)
+/// 3. Declare required capabilities via Component.toml manifest
+world airssys-component {
+    // ─────────────────────────────────────────────────────────────────────────
+    // Component Exports (What the component implements)
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Components must implement lifecycle management functions
+    export component-lifecycle;
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Host Imports (What the host provides)
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    /// Host provides logging, messaging, and timing services
+    import host-services;
+    
+    // ─────────────────────────────────────────────────────────────────────────
+    // Extension Imports (Optional, declared in Component.toml)
+    // ─────────────────────────────────────────────────────────────────────────
+    //
+    // Extension packages (filesystem, network, process) are imported dynamically
+    // based on component capabilities. These are not part of this world definition
+    // but are resolved at component load time through the capability system.
+}
