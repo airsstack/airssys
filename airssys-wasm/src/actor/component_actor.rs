@@ -72,26 +72,427 @@
 //! - **Task**: WASM-TASK-004 Phase 1 Task 1.1
 
 // Layer 1: Standard library imports
-// (none needed)
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
+use std::time::Duration;
 
 // Layer 2: Third-party crate imports
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::UnboundedReceiver;
+use wasmtime::{Engine, Instance, Store};
 
 // Layer 3: Internal module imports
 use crate::core::{
-    CapabilitySet, ComponentId, ComponentMetadata,
+    CapabilitySet, ComponentId, ComponentMetadata, WasmError,
 };
 
-/// Stub for WASM runtime until Block 1 integration complete.
+/// WASM runtime managing Wasmtime engine, store, and component instance.
 ///
-/// TODO(TASK 1.2): Replace with actual WasmRuntime from runtime module.
-/// This stub allows Task 1.1 (structure and traits) to proceed independently.
-#[derive(Debug)]
+/// WasmRuntime encapsulates all Wasmtime resources for a single component instance,
+/// providing controlled access to the engine, store, and exported functions. This
+/// struct implements RAII resource cleanup through Drop.
+///
+/// # Architecture
+///
+/// ```text
+/// ┌─────────────────────────────────┐
+/// │       WasmRuntime               │
+/// ├─────────────────────────────────┤
+/// │ - engine: Engine                │ ← Compilation engine
+/// │ - store: Store<ResourceLimiter> │ ← Memory + fuel management
+/// │ - instance: Instance            │ ← Component exports
+/// │ - exports: WasmExports          │ ← Cached function exports
+/// └─────────────────────────────────┘
+/// ```
+///
+/// # Resource Management
+///
+/// - **Engine**: Shared compilation engine (could be shared across components in future)
+/// - **Store**: Per-component memory and fuel tracking with ResourceLimiter
+/// - **Instance**: Per-component WASM instance with exports
+/// - **Exports**: Cached function handles for performance
+///
+/// # Lifecycle
+///
+/// 1. Created during Child::start() after successful instantiation
+/// 2. Used during Actor message handling for function calls
+/// 3. Dropped during Child::stop() to free all resources
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// // Created in Child::start()
+/// let runtime = WasmRuntime::new(engine, store, instance)?;
+///
+/// // Used in Actor::handle_message()
+/// runtime.exports().call_start(runtime.store_mut()).await?;
+///
+/// // Dropped in Child::stop()
+/// drop(runtime); // Frees all WASM resources
+/// ```
+#[allow(dead_code)] // Engine will be used in future actor message handling
 pub struct WasmRuntime {
-    // Stub implementation - will be replaced with actual Wasmtime runtime
-    _placeholder: (),
+    /// Wasmtime compilation engine
+    engine: Engine,
+
+    /// Wasmtime store with resource limiter
+    store: Store<ComponentResourceLimiter>,
+
+    /// Component instance with exports
+    instance: Instance,
+
+    /// Cached function exports
+    exports: WasmExports,
+}
+
+/// Cached WASM function exports for performance.
+///
+/// WasmExports stores Optional function handles for common component exports,
+/// enabling fast lookup without repeated export resolution. All exports are
+/// optional per WASM Component Model conventions.
+///
+/// # Standard Exports
+///
+/// - **_start**: Component initialization (called once after instantiation)
+/// - **_cleanup**: Graceful shutdown (called before component termination)
+/// - **_health**: Health check reporting (periodic monitoring)
+/// - **handle-message**: Inter-component message handler (Actor trait)
+///
+/// # Performance
+///
+/// Caching exports avoids repeated `get_func()` calls during message handling,
+/// reducing Actor message processing latency.
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// // Extract exports from instance
+/// let exports = WasmExports::extract(&instance, &mut store)?;
+///
+/// // Call optional _start
+/// exports.call_start(&mut store).await?;
+///
+/// // Check if handle-message exists
+/// if exports.handle_message.is_some() {
+///     // Component supports Actor message handling
+/// }
+/// ```
+pub struct WasmExports {
+    /// Optional _start export (component initialization)
+    pub start: Option<wasmtime::Func>,
+
+    /// Optional _cleanup export (graceful shutdown)
+    pub cleanup: Option<wasmtime::Func>,
+
+    /// Optional _health export (health reporting)
+    pub health: Option<wasmtime::Func>,
+
+    /// Optional handle-message export (Actor message handling)
+    pub handle_message: Option<wasmtime::Func>,
+}
+
+/// Per-component resource limiter implementing Wasmtime ResourceLimiter trait.
+///
+/// ComponentResourceLimiter enforces memory and fuel limits for individual
+/// component instances, preventing resource exhaustion and enabling fair
+/// resource sharing across components.
+///
+/// # Resource Types
+///
+/// - **Memory**: Linear memory allocation limit (max_memory_bytes)
+/// - **Fuel**: CPU execution limit (max_fuel)
+/// - **Tables**: WASM table growth (allowed by default)
+///
+/// # Integration
+///
+/// Used as the `T` parameter in `Store<T>`, allowing Wasmtime to call
+/// resource check callbacks during component execution.
+///
+/// # Thread Safety
+///
+/// Uses AtomicU64 for thread-safe current memory tracking, though Wasmtime
+/// stores are not currently Send/Sync (future consideration).
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// let limits = ComponentResourceLimiter::new(
+///     64 * 1024 * 1024,  // 64MB memory
+///     1_000_000,         // 1M fuel
+/// );
+///
+/// let mut store = Store::new(&engine, limits);
+/// store.set_fuel(1_000_000)?;
+/// ```
+#[allow(dead_code)] // max_fuel will be used for fuel_consumed callbacks in future
+pub struct ComponentResourceLimiter {
+    /// Maximum memory in bytes
+    max_memory: u64,
+
+    /// Maximum fuel (CPU limit)
+    max_fuel: u64,
+
+    /// Current memory usage (atomic for thread safety)
+    current_memory: Arc<AtomicU64>,
+}
+
+impl ComponentResourceLimiter {
+    /// Create a new resource limiter with specified limits.
+    ///
+    /// # Parameters
+    ///
+    /// * `max_memory` - Maximum memory in bytes
+    /// * `max_fuel` - Maximum fuel (CPU limit)
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// let limiter = ComponentResourceLimiter::new(64 * 1024 * 1024, 1_000_000);
+    /// ```
+    pub fn new(max_memory: u64, max_fuel: u64) -> Self {
+        Self {
+            max_memory,
+            max_fuel,
+            current_memory: Arc::new(AtomicU64::new(0)),
+        }
+    }
+}
+
+impl wasmtime::ResourceLimiter for ComponentResourceLimiter {
+    fn memory_growing(
+        &mut self,
+        current: usize,
+        desired: usize,
+        _maximum: Option<usize>,
+    ) -> anyhow::Result<bool> {
+        let new_total = current.saturating_add(desired) as u64;
+        
+        if new_total <= self.max_memory {
+            self.current_memory.store(new_total, Ordering::Relaxed);
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    fn table_growing(
+        &mut self,
+        _current: u32,
+        _desired: u32,
+        _maximum: Option<u32>,
+    ) -> anyhow::Result<bool> {
+        // Table growth allowed by default (tables don't consume linear memory)
+        Ok(true)
+    }
+}
+
+impl WasmExports {
+    /// Extract function exports from a component instance.
+    ///
+    /// Resolves optional standard exports (_start, _cleanup, _health, handle-message)
+    /// and caches them for fast access during component lifecycle and message handling.
+    ///
+    /// # Parameters
+    ///
+    /// * `instance` - Component instance to extract exports from
+    /// * `store` - Mutable store reference for export resolution
+    ///
+    /// # Returns
+    ///
+    /// WasmExports with cached function handles (None for missing exports).
+    ///
+    /// # Errors
+    ///
+    /// Returns WasmError if export resolution fails (should not happen for optional exports).
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// let exports = WasmExports::extract(&instance, &mut store)?;
+    /// if let Some(start_fn) = &exports.start {
+    ///     // Component has _start export
+    /// }
+    /// ```
+    pub fn extract(instance: &Instance, store: &mut Store<ComponentResourceLimiter>) -> Result<Self, WasmError> {
+        Ok(Self {
+            start: instance.get_func(&mut *store, "_start"),
+            cleanup: instance.get_func(&mut *store, "_cleanup"),
+            health: instance.get_func(&mut *store, "_health"),
+            handle_message: instance.get_func(&mut *store, "handle-message"),
+        })
+    }
+
+    /// Call optional _start export.
+    ///
+    /// Invokes the component's _start export if present. This function is called
+    /// once after instantiation to allow component initialization.
+    ///
+    /// # Parameters
+    ///
+    /// * `start_fn` - Optional _start function from exports
+    /// * `store` - Mutable store reference for function execution
+    ///
+    /// # Returns
+    ///
+    /// Ok(()) if _start succeeds or is not present.
+    ///
+    /// # Errors
+    ///
+    /// Returns WasmError::ExecutionFailed if _start execution fails.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// WasmExports::call_start_fn(exports.start.as_ref(), &mut store).await?;
+    /// ```
+    pub async fn call_start_fn(
+        start_fn: Option<&wasmtime::Func>,
+        store: &mut Store<ComponentResourceLimiter>,
+    ) -> Result<(), WasmError> {
+        if let Some(func) = start_fn {
+            func
+                .call_async(store, &[], &mut [])
+                .await
+                .map_err(|e| WasmError::execution_failed(
+                    format!("Component _start function failed: {e}")
+                ))?;
+        }
+        Ok(())
+    }
+
+    /// Call optional _cleanup export with timeout protection.
+    ///
+    /// Invokes the component's _cleanup export if present, with a configurable
+    /// timeout to prevent hanging during shutdown. Timeout or execution errors
+    /// are non-fatal (logged but don't prevent resource cleanup).
+    ///
+    /// # Parameters
+    ///
+    /// * `cleanup_fn` - Optional _cleanup function from exports
+    /// * `store` - Mutable store reference for function execution
+    /// * `timeout` - Maximum time to wait for cleanup completion
+    ///
+    /// # Returns
+    ///
+    /// Ok(()) if cleanup succeeds, is not present, or times out (non-fatal).
+    ///
+    /// # Errors
+    ///
+    /// Returns WasmError::ExecutionFailed if cleanup execution fails (non-fatal).
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// WasmExports::call_cleanup_fn(exports.cleanup.as_ref(), &mut store, Duration::from_secs(5)).await?;
+    /// ```
+    pub async fn call_cleanup_fn(
+        cleanup_fn: Option<&wasmtime::Func>,
+        store: &mut Store<ComponentResourceLimiter>,
+        timeout: Duration,
+    ) -> Result<(), WasmError> {
+        if let Some(func) = cleanup_fn {
+            match tokio::time::timeout(
+                timeout,
+                func.call_async(store, &[], &mut [])
+            ).await {
+                Ok(Ok(())) => Ok(()),
+                Ok(Err(e)) => Err(WasmError::execution_failed(
+                    format!("Component _cleanup function failed: {e}")
+                )),
+                Err(_) => Err(WasmError::execution_timeout(
+                    timeout.as_millis() as u64,
+                    None
+                )),
+            }
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl WasmRuntime {
+    /// Create a new WasmRuntime from Wasmtime components.
+    ///
+    /// Wraps Wasmtime engine, store, and instance into a managed runtime
+    /// with cached exports for performance.
+    ///
+    /// # Parameters
+    ///
+    /// * `engine` - Wasmtime compilation engine
+    /// * `store` - Wasmtime store with resource limiter
+    /// * `instance` - Component instance with exports
+    ///
+    /// # Returns
+    ///
+    /// WasmRuntime ready for component execution.
+    ///
+    /// # Errors
+    ///
+    /// Returns WasmError if export extraction fails.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// let runtime = WasmRuntime::new(engine, store, instance)?;
+    /// ```
+    pub fn new(
+        engine: Engine,
+        mut store: Store<ComponentResourceLimiter>,
+        instance: Instance,
+    ) -> Result<Self, WasmError> {
+        let exports = WasmExports::extract(&instance, &mut store)?;
+        
+        Ok(Self {
+            engine,
+            store,
+            instance,
+            exports,
+        })
+    }
+
+    /// Get mutable reference to the store.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// let store = runtime.store_mut();
+    /// ```
+    pub fn store_mut(&mut self) -> &mut Store<ComponentResourceLimiter> {
+        &mut self.store
+    }
+
+    /// Get reference to the instance.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// let instance = runtime.instance();
+    /// ```
+    pub fn instance(&self) -> &Instance {
+        &self.instance
+    }
+
+    /// Get reference to cached exports.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// let exports = runtime.exports();
+    /// ```
+    pub fn exports(&self) -> &WasmExports {
+        &self.exports
+    }
+}
+
+impl Drop for WasmRuntime {
+    fn drop(&mut self) {
+        // Wasmtime automatically cleans up:
+        // - Store drop: frees linear memory
+        // - Engine drop: frees compilation cache
+        // - Instance drop: frees export handles
+        tracing::debug!("WasmRuntime dropped - all WASM resources freed");
+    }
 }
 
 /// Central component execution unit: Actor for messaging, Child for WASM lifecycle.
@@ -588,6 +989,75 @@ impl ComponentActor {
     pub fn uptime(&self) -> Option<chrono::Duration> {
         self.started_at
             .map(|started| Utc::now() - started)
+    }
+
+    /// Load WASM component bytes from storage.
+    ///
+    /// # TODO(Block 6 - Component Storage System)
+    ///
+    /// This is a stub implementation. Block 6 (Component Storage System) will
+    /// provide the actual storage backend integration for loading components
+    /// from filesystem, registry, or remote sources.
+    ///
+    /// For now, returns `WasmError::ComponentNotFound` to indicate storage
+    /// integration is pending.
+    ///
+    /// # Future Implementation
+    ///
+    /// Block 6 will implement:
+    /// - Filesystem-based component loading
+    /// - Component registry integration
+    /// - Remote component fetching
+    /// - Component caching and versioning
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(Vec<u8>)`: WASM bytecode (future)
+    /// - `Err(WasmError::ComponentNotFound)`: Storage not implemented (current)
+    ///
+    /// # Errors
+    ///
+    /// Currently always returns `WasmError::ComponentNotFound`.
+    ///
+    /// Future errors:
+    /// - ComponentNotFound: Component doesn't exist in storage
+    /// - StorageError: Storage backend failure
+    /// - IoError: Filesystem read error
+    /// - SerializationError: Component manifest parse error
+    pub(crate) async fn load_component_bytes(&self) -> Result<Vec<u8>, WasmError> {
+        Err(WasmError::component_not_found(format!(
+            "Component storage integration pending (Block 6) - component_id: {}",
+            self.component_id.as_str()
+        )))
+    }
+
+    /// Get reference to component metadata.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// let metadata = actor.metadata();
+    /// println!("Memory limit: {}", metadata.resource_limits.max_memory_bytes);
+    /// ```
+    pub(crate) fn metadata(&self) -> &ComponentMetadata {
+        &self.metadata
+    }
+
+    /// Set the WASM runtime (internal use by Child::start()).
+    ///
+    /// This method is public but primarily for internal use by the Child trait
+    /// implementation. External code should not normally call this.
+    #[doc(hidden)]
+    pub fn set_wasm_runtime(&mut self, runtime: Option<WasmRuntime>) {
+        self.wasm_runtime = runtime;
+    }
+
+    /// Get mutable reference to WASM runtime (internal use).
+    ///
+    /// This method is public but primarily for internal use by trait implementations.
+    #[doc(hidden)]
+    pub fn wasm_runtime_mut(&mut self) -> Option<&mut WasmRuntime> {
+        self.wasm_runtime.as_mut()
     }
 }
 

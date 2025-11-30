@@ -35,6 +35,9 @@ uuid = { workspace = true }
 # Tokio for async tests in security.rs and future modules
 tokio = { workspace = true, features = ["macros", "rt", "fs"] }
 
+# Tracing for logging (§5.1)
+tracing = { workspace = true }
+
 # Wasmtime runtime dependencies (WASM-TASK-002 Phase 1) - §5.1
 wasmtime = { workspace = true }
 wasmtime-wasi = { workspace = true }
