@@ -34,7 +34,7 @@
 //! let mut manifest = PermissionManifest::new();
 //! manifest.filesystem.read.push("/data/**".to_string());
 //!
-//! checker.load_permissions(component_id.clone(), manifest).unwrap();
+//! checker.load_permissions(component_id.clone(), &manifest).unwrap();
 //!
 //! // Check permissions
 //! assert!(checker.can_read_file(&component_id, "/data/input.txt").is_ok());
@@ -91,7 +91,7 @@ use crate::core::permission::{NetworkEndpoint, PermissionManifest};
 /// perms.filesystem.read.push("/data/**".to_string());
 /// perms.filesystem.write.push("/output/*.txt".to_string());
 ///
-/// checker.load_permissions(id.clone(), perms).unwrap();
+/// checker.load_permissions(id.clone(), &perms).unwrap();
 ///
 /// // Filesystem checks
 /// assert!(checker.can_read_file(&id, "/data/input.json").is_ok());
@@ -151,7 +151,7 @@ struct CacheKey {
 }
 
 /// Permission action types for cache differentiation.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum PermissionAction {
     FileRead,
     FileWrite,
@@ -241,12 +241,12 @@ impl PermissionChecker {
     /// let mut perms = PermissionManifest::new();
     /// perms.filesystem.read.push("/data/**".to_string());
     ///
-    /// checker.load_permissions(id, perms).unwrap();
+    /// checker.load_permissions(id, &perms).unwrap();
     /// ```
     pub fn load_permissions(
         &mut self,
         component_id: ComponentId,
-        manifest: PermissionManifest,
+        manifest: &PermissionManifest,
     ) -> WasmResult<()> {
         let compiled = self.compile_permissions(manifest)?;
         self.permissions.insert(component_id, compiled);
@@ -254,7 +254,7 @@ impl PermissionChecker {
     }
 
     /// Compile permission patterns for efficient matching.
-    fn compile_permissions(&self, manifest: PermissionManifest) -> WasmResult<CompiledPermissions> {
+    fn compile_permissions(&self, manifest: &PermissionManifest) -> WasmResult<CompiledPermissions> {
         // Compile filesystem patterns
         let filesystem_read = self.compile_glob_patterns(&manifest.filesystem.read)?;
         let filesystem_write = self.compile_glob_patterns(&manifest.filesystem.write)?;
@@ -313,7 +313,7 @@ impl PermissionChecker {
     ///
     /// let mut perms = PermissionManifest::new();
     /// perms.filesystem.read.push("/data/**".to_string());
-    /// checker.load_permissions(id.clone(), perms).unwrap();
+    /// checker.load_permissions(id.clone(), &perms).unwrap();
     ///
     /// assert!(checker.can_read_file(&id, "/data/input.txt").is_ok());
     /// assert!(checker.can_read_file(&id, "/etc/passwd").is_err());
@@ -381,7 +381,7 @@ impl PermissionChecker {
         let cache_key = CacheKey {
             component_id: component_id.clone(),
             resource: path.to_string(),
-            action: action.clone(),
+            action,
         };
 
         {
@@ -466,7 +466,7 @@ impl PermissionChecker {
     ///     host: "api.example.com".to_string(),
     ///     port: 443,
     /// });
-    /// checker.load_permissions(id.clone(), perms).unwrap();
+    /// checker.load_permissions(id.clone(), &perms).unwrap();
     ///
     /// assert!(checker.can_connect_outbound(&id, "api.example.com", 443).is_ok());
     /// assert!(checker.can_connect_outbound(&id, "evil.com", 80).is_err());
@@ -573,7 +573,7 @@ impl PermissionChecker {
     ///
     /// let mut perms = PermissionManifest::new();
     /// perms.network.inbound.push(8080);
-    /// checker.load_permissions(id.clone(), perms).unwrap();
+    /// checker.load_permissions(id.clone(), &perms).unwrap();
     ///
     /// assert!(checker.can_listen_inbound(&id, 8080).is_ok());
     /// assert!(checker.can_listen_inbound(&id, 80).is_err());
@@ -620,7 +620,7 @@ impl PermissionChecker {
     ///
     /// let mut perms = PermissionManifest::new();
     /// perms.storage.namespaces.push("myapp:cache".to_string());
-    /// checker.load_permissions(id.clone(), perms).unwrap();
+    /// checker.load_permissions(id.clone(), &perms).unwrap();
     ///
     /// assert!(checker.can_access_storage(&id, "myapp:cache").is_ok());
     /// assert!(checker.can_access_storage(&id, "other:cache").is_err());
@@ -713,7 +713,7 @@ mod tests {
         perms.filesystem.read.push("/data/**".to_string());
         perms.filesystem.read.push("/config/*.json".to_string());
 
-        checker.load_permissions(id.clone(), perms).unwrap();
+        checker.load_permissions(id.clone(), &perms).unwrap();
 
         // Should allow
         assert!(checker.can_read_file(&id, "/data/input.txt").is_ok());
@@ -733,7 +733,7 @@ mod tests {
         let mut perms = PermissionManifest::new();
         perms.filesystem.write.push("/output/**".to_string());
 
-        checker.load_permissions(id.clone(), perms).unwrap();
+        checker.load_permissions(id.clone(), &perms).unwrap();
 
         assert!(checker.can_write_file(&id, "/output/result.txt").is_ok());
         assert!(checker.can_write_file(&id, "/output/subdir/data.json").is_ok());
@@ -755,7 +755,7 @@ mod tests {
             port: 443,
         });
 
-        checker.load_permissions(id.clone(), perms).unwrap();
+        checker.load_permissions(id.clone(), &perms).unwrap();
 
         // Exact match
         assert!(checker.can_connect_outbound(&id, "api.example.com", 443).is_ok());
@@ -778,7 +778,7 @@ mod tests {
         perms.network.inbound.push(8080);
         perms.network.inbound.push(9000);
 
-        checker.load_permissions(id.clone(), perms).unwrap();
+        checker.load_permissions(id.clone(), &perms).unwrap();
 
         // Should allow
         assert!(checker.can_listen_inbound(&id, 8080).is_ok());
@@ -799,7 +799,7 @@ mod tests {
         perms.storage.namespaces.push("myapp:config".to_string());
         perms.storage.max_size_mb = 100;
 
-        checker.load_permissions(id.clone(), perms).unwrap();
+        checker.load_permissions(id.clone(), &perms).unwrap();
 
         assert!(checker.can_access_storage(&id, "myapp:cache").is_ok());
         assert!(checker.can_access_storage(&id, "myapp:config").is_ok());
@@ -816,7 +816,7 @@ mod tests {
         let mut perms = PermissionManifest::new();
         perms.filesystem.read.push("/data/**".to_string());
 
-        checker.load_permissions(id.clone(), perms).unwrap();
+        checker.load_permissions(id.clone(), &perms).unwrap();
 
         // First check (uncached)
         assert!(checker.can_read_file(&id, "/data/input.txt").is_ok());
@@ -837,7 +837,7 @@ mod tests {
         let mut perms = PermissionManifest::new();
         perms.filesystem.read.push("[invalid".to_string()); // Invalid glob
 
-        assert!(checker.load_permissions(id, perms).is_err());
+        assert!(checker.load_permissions(id, &perms).is_err());
     }
 
     #[test]

@@ -16,7 +16,7 @@ fn test_exact_path_match() {
     let mut perms = PermissionManifest::new();
     perms.filesystem.read.push("/data/input.txt".to_string());
 
-    checker.load_permissions(id.clone(), perms).unwrap();
+    checker.load_permissions(id.clone(), &perms).unwrap();
 
     // Exact match should work
     assert!(checker.can_read_file(&id, "/data/input.txt").is_ok());
@@ -33,7 +33,7 @@ fn test_glob_single_directory() {
     let mut perms = PermissionManifest::new();
     perms.filesystem.read.push("/data/*.json".to_string());
 
-    checker.load_permissions(id.clone(), perms).unwrap();
+    checker.load_permissions(id.clone(), &perms).unwrap();
 
     // Should match in same directory
     assert!(checker.can_read_file(&id, "/data/file1.json").is_ok());
@@ -56,7 +56,7 @@ fn test_glob_recursive() {
     let mut perms = PermissionManifest::new();
     perms.filesystem.read.push("/data/**".to_string());
 
-    checker.load_permissions(id.clone(), perms).unwrap();
+    checker.load_permissions(id.clone(), &perms).unwrap();
 
     // Should match at root
     assert!(checker.can_read_file(&id, "/data/file.txt").is_ok());
@@ -79,7 +79,7 @@ fn test_glob_question_mark() {
     let mut perms = PermissionManifest::new();
     perms.filesystem.read.push("/data/file?.txt".to_string());
 
-    checker.load_permissions(id.clone(), perms).unwrap();
+    checker.load_permissions(id.clone(), &perms).unwrap();
 
     // Should match single character
     assert!(checker.can_read_file(&id, "/data/file1.txt").is_ok());
@@ -102,7 +102,7 @@ fn test_multiple_patterns() {
     perms.filesystem.read.push("/config/*.json".to_string());
     perms.filesystem.read.push("/etc/myapp/app.toml".to_string());
 
-    checker.load_permissions(id.clone(), perms).unwrap();
+    checker.load_permissions(id.clone(), &perms).unwrap();
 
     // Should match first pattern
     assert!(checker.can_read_file(&id, "/data/file.txt").is_ok());
@@ -127,7 +127,7 @@ fn test_filesystem_write_permission() {
     perms.filesystem.write.push("/output/**".to_string());
     perms.filesystem.write.push("/tmp/cache/*".to_string());
 
-    checker.load_permissions(id.clone(), perms).unwrap();
+    checker.load_permissions(id.clone(), &perms).unwrap();
 
     // Write permissions
     assert!(checker.can_write_file(&id, "/output/result.txt").is_ok());
@@ -146,7 +146,7 @@ fn test_filesystem_delete_permission() {
     let mut perms = PermissionManifest::new();
     perms.filesystem.delete.push("/tmp/cache/*".to_string());
 
-    checker.load_permissions(id.clone(), perms).unwrap();
+    checker.load_permissions(id.clone(), &perms).unwrap();
 
     assert!(checker.can_delete_file(&id, "/tmp/cache/temp.dat").is_ok());
     assert!(checker.can_delete_file(&id, "/data/file.txt").is_err());
@@ -161,7 +161,7 @@ fn test_filesystem_list_permission() {
     perms.filesystem.list.push("/data".to_string());
     perms.filesystem.list.push("/config".to_string());
 
-    checker.load_permissions(id.clone(), perms).unwrap();
+    checker.load_permissions(id.clone(), &perms).unwrap();
 
     assert!(checker.can_list_directory(&id, "/data").is_ok());
     assert!(checker.can_list_directory(&id, "/config").is_ok());
@@ -179,7 +179,7 @@ fn test_network_exact_domain_match() {
         port: 443,
     });
 
-    checker.load_permissions(id.clone(), perms).unwrap();
+    checker.load_permissions(id.clone(), &perms).unwrap();
 
     // Exact match should work
     assert!(checker.can_connect_outbound(&id, "api.example.com", 443).is_ok());
@@ -202,7 +202,7 @@ fn test_network_wildcard_subdomain() {
         port: 443,
     });
 
-    checker.load_permissions(id.clone(), perms).unwrap();
+    checker.load_permissions(id.clone(), &perms).unwrap();
 
     // Should match single-level subdomain
     assert!(checker.can_connect_outbound(&id, "a.example.com", 443).is_ok());
@@ -229,7 +229,7 @@ fn test_network_ip_address() {
         port: 8080,
     });
 
-    checker.load_permissions(id.clone(), perms).unwrap();
+    checker.load_permissions(id.clone(), &perms).unwrap();
 
     assert!(checker.can_connect_outbound(&id, "192.168.1.100", 8080).is_ok());
     assert!(checker.can_connect_outbound(&id, "192.168.1.101", 8080).is_err());
@@ -254,7 +254,7 @@ fn test_network_multiple_endpoints() {
         port: 8080,
     });
 
-    checker.load_permissions(id.clone(), perms).unwrap();
+    checker.load_permissions(id.clone(), &perms).unwrap();
 
     // All should work
     assert!(checker.can_connect_outbound(&id, "api.example.com", 443).is_ok());
@@ -274,7 +274,7 @@ fn test_storage_namespace_exact_match() {
     perms.storage.namespaces.push("myapp:cache".to_string());
     perms.storage.namespaces.push("myapp:config".to_string());
 
-    checker.load_permissions(id.clone(), perms).unwrap();
+    checker.load_permissions(id.clone(), &perms).unwrap();
 
     assert!(checker.can_access_storage(&id, "myapp:cache").is_ok());
     assert!(checker.can_access_storage(&id, "myapp:config").is_ok());
@@ -290,7 +290,7 @@ fn test_storage_quota() {
     let mut perms = PermissionManifest::new();
     perms.storage.max_size_mb = 100;
 
-    checker.load_permissions(id.clone(), perms).unwrap();
+    checker.load_permissions(id.clone(), &perms).unwrap();
 
     // 100 MB = 104857600 bytes
     assert_eq!(checker.storage_quota(&id), 100 * 1024 * 1024);
@@ -303,7 +303,7 @@ fn test_deny_by_default() {
 
     // Load component with NO permissions
     let perms = PermissionManifest::new();
-    checker.load_permissions(id.clone(), perms).unwrap();
+    checker.load_permissions(id.clone(), &perms).unwrap();
 
     // Everything should be denied
     assert!(checker.can_read_file(&id, "/data/file.txt").is_err());
@@ -322,7 +322,7 @@ fn test_permission_caching() {
     let mut perms = PermissionManifest::new();
     perms.filesystem.read.push("/data/**".to_string());
 
-    checker.load_permissions(id.clone(), perms).unwrap();
+    checker.load_permissions(id.clone(), &perms).unwrap();
 
     // First check (uncached)
     let result1 = checker.can_read_file(&id, "/data/input.txt");
@@ -348,7 +348,7 @@ fn test_invalid_glob_pattern_rejected() {
     let mut perms = PermissionManifest::new();
     perms.filesystem.read.push("[invalid".to_string()); // Invalid glob
 
-    let result = checker.load_permissions(id, perms);
+    let result = checker.load_permissions(id, &perms);
     assert!(result.is_err());
 }
 
@@ -371,7 +371,7 @@ fn test_case_sensitive_paths() {
     let mut perms = PermissionManifest::new();
     perms.filesystem.read.push("/Data/**".to_string());
 
-    checker.load_permissions(id.clone(), perms).unwrap();
+    checker.load_permissions(id.clone(), &perms).unwrap();
 
     // Glob matching is case-sensitive on Unix
     assert!(checker.can_read_file(&id, "/Data/file.txt").is_ok());

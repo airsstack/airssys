@@ -394,8 +394,8 @@ impl ComponentManifest {
         }
 
         // Check major.minor.patch are numbers
-        for i in 0..3 {
-            if parts[i].parse::<u64>().is_err() {
+        for part in parts.iter().take(3) {
+            if part.parse::<u64>().is_err() {
                 return Err(WasmError::component_validation_failed(
                     "Version major.minor.patch must be numbers",
                 ));

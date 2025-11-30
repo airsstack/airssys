@@ -547,7 +547,7 @@ impl From<PermissionManifest> for WitPermissionManifest {
 /// let rust_id = ComponentId::new("default:test-component@0.0.0");
 /// let mut perms = PermissionManifest::new();
 /// perms.filesystem.read.push("/data/**".to_string());
-/// checker.load_permissions(rust_id.clone(), perms).unwrap();
+/// checker.load_permissions(rust_id.clone(), &perms).unwrap();
 ///
 /// let wit_id = WitComponentId {
 ///     namespace: "default".to_string(),
@@ -555,16 +555,16 @@ impl From<PermissionManifest> for WitPermissionManifest {
 ///     version: "0.0.0".to_string(),
 /// };
 ///
-/// let result = check_file_read_wit(&checker, wit_id, "/data/input.txt".to_string());
+/// let result = check_file_read_wit(&checker, wit_id, "/data/input.txt");
 /// assert!(matches!(result, WitPermissionResult::Granted));
 /// ```
 pub fn check_file_read_wit(
     checker: &PermissionChecker,
     component: WitComponentId,
-    path: String,
+    path: &str,
 ) -> WitPermissionResult {
     let rust_id: ComponentId = component.into();
-    match checker.can_read_file(&rust_id, &path) {
+    match checker.can_read_file(&rust_id, path) {
         Ok(()) => WitPermissionResult::Granted,
         Err(e) => WitPermissionResult::Denied(e.to_string()),
     }
@@ -584,7 +584,7 @@ pub fn check_file_read_wit(
 /// let rust_id = ComponentId::new("default:test-component@0.0.0");
 /// let mut perms = PermissionManifest::new();
 /// perms.filesystem.write.push("/output/**".to_string());
-/// checker.load_permissions(rust_id, perms).unwrap();
+/// checker.load_permissions(rust_id, &perms).unwrap();
 ///
 /// let wit_id = WitComponentId {
 ///     namespace: "default".to_string(),
@@ -592,16 +592,16 @@ pub fn check_file_read_wit(
 ///     version: "0.0.0".to_string(),
 /// };
 ///
-/// let result = check_file_write_wit(&checker, wit_id, "/output/result.txt".to_string());
+/// let result = check_file_write_wit(&checker, wit_id, "/output/result.txt");
 /// assert!(matches!(result, WitPermissionResult::Granted));
 /// ```
 pub fn check_file_write_wit(
     checker: &PermissionChecker,
     component: WitComponentId,
-    path: String,
+    path: &str,
 ) -> WitPermissionResult {
     let rust_id: ComponentId = component.into();
-    match checker.can_write_file(&rust_id, &path) {
+    match checker.can_write_file(&rust_id, path) {
         Ok(()) => WitPermissionResult::Granted,
         Err(e) => WitPermissionResult::Denied(e.to_string()),
     }
@@ -611,10 +611,10 @@ pub fn check_file_write_wit(
 pub fn check_file_delete_wit(
     checker: &PermissionChecker,
     component: WitComponentId,
-    path: String,
+    path: &str,
 ) -> WitPermissionResult {
     let rust_id: ComponentId = component.into();
-    match checker.can_delete_file(&rust_id, &path) {
+    match checker.can_delete_file(&rust_id, path) {
         Ok(()) => WitPermissionResult::Granted,
         Err(e) => WitPermissionResult::Denied(e.to_string()),
     }
@@ -624,10 +624,10 @@ pub fn check_file_delete_wit(
 pub fn check_directory_list_wit(
     checker: &PermissionChecker,
     component: WitComponentId,
-    path: String,
+    path: &str,
 ) -> WitPermissionResult {
     let rust_id: ComponentId = component.into();
-    match checker.can_list_directory(&rust_id, &path) {
+    match checker.can_list_directory(&rust_id, path) {
         Ok(()) => WitPermissionResult::Granted,
         Err(e) => WitPermissionResult::Denied(e.to_string()),
     }
@@ -637,11 +637,11 @@ pub fn check_directory_list_wit(
 pub fn check_network_outbound_wit(
     checker: &PermissionChecker,
     component: WitComponentId,
-    host: String,
+    host: &str,
     port: u16,
 ) -> WitPermissionResult {
     let rust_id: ComponentId = component.into();
-    match checker.can_connect_outbound(&rust_id, &host, port) {
+    match checker.can_connect_outbound(&rust_id, host, port) {
         Ok(()) => WitPermissionResult::Granted,
         Err(e) => WitPermissionResult::Denied(e.to_string()),
     }
@@ -651,10 +651,10 @@ pub fn check_network_outbound_wit(
 pub fn check_storage_access_wit(
     checker: &PermissionChecker,
     component: WitComponentId,
-    namespace: String,
+    namespace: &str,
 ) -> WitPermissionResult {
     let rust_id: ComponentId = component.into();
-    match checker.can_access_storage(&rust_id, &namespace) {
+    match checker.can_access_storage(&rust_id, namespace) {
         Ok(()) => WitPermissionResult::Granted,
         Err(e) => WitPermissionResult::Denied(e.to_string()),
     }

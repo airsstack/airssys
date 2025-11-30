@@ -43,8 +43,8 @@
 //! - **Component Model**: Component identification, metadata, state management
 //! - **Capability Security**: Fine-grained capability grants for filesystem, network, and environment access
 //! - **Runtime Engine**: Execution context and resource management
+//! - **Actor Integration**: Actor-hosted component execution with supervision
 //! - **Lifecycle Management**: Component installation, updates, and removal
-//! - **Actor Integration**: Message-based communication with actor systems
 //! - **Storage Backend**: Persistence layer for component state
 //! - **Observability**: Metrics collection and health monitoring
 //!
@@ -59,6 +59,9 @@ pub mod core;
 
 // Runtime implementation layer (Block 1 - WASM-TASK-002)
 pub mod runtime;
+
+// Actor system integration (Block 3 - WASM-TASK-004)
+pub mod actor;
 
 // Generated WIT bindings (build.rs output)
 // Note: This module contains auto-generated code from wit-bindgen

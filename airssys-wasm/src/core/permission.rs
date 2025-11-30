@@ -38,11 +38,12 @@
 //! use airssys_wasm::core::permission::{PermissionManifest, FilesystemPermissions};
 //!
 //! let toml_content = r#"
-//! [permissions.filesystem]
+//! [filesystem]
 //! read = ["/data/**"]
 //! write = ["/output/**"]
 //! "#;
 //!
+//! # #[allow(clippy::unwrap_used)]
 //! let manifest: PermissionManifest = toml::from_str(toml_content).unwrap();
 //! assert_eq!(manifest.filesystem.read.len(), 1);
 //! ```
@@ -511,13 +512,14 @@ max_size_mb = 100
 "#;
 
         let parsed: Result<PermissionManifest, _> = toml::from_str(toml_content);
-        assert!(parsed.is_ok(), "Failed to parse: {:?}", parsed);
+        assert!(parsed.is_ok(), "Failed to parse: {parsed:?}");
 
-        let manifest = parsed.unwrap();
-        assert_eq!(manifest.filesystem.read.len(), 2);
-        assert_eq!(manifest.filesystem.write.len(), 1);
-        assert_eq!(manifest.network.outbound.len(), 1);
-        assert_eq!(manifest.storage.max_size_mb, 100);
+        if let Ok(manifest) = parsed {
+            assert_eq!(manifest.filesystem.read.len(), 2);
+            assert_eq!(manifest.filesystem.write.len(), 1);
+            assert_eq!(manifest.network.outbound.len(), 1);
+            assert_eq!(manifest.storage.max_size_mb, 100);
+        }
     }
 
     #[test]
