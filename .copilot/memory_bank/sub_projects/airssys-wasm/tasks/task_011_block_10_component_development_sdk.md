@@ -2,11 +2,49 @@
 
 **Status:** not-started  
 **Added:** 2025-10-20  
-**Updated:** 2025-10-20  
+**Updated:** 2025-11-30  
 **Priority:** High - Developer Experience Layer  
 **Layer:** 4 - Developer Experience  
 **Block:** 10 of 11  
 **Estimated Effort:** 5-6 weeks  
+
+## ⚠️ CRITICAL: Sub-Project Context
+
+**This task implements the `airssys-wasm-component` crate** - a separate procedural macro crate in the AirsSys workspace.
+
+### Workspace Structure Reference
+```
+airssys/
+├── airssys-wasm/              # Core framework library (Blocks 1-9)
+├── airssys-wasm-component/    # 🎯 THIS TASK (Block 10)
+│   ├── Cargo.toml             # [lib] proc-macro = true
+│   ├── src/
+│   │   ├── lib.rs             # Macro exports
+│   │   ├── component.rs       # #[component] macro
+│   │   ├── derive.rs          # Derive macros
+│   │   ├── codegen.rs         # Code generation
+│   │   └── utils.rs           # Helpers
+│   └── tests/                 # UI tests (trybuild)
+└── airssys-wasm-cli/          # CLI tool (Block 11)
+```
+
+### Key Distinctions
+- ✅ **This task**: Implements `airssys-wasm-component/` (procedural macros)
+- ❌ **NOT this task**: Core library (`airssys-wasm/`), CLI tool (`airssys-wasm-cli/`)
+- 📚 **Complete reference**: See **KNOWLEDGE-WASM-015** for full workspace architecture
+
+### Architecture Pattern: Serde Pattern
+This crate follows the proven **serde pattern** (separation of macros from core types):
+- `airssys-wasm` provides core `Component` trait and types
+- `airssys-wasm-component` provides procedural macros (this task)
+- Developers can use macros (convenience) or implement traits manually (control)
+
+### Current Foundation Status
+- ✅ Project structure complete (25% overall)
+- ✅ All modules created (lib.rs, component.rs, derive.rs, codegen.rs, utils.rs)
+- ✅ Placeholder implementations compile successfully
+- ✅ Workspace integration complete
+- ⏳ **Ready for Phase 2**: Actual macro logic implementation
 
 ## Overview
 
@@ -15,11 +53,13 @@ Implement comprehensive Component Development SDK providing procedural macros (#
 ## Context
 
 **Current State:**
-- airssys-wasm-component crate: Foundation complete (25%)
-- Architecture: KNOWLEDGE-WASM-012 (SDK Design Patterns)
-- Component.toml spec: KNOWLEDGE-WASM-010 (manifest schema)
-- Macro foundation: Serde pattern architecture ready
-- WIT interfaces: Complete in Block 2 (WASM-TASK-003)
+- **airssys-wasm-component crate**: Foundation complete (25%)
+- **Location**: `airssys/airssys-wasm-component/` directory
+- **Architecture**: KNOWLEDGE-WASM-015 (Workspace Architecture) - **ESSENTIAL REFERENCE**
+- **SDK Design**: KNOWLEDGE-WASM-012 (SDK Design Patterns)
+- **Component.toml spec**: KNOWLEDGE-WASM-010 (manifest schema)
+- **Macro foundation**: Serde pattern architecture ready
+- **WIT interfaces**: Complete in Block 2 (WASM-TASK-003)
 
 **Problem Statement:**
 Component development currently requires:
@@ -539,6 +579,13 @@ This task is complete when:
 
 ## Related Documentation
 
+### ⭐ Essential Reading (MUST READ BEFORE STARTING)
+- **KNOWLEDGE-WASM-015: Project Structure and Workspace Architecture** - **CRITICAL**
+  - Explains the three sub-projects (airssys-wasm, airssys-wasm-component, airssys-wasm-cli)
+  - Maps tasks to crates (this task = airssys-wasm-component)
+  - Clarifies dependency relationships and serde pattern
+  - **READ THIS FIRST** to understand context
+
 ### ADRs
 - **ADR-WASM-012: SDK Macro Architecture** - (Future) Macro design decisions
 
@@ -546,9 +593,15 @@ This task is complete when:
 - **KNOWLEDGE-WASM-012: SDK Design Patterns** - Primary SDK design reference
 - **KNOWLEDGE-WASM-010: Component.toml Specification** - Manifest schema
 - **KNOWLEDGE-WASM-004: WIT Management Architecture** - Interface generation
+- **KNOWLEDGE-WASM-001: Component Framework Architecture** - Core architecture
+
+### Related Sub-Projects
+- **airssys-wasm** (`../airssys-wasm/`) - Core library providing Component trait
+- **airssys-wasm-cli** (`../airssys-wasm-cli/`) - CLI tool that uses this SDK (WASM-TASK-012)
 
 ### External References
 - [Rust Procedural Macros](https://doc.rust-lang.org/book/ch19-06-macros.html)
+- [serde pattern](https://github.com/serde-rs/serde) - Architecture inspiration
 - [AssemblyScript](https://www.assemblyscript.org/)
 - [TinyGo](https://tinygo.org/)
 - [JSON Schema](https://json-schema.org/)

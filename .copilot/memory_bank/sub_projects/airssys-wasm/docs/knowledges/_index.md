@@ -1,9 +1,9 @@
 # airssys-wasm Knowledge Documentation Index
 
 **Sub-Project:** airssys-wasm  
-**Last Updated:** 2025-11-29  
-**Total Knowledge Docs:** 14  
-**Active Knowledge Docs:** 14
+**Last Updated:** 2025-11-30  
+**Total Knowledge Docs:** 15  
+**Active Knowledge Docs:** 15
 
 ## Current Knowledge Documentation
 
@@ -17,6 +17,15 @@
   - **Audience**: Anyone seeking to understand airssys-wasm at conceptual level
 
 ### Architecture & Design Category ✅
+- **[KNOWLEDGE-WASM-015: Project Structure and Workspace Architecture](knowledge_wasm_015_project_structure_and_workspace_architecture.md)** ✅ **CRITICAL**
+  - **Purpose**: Comprehensive documentation of the three sub-projects and their relationships
+  - **Scope**: Workspace structure, crate relationships, task-to-crate mapping, integration architecture
+  - **Key Content**: airssys-wasm (core), airssys-wasm-component (macros), airssys-wasm-cli (CLI), dependency graph, implementation timeline, developer guidance
+  - **Status**: Complete authoritative reference (Created 2025-11-30)
+  - **Impact**: Critical - prevents confusion between sub-projects, essential for task implementation
+  - **Audience**: All developers, architects, project managers, anyone working on WASM-TASK-011 or WASM-TASK-012
+  - **Related**: All WASM tasks, KNOWLEDGE-WASM-010 (CLI spec), KNOWLEDGE-WASM-012 (SDK patterns)
+
 - **[KNOWLEDGE-WASM-001: Component Framework Architecture](knowledge_wasm_001_component_framework_architecture.md)** ✅ **CRITICAL**
   - **Purpose**: Foundational architecture for WASM Component Framework for Pluggable Systems
   - **Scope**: Complete architectural decisions and design principles

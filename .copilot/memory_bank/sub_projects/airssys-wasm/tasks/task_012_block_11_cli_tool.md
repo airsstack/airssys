@@ -2,11 +2,66 @@
 
 **Status:** not-started  
 **Added:** 2025-10-20  
-**Updated:** 2025-10-20  
+**Updated:** 2025-11-30  
 **Priority:** High - Developer Experience Layer  
 **Layer:** 4 - Developer Experience  
 **Block:** 11 of 11  
 **Estimated Effort:** 4-5 weeks  
+
+## ⚠️ CRITICAL: Sub-Project Context
+
+**This task implements the `airssys-wasm-cli` crate** - a separate binary crate in the AirsSys workspace.
+
+### Workspace Structure Reference
+```
+airssys/
+├── airssys-wasm/              # Core framework library (Blocks 1-9)
+├── airssys-wasm-component/    # Procedural macros (Block 10)
+└── airssys-wasm-cli/          # 🎯 THIS TASK (Block 11)
+    ├── Cargo.toml             # [[bin]] name = "airssys-wasm"
+    ├── src/
+    │   ├── main.rs            # CLI entry point
+    │   ├── commands/          # 14 command modules
+    │   │   ├── keygen.rs
+    │   │   ├── init.rs
+    │   │   ├── build.rs
+    │   │   ├── sign.rs
+    │   │   ├── install.rs
+    │   │   ├── update.rs
+    │   │   ├── uninstall.rs
+    │   │   ├── list.rs
+    │   │   ├── info.rs
+    │   │   ├── status.rs
+    │   │   ├── logs.rs
+    │   │   ├── verify.rs
+    │   │   ├── config.rs
+    │   │   └── completions.rs
+    │   ├── cli_config.rs      # Configuration
+    │   ├── error.rs           # Error handling
+    │   └── utils.rs           # Shared utilities
+    └── tests/                 # CLI integration tests
+```
+
+### Key Distinctions
+- ✅ **This task**: Implements `airssys-wasm-cli/` (CLI binary tool)
+- ❌ **NOT this task**: Core library (`airssys-wasm/`), Macros (`airssys-wasm-component/`)
+- 📚 **Complete reference**: See **KNOWLEDGE-WASM-015** for full workspace architecture
+
+### Dependencies
+This CLI tool depends on:
+- `airssys-wasm` (core library) - For component runtime and lifecycle management
+- Layer 2 features (Blocks 4-7) - For full command functionality:
+  - Block 4 (Security) - For signature verification
+  - Block 7 (Lifecycle) - For install/update/uninstall
+  - Block 6 (Storage) - For component management
+  - Block 5 (Messaging) - For status/logs commands
+
+### Current Foundation Status
+- ✅ Project structure complete (10% overall)
+- ✅ All 14 command modules created with stubs
+- ✅ Command structure defined
+- ✅ Compiles successfully
+- ⏳ **Awaiting Layer 2**: Full implementation requires Blocks 4-7 complete
 
 ## Overview
 
@@ -15,11 +70,13 @@ Implement comprehensive command-line interface tool providing 14 commands for co
 ## Context
 
 **Current State:**
-- airssys-wasm-cli crate: Foundation complete (10%)
-- Architecture: CLI structure and commands defined
-- Stub implementations: All 14 commands have stubs
-- Dependencies: Lifecycle system (Block 7), SDK (Block 10) ready
-- Component.toml spec: KNOWLEDGE-WASM-010 complete
+- **airssys-wasm-cli crate**: Foundation complete (10%)
+- **Location**: `airssys/airssys-wasm-cli/` directory
+- **Architecture**: KNOWLEDGE-WASM-015 (Workspace Architecture) - **ESSENTIAL REFERENCE**
+- **CLI Specification**: KNOWLEDGE-WASM-010 (CLI Tool Specification) - **COMPLETE**
+- **Stub implementations**: All 14 commands have stubs
+- **Dependencies**: Lifecycle system (Block 7), SDK (Block 10), Security (Block 4) ready
+- **Component.toml spec**: KNOWLEDGE-WASM-010 complete
 
 **Problem Statement:**
 Component development and operations need unified CLI:
@@ -558,13 +615,25 @@ This task is complete when:
 
 ## Related Documentation
 
+### ⭐ Essential Reading (MUST READ BEFORE STARTING)
+- **KNOWLEDGE-WASM-015: Project Structure and Workspace Architecture** - **CRITICAL**
+  - Explains the three sub-projects (airssys-wasm, airssys-wasm-component, airssys-wasm-cli)
+  - Maps tasks to crates (this task = airssys-wasm-cli)
+  - Clarifies dependency relationships and integration points
+  - **READ THIS FIRST** to understand context
+
 ### ADRs
 - **ADR-WASM-013: CLI Design Philosophy** - (Future) CLI UX decisions
 
 ### Knowledge Documentation
-- **KNOWLEDGE-WASM-009: Component Lifecycle & Updates** - Lifecycle operations reference
-- **KNOWLEDGE-WASM-010: Component.toml Specification** - Manifest schema
+- **KNOWLEDGE-WASM-010: CLI Tool Specification** - **COMPLETE** CLI specification (ESSENTIAL)
+- **KNOWLEDGE-WASM-009: Component Installation Architecture** - Lifecycle operations reference
 - **KNOWLEDGE-WASM-012: SDK Design Patterns** - Init/build integration
+- **KNOWLEDGE-WASM-001: Component Framework Architecture** - Core architecture
+
+### Related Sub-Projects
+- **airssys-wasm** (`../airssys-wasm/`) - Core library that CLI uses (Blocks 1-9)
+- **airssys-wasm-component** (`../airssys-wasm-component/`) - SDK for init templates (Block 10)
 
 ### External References
 - [clap CLI Framework](https://docs.rs/clap/)

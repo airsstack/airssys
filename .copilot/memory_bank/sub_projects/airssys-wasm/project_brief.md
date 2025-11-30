@@ -3,6 +3,64 @@
 ## Project Overview
 `airssys-wasm` is a **WASM Component Framework for Pluggable Systems** that enables runtime component deployment for general-purpose computing. Inspired by smart contract deployment patterns (like CosmWasm), it enables developers to build secure, composable, language-agnostic components that can be loaded and updated during runtime.
 
+## Workspace Structure
+
+**The airssys-wasm ecosystem consists of three distinct sub-projects** in the AirsSys workspace:
+
+### 1. airssys-wasm (Core Framework Library)
+**Location**: `airssys/airssys-wasm/`  
+**Type**: Library crate (`[lib]`)  
+**Implementation Tasks**: Blocks 1-9 (WASM-TASK-002 through WASM-TASK-010)  
+**Status**: 95% of Layer 1 complete
+
+**Responsibilities**:
+- Component runtime (Wasmtime-based WASM execution)
+- Security system (capability-based sandboxing)
+- Storage system (persistent component state)
+- Messaging system (inter-component communication)
+- Actor integration (ComponentActor with airssys-rt)
+- Deployment engine (runtime component updates)
+- Monitoring (observability and metrics)
+
+### 2. airssys-wasm-component (Procedural Macro Crate)
+**Location**: `airssys/airssys-wasm-component/`  
+**Type**: Procedural macro crate (`[lib] proc-macro = true`)  
+**Implementation Task**: Block 10 (WASM-TASK-011)  
+**Status**: 25% foundation complete
+
+**Responsibilities**:
+- `#[component]` macro for zero-boilerplate development
+- `#[derive(ComponentOperation)]` for message types
+- `#[derive(ComponentResult)]` for result types
+- `#[derive(ComponentConfig)]` for configuration
+- Code generation (`extern "C"` functions, memory management)
+- Follows **serde pattern** (separation from core types)
+
+### 3. airssys-wasm-cli (Command-Line Tool)
+**Location**: `airssys/airssys-wasm-cli/`  
+**Type**: Binary crate (`[[bin]] name = "airssys-wasm"`)  
+**Implementation Task**: Block 11 (WASM-TASK-012)  
+**Status**: 10% foundation complete
+
+**Responsibilities**:
+- 14 comprehensive commands for component lifecycle
+- Cryptographic operations (Ed25519 keygen, signing, verification)
+- Project management (init, build)
+- Installation (multi-source: Git/Local/URL)
+- Operations (list, info, status, logs)
+- Configuration and shell completions
+
+### Dependency Relationships
+```
+airssys-wasm (Core) ← Used by both
+         ↑              ↑
+         │              │
+airssys-wasm-component  airssys-wasm-cli
+   (Macros)             (CLI Tool)
+```
+
+**📚 Complete Reference**: See **KNOWLEDGE-WASM-015: Project Structure and Workspace Architecture** for comprehensive documentation of the three sub-projects and their relationships.
+
 ## Project Vision
 This framework provides infrastructure for building pluggable systems with WebAssembly components, enabling secure isolation and runtime component management. Rather than building application-specific plugin systems, airssys-wasm provides a foundational platform for component-based architectures across multiple domains.
 
