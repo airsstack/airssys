@@ -159,6 +159,7 @@ impl Child for ComponentActor {
         config.wasm_reference_types(false);
         config.wasm_threads(false);
         config.wasm_simd(false);
+        config.wasm_relaxed_simd(false);  // Must be disabled if SIMD is disabled
         
         let engine = Engine::new(&config)
             .map_err(|e| {
