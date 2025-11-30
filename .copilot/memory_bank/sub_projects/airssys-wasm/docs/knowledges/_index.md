@@ -2,8 +2,8 @@
 
 **Sub-Project:** airssys-wasm  
 **Last Updated:** 2025-11-30  
-**Total Knowledge Docs:** 15  
-**Active Knowledge Docs:** 15
+**Total Knowledge Docs:** 16  
+**Active Knowledge Docs:** 16
 
 ## Current Knowledge Documentation
 
@@ -86,6 +86,16 @@
   - **Impact**: Critical - defines the foundational contract between host and components
   - **Audience**: Component developers, host runtime implementers, framework architects
   - **Related**: KNOWLEDGE-WASM-004 (WIT management), WASM-TASK-003 (WIT implementation), DEBT-WASM-003 (Component Model v0.1 limitations)
+
+- **[KNOWLEDGE-WASM-016: Actor System Integration Implementation Guide](knowledge_wasm_016_actor_system_integration_implementation_guide.md)** ✅ **CRITICAL**
+   - **Purpose**: Detailed implementation guidance for WASM-TASK-004 (Block 3 - Actor System Integration)
+   - **Scope**: Code-level examples for all 18 subtasks, concrete patterns, effort estimates, testing strategies
+   - **Key Content**: ComponentActor struct design, Child trait WASM lifecycle, Actor trait message handling, ActorSystem spawning, component registry, supervisor tree, MessageBroker integration, performance targets, testing framework
+   - **Status**: Complete implementation reference (Created 2025-11-30)
+   - **Impact**: Critical - provides detailed guidance for developers implementing actor-based components
+   - **Audience**: Developers implementing WASM-TASK-004, architects reviewing implementation
+   - **Complements**: task_004_block_3_actor_system_integration.md (task definition)
+   - **Related**: ADR-WASM-006 (actor isolation), ADR-WASM-009 (messaging), KNOWLEDGE-RT-013 (performance baselines)
 
 - **[KNOWLEDGE-WASM-007: Component Storage Architecture](knowledge_wasm_007_component_storage_architecture.md)** ✅ **CRITICAL**
   - **Purpose**: Persistent storage architecture for component state management with trait-based backend abstraction

@@ -530,9 +530,37 @@ This task is complete when:
 
 ## Progress Log
 
-*No progress yet - task just created*
+### 2025-11-30 - Implementation Guide Created
+**Added by:** AI Agent  
+**Changes:**
+- **NEW KNOWLEDGE DOC**: Created KNOWLEDGE-WASM-016 (Actor System Integration Implementation Guide)
+- **Purpose**: Provide detailed implementation guidance beyond task definition
+- **Content**: Code-level examples for all 6 phases and 18 subtasks
+- **Details**:
+  - ComponentActor struct design with full trait implementations
+  - WASM lifecycle management (Child::start() and Child::stop())
+  - Message handling patterns (multicodec support)
+  - ActorSystem integration examples
+  - Component registry implementation with O(1) lookup
+  - SupervisorNode supervision patterns
+  - MessageBroker integration
+  - Testing strategies for each phase
+  - Performance validation approach
+  - Integration verification checklist
+- **Effort**: Detailed per-task estimates (8-20 hours each)
+- **Reference**: Complements task_004_block_3_actor_system_integration.md
+- **Status**: Ready for implementation
 
 ## Related Documentation
+
+### ⭐ Essential Reading (MUST READ BEFORE STARTING)
+- **KNOWLEDGE-WASM-016: Actor System Integration Implementation Guide** - **CRITICAL IMPLEMENTATION REFERENCE**
+  - Code-level examples for all 18 subtasks
+  - Concrete patterns (ComponentActor struct, Child trait, Actor trait)
+  - Per-task effort estimates (hours)
+  - Testing strategies for each component
+  - Performance validation approach
+  - **READ THIS FIRST** for detailed implementation guidance
 
 ### ADRs
 - **ADR-WASM-006: Component Isolation and Sandboxing (Revised)** - Primary reference for actor-based architecture
