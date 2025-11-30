@@ -7,6 +7,7 @@
 **Layer:** 4 - Developer Experience  
 **Block:** 10 of 11  
 **Estimated Effort:** 5-6 weeks  
+**Language Focus:** Rust only (multi-language support out of scope)  
 
 ## ⚠️ CRITICAL: Sub-Project Context
 
@@ -48,7 +49,7 @@ This crate follows the proven **serde pattern** (separation of macros from core 
 
 ## Overview
 
-Implement comprehensive Component Development SDK providing procedural macros (#[component], #[handler]) for zero-boilerplate component development, Component.toml validation and schema tooling, builder patterns for testing and local development, mock host functions for unit testing, multi-language examples (Rust, AssemblyScript, TinyGo), and documentation generator achieving <5-minute component creation time.
+Implement comprehensive Component Development SDK providing Rust procedural macros (#[component], #[handler]) for zero-boilerplate component development, Component.toml validation and schema tooling, builder patterns for testing and local development, mock host functions for unit testing, comprehensive Rust examples, and documentation generator achieving <5-minute component creation time.
 
 ## Context
 
@@ -66,16 +67,15 @@ Component development currently requires:
 1. **Boilerplate Code** - Manual WIT interface implementation
 2. **Configuration Complexity** - Component.toml manual creation
 3. **Testing Challenges** - No mock host functions for unit tests
-4. **Language Barriers** - Limited to Rust without examples
-5. **Documentation Effort** - Manual API documentation writing
-6. **Debugging Difficulty** - Limited local development tools
+4. **Documentation Effort** - Manual API documentation writing
+5. **Debugging Difficulty** - Limited local development tools
 
 Requirements:
-- Zero-boilerplate component creation (procedural macros)
+- Zero-boilerplate component creation (Rust procedural macros)
 - Component.toml generation and validation
 - Builder patterns for testing and development
 - Mock host functions for isolated unit testing
-- Multi-language examples (Rust, AssemblyScript, TinyGo)
+- Comprehensive Rust examples demonstrating common patterns
 - Automatic documentation generation
 - Fast component creation (<5 minutes from idea to running)
 
@@ -83,23 +83,21 @@ Requirements:
 Without SDK:
 - Component development slow and error-prone
 - High barrier to entry (boilerplate intimidates)
-- Limited language support restricts ecosystem
 - Testing difficult (requires full runtime)
 - Poor developer experience
 
-This block enables rapid component ecosystem growth.
+This block enables rapid component ecosystem growth through excellent Rust developer experience.
 
 ## Objectives
 
 ### Primary Objective
-Implement comprehensive Component Development SDK with procedural macros (#[component], #[handler]), Component.toml validation tooling, builder patterns for testing, mock host functions, multi-language examples (Rust, AssemblyScript, TinyGo), and documentation generator achieving <5-minute component creation time.
+Implement comprehensive Component Development SDK with Rust procedural macros (#[component], #[handler]), Component.toml validation tooling, builder patterns for testing, mock host functions, comprehensive Rust examples, and documentation generator achieving <5-minute component creation time.
 
 ### Secondary Objectives
 - Reduce component boilerplate to <20 lines
 - Enable unit testing without runtime (<1s test execution)
-- Support 3+ languages (Rust, AssemblyScript, TinyGo)
 - Generate API documentation automatically
-- Provide 10+ complete example components
+- Provide 10+ complete Rust example components
 - Achieve 95%+ developer satisfaction (survey)
 
 ## Scope
@@ -110,11 +108,12 @@ Implement comprehensive Component Development SDK with procedural macros (#[comp
 3. **Builder Patterns** - Testing helpers, local development
 4. **Mock Host Functions** - Isolated unit testing support
 5. **Testing Utilities** - Assertion helpers, test fixtures
-6. **Multi-Language Examples** - Rust, AssemblyScript, TinyGo
+6. **Rust Examples** - Comprehensive examples demonstrating common patterns
 7. **Documentation Generator** - API docs from code
 8. **Project Templates** - Quick-start templates (component init)
 
 ### Out of Scope
+- Multi-language support (AssemblyScript, TinyGo, Python, etc.) - Future consideration
 - IDE plugins/extensions (Phase 2)
 - Visual component builder (Phase 2)
 - Component marketplace integration (Phase 2)
@@ -270,53 +269,53 @@ Implement comprehensive Component Development SDK with procedural macros (#[comp
 
 ---
 
-### Phase 4: Multi-Language Support (Week 3-4)
+### Phase 4: Rust Examples and Patterns (Week 3-4)
 
-#### Task 4.1: Rust Component Examples
+#### Task 4.1: Basic Rust Component Examples
 **Deliverables:**
-- Hello World component (minimal)
-- HTTP client component (network)
-- File processor component (filesystem)
-- Worker pool component (concurrency)
-- State machine component (storage)
+- Hello World component (minimal example)
+- Echo service component (request-response pattern)
+- Counter component (state management)
+- Timer component (async operations)
 - Rust examples documentation
 
 **Success Criteria:**
-- Examples cover common patterns
+- Examples cover fundamental patterns
 - Code well-commented
 - Runnable out-of-box
-- Performance demonstrated
+- Clear learning progression
 - Documentation comprehensive
 
-#### Task 4.2: AssemblyScript Component Support
+#### Task 4.2: Advanced Rust Component Examples
 **Deliverables:**
-- AssemblyScript bindings for WIT interfaces
-- Build tooling integration (asc compiler)
-- Example components (3+ examples)
-- AssemblyScript guide
-- Language support documentation
+- HTTP client component (network operations)
+- File processor component (filesystem operations)
+- Worker pool component (concurrency patterns)
+- State machine component (complex state management)
+- Stream processor component (data streaming)
+- Advanced examples documentation
 
 **Success Criteria:**
-- Bindings functional
-- Build process smooth
-- Examples runnable
-- Guide comprehensive
-- TypeScript developers can use easily
+- Examples demonstrate real-world patterns
+- Performance characteristics documented
+- Error handling demonstrated
+- Best practices showcased
+- Production-ready code quality
 
-#### Task 4.3: TinyGo Component Support
+#### Task 4.3: Component Testing Patterns
 **Deliverables:**
-- TinyGo bindings for WIT interfaces
-- Build tooling integration (tinygo compiler)
-- Example components (3+ examples)
-- TinyGo guide
-- Language support documentation
+- Unit testing examples (with mocks)
+- Integration testing examples
+- Property-based testing examples
+- Performance testing examples
+- Testing patterns documentation
 
 **Success Criteria:**
-- Bindings functional
-- Build process smooth
-- Examples runnable
-- Guide comprehensive
-- Go developers can use easily
+- Testing patterns comprehensive
+- Examples demonstrating all testing utilities
+- Coverage strategies documented
+- CI/CD integration examples
+- Testing best practices clear
 
 ---
 
@@ -447,11 +446,11 @@ This task is complete when:
    - Test fixtures available
    - Testing ergonomic
 
-5. ✅ **Multi-Language Support**
-   - Rust examples complete (5+)
-   - AssemblyScript support working (3+ examples)
-   - TinyGo support working (3+ examples)
-   - Language guides comprehensive
+5. ✅ **Rust Examples Complete**
+   - Basic examples complete (5+ examples)
+   - Advanced examples complete (5+ examples)
+   - Testing pattern examples complete (4+ examples)
+   - Examples documentation comprehensive
 
 6. ✅ **Documentation Generator Functional**
    - API docs auto-generated
@@ -487,8 +486,6 @@ This task is complete when:
 - syn v2 (procedural macro parsing)
 - quote (code generation)
 - jsonschema (Component.toml validation)
-- AssemblyScript compiler (asc)
-- TinyGo compiler
 
 ## Risks and Mitigations
 
@@ -501,14 +498,14 @@ This task is complete when:
 - Clear error messages from macros
 - Comprehensive macro documentation
 
-### Risk 2: Multi-Language Support Maintenance
-**Impact:** Medium - Supporting 3+ languages is work  
-**Probability:** High - Languages evolve  
+### Risk 2: Developer Experience Debt
+**Impact:** High - Poor DX limits ecosystem growth  
+**Probability:** Medium - DX requires iteration  
 **Mitigation:**
-- Prioritize Rust (first-class support)
-- Community support for other languages
-- Clear language support tiers
-- Automated testing for all languages
+- User testing with Rust developers
+- Quick feedback iteration
+- Developer satisfaction surveys
+- Prioritize ergonomics over features
 
 ### Risk 3: Mock Host Function Accuracy
 **Impact:** Medium - Inaccurate mocks mislead tests  
@@ -519,16 +516,7 @@ This task is complete when:
 - Document mock limitations
 - Regular mock validation
 
-### Risk 4: Developer Experience Debt
-**Impact:** High - Poor DX limits ecosystem growth  
-**Probability:** Medium - DX requires iteration  
-**Mitigation:**
-- User testing with developers
-- Quick feedback iteration
-- Developer satisfaction surveys
-- Prioritize ergonomics over features
-
-### Risk 5: Template Maintenance Burden
+### Risk 4: Template Maintenance Burden
 **Impact:** Low - Templates can become outdated  
 **Probability:** High - Templates need updates  
 **Mitigation:**
@@ -547,7 +535,7 @@ This task is complete when:
 | 1 | Procedural Macro Implementation | not-started | Week 1-2 | Core SDK |
 | 2 | Component.toml Tooling | not-started | Week 2 | Configuration |
 | 3 | Builder Patterns and Testing | not-started | Week 3 | Testing support |
-| 4 | Multi-Language Support | not-started | Week 3-4 | Ecosystem growth |
+| 4 | Rust Examples and Patterns | not-started | Week 3-4 | Comprehensive examples |
 | 5 | Documentation and Templates | not-started | Week 4-5 | Developer guides |
 | 6 | Advanced Features and Testing | not-started | Week 5-6 | Polish & QA |
 
@@ -563,9 +551,9 @@ This task is complete when:
 | 3.1 | ComponentBuilder Pattern | not-started | - | Builder |
 | 3.2 | Mock Host Functions | not-started | - | Mocks |
 | 3.3 | Testing Assertion Helpers | not-started | - | Assertions |
-| 4.1 | Rust Component Examples | not-started | - | Rust |
-| 4.2 | AssemblyScript Component Support | not-started | - | AssemblyScript |
-| 4.3 | TinyGo Component Support | not-started | - | TinyGo |
+| 4.1 | Basic Rust Component Examples | not-started | - | Basic patterns |
+| 4.2 | Advanced Rust Component Examples | not-started | - | Advanced patterns |
+| 4.3 | Component Testing Patterns | not-started | - | Testing examples |
 | 5.1 | Documentation Generator | not-started | - | Docs |
 | 5.2 | Project Templates | not-started | - | Templates |
 | 5.3 | Developer Workflow Guide | not-started | - | Guide |
@@ -575,7 +563,25 @@ This task is complete when:
 
 ## Progress Log
 
-*No progress yet - task just created*
+### 2025-11-30 - Task Scope Clarification
+**Updated by:** AI Agent (user request)  
+**Changes:**
+- **SCOPE REFINEMENT**: Narrowed focus to Rust-only support
+- **Removed**: AssemblyScript and TinyGo support from in-scope deliverables
+- **Moved to future**: Multi-language support explicitly marked as out of scope
+- **Updated**: All phase descriptions, objectives, and examples to focus on Rust
+- **Rationale**: Prevent misguided development, maintain focus on core Rust SDK excellence
+- **Impact**: Phase 4 renamed from "Multi-Language Support" to "Rust Examples and Patterns"
+
+**Key Changes:**
+- Phase 4.1: Basic Rust Component Examples (5 examples)
+- Phase 4.2: Advanced Rust Component Examples (5 examples)  
+- Phase 4.3: Component Testing Patterns (4 examples)
+- Removed: AssemblyScript compiler and TinyGo compiler from external dependencies
+- Removed: Risk 2 about multi-language maintenance
+- Updated: Success criteria, objectives, and scope sections
+
+**Decision:** Focus exclusively on delivering excellent Rust developer experience. Multi-language support may be reconsidered in future phases based on ecosystem demand, but is explicitly out of scope for this task to prevent scope creep and ensure quality Rust SDK delivery.
 
 ## Related Documentation
 
@@ -602,8 +608,6 @@ This task is complete when:
 ### External References
 - [Rust Procedural Macros](https://doc.rust-lang.org/book/ch19-06-macros.html)
 - [serde pattern](https://github.com/serde-rs/serde) - Architecture inspiration
-- [AssemblyScript](https://www.assemblyscript.org/)
-- [TinyGo](https://tinygo.org/)
 - [JSON Schema](https://json-schema.org/)
 
 ## Notes
@@ -660,9 +664,12 @@ fn test_file_processing() {
 ```
 
 **Multi-Language Strategy:**
-- **Tier 1: Rust** - First-class support, best DX, all features
-- **Tier 2: AssemblyScript, TinyGo** - Official support, good DX, most features
-- **Tier 3: Community** - C, Python, etc. community-maintained bindings
+Future considerations for multi-language support:
+- **Tier 1: Rust** - First-class support with procedural macros (current focus)
+- **Tier 2: Future** - AssemblyScript, TinyGo (WIT bindings + examples)
+- **Tier 3: Community** - C, Python, etc. (community-maintained bindings)
+
+**Current Focus:** Tier 1 Rust support only. Multi-language support is explicitly out of scope for this task and may be considered in future phases based on ecosystem demand.
 
 **Component.toml Auto-Generation:**
 Macros extract metadata and generate Component.toml:
