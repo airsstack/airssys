@@ -411,7 +411,8 @@ impl Child for ComponentActor {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust,ignore
+    /// // Ignored until Block 6 (Component Storage) is implemented
     /// use airssys_wasm::actor::ComponentActor;
     /// use airssys_wasm::core::{ComponentId, ComponentMetadata, CapabilitySet, ResourceLimits};
     /// use airssys_rt::supervisor::{Child, ChildHealth};
