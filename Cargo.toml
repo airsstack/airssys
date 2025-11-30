@@ -7,6 +7,9 @@ members = [
     "airssys-wasm-component",
     "airssys-wasm-cli",
 ]
+exclude = [
+    "airssys-wasm/examples/file-processor",
+]
 resolver = "2"
 
 [workspace.lints.clippy]

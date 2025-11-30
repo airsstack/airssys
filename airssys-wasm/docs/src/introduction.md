@@ -1,142 +1,177 @@
 # Introduction
 
-airssys-wasm is a planned WASM Component Framework for Pluggable Systems, enabling runtime component deployment and composition within the AirsSys ecosystem.
+airssys-wasm is a WASM Component Framework for Pluggable Systems, part of the AirsSys ecosystem.
 
 ## What is airssys-wasm?
 
-airssys-wasm is a planned component framework that will enable runtime deployment of WebAssembly components without system restarts. The framework is designed to provide capability-based security and support multiple programming languages through the WebAssembly Component Model.
+airssys-wasm provides WebAssembly component integration with type-safe interfaces and capability-based security. The framework supports multiple programming languages through the WebAssembly Component Model.
 
 ### Problem Statement
 
-Current software deployment approaches have several identified limitations:
-- Most systems require restart for updates
-- Plugin systems often trade security for functionality  
+Current software deployment approaches face several challenges:
+- Most systems require restarts for updates
+- Plugin systems often trade security for functionality
 - Systems typically support single programming languages
-- Version management and rollbacks are complex
+- Version management and rollbacks can be complex
 - Components may interfere with each other
 
-### Planned Solution Approach
+### Solution Approach
 
-airssys-wasm is designed to address these challenges through:
+airssys-wasm addresses these challenges through:
 
-1. **Runtime Deployment**: Deploy and update components without restarting the host system
-2. **Capability-Based Security**: Components run in controlled sandboxes with explicit permissions
-3. **General-Purpose Design**: Framework designed to work across different application domains
+1. **Component Model Foundation**: Type-safe component boundaries using WIT (WASM Interface Types)
+2. **Capability-Based Security**: Component permission declarations via Component.toml manifests
+3. **General-Purpose Design**: Framework works across different application domains
 4. **Language Agnostic**: Compatible with any WASM-capable programming language
-5. **Component Composition**: Enable component orchestration and pipeline construction
 
 ## Core Concepts
 
 ### Components
-A **component** is a planned self-contained unit of functionality compiled to WebAssembly. Components are designed to be:
-- AI agents and MCP tools
-- Microservices and web APIs
-- Data processors and transformers
-- IoT device controllers
-- Game mods and extensions
-- General-purpose application components
 
-### Planned Runtime Deployment
-Inspired by smart contract deployment patterns, the planned system will allow deploying components to airssys-wasm without stopping the host system:
-```bash
-# Planned deployment commands (future implementation)
-airssys-wasm deploy my-component.wasm
-airssys-wasm update my-component@v2.0.0 --strategy blue-green
-airssys-wasm rollback my-component --to-version v1.5.0
-```
-
-## Core Concepts
-
-### Components
-A component is a self-contained unit of functionality compiled to WebAssembly. Components support various use cases including:
+A **component** is a self-contained unit of functionality compiled to WebAssembly. Components support various use cases:
 - AI agents and MCP tools
 - Microservices and web APIs
 - Data processors and transformers
 - IoT device controllers
 - Game modifications and extensions
+- System utilities and tools
 
-### Hot Deployment
-Components can be deployed to airssys-wasm without stopping the host system:
-```bash
-# Deploy new component
-airssys-wasm deploy my-component.wasm
+### Component Interfaces
 
-# Update existing component
-airssys-wasm update my-component@v2.0.0 --strategy blue-green
+Components interact with the host system through WIT (WebAssembly Interface Types) interfaces:
 
-# Rollback to previous version
-airssys-wasm rollback my-component --to-version v1.5.0
-```
-
-### Capability-Based Security
-Components will declare required permissions, enforced by the framework:
-```rust
-// Planned capability system (future implementation)
-#[component_capabilities]
-pub fn required_capabilities() -> Vec<Capability> {
-    vec![
-        Capability::FileRead("/data".into()),
-        Capability::NetworkOutbound("api.example.com".into()),
-    ]
+```wit
+// Component lifecycle interface
+interface component-lifecycle {
+    // Initialize component with configuration
+    init: func(config: component-config) -> result<_, component-error>;
+    
+    // Execute component with input data
+    execute: func(input: component-input) -> result<component-output, execution-error>;
+    
+    // Shutdown and cleanup
+    shutdown: func() -> result<_, component-error>;
 }
 ```
 
-### Component Composition
-Complex systems are planned to be built by connecting components:
-```rust
-// Planned composition API (future implementation)
-let pipeline = ComponentPipeline::builder()
-    .add_component("input", data_source)
-    .add_component("processor", ai_model)
-    .add_component("output", result_handler)
-    .connect("input.output", "processor.input")
-    .connect("processor.output", "output.input")
-    .build()?;
+### Permission System
+
+Components declare required permissions in Component.toml:
+
+```toml
+[component]
+name = "file-processor"
+version = "0.1.0"
+
+[permissions]
+filesystem = [
+    { action = "read", path = "/data/**" },
+    { action = "write", path = "/output/**" }
+]
 ```
 
-## Planned Framework Benefits
+### Extension Interfaces
 
-### Development
-- SDK with derive macros for streamlined development (via airssys-wasm-component)
-- Support for multiple WASM-compatible programming languages
-- Fast build, test, and deploy cycles
-- Visual component composition tools (planned)
+The framework provides three extension domains:
 
-### Operations
-- Component updates without system downtime (planned)
-- Version rollback capabilities (planned)
-- Sandboxed component execution (planned)
-- Resource management and monitoring (planned)
+1. **Filesystem Operations** (36 operations)
+   - File read/write/delete operations
+   - Directory management
+   - Metadata queries
+   - Path manipulation
 
-### Architecture
-- Modular system design through component separation (planned)
-- Controlled inter-component communication (planned)
-- Scalable deployment patterns (planned)
-- Integration with AirsSys ecosystem components (planned)
+2. **Network Operations** (32 operations)
+   - Socket creation and management
+   - TCP/UDP communication
+   - DNS resolution
+   - Connection handling
+
+3. **Process Operations** (32 operations)
+   - Process spawning and management
+   - Signal handling
+   - Standard I/O redirection
+   - Exit code handling
+
+## Framework Architecture
+
+### WIT Interface System
+
+The framework uses a layered WIT interface architecture:
+
+```
+Extension Tier (100 operations)
+├── Filesystem (36 ops) - ext-filesystem@1.0.0
+├── Network (32 ops)    - ext-network@1.0.0
+└── Process (32 ops)    - ext-process@1.0.0
+        ↓
+Core Package (15 operations)
+└── airssys:core@1.0.0
+    ├── types.wit (13 foundation types)
+    ├── capabilities.wit (10 permission types)
+    ├── component-lifecycle.wit (7 functions)
+    └── host-services.wit (8 functions)
+```
+
+**Total Interface Coverage:**
+- 16 WIT files
+- 2,214 lines of interface definitions
+- 82 types
+- 115 operations
+
+See [WIT System Architecture](./reference/wit-system-architecture.md) for complete reference.
 
 ## Technology Foundation
 
-The framework will be built on established technologies:
+The framework is built on established WebAssembly technologies:
+
 - **Wasmtime**: WebAssembly runtime with Component Model support
-- **WebAssembly Component Model**: Standard for component composition
-- **WIT**: Language-agnostic interface definitions
-- **WASI Preview 2**: Standardized system interface
+- **WebAssembly Component Model**: Standard for component composition and interfaces
+- **WIT (WASM Interface Types)**: Language-agnostic interface definitions
+- **wit-bindgen**: Automatic binding generation for Rust and other languages
+- **Component.toml**: Manifest format for component metadata and permissions
 
-## Implementation Roadmap
+## Documentation
 
-To begin working with airssys-wasm:
+**Available Documentation**:
+- [WIT Interface Specifications](./api/wit-interfaces.md) - Complete API definitions (115 operations)
+- [Component.toml Specification](./reference/component-toml-spec.md) - Manifest format specification
+- [WIT System Architecture](./reference/wit-system-architecture.md) - Complete technical reference
+- [Getting Started](./guides/getting-started.md) - Setup and build instructions
+- [Troubleshooting](./guides/troubleshooting.md) - Common issues and solutions
 
-1. **Architecture Overview**: Read the [Framework Overview](./architecture/overview.md)
-2. **Implementation Planning**: Review the [Implementation Guide](./implementation/getting-started.md)
-3. **Research Documentation**: Study the [Research Papers](./researches/)
-4. **AirsSys Integration**: Understand dependencies on airssys-osl and airssys-rt
+**For Framework Developers**:
+- See `airssys-wasm/tests/` for WIT validation tests
+- See `airssys-wasm/src/core/` for framework internals
+- See memory bank documentation for architecture decisions
 
-## Project Status
+## The AirsSys Ecosystem
 
-**Current Phase**: Architecture and Planning (15% Complete)
-- Architecture design completed and documented
-- Technology stack decisions made
-- Implementation planning ready for when dependencies are mature
-- Next phase scheduled for 2026 Q1 when airssys-osl and airssys-rt foundations are complete
+airssys-wasm integrates with other AirsSys components:
 
-airssys-wasm is currently in the planning and architecture design phase. The framework is designed to provide infrastructure for component-based application development with hot deployment capabilities.
+### airssys-osl (OS Layer)
+Provides secure system access primitives for components:
+- Filesystem operations with security context
+- Network access with capability enforcement
+- Process management with sandboxing
+
+### airssys-rt (Actor Runtime)
+Provides actor-based component hosting:
+- Component lifecycle management
+- Message passing between components
+- Supervision trees for fault tolerance
+
+### airssys-wasm (This Framework)
+Provides WASM component infrastructure:
+- Component loading and execution
+- WIT interface system
+- Permission and capability management
+- Cross-platform component support
+
+## Next Steps
+
+To start using airssys-wasm:
+
+1. **Installation**: Follow the [Getting Started Guide](./guides/getting-started.md)
+2. **Learn WIT**: Review the [WIT Interface Reference](./api/wit-interfaces.md)
+3. **Configure Permissions**: Study the [Component.toml Specification](./reference/component-toml-spec.md)
+4. **Explore Examples**: Check the research documentation for patterns and examples

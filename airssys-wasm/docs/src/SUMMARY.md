@@ -1,53 +1,76 @@
 # Summary
 
-- [Introduction](./introduction.md)
+[Introduction](./introduction.md)
+[Architecture Overview](./architecture.md)
 
-## Architecture
-- [Architecture Overview](./architecture.md)
-    - [Framework Design](./architecture/framework-design.md)
-    - [Component Model](./architecture/component-model.md)
-    - [Runtime Deployment System](./architecture/runtime-deployment.md)
-    - [Security Model](./architecture/security-model.md)
-    - [Composition Engine](./architecture/composition-engine.md)
+---
 
-## Research & Analysis
-- [Research Overview](./researches.md)
-    - [Component-Based Future](./researches/component-based-future.md)
-    - [WASM Component Systems](./researches/rust-pluggable-system-wasm-component.md)
-    - [Host-Pluggable Architecture](./researches/rust-host-pluggable.md)
-    - [Practical Component Guide](./researches/component-based-plugin-rust-practical-guide.md)
-    - [WASM AI Engineering](./researches/wasm-ai-overview.md)
-    - [WASM Modular Systems](./researches/wasm-with-modular.md)
-    - [WIT Ecosystem Research](./researches/wit-ecosystem-research.md)
-        - [Tooling Versions](./researches/tooling_versions.md)
-        - [wasm-tools Commands](./researches/wasm_tools_commands_reference.md)
-        - [WIT Specification](./researches/wit_specification_constraints.md)
-        - [Validation Guide](./researches/wasm_tools_validation_guide.md)
+# User Guides
 
-## Implementation Guide
-- [Implementation Overview](./implementation.md)
-    - [Getting Started](./implementation/getting-started.md)
-    - [Component Development](./implementation/component-development.md)
-    - [Deployment Strategies](./implementation/deployment-strategies.md)
-    - [Composition Patterns](./implementation/composition-patterns.md)
+- [Getting Started](./guides/getting-started.md)
+- [Troubleshooting](./guides/troubleshooting.md)
 
-## WIT Design & Implementation
-- [Overview](./wit/README.md)
-- [WIT Package Structure](./wit/package_structure_design.md)
-- [WIT Implementation Guide](./wit/implementation_guide.md)
+---
+
+# API Reference
+
+- [WIT Interfaces](./api/wit-interfaces.md)
+- [Component.toml Specification](./reference/component-toml-spec.md)
+- [WIT System Architecture](./reference/wit-system-architecture.md)
+
+---
+
+# WIT Design & Implementation
+
+- [WIT Overview](./wit/README.md)
+- [Package Structure Design](./wit/package_structure_design.md)
 - [Package Content Design](./wit/package_content_design.md)
-- Reference Materials
-    - [Dependency Graph](./wit/reference/dependency_graph.md)
-    - [Import Patterns](./wit/reference/import_patterns.md)
-    - [Type Sharing Strategy](./wit/reference/type_sharing_strategy.md)
-- Validation & Structure
-    - [Structure Plan](./wit/validation/structure_plan.md)
-    - [Validation Checklist](./wit/validation/validation_checklist.md)
-- [deps.toml Configuration](./researches/deps_toml_format_specification.md)
+- [Implementation Guide](./wit/implementation_guide.md)
 
-## API Reference
-- [API Overview](./api.md)
-    - [Core Framework API](./api/core-api.md)
-    - [SDK API](./api/sdk-api.md)
-    - [Runtime API](./api/runtime-api.md)
-    - [WIT Interfaces](./api/wit-interfaces.md)
+## WIT Reference
+
+- [Dependency Graph](./wit/reference/dependency_graph.md)
+- [Import Patterns](./wit/reference/import_patterns.md)
+- [Type Sharing Strategy](./wit/reference/type_sharing_strategy.md)
+
+## WIT Validation
+
+- [Structure Plan](./wit/validation/structure_plan.md)
+- [Validation Checklist](./wit/validation/validation_checklist.md)
+
+## WIT Research
+
+- [Binding Generation Validation](./wit/research/binding_generation_validation.md)
+- [Multi-Package Binding Patterns](./wit/research/multi_package_binding_patterns.md)
+- [wit-bindgen Core Concepts](./wit/research/wit_bindgen_core_concepts.md)
+- [wit-bindgen Integration Guide](./wit/research/wit_bindgen_integration_guide.md)
+- [Task 1.3 Completion Report](./wit/research/task_1.3_completion_report.md)
+
+---
+
+# Research & Analysis
+
+- [Research Overview](./researches.md)
+
+## Component Architecture Research
+
+- [Component-Based Future](./researches/component-based-future.md)
+- [WASM Component Systems](./researches/rust-pluggable-system-wasm-component.md)
+- [Host-Pluggable Architecture](./researches/rust-host-pluggable.md)
+- [Practical Component Guide](./researches/component-based-plugin-rust-practical-guide.md)
+
+## WASM & AI Research
+
+- [WASM AI Engineering](./researches/wasm-ai-overview.md)
+
+## WIT Ecosystem Research
+
+- [WIT Ecosystem Overview](./researches/wit-ecosystem-research.md)
+- [WIT Specification Constraints](./researches/wit_specification_constraints.md)
+
+## Tooling & Build System
+
+- [Tooling Versions](./researches/tooling_versions.md)
+- [wasm-tools Commands Reference](./researches/wasm_tools_commands_reference.md)
+- [wasm-tools Validation Guide](./researches/wasm_tools_validation_guide.md)
+- [deps.toml Format Specification](./researches/deps_toml_format_specification.md)
