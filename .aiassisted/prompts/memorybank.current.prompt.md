@@ -7,7 +7,7 @@ $INSTRUCTION = $AIASSISTED_DIR/instructions/multi-project-memory-bank.instructio
 $MEMORY_BANK_PROJECTS = $ROOT_PROJECT/.memory-bank/ 
 ```
 
-# References 
+# Contexts 
 
 You need to read and observe current memory bank instructions defined at: `$INSTRUCTION`.
 

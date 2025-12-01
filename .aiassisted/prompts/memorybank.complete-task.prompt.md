@@ -17,9 +17,15 @@ You also need to observe and explore, current `$MEMORY_BANK_PROJECTS` directory.
 
 ```
 $USER_INPUT = $1
-$PROJECT_NAME = Extract from `$USER_INPUT` related with the project name 
+$TASK_ID = Extract from `$USER_INPUT` related with the task id 
 ```
 
-# Instructions 
+# Instructions
 
-Based on the _memory-bank_ instruction, you need to switch its focused project to the requested project name: `$PROJECT_NAME`.
+You need to get current focused project at the: `$MEMORY_BANK_PROJECTS`.
+
+You need to check if given `$TASK_ID` is valid or not and need to ensure that it has already _implemented_ or not.
+
+If given `$TASK_ID` is valid and implemented, you need to mark it as _completed_ and also need to update the memory bank states.
+
+If given `$TASK_ID` is valid but not implemented, you need to return the error message.

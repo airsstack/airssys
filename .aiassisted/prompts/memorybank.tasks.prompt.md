@@ -13,13 +13,16 @@ You need to read and observe current memory bank instructions defined at: `$INST
 
 You also need to observe and explore, current `$MEMORY_BANK_PROJECTS` directory.
 
-# Input Arguments
+# Instructions
 
+You need to get current focused project at the: `$MEMORY_BANK_PROJECTS`.
+
+Based on _current project_, you need to get all remaining tasks from the memory bank.
+
+You need to return the list of tasks in the following format:
+
+```markdown
+- [ ] Task 1
+- [ ] Task 2
+- [ ] Task 3
 ```
-$USER_INPUT = $1
-$PROJECT_NAME = Extract from `$USER_INPUT` related with the project name 
-```
-
-# Instructions 
-
-Based on the _memory-bank_ instruction, you need to switch its focused project to the requested project name: `$PROJECT_NAME`.
