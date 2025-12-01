@@ -1,0 +1,374 @@
+# airssys-wasm Tech Context
+
+## Strategic Technology Vision
+
+**airssys-wasm** is a **WASM Component Framework for Pluggable Systems**. This framework provides infrastructure for component-based architectures, enabling runtime deployment patterns inspired by smart contract systems for general-purpose computing.
+
+## Core Technology Architecture
+
+### Framework Foundation
+- **Wasmtime**: Primary WASM runtime engine with Component Model support
+- **WebAssembly Component Model**: Advanced component composition and interface types
+- **WIT (WebAssembly Interface Types)**: Language-agnostic interface definition
+- **WASI Preview 2**: Standardized system interface for capabilities
+
+### Runtime Deployment Technology
+- **Live Component Registry**: Runtime component management without system restart
+- **Deployment Strategies**: Blue-Green, Canary, Rolling update patterns
+- **Version Management**: Git-like versioning with rollback capabilities
+- **Traffic Routing**: Load balancing and traffic splitting for component deployment
+
+## Core Architectural Patterns
+
+### Component Interface
+```rust
+// Language-agnostic component interface for general-purpose use
+pub trait Component {
+    // Component lifecycle
+    fn init(&mut self, config: ComponentConfig) -> Result<(), ComponentError>;
+    fn execute(&self, input: ComponentInput) -> Result<ComponentOutput, ComponentError>;
+    fn shutdown(&mut self) -> Result<(), ComponentError>;
+    
+    // Component introspection  
+    fn metadata(&self) -> ComponentMetadata;
+    fn required_capabilities(&self) -> Vec<Capability>;
+    fn health_status(&self) -> HealthStatus;
+}
+```
+
+### Runtime Deployment Engine
+```rust
+// Runtime component deployment system
+pub struct RuntimeDeploymentEngine {
+    component_registry: Arc<RwLock<LiveComponentRegistry>>,
+    deployment_strategies: HashMap<String, Box<dyn DeploymentStrategy>>,
+    version_manager: ComponentVersionManager,
+    traffic_router: TrafficRouter,
+}
+
+pub enum DeploymentStrategy {
+    BlueGreen,          // Switchover to new version
+    CanaryDeploy,       // Gradual traffic shifting  
+    RollingUpdate,      // Progressive replacement
+    ImmediateReplace,   // Direct replacement for development
+}
+```
+
+### Capability-Based Security
+```rust
+// Fine-grained capability system
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Capability {
+    FileRead(PathBuf),
+    FileWrite(PathBuf),
+    NetworkOutbound(String),
+    NetworkInbound(u16),
+    SystemCall(String),
+    Custom(String, serde_json::Value),  // Extensible for any domain
+}
+```
+
+## Framework Design Principles
+
+### 1. General-Purpose Design
+- **Domain Agnostic**: Framework supports AI, web services, IoT, gaming, etc.
+- **Language Agnostic**: Support for any WASM-compatible language
+- **Cross-Platform**: Run on cloud, edge, desktop, embedded systems
+
+### 2. Runtime Deployment Model
+- **Runtime Loading**: Deploy/update components without system restart
+- **Immutable Versions**: Component versions are immutable and auditable
+- **Capability-Based Security**: Fine-grained permission system inspired by smart contract capabilities
+
+### 3. Developer Experience First
+- **Rich SDK**: Derive macros and builder patterns for easy development
+- **Visual Composition**: Drag-and-drop component pipeline building
+- **Instant Feedback**: Fast testing, building, and deployment cycles
+
+### 4. Production Ready
+- **Built-in Monitoring**: Performance metrics, health checks, alerting
+- **Security by Default**: Deny-by-default with explicit capability grants
+- **Operational Excellence**: Logging, tracing, configuration management
+
+### Primary Dependencies
+```toml
+# Core WASM Runtime Foundation
+wasmtime = { version = "24.0", features = ["component-model", "async", "cranelift"] }
+wasmtime-wasi = { version = "24.0" }
+wit-bindgen = { version = "0.30" }
+wit-component = { version = "0.200" }
+
+# AirsSys Ecosystem Integration
+airssys-osl = { workspace = true }   # OS layer bridge for secure system access
+airssys-rt = { workspace = true }    # Runtime system bridge for actor hosting
+
+# Async Runtime & Concurrency
+tokio = { workspace = true, features = ["full"] }
+futures = { version = "0.3" }
+async-trait = { version = "0.1" }
+
+# Security & Capabilities
+cap-std = { version = "3.0" }        # Capability-based filesystem access
+ring = { version = "0.17" }          # Cryptographic primitives
+
+# Serialization & Data Management
+serde = { workspace = true, features = ["derive"] }
+serde_json = { version = "1.0" }
+chrono = { workspace = true, features = ["serde"] }  # Workspace standard §3.2
+
+# Monitoring & Observability
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+prometheus = { version = "0.13" }
+
+# Error Handling & Utilities
+thiserror = { workspace = true }
+anyhow = { version = "1.0" }
+```
+
+## Project Structure Architecture
+
+### Simplified Workspace Integration
+```rust
+airssys-wasm/                       # Single crate in airssys workspace
+├── src/
+│   ├── core/                      # Core framework functionality
+│   │   ├── runtime/               # WASM runtime management
+│   │   ├── registry/              # Runtime component registry
+│   │   ├── security/              # Capability-based security
+│   │   ├── deployment/            # Runtime deployment system
+│   │   ├── composition/           # Component orchestration
+│   │   ├── monitoring/            # Observability system
+│   │   └── integration/           # AirsSys ecosystem bridges
+│   ├── sdk/                       # Developer SDK & tooling
+│   │   ├── macros/                # Component derive macros
+│   │   ├── types/                 # Standard types & interfaces
+│   │   ├── testing/               # Testing framework
+│   │   └── builder/               # Component builders
+│   └── runtime/                   # Standalone runtime server
+│       ├── server/                # HTTP/gRPC/WebSocket APIs
+│       ├── config/                # Runtime configuration
+│       └── launcher/              # Runtime initialization
+├── wit/                           # WIT interface definitions
+│   ├── component/                 # Core component interfaces
+│   ├── host/                      # Host capability interfaces
+│   ├── security/                  # Security interfaces
+│   ├── deployment/                # Deployment interfaces
+│   └── examples/                  # Domain-specific examples
+├── examples/                      # Reference implementations
+└── docs/                          # mdBook documentation
+```
+- **Imports/Exports**: Fine-grained capability exposure
+
+### Security Architecture
+```rust
+// Capability-based security implementation
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ComponentCapabilities {
+    pub wasi: WasiCapabilities,
+    pub airssys: AirsSysCapabilities,
+    pub custom: CustomCapabilities,
+}
+
+pub struct WasiCapabilities {
+    pub filesystem: FilesystemCapabilities,
+    pub network: NetworkCapabilities,
+    pub clocks: ClocksCapabilities,
+    pub random: RandomCapabilities,
+}
+
+pub struct AirsSysCapabilities {
+    pub osl_operations: OSLCapabilities,
+    pub rt_messaging: RTCapabilities,
+    pub custom_resources: Vec<CustomResource>,
+}
+```
+
+### Performance Targets
+- **Component Instantiation**: <10ms for typical components
+- **Memory Overhead**: <512KB baseline per component
+- **Function Call Overhead**: <1μs for simple function calls
+- **Component Communication**: <100μs for inter-component messages
+
+## Security Implementation
+
+### Sandbox Architecture
+- **Memory Isolation**: Complete memory isolation between components and host
+- **Capability Enforcement**: Runtime capability checking for all system access
+- **Resource Limits**: CPU time, memory, and I/O bandwidth limits per component
+- **Audit Logging**: Comprehensive logging of all component operations
+
+### Threat Model
+- **Malicious Components**: Assume components may be adversarial
+- **Resource Exhaustion**: Protection against DoS through resource consumption
+- **Data Exfiltration**: Prevent unauthorized data access and exfiltration
+- **Privilege Escalation**: Prevent components from gaining additional capabilities
+
+## Integration Architecture
+
+### airssys-osl Integration
+```rust
+// Secure system access through airssys-osl
+pub struct WASMOSLBridge {
+    osl_context: airssys_osl::SecurityContext,
+    component_capabilities: HashMap<ComponentId, CapabilitySet>,
+}
+
+impl WASMOSLBridge {
+    pub async fn handle_file_operation(
+        &self,
+        component_id: ComponentId,
+        operation: FileOperation,
+    ) -> Result<FileResult, BridgeError> {
+        // Validate component capability
+        let capabilities = self.component_capabilities.get(&component_id)
+            .ok_or(BridgeError::UnknownComponent)?;
+            
+        if !capabilities.can_perform_operation(&operation) {
+            return Err(BridgeError::InsufficientCapabilities);
+        }
+        
+        // Delegate to airssys-osl with security context
+        self.osl_context.execute_file_operation(operation).await
+            .map_err(BridgeError::OSLError)
+    }
+}
+```
+
+### airssys-rt Integration
+```rust
+// Component hosting through actor system
+pub struct ComponentActorHost {
+    actor_system: airssys_rt::ActorSystem,
+    component_actors: HashMap<ComponentId, ActorId>,
+}
+
+impl ComponentActorHost {
+    pub async fn spawn_component_actor(
+        &mut self,
+        component: CompiledComponent,
+        capabilities: CapabilitySet,
+    ) -> Result<ComponentId, HostError> {
+        let component_id = ComponentId::new();
+        
+        let actor = ComponentActor::new(component, capabilities);
+        let actor_id = self.actor_system.spawn_actor(actor).await?;
+        
+        self.component_actors.insert(component_id, actor_id);
+        Ok(component_id)
+    }
+}
+```
+
+## Performance Optimization
+
+### Runtime Optimizations
+- **JIT Compilation**: Wasmtime Cranelift JIT for high-performance execution
+- **Module Caching**: Compiled module caching for faster instantiation  
+- **Memory Pool**: Pre-allocated memory pools for component instances
+- **Function Call Optimization**: Direct function call optimization for hot paths
+
+### Component Pool Management
+```rust
+pub struct ComponentPool<T> {
+    template: ComponentTemplate,
+    available: VecDeque<PooledComponent<T>>,
+    in_use: HashMap<ComponentId, PooledComponent<T>>,
+    max_size: usize,
+}
+
+impl<T> ComponentPool<T> {
+    pub async fn acquire(&mut self) -> Result<ComponentId, PoolError> {
+        // Reuse existing instance or create new one
+        match self.available.pop_front() {
+            Some(component) => {
+                let id = ComponentId::new();
+                self.in_use.insert(id, component);
+                Ok(id)
+            }
+            None => self.create_new_instance().await,
+        }
+    }
+}
+```
+
+## Development and Testing
+
+### Component Development
+- **wit-bindgen**: Automatic binding generation from WIT interfaces
+- **Component Tooling**: Integration with wasm-tools for component manipulation
+- **Language Support**: Rust, C/C++, JavaScript, Go, Python via WASM
+- **Hot Reloading**: Component hot-reloading for development workflows
+
+### Testing Strategy
+```rust
+// Component testing framework
+pub struct ComponentTestHarness {
+    runtime: ComponentRuntime,
+    test_capabilities: CapabilitySet,
+}
+
+impl ComponentTestHarness {
+    pub async fn test_component(
+        &mut self,
+        component_bytes: &[u8],
+        test_cases: Vec<TestCase>,
+    ) -> TestResults {
+        let component_id = self.runtime
+            .load_component(component_bytes, self.test_capabilities.clone())
+            .await?;
+            
+        let mut results = TestResults::new();
+        
+        for test_case in test_cases {
+            let result = self.execute_test_case(component_id, test_case).await;
+            results.add_result(result);
+        }
+        
+        results
+    }
+}
+```
+
+### Security Testing
+- **Fuzzing**: Component fuzzing for security vulnerability discovery
+- **Capability Testing**: Automated testing of capability enforcement
+- **Resource Limit Testing**: Testing of resource limits and enforcement
+- **Penetration Testing**: Security testing of component sandbox
+
+## Monitoring and Observability
+
+### Component Metrics
+- **Execution Time**: Function execution time and component performance
+- **Resource Usage**: Memory, CPU, and I/O usage per component
+- **Communication Patterns**: Inter-component communication analysis
+- **Security Events**: Capability violations and security incidents
+
+### Integration with AirsSys Monitoring
+```rust
+// Monitoring integration with airssys-osl logging
+pub struct WASMMonitor {
+    osl_logger: airssys_osl::ActivityLogger,
+    metrics_collector: MetricsCollector,
+}
+
+impl WASMMonitor {
+    pub async fn log_component_event(
+        &self,
+        component_id: ComponentId,
+        event: ComponentEvent,
+    ) -> Result<(), MonitorError> {
+        // Log to airssys-osl for unified logging
+        self.osl_logger.log_activity(ActivityEvent::ComponentEvent {
+            component_id,
+            event: event.clone(),
+            timestamp: Utc::now(),
+        }).await?;
+        
+        // Collect metrics for performance analysis
+        self.metrics_collector.record_component_event(component_id, event).await?;
+        
+        Ok(())
+    }
+}
+```
