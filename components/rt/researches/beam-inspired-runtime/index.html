@@ -1,0 +1,3965 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Secure, modular system programming components for the AirsStack ecosystem">
+      
+      
+        <meta name="author" content="AirsStack">
+      
+      
+        <link rel="canonical" href="https://airsstack.github.io/airssys/components/rt/researches/beam-inspired-runtime/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+    
+    
+      
+        <title>Architecting a BEAM-Inspired Runtime in Rust: A Foundational Analysis and Practical Implementation Guide - AirsSys - System Programming Components</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.618322db.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  <link rel="stylesheet" href="../../../../assets/extra.css">
+
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-orange" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#architecting-a-beam-inspired-runtime-in-rust-a-foundational-analysis-and-practical-implementation-guide" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../../.." title="AirsSys - System Programming Components" class="md-header__button md-logo" aria-label="AirsSys - System Programming Components" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            AirsSys - System Programming Components
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Architecting a BEAM-Inspired Runtime in Rust: A Foundational Analysis and Practical Implementation Guide
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="deep-orange" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="deep-orange" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/airsstack/airssys" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    airsstack/airssys
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../.." class="md-tabs__link">
+          
+  
+  
+  Home
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../" class="md-tabs__link">
+          
+  
+  
+  Components
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../guides/integration/" class="md-tabs__link">
+          
+  
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../examples/" class="md-tabs__link">
+          
+  
+  
+  Examples
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../research/" class="md-tabs__link">
+          
+  
+  
+  Research
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../../contributing/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Contributing
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="AirsSys - System Programming Components" class="md-nav__button md-logo" aria-label="AirsSys - System Programming Components" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    AirsSys - System Programming Components
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/airsstack/airssys" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    airsstack/airssys
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Home
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welcome
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Components
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Components
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OSL (OS Layer)
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    OSL (OS Layer)
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../osl/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Introduction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../osl/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2_3" id="__nav_2_2_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../osl/guides/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../osl/guides/middleware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Middleware
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../osl/guides/custom-executors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Executors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2_4" id="__nav_2_2_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../osl/api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../osl/api/core-types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Types
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../osl/api/security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security Framework
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../osl/api/macros/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macros
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RT (Actor Runtime)
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    RT (Actor Runtime)
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Introduction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3_2" id="__nav_2_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/actor-creation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Your First Actor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/message-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Message Handling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/supervision-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a Supervisor Tree
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3_3" id="__nav_2_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-To Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-To Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/actor-development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Actor Development
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/supervisor-patterns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Supervisor Patterns
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/message-passing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Message Passing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3_4" id="__nav_2_3_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/core-concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/actor-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Actor Model Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/system-overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    System Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/components/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Components
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/message-passing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Message Passing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/supervision/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Supervision
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/process-lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Process Lifecycle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3_5" id="__nav_2_3_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/core-types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Types
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/actor-traits/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Actor Traits
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/message-types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Message Types
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/supervisor-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Supervisor API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3_6" id="__nav_2_3_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_3_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3_6_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3_6_2" id="__nav_2_3_6_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_2_3_6_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3_6_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/api/core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/api/actors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Actors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/api/messaging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Messaging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/api/supervisors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Supervisors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/api/mailbox/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mailbox
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/api/broker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Broker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/api/monitoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Monitoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3_7" id="__nav_2_3_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Explanation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_3_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Explanation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/actor-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The Actor Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/supervision/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Supervision & Fault Tolerance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/message-passing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Message Passing Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/performance-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance by Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/builder-pattern/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Builder Pattern Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/future-use-cases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Future Use Cases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../guides/integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../guides/security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../guides/performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Examples
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../examples/osl-examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OSL Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../examples/rt-examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RT Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Research
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Research
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../research/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RT Research
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    RT Research
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../research/rt/beam-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BEAM Model Analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../research/rt/beam-inspired-runtime/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BEAM-Inspired Runtime
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../research/rt/rust-actor-ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rust Actor Ecosystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#i-introduction-the-architectural-blueprint-for-a-beam-like-runtime-in-rust" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        I. Introduction: The Architectural Blueprint for a BEAM-like Runtime in Rust
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ii-the-erlang-run-time-system-erts-a-foundational-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        II. The Erlang Run-Time System (ERTS): A Foundational Analysis
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="II. The Erlang Run-Time System (ERTS): A Foundational Analysis">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-the-actor-model-and-the-let-it-crash-philosophy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 The Actor Model and the "Let it Crash" Philosophy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-architectural-overview-of-the-beam-virtual-machine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 Architectural Overview of the BEAM Virtual Machine
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-core-component-deep-dive-lightweight-processes-and-state-isolation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 Core Component Deep Dive: Lightweight Processes and State Isolation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-core-component-deep-dive-the-preemptive-scheduler-and-reductions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 Core Component Deep Dive: The Preemptive Scheduler and "Reductions"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#25-core-component-deep-dive-per-process-memory-management-and-generational-garbage-collection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.5 Core Component Deep Dive: Per-Process Memory Management and Generational Garbage Collection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#26-the-power-of-otp-supervision-hierarchies-distribution-and-hot-code-loading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.6 The Power of OTP: Supervision Hierarchies, Distribution, and Hot Code Loading
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#iii-the-rust-concurrency-landscape-a-survey-of-erlang-inspired-frameworks-and-runtimes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        III. The Rust Concurrency Landscape: A Survey of Erlang-Inspired Frameworks and Runtimes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="III. The Rust Concurrency Landscape: A Survey of Erlang-Inspired Frameworks and Runtimes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-the-foundation-tokio-and-the-cooperative-asyncawait-paradigm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 The Foundation: Tokio and the Cooperative async/await Paradigm
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-mature-actor-implementation-a-case-study-of-actix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Mature Actor Implementation: A Case Study of Actix
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-fault-tolerance-first-an-analysis-of-bastion-and-its-lightproc-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Fault-Tolerance First: An Analysis of Bastion and its "Lightproc" Model
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-hierarchical-resilience-rikers-akka-inspired-approach-to-supervision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 Hierarchical Resilience: Riker's Akka-Inspired Approach to Supervision
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#35-the-next-frontier-lunatic-and-webassembly-based-process-isolation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5 The Next Frontier: Lunatic and WebAssembly-based Process Isolation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#36-direct-implementation-lessons-from-the-enigma-vm-project" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.6 Direct Implementation: Lessons from the Enigma VM Project
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#iv-synthesis-and-comparative-analysis-bridging-erlangs-philosophy-with-rusts-guarantees" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IV. Synthesis and Comparative Analysis: Bridging Erlang's Philosophy with Rust's Guarantees
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="IV. Synthesis and Comparative Analysis: Bridging Erlang&#39;s Philosophy with Rust&#39;s Guarantees">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-process-and-state-isolation-beams-heaps-vs-rusts-ownership-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Process and State Isolation: BEAM's Heaps vs. Rust's Ownership Model
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-scheduling-models-preemptive-fairness-vs-cooperative-throughput" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Scheduling Models: Preemptive Fairness vs. Cooperative Throughput
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-message-passing-semantics-data-copying-vs-ownership-transfer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Message Passing Semantics: Data Copying vs. Ownership Transfer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-fault-tolerance-replicating-otp-supervision-trees-in-rust" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 Fault Tolerance: Replicating OTP Supervision Trees in Rust
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45-the-hot-code-loading-challenge-in-a-statically-compiled-language" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5 The Hot Code Loading Challenge in a Statically Compiled Language
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v-a-practical-roadmap-for-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        V. A Practical Roadmap for Implementation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="V. A Practical Roadmap for Implementation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-key-architectural-decisions-and-their-trade-offs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 Key Architectural Decisions and Their Trade-offs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-implementation-phases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Implementation Phases
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Implementation Phases">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-core-runtime-executor-and-scheduler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 Core Runtime, Executor, and Scheduler
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-lightweight-processes-and-message-passing-infrastructure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 Lightweight Processes and Message Passing Infrastructure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-memory-management-and-garbage-collection-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 Memory Management and Garbage Collection Strategy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54-advanced-features-supervision-distribution-and-dynamic-code-reloading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.4 Advanced Features - Supervision, Distribution, and Dynamic Code Reloading
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#conclusion-the-path-to-a-production-ready-erlang-runtime-in-rust" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conclusion: The Path to a Production-Ready Erlang Runtime in Rust
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="architecting-a-beam-inspired-runtime-in-rust-a-foundational-analysis-and-practical-implementation-guide">Architecting a BEAM-Inspired Runtime in Rust: A Foundational Analysis and Practical Implementation Guide<a class="headerlink" href="#architecting-a-beam-inspired-runtime-in-rust-a-foundational-analysis-and-practical-implementation-guide" title="Permanent link">&para;</a></h1>
+<h2 id="i-introduction-the-architectural-blueprint-for-a-beam-like-runtime-in-rust">I. Introduction: The Architectural Blueprint for a BEAM-like Runtime in Rust<a class="headerlink" href="#i-introduction-the-architectural-blueprint-for-a-beam-like-runtime-in-rust" title="Permanent link">&para;</a></h2>
+<p>This report presents a comprehensive architectural analysis and practical implementation guide for the development of a high-concurrency, fault-tolerant runtime in Rust, modeled on the principles of the Erlang Run-Time System (ERTS) and its virtual machine, the BEAM. The endeavor to create such a system is ambitious, seeking to merge the battle-tested concurrency and resilience philosophy of Erlang with the performance, memory safety, and systems-level control offered by Rust. This document serves as a foundational knowledge base, dissecting the target architecture of the BEAM, surveying the analogous landscape within the Rust ecosystem, and synthesizing these findings into a concrete roadmap for implementation.</p>
+<p>The Erlang ecosystem, born from the demanding world of telecommunications, is built upon a distinct philosophy centered on reliability and massive concurrency. Its core tenets include the actor model for concurrent computation, a "let it crash" approach to fault tolerance where failures are isolated and handled by external supervisors, and high-availability features such as hot code loading that permit system updates without downtime. This philosophy is embodied in the BEAM virtual machine, a sophisticated piece of engineering that manages millions of lightweight, isolated processes with a preemptive scheduler to ensure fairness and responsiveness.</p>
+<p>In contrast, the Rust paradigm emphasizes a different form of resilience, rooted in compile-time guarantees. Its powerful type system, ownership model, and borrow checker eliminate entire classes of memory-related bugs, providing a robust foundation for building reliable software.5 Rust's philosophy of zero-cost abstractions ensures that these safety guarantees do not come at the expense of performance, making it an ideal language for systems programming. However, Rust lacks a built-in, managed runtime of the BEAM's complexity; its approach to application-level fault tolerance relies on library-based patterns rather than inherent properties of the execution environment.</p>
+<p>The central thesis of this report is that while a direct, one-to-one replication of the BEAM in Rust presents significant architectural challenges, a functionally equivalent and idiomatically Rust-based runtime is not only achievable but also holds the potential for creating a uniquely powerful system. Such a system would leverage Rust's performance and safety while adopting the BEAM's proven strategies for managing large-scale, fault-tolerant applications. This report will first deconstruct the BEAM's architecture to establish a clear blueprint. It will then analyze the current state of the Rust concurrency landscape to identify existing patterns and tools. Finally, it will synthesize these two domains to provide a practical roadmap, highlighting the critical design trade-offs and architectural decisions required for this undertaking.</p>
+<h2 id="ii-the-erlang-run-time-system-erts-a-foundational-analysis">II. The Erlang Run-Time System (ERTS): A Foundational Analysis<a class="headerlink" href="#ii-the-erlang-run-time-system-erts-a-foundational-analysis" title="Permanent link">&para;</a></h2>
+<p>To construct a BEAM-inspired runtime, one must first possess a deep and nuanced understanding of the original. The BEAM is not merely a collection of features but a holistic, synergistic system where each component is designed to reinforce the others in service of a singular goal: building massively concurrent, highly available, and fault-tolerant software. This section provides a foundational analysis of the ERTS and its core components.</p>
+<h3 id="21-the-actor-model-and-the-let-it-crash-philosophy">2.1 The Actor Model and the "Let it Crash" Philosophy<a class="headerlink" href="#21-the-actor-model-and-the-let-it-crash-philosophy" title="Permanent link">&para;</a></h3>
+<p>At the heart of Erlang's concurrency model lies the Actor Model of computation.8 An actor is the fundamental unit of computation, a self-contained entity that encapsulates both state and behavior. The principles of the model are simple but profound:</p>
+<ul>
+<li><strong>Encapsulation:</strong> An actor maintains its own private, internal state that cannot be directly accessed or modified by any other actor.</li>
+<li><strong>Asynchronous Message Passing:</strong> Actors communicate exclusively by sending and receiving immutable messages asynchronously. There is no shared memory, which eliminates the need for complex and error-prone synchronization mechanisms like locks, thereby preventing race conditions by design.</li>
+<li><strong>Mailbox and Sequential Processing:</strong> Each actor has a "mailbox" that queues incoming messages. The actor processes these messages one at a time, in a sequential manner, ensuring that its internal state is always consistent.</li>
+</ul>
+<p>This model of complete isolation is the bedrock upon which Erlang's famous "let it crash" philosophy is built. Instead of engaging in defensive programming—where code is filled with complex <code>try-catch</code> blocks and error-checking logic to handle every conceivable failure—Erlang/OTP encourages developers to write the "happy path" code and allow processes to fail when an unexpected error occurs. A process crash is treated as a clean, isolated event. The responsibility for recovery is not placed on the failing process itself but is delegated to a separate, dedicated "supervisor" process. This supervisor's sole job is to monitor its child processes and restart them according to a predefined strategy when they fail. This architectural pattern simplifies application logic immensely, moving the concern of fault tolerance from the individual component level to the system's structural level.</p>
+<h3 id="22-architectural-overview-of-the-beam-virtual-machine">2.2 Architectural Overview of the BEAM Virtual Machine<a class="headerlink" href="#22-architectural-overview-of-the-beam-virtual-machine" title="Permanent link">&para;</a></h3>
+<p>The BEAM, which stands for Bogdan's (or Björn's) Erlang Abstract Machine, is the high-performance, production-grade virtual machine at the core of the Erlang Run-Time System (ERTS). It was developed at Ericsson to meet the stringent uptime requirements of telecommunications infrastructure, a domain where systems are expected to run continuously for years.</p>
+<p>When an Erlang or Elixir system is started, it runs as a single operating system process. Within this OS process, the BEAM VM executes, managing its own ecosystem of lightweight Erlang processes.13 It is not uncommon for a single BEAM instance to manage hundreds of thousands, or even millions, of these concurrent processes. The BEAM is responsible for compiling Erlang source code into its own bytecode format, which is stored in  <code>.beam</code> files, and then executing this bytecode.</p>
+<p>A key aspect of the BEAM is its polyglot nature. While created for Erlang, it serves as a robust and powerful runtime for a variety of other languages, most notably Elixir, which leverages the full power of the BEAM and OTP while offering a different syntax and feature set.1 Other languages like Gleam, LFE (Lisp Flavoured Erlang), and Clojerl also target the BEAM, demonstrating its flexibility as a compilation target.12</p>
+<p>The primary responsibilities of the BEAM can be summarized as managing the system's scalability, distribution, and responsiveness by:</p>
+<ul>
+<li>Creating, scheduling, and managing concurrency via lightweight processes.</li>
+<li>Providing the mechanisms for error detection and fault-tolerant handling.</li>
+<li>Efficiently utilizing all available machine resources, particularly on multi-core CPUs.</li>
+</ul>
+<p>For those seeking the most exhaustive technical details, "The BEAM Book" by Erik Stenman is the definitive resource, providing a ground-up explanation of the VM's internals.</p>
+<h3 id="23-core-component-deep-dive-lightweight-processes-and-state-isolation">2.3 Core Component Deep Dive: Lightweight Processes and State Isolation<a class="headerlink" href="#23-core-component-deep-dive-lightweight-processes-and-state-isolation" title="Permanent link">&para;</a></h3>
+<p>The term "process" in Erlang is fundamentally different from an operating system process or thread. Erlang processes are extremely lightweight units of execution managed entirely by the BEAM VM, not the underlying OS. This internal management is what makes their creation, destruction, and context-switching operations orders of magnitude faster and less resource-intensive than their OS counterparts.</p>
+<p>The "lightweight" nature is quantifiable. A newly spawned process has a very small initial memory footprint, with a default heap size of just 233 words (a "word" being the native pointer size of the machine, e.g., 8 bytes on a 64-bit system). This conservative default is a deliberate design choice to enable massive scalability, allowing a single BEAM node to host millions of concurrent processes without exhausting system memory.</p>
+<p>Communication between these processes is the key to their isolation. When a message is sent from one process to another on the same BEAM node, its data is, by default, copied from the sender's heap to the receiver's heap. This strict copying ensures perfect memory isolation; a bug or crash in one process cannot corrupt the memory or state of another. This design choice is a cornerstone of the "let it crash" philosophy, as it guarantees that failures are contained. The primary exception to this rule is for large binaries (specifically, reference-counted binaries or "refc binaries"), which can be shared between processes on the same node via reference passing to avoid the performance overhead of copying large amounts of data.15 When messages are sent to a process on a different BEAM node, they are first encoded into the Erlang External Term Format and sent over a TCP/IP socket.</p>
+<h3 id="24-core-component-deep-dive-the-preemptive-scheduler-and-reductions">2.4 Core Component Deep Dive: The Preemptive Scheduler and "Reductions"<a class="headerlink" href="#24-core-component-deep-dive-the-preemptive-scheduler-and-reductions" title="Permanent link">&para;</a></h3>
+<p>The BEAM's scheduler is a masterclass in designing for concurrency and responsiveness on modern multi-core hardware. The initial single-queue model evolved into a symmetric multiprocessing (SMP) architecture where, by default, one scheduler thread is created for each available CPU core.1 Each of these scheduler threads maintains its own run queue of ready-to-execute Erlang processes. This design avoids the contention and bottleneck issues of a single, global lock on a run queue, enabling true parallelism as multiple processes can execute simultaneously on different cores. The VM itself acts as an intelligent load balancer, capable of migrating processes between scheduler run queues to ensure that work is distributed evenly and no core sits idle while others are overloaded.</p>
+<p>A critical and defining feature of the BEAM scheduler is that it is <strong>preemptive</strong>. Unlike cooperative schedulers, which rely on tasks to voluntarily yield control, the BEAM scheduler can forcibly interrupt a running process to allow another process to have its turn on the CPU. This prevents a single, long-running, CPU-bound process from monopolizing a scheduler thread and starving all other processes in that queue, which is essential for maintaining system-wide responsiveness.</p>
+<p>This preemption is not governed by traditional time slices. Instead, the BEAM uses a concept called <strong>reductions</strong>. A reduction is an abstract unit of work, roughly equivalent to a function call or a basic operation. Each Erlang process is given a "reduction budget" (typically 2,000) when it is scheduled to run. The scheduler decrements this budget as the process executes its code. Once the reduction count reaches zero, the process is preempted, placed back into the run queue, and the scheduler moves on to the next process, even if the first process has not completed its task. This reduction-counting mechanism provides a more deterministic and fair way to share CPU resources than simple timers, ensuring that all processes make progress and contributing to the soft real-time capabilities of the system. Furthermore, the scheduler supports multiple priority levels (low, normal, high, and max), with separate run queues for each, ensuring that high-priority system tasks are given preference over lower-priority application tasks.</p>
+<h3 id="25-core-component-deep-dive-per-process-memory-management-and-generational-garbage-collection">2.5 Core Component Deep Dive: Per-Process Memory Management and Generational Garbage Collection<a class="headerlink" href="#25-core-component-deep-dive-per-process-memory-management-and-generational-garbage-collection" title="Permanent link">&para;</a></h3>
+<p>The BEAM's approach to memory management is a direct consequence of its process architecture and is fundamental to its fault-tolerance and low-latency characteristics. The single most important design decision is that <strong>every Erlang process has its own private heap and stack</strong>, allocated within a contiguous block of memory.4 This complete memory isolation is what makes the "share nothing" concurrency model a physical reality within the VM.</p>
+<p>This per-process heap architecture enables a highly efficient and concurrent garbage collection (GC) strategy. When the heap and stack of a single process grow to meet each other, a garbage collection cycle is triggered for that process <em>and that process alone</em>.19 All other processes in the system continue their execution completely uninterrupted.20 This avoids the "stop-the-world" problem common in many other garbage-collected runtimes, where the entire application must be paused for a GC cycle, leading to unpredictable latency spikes.</p>
+<p>The GC algorithm itself is a sophisticated <strong>per-process, generational, semi-space copying collector</strong>, based on Cheney's algorithm.19 Memory within a process's heap is divided into a "young generation" (or young heap) and an "old generation" (old heap). New objects are allocated in the young heap. The "generational hypothesis" posits that most objects die young. Therefore, the garbage collector runs most frequently on the smaller young heap, which is a very fast operation. Objects that survive multiple young-generation collections are promoted to the old heap.19 A "full sweep" collection that includes the old heap is a much less frequent event, triggered only when the old heap itself becomes full.19 This generational approach, combined with the per-process model, means that GC pauses in a well-behaved Erlang system are typically measured in microseconds and are imperceptible to the overall system's operation.</p>
+<h3 id="26-the-power-of-otp-supervision-hierarchies-distribution-and-hot-code-loading">2.6 The Power of OTP: Supervision Hierarchies, Distribution, and Hot Code Loading<a class="headerlink" href="#26-the-power-of-otp-supervision-hierarchies-distribution-and-hot-code-loading" title="Permanent link">&para;</a></h3>
+<p>While the BEAM provides the raw capabilities for concurrency and fault isolation, it is the Open Telecom Platform (OTP) framework that provides the architectural patterns and libraries for building robust applications with these primitives.1 OTP is not an optional library; it is an integral part of the Erlang ecosystem.</p>
+<p>The most fundamental OTP pattern is the <strong>supervision tree</strong>. Applications are structured as a hierarchy of processes. "Worker" processes perform the actual application logic, while "supervisor" processes have the sole responsibility of monitoring their children. If a worker process crashes, its supervisor is notified and, based on a pre-configured strategy, can restart the failed worker.3 Common strategies include:</p>
+<ul>
+<li><strong>One-for-one:</strong> If a child process terminates, only that process is restarted.</li>
+<li><strong>One-for-all:</strong> If a child process terminates, all other child processes managed by the same supervisor are terminated and then all are restarted.</li>
+<li><strong>Rest-for-one:</strong> If a child process terminates, the rest of the child processes (those started after the failing one) are terminated and then the failing process and the ones after it are restarted.</li>
+</ul>
+<p>This hierarchical structure allows for the creation of self-healing systems where failures are contained and automatically rectified at the lowest possible level of the application.</p>
+<p>OTP also provides powerful, built-in support for <strong>distribution</strong>. The mechanisms for sending messages between processes are location-transparent. The same <code>send</code> primitive is used whether the destination process is on the same BEAM node or on a different machine across a network.3 The runtime handles the underlying serialization and network communication, allowing developers to build complex distributed systems with relative ease.</p>
+<p>Finally, one of the BEAM's most celebrated features, enabled by the OTP framework, is <strong>hot code loading</strong>. This is the ability to load a new version of a code module into a running, live production system without stopping or restarting it.13 When a module is updated, existing processes can continue to run the old code, while new calls to that module will execute the new version. OTP provides specific patterns (code change callbacks) for processes to gracefully migrate their internal state to be compatible with the new code version. This feature is paramount for systems that demand continuous availability and cannot tolerate downtime for software updates.</p>
+<h2 id="iii-the-rust-concurrency-landscape-a-survey-of-erlang-inspired-frameworks-and-runtimes">III. The Rust Concurrency Landscape: A Survey of Erlang-Inspired Frameworks and Runtimes<a class="headerlink" href="#iii-the-rust-concurrency-landscape-a-survey-of-erlang-inspired-frameworks-and-runtimes" title="Permanent link">&para;</a></h2>
+<p>While Rust does not have a built-in runtime comparable to the BEAM, its powerful concurrency primitives and focus on safety have fostered a vibrant ecosystem of libraries and frameworks that aim to solve similar problems. Many of these are explicitly inspired by Erlang and the actor model. An analysis of these existing solutions provides invaluable insight into established patterns, common challenges, and idiomatic Rust approaches to concurrency and fault tolerance.</p>
+<h3 id="31-the-foundation-tokio-and-the-cooperative-asyncawait-paradigm">3.1 The Foundation: Tokio and the Cooperative <code>async</code>/<code>await</code> Paradigm<a class="headerlink" href="#31-the-foundation-tokio-and-the-cooperative-asyncawait-paradigm" title="Permanent link">&para;</a></h3>
+<p>At the foundation of modern asynchronous programming in Rust is Tokio. It is the de facto standard asynchronous runtime, providing the essential building blocks for writing networking applications and other concurrent systems.5 Tokio offers a multi-threaded, work-stealing scheduler, an asynchronous version of the standard library's I/O and timer APIs, and a vast ecosystem of compatible libraries.5</p>
+<p>The most critical architectural aspect of Tokio is its <strong>cooperative scheduling model</strong>.5 Rust's </p>
+<p><code>async</code>/<code>await</code> syntax allows functions to be defined as asynchronous tasks (futures). When a task is run on the Tokio executor, it executes on a worker thread until it reaches an <code>.await</code> point on an operation that cannot complete immediately (e.g., waiting for data from a network socket). At this point, the task voluntarily yields control back to the scheduler, which can then run another ready task on the same thread. This model is extremely efficient for I/O-bound workloads, as it minimizes the time a thread spends idly waiting. However, it is fundamentally different from the BEAM's preemptive model. A CPU-bound task in Tokio that does not contain any <code>.await</code> points will monopolize its worker thread until it completes, potentially starving other tasks scheduled on the same thread.</p>
+<h3 id="32-mature-actor-implementation-a-case-study-of-actix">3.2 Mature Actor Implementation: A Case Study of Actix<a class="headerlink" href="#32-mature-actor-implementation-a-case-study-of-actix" title="Permanent link">&para;</a></h3>
+<p>Actix is one of the most mature and performant actor frameworks in the Rust ecosystem.25 It provides a powerful, pragmatic framework for building concurrent applications based on the actor model, and is built on top of the Tokio runtime.28</p>
+<p>In Actix, any Rust struct can become an actor by implementing the <code>Actor</code> trait. Actors encapsulate state and behavior, and communicate exclusively through statically typed messages.28 State is managed within the actor's struct and is mutated via a </p>
+<p><code>&amp;mut self</code> reference in its message handlers. Rust's ownership rules, combined with the framework's API which provides access to actors only through an <code>Addr</code> (address) object, ensure logical state isolation.29 There is no concept of per-actor heaps; all actors share the main OS process heap.</p>
+<p>For fault tolerance, Actix provides supervision capabilities through a <code>Supervisor</code> struct and a <code>Supervised</code> trait. An actor that implements <code>Supervised</code> can be managed by a supervisor, which will restart it if it fails.28 This provides a mechanism for recovery, but it is a feature that developers must explicitly opt into, rather than being the default architectural pattern as it is in OTP.</p>
+<h3 id="33-fault-tolerance-first-an-analysis-of-bastion-and-its-lightproc-model">3.3 Fault-Tolerance First: An Analysis of Bastion and its "Lightproc" Model<a class="headerlink" href="#33-fault-tolerance-first-an-analysis-of-bastion-and-its-lightproc-model" title="Permanent link">&para;</a></h3>
+<p>Bastion is a framework that explicitly aims to bring the "smell of Erlang" to Rust, with a primary focus on high availability and fault tolerance.32 It describes itself as a "highly-available, fault-tolerant runtime system with dynamic dispatch oriented lightweight process model".32</p>
+<p>Its core concurrency primitive is the "lightproc" (lightweight process), which is an abstraction built on top of Rust futures designed to emulate the behavior of Erlang processes.32 A key differentiator for Bastion is that it makes supervision a central, first-class concept. It comes with a default root supervisor and provides built-in supervision strategies such as </p>
+<p><code>OneForOne</code> and <code>AllForOne</code>, closely mirroring the structure and terminology of OTP.34 This design choice encourages developers to structure their applications around fault-tolerance from the outset.</p>
+<h3 id="34-hierarchical-resilience-rikers-akka-inspired-approach-to-supervision">3.4 Hierarchical Resilience: Riker's Akka-Inspired Approach to Supervision<a class="headerlink" href="#34-hierarchical-resilience-rikers-akka-inspired-approach-to-supervision" title="Permanent link">&para;</a></h3>
+<p>Riker is another full-featured actor framework for Rust, drawing heavy inspiration from the Akka framework (which itself is a JVM implementation of the actor model inspired by Erlang).35 Like Bastion, Riker emphasizes the actor hierarchy as the fundamental structure for building resilient, self-healing systems.27</p>
+<p>Riker provides a complete actor runtime, actor supervision mechanisms, message scheduling, and publish/subscribe channels for event-driven architectures.27 The framework's roadmap explicitly includes plans for clustering, remote actors, and location transparency, indicating a clear ambition to provide a feature set comparable to that of Akka and OTP, allowing for the construction of distributed, fault-tolerant systems.27</p>
+<h3 id="35-the-next-frontier-lunatic-and-webassembly-based-process-isolation">3.5 The Next Frontier: Lunatic and WebAssembly-based Process Isolation<a class="headerlink" href="#35-the-next-frontier-lunatic-and-webassembly-based-process-isolation" title="Permanent link">&para;</a></h3>
+<p>Lunatic presents a novel and compelling architecture for an Erlang-inspired runtime. Instead of compiling Rust code directly to a native binary, Lunatic applications are compiled to WebAssembly (Wasm) and executed within the Lunatic Wasm runtime.39</p>
+<p>This architectural choice provides two profound benefits that align closely with the BEAM's design. First, it achieves <strong>hard memory isolation</strong>. Each Lunatic process is a distinct Wasm instance, and the Wasm specification mandates that each instance has its own sandboxed linear memory space, including its own stack and heap.39 This is the closest architectural analogue in the Rust ecosystem to the BEAM's per-process heaps, providing a strong, runtime-enforced guarantee against memory corruption between processes.</p>
+<p>Second, Lunatic implements a <strong>preemptive scheduler</strong>. Because the runtime has full control over the execution of the Wasm bytecode, it can instrument the code or use other mechanisms to interrupt a running Wasm instance, even one stuck in an infinite loop, and schedule another process to run.39 This allows Lunatic to offer the same kind of fairness and responsiveness guarantees as the BEAM, a feature that is notably absent in Tokio-based frameworks. Lunatic also supports supervision, distribution, and even hot code reloading (by loading new Wasm modules at runtime), making it a very significant project in the space of BEAM-like runtimes.39</p>
+<h3 id="36-direct-implementation-lessons-from-the-enigma-vm-project">3.6 Direct Implementation: Lessons from the Enigma VM Project<a class="headerlink" href="#36-direct-implementation-lessons-from-the-enigma-vm-project" title="Permanent link">&para;</a></h3>
+<p>The Enigma VM project is a direct attempt to implement the Erlang VM in Rust, with the goal of achieving OTP 22+ compatibility.44 While still experimental, it serves as an invaluable case study for understanding the practical challenges of such an undertaking.</p>
+<p>Architecturally, Enigma represents Erlang processes as long-running Rust futures and schedules them on a <code>tokio-threadpool</code> work-stealing queue.44 This design choice immediately highlights the central conflict between the BEAM's preemptive model and the cooperative nature of the underlying Tokio runtime. The project's source code is a rich resource for learning about the implementation details of BEAM opcodes, built-in functions (BIFs), the external term format, and other low-level runtime features in the context of Rust. It demonstrates the sheer complexity of the task while also providing a tangible example of how one might begin to structure such a system.</p>
+<p>The following table provides a high-level comparison of the surveyed Rust frameworks and runtimes across key architectural dimensions. This matrix is designed to distill the core design choices of each system, offering an at-a-glance overview of the existing landscape.</p>
+<p><strong>Table 1: Comparative Feature Matrix of Rust Actor Frameworks and Runtimes</strong></p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Actix</th>
+<th>Bastion</th>
+<th>Riker</th>
+<th>Elfo</th>
+<th>Lunatic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Underlying Runtime</strong></td>
+<td>Tokio</td>
+<td>Tokio (via Agnostik abstraction)</td>
+<td><code>futures::execution::ThreadPool</code></td>
+<td>Tokio</td>
+<td>Custom (Wasmtime-based)</td>
+</tr>
+<tr>
+<td><strong>Process Isolation Model</strong></td>
+<td>Logical (Rust Ownership)</td>
+<td>Logical (Rust Ownership via <code>lightproc</code>)</td>
+<td>Logical (Rust Ownership)</td>
+<td>Logical (Rust Ownership)</td>
+<td>Hard (Per-process Wasm Instance/Heap)</td>
+</tr>
+<tr>
+<td><strong>Scheduling Model</strong></td>
+<td>Cooperative (<code>async</code>/<code>await</code>)</td>
+<td>Cooperative (<code>async</code>/<code>await</code>)</td>
+<td>Cooperative (<code>async</code>/<code>await</code>)</td>
+<td>Cooperative (<code>async</code>/<code>await</code>)</td>
+<td>Preemptive</td>
+</tr>
+<tr>
+<td><strong>Supervision Model</strong></td>
+<td>Opt-in (<code>Supervisor</code> struct)</td>
+<td>Core Feature (OTP-like strategies)</td>
+<td>Core Feature (Hierarchy-based)</td>
+<td>Core Feature (Supervisor support)</td>
+<td>Core Feature (OTP-inspired supervision)</td>
+</tr>
+<tr>
+<td><strong>Built-in Distribution</strong></td>
+<td>No (Requires external crates)</td>
+<td>Yes (Cluster formation)</td>
+<td>Planned (Roadmap feature)</td>
+<td>Yes (Distributed framework)</td>
+<td>Yes (Distributed nodes via QUIC)</td>
+</tr>
+</tbody>
+</table>
+<p>This comparative analysis reveals several critical patterns and trends within the Rust ecosystem. The majority of actor frameworks are built upon the solid foundation of Tokio, and as a result, they inherit its cooperative scheduling model. This represents the most significant architectural divergence from the BEAM. A developer using these frameworks must be mindful that a long-running, non-yielding task can block a scheduler thread, a problem that does not exist in Erlang.</p>
+<p>Furthermore, there is a clear spectrum of approaches to process isolation. Most frameworks rely on Rust's powerful type system and ownership model to provide <em>logical</em> isolation at the API level. This is idiomatic and performant but does not provide the same hard, runtime-enforced memory boundary as the BEAM's per-process heaps. Lunatic stands apart by using WebAssembly sandboxing to achieve this hard memory isolation, offering a model that is philosophically much closer to the BEAM's but at the cost of introducing a Wasm runtime layer.</p>
+<p>Finally, while supervision is a feature in many Rust frameworks, its integration level varies. In frameworks like Bastion and Riker, it is presented as a central architectural pattern, echoing its importance in OTP. In others, it may be a more optional, library-level feature. This reflects a broader philosophical difference: Erlang/OTP is a runtime environment where supervision is a fundamental primitive, whereas in Rust, it is often a design pattern implemented on top of more general concurrency tools.</p>
+<h2 id="iv-synthesis-and-comparative-analysis-bridging-erlangs-philosophy-with-rusts-guarantees">IV. Synthesis and Comparative Analysis: Bridging Erlang's Philosophy with Rust's Guarantees<a class="headerlink" href="#iv-synthesis-and-comparative-analysis-bridging-erlangs-philosophy-with-rusts-guarantees" title="Permanent link">&para;</a></h2>
+<p>Building a BEAM-inspired runtime in Rust is not a simple matter of translation; it is an exercise in bridging two distinct programming philosophies. Erlang's design prioritizes runtime resilience, dynamic behavior, and system-level fault tolerance. Rust prioritizes compile-time safety, performance, and explicit control over memory. A successful implementation must navigate the fundamental conflicts between these two paradigms and make deliberate architectural trade-offs.</p>
+<h3 id="41-process-and-state-isolation-beams-heaps-vs-rusts-ownership-model">4.1 Process and State Isolation: BEAM's Heaps vs. Rust's Ownership Model<a class="headerlink" href="#41-process-and-state-isolation-beams-heaps-vs-rusts-ownership-model" title="Permanent link">&para;</a></h3>
+<p>The BEAM achieves its gold standard of process isolation through a straightforward, if brute-force, mechanism: giving every process its own heap.19 This provides a hard, runtime-enforced memory boundary. A bug in one process, even one that causes a segmentation fault in native code, is contained within that process's memory space and cannot corrupt the state of any other process. This physical separation simplifies garbage collection and is the ultimate enabler of the "let it crash" philosophy.</p>
+<p>Rust, on the other hand, achieves memory safety and prevents data races through its ownership model and borrow checker at compile time.45 In a typical Rust actor framework, an actor's state is encapsulated within its struct. The framework's API, combined with the borrow checker, prevents any other part of the system from obtaining a mutable reference to that state concurrently. This provides strong </p>
+<p><em>logical</em> isolation. However, it is not the same as the BEAM's <em>physical</em> isolation. All actors still share the same process-wide heap. A bug in <code>unsafe</code> code or a flaw in a C library dependency could, in theory, corrupt memory that affects other actors.</p>
+<p>This presents a critical architectural decision. Relying on Rust's ownership model is the most idiomatic and likely the most performant approach, leveraging the language's core strengths. However, to achieve the same level of absolute, untrusted-code-safe isolation as the BEAM, a model like Lunatic's, which uses an external sandboxing mechanism like WebAssembly, is necessary.40 This choice trades some native performance and simplicity for a much stronger fault-isolation guarantee.</p>
+<h3 id="42-scheduling-models-preemptive-fairness-vs-cooperative-throughput">4.2 Scheduling Models: Preemptive Fairness vs. Cooperative Throughput<a class="headerlink" href="#42-scheduling-models-preemptive-fairness-vs-cooperative-throughput" title="Permanent link">&para;</a></h3>
+<p>This is arguably the most significant architectural conflict. The BEAM's preemptive scheduler, based on reductions, is the heart of its ability to provide soft real-time guarantees and fairness.4 It ensures that no single process can dominate a CPU core, which is essential for keeping a system with millions of processes responsive.</p>
+<p>The dominant paradigm in the Rust async ecosystem, provided by Tokio, is cooperative scheduling.23 This model is optimized for high throughput in I/O-bound applications, where tasks frequently yield control at </p>
+<p><code>.await</code> points. It is simpler and has lower overhead than a preemptive scheduler. However, it is vulnerable to "bad actor" processes—CPU-bound tasks that compute for long periods without yielding. Such a task will starve all other tasks on its worker thread, leading to unpredictable latency and a loss of the fairness guarantees that are central to the Erlang model.</p>
+<p>Therefore, a true BEAM-like runtime cannot be built directly on a standard Tokio executor without modification. The implementation must choose one of three paths:</p>
+<ol>
+<li><strong>Accept the cooperative model:</strong> This is the simplest path but represents a major compromise on the BEAM's core principles of fairness and responsiveness.</li>
+<li><strong>Build a custom preemptive scheduler:</strong> This is a highly complex undertaking, requiring mechanisms to interrupt running Rust code. This could potentially be achieved by running tasks in separate OS threads (which would sacrifice the "lightweight" nature of processes) or by instrumenting the compiled code to insert yield points, similar to how reduction counting works.</li>
+<li><strong>Use a sandboxed runtime:</strong> This is the approach taken by Lunatic.39 By compiling code to Wasm, the host runtime can pause and resume the Wasm instance at will, effectively implementing preemption without needing to modify the Rust compiler or rely on OS threads for every process.</li>
+</ol>
+<h3 id="43-message-passing-semantics-data-copying-vs-ownership-transfer">4.3 Message Passing Semantics: Data Copying vs. Ownership Transfer<a class="headerlink" href="#43-message-passing-semantics-data-copying-vs-ownership-transfer" title="Permanent link">&para;</a></h3>
+<p>In the BEAM, messages are generally copied from the sender's heap to the receiver's.16 This reinforces the "share nothing" principle, ensuring complete decoupling between processes. The performance cost of this copying is considered an acceptable price for the resulting simplicity and robustness.</p>
+<p>In Rust, the most idiomatic and performant way to pass data is to transfer ownership via a <code>move</code>. This is a zero-copy operation, as only the pointer and ownership metadata on the stack are moved.47 This is highly efficient but creates a stronger link between components than the Erlang model. While Rust's channels and actor mailboxes handle the ownership transfer, it is a different semantic model from Erlang's copy-on-send.</p>
+<p>A Rust implementation must make a conscious choice. It could enforce a <code>Clone</code> bound on all messages, simulating the BEAM's copy-on-send behavior. This would be semantically faithful but would opt out of one of Rust's major performance advantages. Alternatively, it could embrace ownership transfer for its performance benefits, accepting that this represents a deviation from the pure "share nothing" model and may require more careful consideration of data lifetimes.</p>
+<h3 id="44-fault-tolerance-replicating-otp-supervision-trees-in-rust">4.4 Fault Tolerance: Replicating OTP Supervision Trees in Rust<a class="headerlink" href="#44-fault-tolerance-replicating-otp-supervision-trees-in-rust" title="Permanent link">&para;</a></h3>
+<p>In OTP, supervision is a set of runtime primitives. Processes can be "linked," meaning a crash in one will propagate a kill signal to the other. Supervisors use "monitors" to receive notifications when a child process dies.3 These are low-level mechanisms upon which the supervision tree pattern is built.</p>
+<p>In Rust, frameworks like Bastion and Riker implement supervision as a library pattern on top of the async runtime.27 A supervisor actor spawns child actors as async tasks and holds onto their </p>
+<p><code>JoinHandle</code>. It can then poll these handles or use channels to be notified when a task panics or exits with an error. This works, but it is an abstraction layer built by the framework.</p>
+<p>A true BEAM-like runtime in Rust would need to integrate these concepts more deeply. The runtime's internal process registry would need to track the links and monitor relationships between processes. The scheduler would need to understand this hierarchy to correctly propagate exit signals and execute the restart strategies defined by the supervisor. This requires making supervision a first-class citizen of the runtime, not just an application-level pattern.</p>
+<h3 id="45-the-hot-code-loading-challenge-in-a-statically-compiled-language">4.5 The Hot Code Loading Challenge in a Statically Compiled Language<a class="headerlink" href="#45-the-hot-code-loading-challenge-in-a-statically-compiled-language" title="Permanent link">&para;</a></h3>
+<p>Hot code loading is perhaps the most difficult BEAM feature to replicate in a statically compiled language like Rust.13 The BEAM achieves this by having a module loader that can replace the code for a given module at runtime.</p>
+<p>The only viable mechanism for this in Rust is dynamic loading of shared libraries (<code>.so</code>, <code>.dll</code>, <code>.dylib</code>).48 However, this approach is fraught with challenges:</p>
+<ul>
+<li><strong>Unstable ABI:</strong> Rust does not have a stable Application Binary Interface (ABI). This means that code compiled with one version of the Rust compiler may not be compatible with code compiled with another. To ensure compatibility between the main application and a dynamically loaded library, all exported functions must use the C ABI (<code>extern "C"</code>) and avoid complex Rust types in their signatures.50</li>
+<li><strong>State Migration:</strong> This is the most significant hurdle. When a new version of a library is loaded, any existing state from the old version must be carefully migrated. This typically involves serializing the state to a stable format (like JSON or protobuf) before the old library is unloaded, and then deserializing it in the new library.52 This process is manual, complex, and a potential source of bugs.</li>
+<li><strong>Safety:</strong> Interacting with dynamic libraries in Rust is inherently <code>unsafe</code>. The compiler cannot verify the correctness of the function signatures, and improper handling of library handles can lead to dangling pointers or memory leaks.49</li>
+</ul>
+<p>Replicating the seamlessness of BEAM's hot code loading is likely impossible. A practical Rust implementation would be much more constrained. A more promising, though still complex, avenue is the one offered by Wasm-based runtimes like Lunatic, which can load and instantiate new Wasm modules at runtime, potentially offering a safer and more manageable approach to dynamic code updates.55</p>
+<h2 id="v-a-practical-roadmap-for-implementation">V. A Practical Roadmap for Implementation<a class="headerlink" href="#v-a-practical-roadmap-for-implementation" title="Permanent link">&para;</a></h2>
+<p>Translating the preceding analysis into a concrete implementation requires a phased approach, beginning with foundational architectural decisions and progressively building towards the more advanced features of a BEAM-like system. This roadmap outlines a logical sequence of development, highlighting the critical choices at each stage.</p>
+<h3 id="51-key-architectural-decisions-and-their-trade-offs">5.1 Key Architectural Decisions and Their Trade-offs<a class="headerlink" href="#51-key-architectural-decisions-and-their-trade-offs" title="Permanent link">&para;</a></h3>
+<p>Before writing the first line of code, four fundamental architectural decisions must be made. These choices are deeply interconnected and will define the core character and capabilities of the final runtime.</p>
+<ul>
+<li><strong>Decision 1: Scheduling Model (Preemptive vs. Cooperative).</strong> This is the most critical choice.</li>
+<li><strong>Cooperative (Tokio-based):</strong> <em>Pros:</em> Simpler to implement, leverages the mature Tokio ecosystem, high throughput for I/O-bound tasks. <em>Cons:</em> Sacrifices fairness and responsiveness guarantees, vulnerable to blocking by CPU-bound tasks, a significant deviation from the BEAM's core behavior.</li>
+<li><strong>Preemptive (Custom or Wasm-based):</strong> <em>Pros:</em> Achieves BEAM-like fairness and soft real-time behavior, robust against misbehaving processes. <em>Cons:</em> Far more complex to implement, requires either building a custom executor from scratch or integrating and managing a Wasm runtime like Wasmtime. This is the recommended path for a runtime that is truly BEAM-inspired.</li>
+<li><strong>Decision 2: Process Isolation Model (Logical vs. Hard).</strong></li>
+<li><strong>Logical (Rust Ownership):</strong> <em>Pros:</em> Idiomatic Rust, zero-cost abstraction, high performance. <em>Cons:</em> Provides logical, not physical, memory isolation. A bug in <code>unsafe</code> code can still compromise the entire system.</li>
+<li><strong>Hard (Wasm/OS Process):</strong> <em>Pros:</em> Provides strong, BEAM-like memory isolation. Failures are completely contained. <em>Cons:</em> Introduces performance overhead and the complexity of managing a Wasm runtime or OS processes. The Wasm approach is the most promising for replicating BEAM's model of lightweight, isolated processes.</li>
+<li><strong>Decision 3: Message Passing Semantics (Move vs. Clone).</strong></li>
+<li><strong>Move (Ownership Transfer):</strong> <em>Pros:</em> Zero-copy, highly performant, idiomatic Rust. <em>Cons:</em> Deviates from the BEAM's "share nothing" by copying, creates stronger coupling between components.</li>
+<li><strong>Clone (Copy-on-Send):</strong> <em>Pros:</em> Semantically identical to the BEAM's default, ensures complete decoupling. <em>Cons:</em> Incurs performance overhead for cloning messages, less idiomatic for Rust performance patterns.</li>
+<li><strong>Decision 4: Supervision Integration (Library vs. Primitive).</strong></li>
+<li><strong>Library Pattern:</strong> <em>Pros:</em> Simpler to implement initially, decouples application logic from runtime internals. <em>Cons:</em> Less powerful, the runtime is not "aware" of the supervision hierarchy, limiting potential optimizations and deep integration.</li>
+<li><strong>Runtime Primitive:</strong> <em>Pros:</em> A true replication of the OTP model, enables the scheduler to be aware of process links and monitors, allows for a more robust and integrated fault-tolerance system. <em>Cons:</em> More complex, requires tight coupling between the process management, scheduling, and supervision components.</li>
+</ul>
+<h2 id="5-implementation-phases">5. Implementation Phases<a class="headerlink" href="#5-implementation-phases" title="Permanent link">&para;</a></h2>
+<h3 id="51-core-runtime-executor-and-scheduler">5.1 Core Runtime, Executor, and Scheduler<a class="headerlink" href="#51-core-runtime-executor-and-scheduler" title="Permanent link">&para;</a></h3>
+<p>The first phase focuses on establishing the absolute core of the runtime: the ability to schedule and execute tasks.</p>
+<ol>
+<li><strong>Define the <code>Runtime</code> Struct:</strong> This will be the main entry point and container for the system, holding the scheduler, process registry, and other global state.</li>
+<li><strong>Implement the Scheduler:</strong> Based on Decision 1, implement the chosen scheduler.</li>
+<li>If <strong>preemptive</strong>, this involves integrating a Wasm runtime like <code>wasmtime</code> and building the logic to instantiate, run, and pause Wasm modules. The scheduler will manage a pool of OS threads and a run queue of ready-to-run Wasm instances.</li>
+<li>If <strong>cooperative</strong>, this involves creating a wrapper around a <code>tokio::runtime::Runtime</code> and its <code>Handle</code>.</li>
+<li><strong>Implement Run Queues and Load Balancing:</strong> Each scheduler thread should have its own run queue. Implement the logic for tasks to be added to these queues and for the scheduler to pull from them. If building for multi-core, implement a work-stealing or process-migration strategy to balance load across schedulers.17</li>
+</ol>
+<h3 id="52-lightweight-processes-and-message-passing-infrastructure">5.2 Lightweight Processes and Message Passing Infrastructure<a class="headerlink" href="#52-lightweight-processes-and-message-passing-infrastructure" title="Permanent link">&para;</a></h3>
+<p>This phase introduces the core abstractions of the actor model: processes and messages.</p>
+<ol>
+<li><strong>Define the Process Control Block (PCB):</strong> Create a Rust struct to represent an Erlang PCB.13 This will hold all metadata for a process, including its unique Process ID (PID), its current status (e.g., running, waiting, exiting), a pointer to its mailbox, its reduction count, and references to its parent/supervisor and linked processes.</li>
+<li><strong>Implement Process Spawning:</strong> Create the <code>spawn</code> and <code>spawn_link</code> functions. These functions will allocate a new PCB, create the initial process state (including its Wasm instance or async task), and place it in a scheduler's run queue.</li>
+<li><strong>Design the Mailbox:</strong> Implement the data structure for the process mailbox. A lock-free, multi-producer, single-consumer queue (e.g., from the <code>crossbeam-channel</code> crate) is a suitable choice. A decision must be made whether the mailboxes will be bounded (providing back-pressure) or unbounded.</li>
+<li><strong>Implement Message Passing Primitives:</strong> Implement the <code>send</code> function. This will involve locating the target process's PCB via its PID, and enqueuing the message into its mailbox. The implementation must adhere to the copy/move semantics chosen in Decision 3.</li>
+</ol>
+<h3 id="53-memory-management-and-garbage-collection-strategy">5.3 Memory Management and Garbage Collection Strategy<a class="headerlink" href="#53-memory-management-and-garbage-collection-strategy" title="Permanent link">&para;</a></h3>
+<p>This phase is only necessary if pursuing the hard isolation model with per-process heaps, as the logical isolation model would rely on Rust's global allocator.</p>
+<ol>
+<li><strong>Implement a Heap Allocator:</strong> If using a Wasm runtime, this is largely handled by the Wasm instance's linear memory. If building a custom non-Wasm runtime with per-process heaps, this phase requires implementing a memory allocator that can create and manage distinct memory regions for each process.</li>
+<li><strong>Implement a Garbage Collector:</strong> Start with a simple, correct GC algorithm. A Cheney's two-space copying collector is a classic and well-understood choice for functional languages.19</li>
+<li><strong>Integrate GC with the Runtime:</strong> The GC needs to be triggered at appropriate times. This could be when a process's heap allocator fails to satisfy a request. The process would be suspended, the GC would run on its heap, and then the process would be rescheduled. The root set for the GC would be the process's stack and registers.19</li>
+</ol>
+<h3 id="54-advanced-features-supervision-distribution-and-dynamic-code-reloading">5.4 Advanced Features - Supervision, Distribution, and Dynamic Code Reloading<a class="headerlink" href="#54-advanced-features-supervision-distribution-and-dynamic-code-reloading" title="Permanent link">&para;</a></h3>
+<p>With the core runtime in place, the advanced features that define the Erlang/OTP experience can be built.</p>
+<ol>
+<li><strong>Supervision:</strong> Implement the low-level primitives for linking and monitoring processes within the runtime's process registry. When a process crashes, the runtime should be able to identify its supervisor and send it a notification message. Then, implement the <code>Supervisor</code> behavior itself, with the logic for parsing restart strategies and managing child processes.</li>
+<li><strong>Distribution:</strong> Design the internode protocol. This involves defining how Erlang terms will be serialized for the wire (e.g., using the External Term Format) and choosing a transport (e.g., QUIC, as used by Lunatic, or TCP).39 Implement a global process registry (or a distributed hash table) to map PIDs to node locations and a proxying mechanism to transparently forward messages to remote processes.</li>
+<li><strong>Dynamic Code Reloading:</strong> This is the most challenging feature.</li>
+<li>Implement a module loader using a crate like <code>libloading</code>.56</li>
+<li>Define a stable C ABI for all functions that are intended to be reloadable. This interface must be minimal and use only C-compatible types.</li>
+<li>Develop a robust state-migration protocol. This requires defining a <code>code_change</code> callback that allows a process to receive its old state, transform it, and initialize its new state before the old code module is unloaded. This process is inherently <code>unsafe</code> and requires meticulous management of library handles and state serialization.52</li>
+</ol>
+<h3 id="conclusion-the-path-to-a-production-ready-erlang-runtime-in-rust">Conclusion: The Path to a Production-Ready Erlang Runtime in Rust<a class="headerlink" href="#conclusion-the-path-to-a-production-ready-erlang-runtime-in-rust" title="Permanent link">&para;</a></h3>
+<p>The endeavor to build an Erlang-inspired runtime in Rust is a significant systems engineering challenge that sits at the intersection of two powerful but philosophically distinct technologies. A direct, feature-for-feature clone of the BEAM is a monumental task, particularly with respect to its seamless hot code loading capabilities. However, a runtime that successfully captures the BEAM's core principles—massive concurrency through lightweight processes, strong fault isolation, and resilient application architecture through supervision—is a viable and immensely valuable project.</p>
+<p>The critical path to success lies in making informed architectural decisions at the outset, particularly regarding the choice between a cooperative and a preemptive scheduling model. While leveraging the existing Tokio ecosystem is tempting for its simplicity and maturity, a true BEAM-like system demands the fairness and responsiveness guarantees that only preemption can provide. The novel approach taken by the Lunatic project, using WebAssembly as a sandboxed, preemptible execution target, presents the most promising path forward for achieving BEAM's strongest guarantees in a Rust environment.</p>
+<p>By carefully navigating these trade-offs and following a phased implementation plan, it is possible to create a new class of runtime: one that combines the raw performance and compile-time memory safety of Rust with the architectural wisdom of Erlang for building scalable, resilient, and long-running systems. The result would not be merely a clone, but a powerful synthesis that stands on its own merits, inspired by one of the most robust runtimes ever created, and built with one of the most powerful systems languages of the modern era.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2025 AirsStack
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+    <a href="https://github.com/airsstack" target="_blank" rel="noopener" title="AirsStack on GitHub" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate"], "search": "../../../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      
+    
+  </body>
+</html>
