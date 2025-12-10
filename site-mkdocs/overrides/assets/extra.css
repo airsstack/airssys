@@ -1,0 +1,26 @@
+/* Custom CSS for AirsSys Documentation */
+
+:root {
+  --md-primary-fg-color: #ff6e40;
+  --md-accent-fg-color: #00897b;
+}
+
+/* Code block styling */
+.highlight {
+  border-radius: 4px;
+}
+
+/* Admonition custom styling */
+.md-typeset .admonition {
+  border-radius: 4px;
+}
+
+/* Navigation tabs styling */
+.md-tabs {
+  background-color: var(--md-primary-fg-color);
+}
+
+/* Custom styling for version badge */
+.md-version {
+  color: var(--md-accent-fg-color);
+}

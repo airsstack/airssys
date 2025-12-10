@@ -97,3 +97,19 @@ tests/fixtures/*.wasm
 **/tests/fixtures/*.wasm
 *.wasm
 .research
+
+# === DOCUMENTATION BUILD ARTIFACTS ===
+# MkDocs build output
+site-mkdocs/site/
+**/site/
+
+# Python virtual environments (for docs)
+venv/
+env/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# mdBook build output (legacy, kept for reference)
+**/docs/book/

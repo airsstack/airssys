@@ -11,65 +11,195 @@ This project contains four important components:
 - `airssys-wasm`
 - `airssys-wasm-component`
 
-## airssys-osl (OS Layer Framework)
+# AirsSys - System Programming Components for AirsStack
 
-This component will handle all low-level OS system programming, enhanced with activity logs and robust security policies.
+`AirsSys` is a comprehensive collection of system programming components designed for the AirsStack ecosystem. It provides secure, modular, and high-performance tools for building robust concurrent applications with strong security guarantees.
 
-This component will handle these important and common system activities:
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Version](https://img.shields.io/badge/version-0.1.0-green.svg)](https://github.com/airsstack/airssys)
 
-- Filesystem management
-- Process management
-- Network management
-- Utils management
-    - Something like calling other programs such as: `docker`, or `gh (github cli)`
+## 📚 Documentation
 
-## airssys-rt (Runtime)
+**[View Complete Documentation →](https://airsstack.github.io/airssys/)**
 
-This component will provide a model of the `Erlang-Actor` system. This component will provide a supervisor for its process management, which follows the `BEAM` approaches.
+The unified documentation covers all completed AirsSys components including architecture, guides, API references, and examples.
 
-> [!IMPORTANT]
->
-> The `airssys-rt` component is not intended to replace the `BEAM` runtime system. This component will just take the `Erlang-Actor` model as a reference to build its own actor model system and its process management. This component will provide a lightweight actor model system, which can be used to manage high-concurrent applications.
+## Components
 
-Principles:
+This project contains multiple specialized components:
 
-- **Encapsulation:** An actor maintains its own private, internal state that cannot be directly accessed or modified by any other actor.
-- **Asynchronous Message Passing:** Actors communicate exclusively by sending and receiving immutable messages asynchronously. There is no shared memory, which eliminates the need for complex and error-prone synchronization mechanisms like locks, thereby preventing race conditions by design.
-- **Mailbox and Sequential Processing:** Each actor has a "mailbox" that queues incoming messages. The actor processes these messages one at a time, in a sequential manner, ensuring that its internal state is always consistent.
+### Completed Components
 
-## airssys-wasm-component (WASM Component Macros)
+- **`airssys-osl`** - OS Layer Framework (✅ Complete)
+- **`airssys-rt`** - Actor Runtime System (✅ Complete)
 
-This component provides procedural macros that simplify WASM component development by eliminating the need for manual `extern "C"` function definitions. Following the successful serde architecture pattern, this crate separates macro implementation from core types for optimal developer experience.
+### In Development
 
-Key features include:
+- **`airssys-wasm`** - WASM Component Framework (⏳ In Development)
+- **`airssys-wasm-cli`** - WASM CLI Tools (⏳ In Development)
+- **`airssys-osl-macros`** - OSL Procedural Macros (⏳ In Development)
+- **`airssys-wasm-component`** - WASM Component Macros (⏳ In Development)
 
-- **`#[component]` macro** - Transforms regular Rust structs into WASM-compatible components
-- **Derive macros** - Automatic trait implementations for ComponentOperation, ComponentResult, ComponentConfig
-- **Code generation** - Automatic WASM export generation, memory management, and serialization
-- **syn v2 compatibility** - Modern procedural macro implementation using latest Rust standards
-- **Zero boilerplate** - Developers focus on business logic while macros handle WASM complexity
+## Quick Start
 
-This component enables developers to write clean, idiomatic Rust code that automatically compiles to efficient WASM components suitable for the airssys-wasm runtime system.
+### OSL - Secure OS Operations
 
-## airssys-wasm (WASM Pluggable System)
+```rust
+use airssys_osl::helpers::*;
 
-This component will provide a WebAssembly (WASM) runtime environment, enabling the execution of WASM modules within the AirsStack ecosystem. It will include features such as:
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Secure file operations with built-in ACL/RBAC
+    let data = b"Hello, World!".to_vec();
+    write_file("/tmp/test.txt", data, "admin").await?;
+    let content = read_file("/tmp/test.txt", "admin").await?;
+    Ok(())
+}
+```
 
-- A lightweight WASM VM for executing WASM binaries
-- Integration with the AirsSys components for seamless communication
-- Support for both synchronous and asynchronous execution models
-- Security features to sandbox WASM modules and restrict their access to system resources
+### RT - Actor-Based Concurrency
 
-Previously, I have had thoughts related to the "isolated processes", which relate to the `cgroups` and `namespace`; unfortunately, these features are only available in Linux OS environments. These limitations made me think about avoiding these kinds of approaches.
+```rust
+use airssys_rt::prelude::*;
+use async_trait::async_trait;
 
-Related with the `WASM` approach, I have found that `WASM` can be a good alternative to the "isolated processes" approach. `WASM` can provide a secure and efficient way to run code in a sandboxed environment, which can be beneficial for certain use cases.
+#[derive(Debug, Clone)]
+enum CounterMsg { Increment }
 
-Taken from my researches:
+impl Message for CounterMsg {
+    const MESSAGE_TYPE: &'static str = "counter";
+}
 
-> [!NOTE]
->
-> Today, the industry stands at the cusp of another architectural evolution, moving towards a model that promises even finer-grained modularity, unparalleled portability, and security by default. This new paradigm is centered on the WebAssembly (WASM) Component Model, a technology that reimagines software composition. It envisions applications built not from large, loosely coupled services, but from small, secure, and language-agnostic components that can be seamlessly composed like Lego bricks.
->
-> This report posits that the convergence of WebAssembly, the WebAssembly System Interface (WASI), and the Component Model represents a fundamental architectural shift, enabling a new generation of polyglot, composable, and secure applications that can truly run anywhere—from the largest cloud server to the smallest edge device.
+struct CounterActor { count: u64 }
 
-By providing WASM management, especially to build pluggable systems based on a host-guest system. Besides, by following WASM, it already runs inside a sandboxed environment with a deny-by-default security policy, meaning that using WASM it already solve my previous thoughts about "isolated processes".
+#[async_trait]
+impl Actor for CounterActor {
+    type Message = CounterMsg;
+    type Error = std::io::Error;
+    
+    async fn handle_message<B: MessageBroker<Self::Message>>(
+        &mut self,
+        msg: Self::Message,
+        _ctx: &mut ActorContext<Self::Message, B>,
+    ) -> Result<(), Self::Error> {
+        self.count += 1;
+        Ok(())
+    }
+}
+```
+
+## Documentation Structure
+
+- **[Getting Started](https://airsstack.github.io/airssys/getting-started/)** - Installation and first steps
+- **[Components](https://airsstack.github.io/airssys/components/)** - Detailed component documentation
+  - [OSL Documentation](https://airsstack.github.io/airssys/components/osl/)
+  - [RT Documentation](https://airsstack.github.io/airssys/components/rt/)
+- **[Guides](https://airsstack.github.io/airssys/guides/integration/)** - Integration, security, performance
+- **[Examples](https://airsstack.github.io/airssys/examples/)** - Practical usage examples
+- **[Research](https://airsstack.github.io/airssys/research/)** - Design decisions and analysis
+
+## Component Details
+
+### airssys-osl (OS Layer Framework)
+
+Secure, cross-platform abstraction over operating system functionality with comprehensive audit trails and security policy enforcement.
+
+**Key Features:**
+- Cross-platform OS abstractions (filesystem, process, network)
+- Built-in ACL and RBAC security policies
+- Comprehensive activity logging and audit trails
+- Middleware pipeline for extensibility
+- Helper functions for common operations
+
+[View OSL Documentation →](https://airsstack.github.io/airssys/components/osl/)
+
+### airssys-rt (Actor Runtime System)
+
+Lightweight Erlang-Actor model runtime for high-concurrency applications with BEAM-inspired supervision and fault tolerance.
+
+**Key Features:**
+- Zero-cost actor abstractions with compile-time type safety
+- BEAM-inspired supervision trees (OneForOne, OneForAll, RestForOne)
+- High performance: ~625ns actor spawn, 4.7M msgs/sec throughput
+- Broker-based message routing with backpressure control
+- Comprehensive monitoring and observability
+
+[View RT Documentation →](https://airsstack.github.io/airssys/components/rt/)
+
+### airssys-wasm (WASM Component Framework)
+
+WebAssembly Component Framework for pluggable systems (⏳ In Development).
+
+**Note:** WASM components are under active development. See individual mdbook documentation in `airssys-wasm/docs/` for current status.
+
+### Other Components
+
+- **airssys-osl-macros** - Procedural macros for OSL custom executors
+- **airssys-wasm-cli** - CLI tools for WASM component management
+- **airssys-wasm-component** - Procedural macros for WASM development
+
+## Development
+
+### Running Tests
+
+```bash
+# Run all tests
+cargo test --workspace
+
+# Run component tests
+cargo test --package airssys-osl
+cargo test --package airssys-rt
+
+# Run with features
+cargo test --features macros
+```
+
+### Running Examples
+
+```bash
+# OSL examples
+cargo run --example helper_functions_comprehensive
+cargo run --example security_middleware_comprehensive
+
+# RT examples
+cargo run --example actor_basic
+cargo run --example supervisor_basic
+cargo run --example osl_integration_example
+```
+
+### Building Documentation
+
+```bash
+# Build unified MkDocs documentation
+cd site-mkdocs
+mkdocs serve  # Local preview at http://localhost:8000
+
+# Build API documentation
+cargo doc --open --workspace
+```
+
+## Contributing
+
+See [Contributing Guide](https://airsstack.github.io/airssys/contributing/) for development guidelines.
+
+## Resources
+
+- **Documentation**: https://airsstack.github.io/airssys/
+- **Repository**: https://github.com/airsstack/airssys
+- **Issues**: https://github.com/airsstack/airssys/issues
+
+## License
+
+AirsSys is dual-licensed under:
+
+- [Apache License 2.0](LICENSE-APACHE)
+- [MIT License](LICENSE-MIT)
+
+You may choose either license at your option.
+
+---
+
+**Current Version**: 0.1.0  
+**Documentation**: https://airsstack.github.io/airssys/  
+**Last Updated**: December 2025

@@ -1,0 +1,186 @@
+site_name: AirsSys - System Programming Components
+site_url: https://airsstack.github.io/airssys/
+site_description: Secure, modular system programming components for the AirsStack ecosystem
+site_author: AirsStack
+repo_name: airsstack/airssys
+repo_url: https://github.com/airsstack/airssys
+edit_uri: edit/main/docs/
+
+copyright: Copyright &copy; 2025 AirsStack
+
+theme:
+  name: material
+  custom_dir: overrides
+  language: en
+  
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep orange
+      accent: teal
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep orange
+      accent: teal
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  
+  font:
+    text: Inter
+    code: JetBrains Mono
+  
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+plugins:
+  - search:
+      lang: en
+
+extra:
+  version:
+    provider: mike
+    default: latest
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/airsstack
+      name: AirsStack on GitHub
+
+docs_dir: ../docs
+site_dir: site
+
+nav:
+  - Home:
+      - Welcome: index.md
+      - Overview: overview.md
+      - Getting Started: getting-started.md
+      - Architecture: architecture.md
+  
+  - Components:
+      - Overview: components/index.md
+      - OSL (OS Layer):
+          - Introduction: components/osl/index.md
+          - Architecture: components/osl/architecture/README.md
+          - User Guides:
+              - Overview: components/osl/guides/README.md
+              - Middleware: components/osl/guides/middleware.md
+              - Custom Executors: components/osl/guides/custom-executors.md
+          - API Reference:
+              - Overview: components/osl/api/README.md
+              - Core Types: components/osl/api/core-types.md
+              - Security Framework: components/osl/api/security.md
+              - Macros: components/osl/api/macros.md
+      - RT (Actor Runtime):
+          - Introduction: components/rt/index.md
+          - Tutorials:
+              - Overview: components/rt/tutorials.md
+              - Getting Started: components/rt/tutorials/getting-started.md
+              - Your First Actor: components/rt/tutorials/actor-creation.md
+              - Message Handling: components/rt/tutorials/message-handling.md
+              - Building a Supervisor Tree: components/rt/tutorials/supervision-setup.md
+          - How-To Guides:
+              - Overview: components/rt/guides.md
+              - Actor Development: components/rt/guides/actor-development.md
+              - Supervisor Patterns: components/rt/guides/supervisor-patterns.md
+              - Message Passing: components/rt/guides/message-passing.md
+          - Architecture:
+              - Overview: components/rt/architecture.md
+              - Core Concepts: components/rt/architecture/core-concepts.md
+              - Actor Model Design: components/rt/architecture/actor-model.md
+              - System Overview: components/rt/architecture/system-overview.md
+              - Components: components/rt/architecture/components.md
+              - Message Passing: components/rt/architecture/message-passing.md
+              - Supervision: components/rt/architecture/supervision.md
+              - Process Lifecycle: components/rt/architecture/process-lifecycle.md
+          - API Reference:
+              - Overview: components/rt/api.md
+              - Core Types: components/rt/api/core-types.md
+              - Actor Traits: components/rt/api/actor-traits.md
+              - Message Types: components/rt/api/message-types.md
+              - Supervisor API: components/rt/api/supervisor-api.md
+          - Reference:
+              - Overview: components/rt/reference.md
+              - API:
+                  - Core: components/rt/reference/api/core.md
+                  - Actors: components/rt/reference/api/actors.md
+                  - Messaging: components/rt/reference/api/messaging.md
+                  - Supervisors: components/rt/reference/api/supervisors.md
+                  - Mailbox: components/rt/reference/api/mailbox.md
+                  - Broker: components/rt/reference/api/broker.md
+                  - Monitoring: components/rt/reference/api/monitoring.md
+              - Performance: components/rt/reference/performance.md
+              - Troubleshooting: components/rt/reference/troubleshooting.md
+          - Explanation:
+              - Overview: components/rt/explanation.md
+              - The Actor Model: components/rt/explanation/actor-model.md
+              - Supervision & Fault Tolerance: components/rt/explanation/supervision.md
+              - Message Passing Architecture: components/rt/explanation/message-passing.md
+              - Performance by Design: components/rt/explanation/performance-design.md
+              - Builder Pattern Design: components/rt/explanation/builder-pattern.md
+              - Future Use Cases: components/rt/explanation/future-use-cases.md
+  
+  - Guides:
+      - Integration: guides/integration.md
+      - Security: guides/security.md
+      - Performance: guides/performance.md
+  
+  - Examples:
+      - Overview: examples/index.md
+      - OSL Examples: examples/osl-examples.md
+      - RT Examples: examples/rt-examples.md
+  
+  - Research:
+      - Overview: research/index.md
+      - RT Research:
+          - BEAM Model Analysis: research/rt/beam-model.md
+          - BEAM-Inspired Runtime: research/rt/beam-inspired-runtime.md
+          - Rust Actor Ecosystem: research/rt/rust-actor-ecosystem.md
+  
+  - Contributing: contributing.md
