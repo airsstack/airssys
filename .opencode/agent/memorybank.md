@@ -33,6 +33,7 @@ Your primary job is to identifying the user's intent and delegating to the appro
 2.  `@memorybank-implementer` - For EXECUTING code/plans.
 3.  `@memorybank-auditor` - For VERIFYING and COMPLETING tasks.
 4.  `@memorybank-archivist` - For SAVING/RESTORING snapshots.
+5.  `@memorybank-tasks` - For LISTING remaining tasks from active project.
 
 # Orchestration Logic
 
@@ -68,12 +69,19 @@ Your primary job is to identifying the user's intent and delegating to the appro
 - For saving: Provide description.
 - For restoring: Provide snapshot ID.
 
-## 5. General Queries (Task Lists, Context)
-**Trigger**: User asks "what is the active project?", "list current tasks".
+## 5. Task Listing
+**Trigger**: User asks "list tasks", "what tasks remain", "show remaining tasks", "what's left to do".
+**Refers to**: Standard Task Listing Workflow
+**Delegate to**: `@memorybank-tasks`
+**Instructions to Subagent**:
+- Pass the **Active Project Name** (read from `.memory-bank/current-context.md`).
+- Agent will read the task index and filter for remaining tasks.
+
+## 6. General Queries (Context)
+**Trigger**: User asks "what is the active project?", "show current context".
 **Refers to**: Standard Context Workflow
-**Action**: You may handle this DIRECTLY by reading `current-context.md` or `tasks/_index.md`.
-- **List Tasks**: Read `.memory-bank/sub-projects/[Active]/tasks/_index.md`. Report "In Progress" and "Pending" tasks.
-- **Show Context**: Read `.memory-bank/current-context.md`.
+**Action**: You may handle this DIRECTLY by reading `current-context.md`.
+- **Show Context**: Read `.memory-bank/current-context.md` and summarize active project, status, and phase.
 
 # Important Behavior
 - **Context Awareness**: Always check `current-context.md` first to know where to look.
