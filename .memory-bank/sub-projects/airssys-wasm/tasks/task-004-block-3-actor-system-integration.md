@@ -209,31 +209,49 @@ Before starting Phase 2, you MUST review and complete:
   - Estimated effort: 12-18 hours
   - **NO EXCEPTIONS** - These are BLOCKING requirements
 
-#### Task 2.1: ActorSystem::spawn() Integration + DEFERRED WASM INVOCATION
+#### Task 2.1: ActorSystem::spawn() Integration + DEFERRED WASM INVOCATION ⏳ IN PROGRESS
 
 **⚠️ INCLUDES MANDATORY DEFERRED WORK FROM TASK 1.3 ⚠️**
 
+**Status:** IN PROGRESS (Steps 1.1-1.4 COMPLETE, Steps 2.1-2.2 TODO)  
+**Completion Date:** 2025-12-13 (Partial - WASM Invocation Complete)
+
 **Deliverables:**
 1. **From Task 1.3 Deferred Work (MANDATORY):**
-   - [ ] WASM function invocation with type conversion (Item #1 from DEBT-WASM-004)
-   - [ ] InterComponent WASM call implementation (Item #2 from DEBT-WASM-004)
-   - [ ] Remove ALL "FUTURE WORK" comments from actor_impl.rs lines 181-195, 236-246
-   - [ ] Integration tests for WASM function calls
-   - [ ] Performance benchmarks (>10,000 msg/sec)
+   - [x] WASM function invocation with type conversion (Item #1 from DEBT-WASM-004) ✅
+   - [x] InterComponent WASM call implementation (Item #2 from DEBT-WASM-004) ✅
+   - [x] Remove ALL "FUTURE WORK" comments from actor_impl.rs lines 190-260 ✅
+   - [x] Integration tests for WASM function calls (20 tests in actor_invocation_tests.rs) ✅
+   - [ ] Performance benchmarks (>10,000 msg/sec) - Deferred to Step 3.2
 
 2. **Phase 2 ActorSystem Work:**
-   - Component spawning via ActorSystem::spawn()
-   - ComponentActor registration with ActorSystem
-   - Actor address (ActorRef) management
-   - Component instance tracking
-   - Spawn performance optimization
-   - Spawning tests
+   - [ ] Component spawning via ActorSystem::spawn() - TODO (Step 2.1)
+   - [ ] ComponentActor registration with ActorSystem - TODO (Step 2.1)
+   - [ ] Actor address (ActorRef) management - TODO (Step 2.1)
+   - [ ] Component instance tracking - TODO (Step 2.2)
+   - [ ] Spawn performance optimization - TODO (Step 2.1)
+   - [ ] Spawning tests - TODO (Step 2.1)
 
-**Success Criteria:**
-- Components spawn via ActorSystem (NOT tokio::spawn)
-- ActorRef returned for message sending
-- Component instances tracked by ActorSystem
-- Spawn time <5ms average (including WASM load)
+**Implementation Summary (Completed):**
+- **Step 1.1:** Type conversion system (`src/actor/type_conversion.rs` - 341 lines, 21 tests) ✅
+- **Step 1.2:** WASM function invocation (`src/actor/actor_impl.rs` lines 190-260) ✅
+- **Step 1.3:** InterComponent WASM call (`src/actor/actor_impl.rs` lines 293-335) ✅
+- **Step 1.4:** Integration testing (`tests/actor_invocation_tests.rs` - 20 tests) ✅
+
+**Test Results:**
+- All 327 lib tests passing ✅
+- All 20 integration tests passing (2 ignored - require Block 6) ✅
+- Zero clippy warnings ✅
+
+**Success Criteria (Partial):**
+- [x] WASM function invocation working end-to-end ✅
+- [x] Type conversion handles i32, i64, f32, f64 ✅
+- [x] Multicodec integration verified ✅
+- [x] Error handling complete (traps, missing functions) ✅
+- [ ] Components spawn via ActorSystem (NOT tokio::spawn) - TODO
+- [ ] ActorRef returned for message sending - TODO
+- [ ] Component instances tracked by ActorSystem - TODO
+- [ ] Spawn time <5ms average - TODO
 
 #### Task 2.2: Component Instance Management
 **Deliverables:**
