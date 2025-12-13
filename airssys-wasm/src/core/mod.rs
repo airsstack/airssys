@@ -164,6 +164,7 @@ pub mod capability;
 pub mod component;
 pub mod config;
 pub mod error;
+pub mod multicodec;  // Phase 1 Task 1.3: Multicodec support for message serialization
 
 // Permission System (WASM-TASK-003 Phase 3 Task 3.2: Complete)
 pub mod permission;
@@ -192,6 +193,7 @@ pub use config::{
     StorageBackend as StorageBackendType, StorageConfig,
 };
 pub use error::{WasmError, WasmResult};
+pub use multicodec::{Codec, decode_multicodec, encode_multicodec};
 pub use permission::{PermissionManifest, FilesystemPermissions, NetworkPermissions, NetworkEndpoint, StoragePermissions};
 pub use manifest::{ComponentManifest, PackageInfo, RuntimeConfig as ManifestRuntimeConfig};
 pub use permission_checker::PermissionChecker;
