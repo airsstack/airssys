@@ -432,7 +432,7 @@ mod tests {
 
     #[test]
     fn test_storage_operation_namespace() {
-        let ops = vec![
+        let ops = [
             StorageOperation::Get {
                 namespace: "ns1".to_string(),
                 key: vec![],
