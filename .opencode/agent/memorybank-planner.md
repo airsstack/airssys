@@ -1,9 +1,10 @@
 ---
+name: memorybank-planner
 description: Create and manage implementation plans for tasks
 mode: subagent
 tools:
-  read_file: true
-  find_files: true
+  read: true
+  glob: true
   bash: true
 ---
 You are the **Memory Bank Planner**.

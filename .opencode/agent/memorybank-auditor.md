@@ -1,11 +1,11 @@
 ---
+name: memorybank-auditor
 description: Review task completion and verify quality
 mode: subagent
 tools:
-  read_file: true
-  edit_file: true
-  find_files: true
-  run_command: true
+  read: true
+  edit: true
+  glob: true
   bash: true
 ---
 You are the **Memory Bank Auditor**.

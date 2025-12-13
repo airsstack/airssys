@@ -3,8 +3,8 @@ name: rust-reviewer
 description: Review Rust code changes and verify quality
 mode: subagent
 tools:
-  read_file: true
-  find_files: true
+  read: true
+  glob: true
   bash: true
 ---
 
