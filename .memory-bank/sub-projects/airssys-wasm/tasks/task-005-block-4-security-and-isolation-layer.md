@@ -2,11 +2,28 @@
 
 **Status:** not-started  
 **Added:** 2025-10-20  
-**Updated:** 2025-10-20  
-**Priority:** Critical Path - Core Services Layer  
+**Updated:** 2025-12-13  
+**Priority:** 🔒 CRITICAL PATH - Security Layer + Task 1.3 Deferred Work  
 **Layer:** 2 - Core Services  
 **Block:** 4 of 11  
-**Estimated Effort:** 5-6 weeks  
+**Estimated Effort:** 5-6 weeks + 16-20 hours (Task 1.3 deferred work)
+
+**⚠️ CRITICAL PREREQUISITES - MUST COMPLETE BEFORE STARTING ⚠️**
+
+Before starting Block 4, you MUST complete:
+- **DEBT-WASM-004 Item #3**: Capability Enforcement in InterComponent Messages
+  - Location: `src/actor/actor_impl.rs` lines 223-228
+  - Estimated: 16-20 hours
+  - **SECURITY CRITICAL** - System vulnerable until implemented
+  - See: `.memory-bank/sub-projects/airssys-wasm/docs/technical-debt/debt-wasm-004-task-1.3-deferred-implementation.md`
+
+**📋 Mandatory Checklist:**
+- [ ] Review DEBT-WASM-004 Item #3 requirements
+- [ ] Implement capability checking in actor_impl.rs InterComponent handler
+- [ ] Remove "FUTURE WORK" comments from lines 223-228
+- [ ] Security tests achieve ≥95% coverage
+- [ ] Security audit passed
+- [ ] Sign-off obtained (see DEBT-WASM-004)
 
 ## Overview
 

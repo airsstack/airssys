@@ -2,11 +2,29 @@
 
 **Status:** not-started  
 **Added:** 2025-10-20  
-**Updated:** 2025-10-20  
-**Priority:** Critical Path - Core Services Layer  
+**Updated:** 2025-12-13  
+**Priority:** 💾 CRITICAL PATH - Storage Layer + Task 1.3 Deferred Work  
 **Layer:** 2 - Core Services  
 **Block:** 6 of 11  
-**Estimated Effort:** 4-5 weeks  
+**Estimated Effort:** 4-5 weeks + 8-10 hours (Task 1.3 deferred work)
+
+**⚠️ CRITICAL PREREQUISITES - MUST COMPLETE BEFORE STARTING ⚠️**
+
+Before starting Block 6, you MUST complete:
+- **DEBT-WASM-004 Item #5**: Component Registry Integration in Actor Lifecycle
+  - Location: `src/actor/actor_impl.rs` lines 364-372 (pre_start), 400-407 (post_stop)
+  - Estimated: 8-10 hours
+  - **MEMORY LEAK RISK** - Components not properly cleaned up until implemented
+  - See: `.memory-bank/sub-projects/airssys-wasm/docs/technical-debt/debt-wasm-004-task-1.3-deferred-implementation.md`
+
+**📋 Mandatory Checklist:**
+- [ ] Review DEBT-WASM-004 Item #5 requirements
+- [ ] Implement registry registration in pre_start()
+- [ ] Implement registry cleanup in post_stop()
+- [ ] Remove "FUTURE WORK" comments from lines 364-372, 400-407
+- [ ] Memory leak tests passing
+- [ ] Restart recovery tests passing
+- [ ] Sign-off obtained (see DEBT-WASM-004)
 
 ## Overview
 
