@@ -338,6 +338,8 @@ impl Actor for ComponentActor {
             }
 
             ComponentMessage::HealthCheck => {
+                use airssys_rt::supervisor::Child;
+                
                 let component_id_str = self.component_id().as_str().to_string();
                 
                 trace!(
@@ -345,43 +347,30 @@ impl Actor for ComponentActor {
                     "Processing HealthCheck message"
                 );
 
-                // 1. Determine health status
-                let health = if let Some(runtime) = self.wasm_runtime_mut() {
-                    if let Some(_health_fn) = &runtime.exports().health {
-                        // Health export invocation (FUTURE WORK - Phase 3 Task 3.3)
-                        // NOTE: _health export parsing deferred to Phase 3 Task 3.3.
-                        // Task 1.3 scope: Export detection + basic status (COMPLETE ✅)
-                        // Task 3.3 scope: Full health check with return value parsing
-                        //
-                        // Task 3.3 will add:
-                        // let result = health_fn.call_async(runtime.store_mut(), &[]).await?;
-                        // HealthStatus::from_wasm_result(result)?
-                        
-                        debug!(
-                            component_id = %component_id_str,
-                            "Health export found, returning Healthy"
-                        );
-                        HealthStatus::Healthy
-                    } else {
-                        // No health export, assume healthy if WASM loaded
-                        HealthStatus::Healthy
+                // Call Child::health_check() for comprehensive health assessment
+                let child_health = Child::health_check(self).await;
+                
+                // Map ChildHealth → HealthStatus for message response
+                let health_status = match child_health {
+                    airssys_rt::supervisor::ChildHealth::Healthy => HealthStatus::Healthy,
+                    airssys_rt::supervisor::ChildHealth::Degraded(reason) => {
+                        HealthStatus::Degraded { reason }
                     }
-                } else {
-                    HealthStatus::Unhealthy {
-                        reason: "WASM not loaded".to_string(),
+                    airssys_rt::supervisor::ChildHealth::Failed(reason) => {
+                        HealthStatus::Unhealthy { reason }
                     }
                 };
-
-                // 2. Send health status response (stub - full impl in Phase 3)
-                // ctx.reply(ComponentMessage::HealthStatus(health)).await
-                //     .map_err(|_| ComponentActorError::from(WasmError::internal("Reply failed")))?;
-
+                
                 debug!(
                     component_id = %component_id_str,
-                    health = ?health,
-                    "Health check completed"
+                    health = ?health_status,
+                    "Health check complete"
                 );
 
+                // Reply with health status (Phase 2 Task 2.3 - ActorContext reply)
+                // TODO(Phase 2 Task 2.3): Implement ctx.reply() once ActorContext messaging is fully integrated
+                // ctx.reply(ComponentMessage::HealthStatus(health_status)).await.ok();
+                
                 Ok(())
             }
 

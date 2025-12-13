@@ -718,49 +718,111 @@ pub enum ComponentMessage {
     HealthStatus(HealthStatus),
 }
 
-/// Component health status.
+/// Component health status for monitoring and supervision.
 ///
-/// Reported by ComponentActor in response to HealthCheck messages.
-/// Used by supervisors for proactive failure detection.
+/// HealthStatus represents the operational state of a component, used by both
+/// internal health checks and external monitoring systems. This enum supports
+/// serialization via Borsh (binary), CBOR (binary), and JSON (text).
 ///
-/// # Variants
+/// # Serialization Formats
 ///
-/// - **Healthy**: Component operating normally
-/// - **Degraded**: Component operational but experiencing issues
-/// - **Unhealthy**: Component failed or non-functional
+/// **Borsh (Recommended):**
+/// ```text
+/// Healthy:    [0x00]
+/// Degraded:   [0x01, len_u32, reason_bytes...]
+/// Unhealthy:  [0x02, len_u32, reason_bytes...]
+/// ```
+///
+/// **JSON:**
+/// ```json
+/// { "status": "healthy" }
+/// { "status": "degraded", "reason": "High latency" }
+/// { "status": "unhealthy", "reason": "Database unreachable" }
+/// ```
+///
+/// **CBOR:** Binary equivalent of JSON structure
 ///
 /// # Example
 ///
 /// ```rust
 /// use airssys_wasm::actor::HealthStatus;
+/// use serde_json;
 ///
-/// let health = HealthStatus::Healthy;
-/// assert!(matches!(health, HealthStatus::Healthy));
-///
-/// let degraded = HealthStatus::Degraded {
-///     reason: "High error rate".to_string(),
+/// let status = HealthStatus::Degraded {
+///     reason: "High memory usage".to_string(),
 /// };
 ///
-/// let unhealthy = HealthStatus::Unhealthy {
-///     reason: "WASM not loaded".to_string(),
-/// };
+/// // JSON serialization
+/// let json = serde_json::to_string(&status).unwrap();
+/// assert!(json.contains("degraded"));
+///
+/// // Deserialization
+/// let parsed: HealthStatus = serde_json::from_str(&json).unwrap();
+/// assert!(matches!(parsed, HealthStatus::Degraded { .. }));
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(tag = "status", content = "reason", rename_all = "lowercase")]
 pub enum HealthStatus {
     /// Component operating normally
+    #[serde(rename = "healthy")]
     Healthy,
 
     /// Component operational but experiencing issues
+    #[serde(rename = "degraded")]
     Degraded {
         /// Reason for degraded status
         reason: String,
     },
 
     /// Component failed or non-functional
+    #[serde(rename = "unhealthy")]
     Unhealthy {
         /// Reason for unhealthy status
         reason: String,
     },
+}
+
+// Borsh serialization for compact binary format
+impl borsh::BorshSerialize for HealthStatus {
+    fn serialize<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
+        match self {
+            HealthStatus::Healthy => borsh::BorshSerialize::serialize(&0u8, writer),
+            HealthStatus::Degraded { reason } => {
+                borsh::BorshSerialize::serialize(&1u8, writer)?;
+                borsh::BorshSerialize::serialize(reason, writer)
+            }
+            HealthStatus::Unhealthy { reason } => {
+                borsh::BorshSerialize::serialize(&2u8, writer)?;
+                borsh::BorshSerialize::serialize(reason, writer)
+            }
+        }
+    }
+}
+
+impl borsh::BorshDeserialize for HealthStatus {
+    fn deserialize(buf: &mut &[u8]) -> std::io::Result<Self> {
+        let variant = borsh::BorshDeserialize::deserialize(buf)?;
+        match variant {
+            0u8 => Ok(HealthStatus::Healthy),
+            1u8 => Ok(HealthStatus::Degraded {
+                reason: borsh::BorshDeserialize::deserialize(buf)?,
+            }),
+            2u8 => Ok(HealthStatus::Unhealthy {
+                reason: borsh::BorshDeserialize::deserialize(buf)?,
+            }),
+            _ => Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("Invalid HealthStatus variant: {}", variant),
+            )),
+        }
+    }
+    
+    fn deserialize_reader<R: std::io::Read>(reader: &mut R) -> std::io::Result<Self> {
+        let mut buf = Vec::new();
+        reader.read_to_end(&mut buf)?;
+        let mut slice = buf.as_slice();
+        <Self as borsh::BorshDeserialize>::deserialize(&mut slice)
+    }
 }
 
 impl ComponentActor {
@@ -1072,6 +1134,14 @@ impl ComponentActor {
     #[doc(hidden)]
     pub fn wasm_runtime_mut(&mut self) -> Option<&mut WasmRuntime> {
         self.wasm_runtime.as_mut()
+    }
+
+    /// Get reference to WASM runtime (internal use).
+    ///
+    /// This method is public but primarily for internal use by trait implementations.
+    #[doc(hidden)]
+    pub fn wasm_runtime(&self) -> Option<&WasmRuntime> {
+        self.wasm_runtime.as_ref()
     }
 }
 
