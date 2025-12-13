@@ -66,9 +66,13 @@ pub mod component_actor;
 pub mod actor_impl;
 pub mod child_impl;
 pub mod type_conversion;
+pub mod component_spawner;
+pub mod component_registry;
 
 // Public re-exports for ergonomic imports
 pub use component_actor::{
     ActorState, ComponentActor, ComponentMessage, HealthStatus, WasmRuntime,
 };
 pub use type_conversion::{prepare_wasm_params, extract_wasm_results};
+pub use component_spawner::ComponentSpawner;
+pub use component_registry::ComponentRegistry;

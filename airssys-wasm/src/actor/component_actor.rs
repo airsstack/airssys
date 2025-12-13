@@ -680,7 +680,7 @@ pub enum ActorState {
 /// // Health check
 /// let msg = ComponentMessage::HealthCheck;
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ComponentMessage {
     /// Invoke WASM function with arguments.
     ///
