@@ -211,9 +211,9 @@ mod tests {
     // Float tests  
     #[test]
     fn test_f32_positive() {
-        let bytes = 3.14f32.to_le_bytes();
+        let bytes = std::f32::consts::PI.to_le_bytes();
         let val = bytes_to_val(&bytes, &ValType::F32).unwrap();
-        assert_eq!(val.unwrap_f32(), 3.14f32);
+        assert_eq!(val.unwrap_f32(), std::f32::consts::PI);
     }
 
     #[test]
@@ -225,9 +225,9 @@ mod tests {
 
     #[test]
     fn test_f64_positive() {
-        let bytes = 2.718f64.to_le_bytes();
+        let bytes = std::f64::consts::E.to_le_bytes();
         let val = bytes_to_val(&bytes, &ValType::F64).unwrap();
-        assert_eq!(val.unwrap_f64(), 2.718f64);
+        assert_eq!(val.unwrap_f64(), std::f64::consts::E);
     }
 
     // Val to bytes
@@ -258,7 +258,7 @@ mod tests {
 
     #[test]
     fn test_roundtrip_f64() {
-        let original = 2.718281828f64;
+        let original = std::f64::consts::E;
         let bytes = original.to_le_bytes();
         let val = bytes_to_val(&bytes, &ValType::F64).unwrap();
         let result_bytes = val_to_bytes(&val).unwrap();

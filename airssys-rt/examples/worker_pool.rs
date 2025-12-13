@@ -256,12 +256,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut supervisor = SupervisorNode::<OneForOne, PoolWorker, _>::new(OneForOne, monitor);
 
     // Shared counters for each worker (persist across restarts)
-    let worker_counts = vec![
+    let worker_counts = [
         Arc::new(AtomicU32::new(0)),
         Arc::new(AtomicU32::new(0)),
         Arc::new(AtomicU32::new(0)),
     ];
-    let worker_failures = vec![
+    let worker_failures = [
         Arc::new(AtomicU32::new(0)),
         Arc::new(AtomicU32::new(0)),
         Arc::new(AtomicU32::new(0)),

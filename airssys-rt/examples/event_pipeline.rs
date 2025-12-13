@@ -99,6 +99,8 @@
 //! - [`supervisor_basic.rs`] - Basic supervisor and child management
 //! - [User Guide: Supervisor Patterns](../docs/src/guides/supervisor-patterns.md)
 
+#![expect(clippy::expect_used, reason = "expect is acceptable in example code for demonstration purposes")]
+
 use airssys_rt::monitoring::{InMemoryMonitor, MonitoringConfig};
 use airssys_rt::supervisor::{
     Child, ChildHealth, ChildSpec, RestForOne, RestartPolicy, ShutdownPolicy, Supervisor,
@@ -172,7 +174,7 @@ impl IngestStage {
     ///
     /// Applies backpressure if transform queue is full.
     fn ingest_event(&mut self, event: Event) -> Result<(), StageError> {
-        let mut queue = self.transform_queue.lock().unwrap();
+        let mut queue = self.transform_queue.lock().expect("Failed to acquire transform queue lock");
 
         // Backpressure: check queue capacity
         if queue.len() >= self.max_queue_size {
@@ -245,10 +247,18 @@ impl TransformStage {
 
     /// Process events from transform queue.
     async fn process_events(&mut self) -> Result<(), StageError> {
-        let mut transform_queue = self.transform_queue.lock().unwrap();
-        let mut output_queue = self.output_queue.lock().unwrap();
+        loop {
+            // Acquire locks, process one event, then drop locks before await
+            let event_opt = {
+                let mut transform_queue = self.transform_queue.lock().expect("Failed to acquire transform queue lock");
+                transform_queue.pop_front()
+            };
+            
+            let mut event = match event_opt {
+                Some(e) => e,
+                None => break, // No more events
+            };
 
-        while let Some(mut event) = transform_queue.pop_front() {
             // Check failure simulation trigger
             let fail_trigger = self.should_fail.load(Ordering::Relaxed);
             if fail_trigger > 0 && self.processed_count.load(Ordering::Relaxed) >= fail_trigger {
@@ -258,16 +268,19 @@ impl TransformStage {
                 });
             }
 
-            // Simulate transformation work
+            // Simulate transformation work (lock is dropped, safe to await)
             println!(
                 "[TransformStage] Processing event {}: enriching...",
                 event.id
             );
             tokio::time::sleep(Duration::from_millis(50)).await;
 
-            // Enrich event
+            // Enrich event and push to output queue
             event.enriched = true;
-            output_queue.push_back(event);
+            {
+                let mut output_queue = self.output_queue.lock().expect("Failed to acquire output queue lock");
+                output_queue.push_back(event);
+            }
             self.processed_count.fetch_add(1, Ordering::Relaxed);
         }
 
@@ -323,10 +336,19 @@ impl OutputStage {
 
     /// Persist events from output queue.
     async fn persist_events(&mut self) -> Result<(), StageError> {
-        let mut queue = self.output_queue.lock().unwrap();
+        loop {
+            // Acquire lock, get one event, then drop lock before await
+            let event_opt = {
+                let mut queue = self.output_queue.lock().expect("Failed to acquire output queue lock");
+                queue.pop_front()
+            };
+            
+            let event = match event_opt {
+                Some(e) => e,
+                None => break, // No more events
+            };
 
-        while let Some(event) = queue.pop_front() {
-            // Simulate persistence work
+            // Simulate persistence work (lock is dropped, safe to await)
             println!(
                 "[OutputStage] Persisting event {}: {{\"type\":\"{}\",\"enriched\":{}}}",
                 event.id, event.event_type, event.enriched
@@ -575,14 +597,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Step 6: Display statistics
     // ==========================================================================
     println!("=== Pipeline Statistics ===");
-    println!(
-        "Transform queue: {} events pending",
-        transform_queue.lock().unwrap().len()
-    );
-    println!(
-        "Output queue: {} events pending",
-        output_queue.lock().unwrap().len()
-    );
+    let transform_pending = transform_queue.lock().expect("Failed to lock transform queue").len();
+    let output_pending = output_queue.lock().expect("Failed to lock output queue").len();
+    
+    println!("Transform queue: {} events pending", transform_pending);
+    println!("Output queue: {} events pending", output_pending);
     println!();
 
     // ==========================================================================
