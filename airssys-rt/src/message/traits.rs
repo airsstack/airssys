@@ -172,7 +172,7 @@ pub trait Message: Send + Sync + Clone + Debug + 'static {
 /// assert!(MessagePriority::High > MessagePriority::Normal);
 /// assert!(MessagePriority::Normal > MessagePriority::Low);
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default)]
 pub enum MessagePriority {
     /// Background processing (lowest priority)
     ///
@@ -183,6 +183,7 @@ pub enum MessagePriority {
     /// Default priority for normal messages
     ///
     /// Standard priority for routine business logic and operations.
+    #[default]
     Normal = 1,
 
     /// High priority for important messages
@@ -196,12 +197,6 @@ pub enum MessagePriority {
     /// Reserved for system-critical operations like shutdown signals,
     /// supervisor commands, or health check responses.
     Critical = 3,
-}
-
-impl Default for MessagePriority {
-    fn default() -> Self {
-        Self::Normal
-    }
 }
 
 #[cfg(test)]

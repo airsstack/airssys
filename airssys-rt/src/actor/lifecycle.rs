@@ -76,28 +76,23 @@ use chrono::{DateTime, Utc}; // §3.2 MANDATORY
 /// assert!(is_terminal(ActorState::Stopped));
 /// assert!(is_terminal(ActorState::Failed));
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ActorState {
     /// Actor is initializing (pre_start in progress).
+    #[default]
     Starting,
 
     /// Actor is running and processing messages.
     Running,
 
-    /// Actor is shutting down (post_stop in progress).
+    /// Actor is stopping (post_stop in progress).
     Stopping,
 
-    /// Actor has stopped successfully.
+    /// Actor has stopped cleanly.
     Stopped,
 
     /// Actor has failed and requires supervisor intervention.
     Failed,
-}
-
-impl Default for ActorState {
-    fn default() -> Self {
-        Self::Starting
-    }
 }
 
 /// Actor lifecycle tracker with state management and supervision support.

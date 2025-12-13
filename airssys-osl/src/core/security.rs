@@ -85,7 +85,7 @@ impl SecurityConfig {
 /// Security policy enforcement levels.
 ///
 /// Defines how security policy violations should be handled.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum EnforcementLevel {
     /// Disable security policy enforcement.
     ///
@@ -100,13 +100,8 @@ pub enum EnforcementLevel {
     /// Enforce security policies and block violations.
     ///
     /// This is the recommended setting for production environments.
+    #[default]
     Enforce,
-}
-
-impl Default for EnforcementLevel {
-    fn default() -> Self {
-        Self::Enforce
-    }
 }
 
 /// Audit trail configuration.

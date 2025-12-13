@@ -37,7 +37,7 @@ use crate::message::{Message, MessageEnvelope, MessagePriority};
 /// let strategy = BackpressureStrategy::for_priority(MessagePriority::Critical);
 /// assert_eq!(strategy, BackpressureStrategy::Block);
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum BackpressureStrategy {
     /// Block sender until space becomes available (async wait).
     ///
@@ -55,13 +55,8 @@ pub enum BackpressureStrategy {
     ///
     /// Use for request/response patterns where the sender needs to know
     /// immediately if delivery failed (e.g., API calls, synchronous operations).
+    #[default]
     Error,
-}
-
-impl Default for BackpressureStrategy {
-    fn default() -> Self {
-        Self::Error
-    }
 }
 
 impl fmt::Display for BackpressureStrategy {
