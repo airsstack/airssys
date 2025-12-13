@@ -29,6 +29,10 @@ async-trait = { workspace = true }
 # JSON serialization for Custom capability parameters (§5.1)
 serde_json = { workspace = true }
 
+# Borsh and CBOR serialization for multicodec support (§5.1)
+borsh = { workspace = true }
+serde_cbor = { workspace = true }
+
 # UUID for message IDs in actor.rs (§5.1)
 uuid = { workspace = true }
 
