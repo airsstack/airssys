@@ -1,6 +1,5 @@
 ---
 description: Review current changes related with the Rust codebase
-instructions: .aiassisted/instructions/rust.instructions.md
 ---
 
 # Variables
