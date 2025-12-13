@@ -91,9 +91,9 @@ Implement the `Child` trait WASM lifecycle methods to enable component loading, 
 - Health reporting using HealthStatus enum
 
 ### Performance Targets
-- **Component spawn time**: <5ms (Creating → Ready)
+- **Component spawn time**: <10ms P99 latency (primary target), <5ms stretch goal
 - **Memory overhead**: <2MB per component instance
-- **Shutdown time**: <100ms (Ready → Terminated)
+- **Shutdown time**: <100ms P99 latency (Ready → Terminated)
 - **Resource cleanup**: Zero leaks (validated with tests)
 
 ### Technical Constraints
@@ -560,11 +560,19 @@ async fn test_child_start_calls_start_export() {
 }
 ```
 
+#### Mid-Task Checkpoint (After Step 2.4)
+**Before proceeding to Step 2.5, validate:**
+- ✅ WasmRuntime struct compiles with real Wasmtime types
+- ✅ Engine creation with security config successful
+- ✅ Module compilation from test WASM bytes works
+- ✅ Store creation with ResourceLimiter functional
+- ✅ 5-8 new tests passing (early validation)
+
 #### Validation Criteria (Subtask 2)
 - ✅ Child::start() loads WASM successfully
 - ✅ ResourceLimiter enforces memory limits
 - ✅ State transitions: Creating → Starting → Ready
-- ✅ Average spawn time <5ms (or documented if higher)
+- ✅ P99 spawn time <10ms (average <5ms stretch goal, document if higher)
 - ✅ 15-20 new tests passing
 - ✅ Zero warnings
 
@@ -1013,58 +1021,44 @@ Update the following files:
 
 ---
 
-## Open Questions for Clarification
+## Open Questions - DECISIONS MADE
 
-### Question 1: WASM Component Storage
+### Question 1: WASM Component Storage ✅ DECIDED
 **Context**: Block 6 (Component Storage) not implemented yet.  
-**Question**: Should I use test fixtures for now, or implement a minimal in-memory storage stub?  
-**Options**:
-- A) Use hardcoded test WASM bytes in `load_component_bytes()` stub
-- B) Create minimal `ComponentStorage` trait with in-memory implementation
-- C) Load from filesystem (tests/fixtures/*.wasm) temporarily
+**Decision**: **Option A** - Use hardcoded test WASM bytes in `load_component_bytes()` stub
+**Rationale**: Simplest approach, unblocks Task 1.2 immediately, clear integration point for Block 6
 
-**Recommendation**: Option A (simplest, unblocks Task 1.2 immediately)
-
-### Question 2: Module Caching
+### Question 2: Module Caching ✅ DECIDED
 **Context**: Block 1 has `engine.rs` with module caching logic.  
-**Question**: Should I integrate module caching in Task 1.2, or defer to optimization phase?  
-**Options**:
-- A) Integrate now (better performance, more complexity)
-- B) Defer to Phase 5 performance optimization (simpler Task 1.2)
+**Decision**: **Option B** - Defer to Phase 5 performance optimization
+**Rationale**: Keep Task 1.2 focused on lifecycle implementation, optimize later with profiling data
 
-**Recommendation**: Option B (keep Task 1.2 focused, optimize later)
-
-### Question 3: Host Functions Registration
+### Question 3: Host Functions Registration ✅ DECIDED
 **Context**: Task 1.3 will handle message routing via Actor trait.  
-**Question**: Should I add empty `Linker` registration in Task 1.2, or leave it completely stubbed?  
-**Options**:
-- A) Add empty linker with TODO comments
-- B) Add basic host function stubs (e.g., `log`, `get_env`)
-- C) Leave completely empty until Task 1.3
+**Decision**: **Option A** - Add empty linker with TODO comments
+**Rationale**: Shows integration point clearly, doesn't block Task 1.2, ready for Task 1.3
 
-**Recommendation**: Option A (shows integration point, doesn't block Task 1.2)
-
-### Question 4: Performance Target Flexibility
+### Question 4: Performance Target Flexibility ✅ DECIDED
 **Context**: <5ms spawn time may be challenging with WASM compilation overhead.  
-**Question**: If spawn time exceeds 5ms, is it acceptable to document actual performance with optimization plan?  
-**Options**:
-- A) Block Task 1.2 completion until <5ms achieved
-- B) Document actual performance, create technical debt for optimization
-- C) Adjust target based on initial measurements
+**Decision**: **Option B** - Document actual performance, create technical debt for optimization
+**Rationale**: Unblock progress, track optimization separately, realistic expectations (P99 <10ms primary)
 
-**Recommendation**: Option B (unblock progress, track optimization separately)
-
-### Question 5: Testing Fixtures
+### Question 5: Testing Fixtures ✅ DECIDED
 **Context**: Need WASM binaries for testing.  
-**Question**: Do you have example WASM binaries (.wasm files), or should I create minimal test components?  
-**Options**:
-- A) Use existing test fixtures (if available)
-- B) Create minimal Rust→WASM test components
-- C) Use pre-built WASM from external sources
-
-**Recommendation**: Option B (full control, matches production use cases)
+**Decision**: **Option B** - Create minimal Rust→WASM test components
+**Rationale**: Full control, matches production use cases, reusable for all phases
 
 ---
+
+## Definition of Ready
+
+**Before starting Task 1.2 implementation, verify:**
+- ✅ Task 1.1 COMPLETE (ComponentActor foundation merged)
+- ✅ All tests passing (283 tests baseline)
+- ✅ Zero warnings (compiler + clippy)
+- ✅ Block 1 runtime components accessible (ComponentInstance, ComponentRuntime, ResourceLimiter)
+- ✅ Test WASM fixtures available or creation plan defined
+- ✅ Development environment validated (Wasmtime version, Tokio version)
 
 ## Success Criteria
 
