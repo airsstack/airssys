@@ -89,7 +89,7 @@ use airssys_rt::util::ActorAddress;
 /// use airssys_rt::util::ActorAddress;
 ///
 /// let registry = ComponentRegistry::new();
-/// assert_eq!(registry.count(), 0);
+/// assert_eq!(registry.count().unwrap(), 0);
 ///
 /// // Register components
 /// let component_id = ComponentId::new("test");
@@ -102,7 +102,7 @@ use airssys_rt::util::ActorAddress;
 ///
 /// // Unregister
 /// registry.unregister(&component_id).unwrap();
-/// assert_eq!(registry.count(), 0);
+/// assert_eq!(registry.count().unwrap(), 0);
 /// ```
 #[derive(Clone)]
 pub struct ComponentRegistry {
@@ -118,7 +118,7 @@ impl ComponentRegistry {
     /// use airssys_wasm::actor::ComponentRegistry;
     ///
     /// let registry = ComponentRegistry::new();
-    /// assert_eq!(registry.count(), 0);
+    /// assert_eq!(registry.count().unwrap(), 0);
     /// ```
     pub fn new() -> Self {
         Self {
@@ -152,7 +152,7 @@ impl ComponentRegistry {
     /// let actor_addr = ActorAddress::named("worker");
     ///
     /// registry.register(component_id, actor_addr).unwrap();
-    /// assert_eq!(registry.count(), 1);
+    /// assert_eq!(registry.count().unwrap(), 1);
     /// ```
     pub fn register(
         &self,
@@ -245,10 +245,10 @@ impl ComponentRegistry {
     /// let actor_addr = ActorAddress::named("test");
     ///
     /// registry.register(component_id.clone(), actor_addr).unwrap();
-    /// assert_eq!(registry.count(), 1);
+    /// assert_eq!(registry.count().unwrap(), 1);
     ///
     /// registry.unregister(&component_id).unwrap();
-    /// assert_eq!(registry.count(), 0);
+    /// assert_eq!(registry.count().unwrap(), 0);
     /// ```
     pub fn unregister(&self, component_id: &ComponentId) -> Result<(), WasmError> {
         let mut instances = self

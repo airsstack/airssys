@@ -403,6 +403,33 @@ pub enum WasmError {
         source: Option<Box<dyn std::error::Error + Send + Sync>>,
     },
 
+    /// Health check failed or could not be performed.
+    ///
+    /// This error occurs when component health checking fails due to:
+    /// - _health export execution traps or errors
+    /// - Invalid health status format returned from component
+    /// - Multicodec decoding failures
+    /// - Deserialization errors (Borsh, CBOR, JSON)
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::error::WasmError;
+    ///
+    /// let err = WasmError::health_check_failed(
+    ///     "my-component",
+    ///     "Failed to deserialize HealthStatus from _health export"
+    /// );
+    /// assert!(err.to_string().contains("Health check failed"));
+    /// ```
+    #[error("Health check failed for component '{component_id}': {reason}")]
+    HealthCheckFailed {
+        /// Component identifier (empty string if not available)
+        component_id: String,
+        /// Reason for health check failure
+        reason: String,
+    },
+
     /// Internal error - should not happen in normal operation.
     ///
     /// These errors indicate bugs in airssys-wasm itself and should be reported.
@@ -779,6 +806,29 @@ impl WasmError {
         Self::ActorError {
             reason: reason.into(),
             source: Some(Box::new(source)),
+        }
+    }
+
+    /// Create a health check failed error.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::error::WasmError;
+    ///
+    /// let err = WasmError::health_check_failed(
+    ///     "my-component",
+    ///     "Failed to deserialize HealthStatus"
+    /// );
+    /// assert!(err.to_string().contains("Health check failed"));
+    /// ```
+    pub fn health_check_failed(
+        component_id: impl Into<String>,
+        reason: impl Into<String>,
+    ) -> Self {
+        Self::HealthCheckFailed {
+            component_id: component_id.into(),
+            reason: reason.into(),
         }
     }
 
