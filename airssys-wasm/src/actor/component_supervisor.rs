@@ -34,11 +34,18 @@
 //! // Decision will indicate whether to restart and with what delay
 //! ```
 
-use crate::core::{ComponentId, WasmError};
-use crate::actor::SupervisorConfig;
+// Layer 1: Standard library imports
 use std::collections::HashMap;
-use chrono::{DateTime, Utc};
+use std::sync::Arc;
 use std::time::Duration;
+
+// Layer 2: Third-party crate imports
+use chrono::{DateTime, Utc};
+use tokio::sync::RwLock;
+
+// Layer 3: Internal module imports
+use crate::actor::{ComponentActor, SupervisorConfig, SupervisorNodeBridge};
+use crate::core::{ComponentId, WasmError};
 
 /// Handle to a supervised component with restart tracking.
 ///
@@ -151,13 +158,25 @@ pub struct SupervisionStatistics {
 ///
 /// Manages the supervision lifecycle for multiple components, tracking
 /// restart history and making restart decisions based on configured policies.
+///
+/// # Architecture (ADR-WASM-018)
+///
+/// ComponentSupervisor operates at Layer 1 (WASM Configuration):
+/// - **Tracks** restart history and policy decisions
+/// - **Delegates** actual supervision execution to SupervisorNode (Layer 3) via bridge
+/// - **Maintains** layer separation through SupervisorNodeBridge abstraction
 pub struct ComponentSupervisor {
     /// Supervision handles for all supervised components
     supervision_handles: HashMap<ComponentId, SupervisionHandle>,
+
+    /// Bridge to SupervisorNode (Layer 3) for supervision execution
+    supervisor_bridge: Option<Arc<RwLock<dyn SupervisorNodeBridge>>>,
 }
 
 impl ComponentSupervisor {
-    /// Create new ComponentSupervisor.
+    /// Create new ComponentSupervisor without bridge (policy tracking only).
+    ///
+    /// For full supervision with automatic restart, use `with_bridge()`.
     ///
     /// # Example
     ///
@@ -167,10 +186,37 @@ impl ComponentSupervisor {
     pub fn new() -> Self {
         Self {
             supervision_handles: HashMap::new(),
+            supervisor_bridge: None,
+        }
+    }
+
+    /// Create new ComponentSupervisor with SupervisorNode bridge.
+    ///
+    /// This enables full supervision with automatic restart through Layer 3.
+    ///
+    /// # Parameters
+    ///
+    /// * `bridge` - Bridge to SupervisorNode for execution
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// use airssys_wasm::actor::SupervisorNodeWrapper;
+    ///
+    /// let bridge = Arc::new(RwLock::new(SupervisorNodeWrapper::new()));
+    /// let supervisor = ComponentSupervisor::with_bridge(bridge);
+    /// ```
+    pub fn with_bridge(bridge: Arc<RwLock<dyn SupervisorNodeBridge>>) -> Self {
+        Self {
+            supervision_handles: HashMap::new(),
+            supervisor_bridge: Some(bridge),
         }
     }
 
     /// Register a component under supervision.
+    ///
+    /// If a bridge is configured, this will also register the component with
+    /// SupervisorNode for automatic restart execution.
     ///
     /// # Parameters
     ///
@@ -186,7 +232,7 @@ impl ComponentSupervisor {
     ///
     /// ```rust,ignore
     /// let config = SupervisorConfig::permanent();
-    /// supervisor.supervise(component_id, config)?;
+    /// supervisor.supervise(&component_id, config)?;
     /// ```
     pub fn supervise(
         &mut self,
@@ -214,6 +260,191 @@ impl ComponentSupervisor {
             .insert(component_id.clone(), handle.clone());
 
         Ok(handle)
+    }
+
+    /// Register a component with both supervisor and bridge for full supervision.
+    ///
+    /// This method combines policy tracking (Layer 1) with execution registration
+    /// (Layer 3 via bridge). Use this for complete supervision with automatic restart.
+    ///
+    /// # Parameters
+    ///
+    /// * `component_id` - ID of component to supervise
+    /// * `actor` - ComponentActor instance to supervise
+    /// * `config` - Supervision configuration
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(SupervisionHandle)` on success
+    /// - `Err(WasmError)` if component already supervised or bridge not configured
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// let actor = ComponentActor::new(/* ... */)?;
+    /// let config = SupervisorConfig::permanent();
+    /// let handle = supervisor.supervise_with_actor(component_id, actor, config).await?;
+    /// ```
+    pub async fn supervise_with_actor(
+        &mut self,
+        component_id: ComponentId,
+        actor: ComponentActor,
+        config: SupervisorConfig,
+    ) -> Result<SupervisionHandle, WasmError> {
+        // Create local supervision handle
+        let handle = self.supervise(&component_id, config.clone())?;
+
+        // Register with SupervisorNode via bridge (if available)
+        if let Some(bridge) = &self.supervisor_bridge {
+            let mut bridge_guard = bridge.write().await;
+            bridge_guard
+                .register_component(component_id, actor, config)
+                .await?;
+        }
+
+        Ok(handle)
+    }
+
+    /// Start a supervised component via the bridge.
+    ///
+    /// Delegates to SupervisorNode to start the component. Updates local state.
+    ///
+    /// # Parameters
+    ///
+    /// * `component_id` - ID of component to start
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(())` on success
+    /// - `Err(WasmError)` if bridge not configured or component not found
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// supervisor.start_component(&component_id).await?;
+    /// ```
+    pub async fn start_component(&mut self, component_id: &ComponentId) -> Result<(), WasmError> {
+        // Update local state
+        self.mark_running(component_id)?;
+
+        // Start via bridge (if available)
+        if let Some(bridge) = &self.supervisor_bridge {
+            let mut bridge_guard = bridge.write().await;
+            bridge_guard.start_component(component_id).await?;
+        }
+
+        Ok(())
+    }
+
+    /// Stop a supervised component via the bridge.
+    ///
+    /// Delegates to SupervisorNode to stop the component gracefully.
+    ///
+    /// # Parameters
+    ///
+    /// * `component_id` - ID of component to stop
+    /// * `timeout` - Maximum time to wait for graceful shutdown
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(())` on success
+    /// - `Err(WasmError)` if bridge not configured or component not found
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// supervisor.stop_component(&component_id, Duration::from_secs(5)).await?;
+    /// ```
+    pub async fn stop_component(
+        &mut self,
+        component_id: &ComponentId,
+        timeout: Duration,
+    ) -> Result<(), WasmError> {
+        // Stop via bridge (if available)
+        if let Some(bridge) = &self.supervisor_bridge {
+            let mut bridge_guard = bridge.write().await;
+            bridge_guard.stop_component(component_id, timeout).await?;
+        }
+
+        // Update local state
+        if let Some(handle) = self.get_handle_mut(component_id) {
+            handle.state = SupervisionState::Stopped;
+        }
+
+        Ok(())
+    }
+
+    /// Query component supervision state from SupervisorNode.
+    ///
+    /// Returns the current lifecycle state as tracked by Layer 3 supervision.
+    ///
+    /// # Parameters
+    ///
+    /// * `component_id` - ID of component to query
+    ///
+    /// # Returns
+    ///
+    /// - `Some(ComponentSupervisionState)` if component supervised
+    /// - `None` if component not found or bridge not configured
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// if let Some(state) = supervisor.query_component_state(&component_id) {
+    ///     println!("Component state: {:?}", state);
+    /// }
+    /// ```
+    pub fn query_component_state(
+        &self,
+        component_id: &ComponentId,
+    ) -> Option<crate::actor::ComponentSupervisionState> {
+        let bridge = self.supervisor_bridge.as_ref()?;
+        let bridge_guard = bridge.blocking_read();
+        bridge_guard.get_component_state(component_id)
+    }
+
+    /// Start all supervised components.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(())` on success
+    /// - `Err(WasmError)` if bridge not configured or any start fails
+    pub async fn start_all(&mut self) -> Result<(), WasmError> {
+        if let Some(bridge) = &self.supervisor_bridge {
+            let mut bridge_guard = bridge.write().await;
+            bridge_guard.start_all().await?;
+
+            // Update local state for all components
+            for handle in self.supervision_handles.values_mut() {
+                handle.state = SupervisionState::Running;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Stop all supervised components.
+    ///
+    /// # Parameters
+    ///
+    /// * `timeout` - Maximum time to wait for each component shutdown
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(())` on success
+    /// - `Err(WasmError)` if bridge not configured or any stop fails
+    pub async fn stop_all(&mut self, timeout: Duration) -> Result<(), WasmError> {
+        if let Some(bridge) = &self.supervisor_bridge {
+            let mut bridge_guard = bridge.write().await;
+            bridge_guard.stop_all(timeout).await?;
+
+            // Update local state for all components
+            for handle in self.supervision_handles.values_mut() {
+                handle.state = SupervisionState::Stopped;
+            }
+        }
+
+        Ok(())
     }
 
     /// Remove a component from supervision.
@@ -820,5 +1051,89 @@ mod tests {
         assert_eq!(ancestors.len(), 2);
         assert_eq!(ancestors[0], parent_id);
         assert_eq!(ancestors[1], root_id);
+    }
+
+    // ========================================================================
+    // STEP 3.2.3: Bridge Integration Tests
+    // ========================================================================
+
+    #[test]
+    fn test_component_supervisor_with_bridge() {
+        use crate::actor::SupervisorNodeWrapper;
+
+        let bridge = Arc::new(RwLock::new(SupervisorNodeWrapper::new()));
+        let supervisor = ComponentSupervisor::with_bridge(bridge);
+
+        assert!(supervisor.supervisor_bridge.is_some());
+        assert_eq!(supervisor.get_all_handles().len(), 0);
+    }
+
+    #[test]
+    fn test_component_supervisor_without_bridge() {
+        let supervisor = ComponentSupervisor::new();
+        assert!(supervisor.supervisor_bridge.is_none());
+    }
+
+    #[test]
+    fn test_query_component_state_without_bridge() {
+        let supervisor = ComponentSupervisor::new();
+        let component_id = ComponentId::new("test-component");
+
+        // Should return None when no bridge configured
+        let state = supervisor.query_component_state(&component_id);
+        assert!(state.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_supervise_basic_without_actor() {
+        let mut supervisor = ComponentSupervisor::new();
+        let component_id = ComponentId::new("test-component");
+        let config = SupervisorConfig::permanent();
+
+        // Basic supervise without actor (policy tracking only)
+        let result = supervisor.supervise(&component_id, config);
+        assert!(result.is_ok());
+
+        let handle = supervisor.get_handle(&component_id);
+        assert!(handle.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_start_component_without_bridge() {
+        let mut supervisor = ComponentSupervisor::new();
+        let component_id = ComponentId::new("test-component");
+        let config = SupervisorConfig::permanent();
+
+        supervisor.supervise(&component_id, config).ok();
+
+        // Start should succeed even without bridge (updates local state only)
+        let result = supervisor.start_component(&component_id).await;
+        assert!(result.is_ok());
+
+        let handle = supervisor.get_handle(&component_id);
+        assert!(handle.is_some());
+        if let Some(h) = handle {
+            assert_eq!(h.state, SupervisionState::Running);
+        }
+    }
+
+    #[tokio::test]
+    async fn test_stop_component_without_bridge() {
+        let mut supervisor = ComponentSupervisor::new();
+        let component_id = ComponentId::new("test-component");
+        let config = SupervisorConfig::permanent();
+
+        supervisor.supervise(&component_id, config).ok();
+        supervisor.mark_running(&component_id).ok();
+
+        // Stop should succeed even without bridge (updates local state only)
+        let result = supervisor.stop_component(&component_id, Duration::from_secs(5)).await;
+        assert!(result.is_ok());
+
+        let handle = supervisor.get_handle(&component_id);
+        assert!(handle.is_some());
+        if let Some(h) = handle {
+            assert_eq!(h.state, SupervisionState::Stopped);
+        }
     }
 }

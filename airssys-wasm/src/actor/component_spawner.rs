@@ -57,14 +57,18 @@
 
 // Layer 1: Standard library imports
 use std::path::PathBuf;
+use std::sync::Arc;
 
 // Layer 2: Third-party crate imports
-// (none)
+use tokio::sync::RwLock;
 
 // Layer 3: Internal module imports
 use super::component_actor::{ComponentActor, ComponentMessage};
 use super::component_registry::ComponentRegistry;
+use super::component_supervisor::ComponentSupervisor;
 use super::message_router::MessageRouter;
+use super::supervisor_config::SupervisorConfig;
+use super::supervisor_wrapper::SupervisorNodeWrapper;
 use crate::core::{ComponentId, ComponentMetadata, CapabilitySet, WasmError};
 use airssys_rt::broker::MessageBroker;
 use airssys_rt::system::ActorSystem;
@@ -74,7 +78,7 @@ use airssys_rt::util::ActorAddress;
 ///
 /// ComponentSpawner manages the lifecycle of spawning ComponentActor instances
 /// through the airssys-rt ActorSystem, ensuring proper initialization and
-/// registration.
+/// registration. Supports both unsupervised and supervised spawning.
 ///
 /// # Type Parameters
 ///
@@ -95,6 +99,7 @@ pub struct ComponentSpawner<B: MessageBroker<ComponentMessage>> {
     actor_system: ActorSystem<ComponentMessage, B>,
     registry: ComponentRegistry,
     broker: B,
+    supervisor: Option<Arc<RwLock<ComponentSupervisor>>>,
 }
 
 // Manual Debug implementation since ActorSystem doesn't implement Debug
@@ -127,8 +132,68 @@ impl<B: MessageBroker<ComponentMessage> + Clone + Send + Sync + 'static> Compone
     /// let registry = ComponentRegistry::new();
     /// let spawner = ComponentSpawner::new(actor_system, registry, broker);
     /// ```
-    pub fn new(actor_system: ActorSystem<ComponentMessage, B>, registry: ComponentRegistry, broker: B) -> Self {
-        Self { actor_system, registry, broker }
+    pub fn new(
+        actor_system: ActorSystem<ComponentMessage, B>,
+        registry: ComponentRegistry,
+        broker: B,
+    ) -> Self {
+        Self {
+            actor_system,
+            registry,
+            broker,
+            supervisor: None,
+        }
+    }
+
+    /// Create new spawner with supervision support.
+    ///
+    /// This enables supervised component spawning with automatic restart.
+    ///
+    /// # Arguments
+    ///
+    /// * `actor_system` - The ActorSystem instance for spawning ComponentActors
+    /// * `registry` - ComponentRegistry for tracking spawned components
+    /// * `broker` - MessageBroker for message routing
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// let spawner = ComponentSpawner::with_supervision(actor_system, registry, broker);
+    /// let component_id = spawner.spawn_supervised_component(
+    ///     component_id,
+    ///     wasm_path,
+    ///     metadata,
+    ///     capabilities,
+    ///     SupervisorConfig::permanent()
+    /// ).await?;
+    /// ```
+    pub fn with_supervision(
+        actor_system: ActorSystem<ComponentMessage, B>,
+        registry: ComponentRegistry,
+        broker: B,
+    ) -> Self {
+        // Create SupervisorNodeBridge
+        let bridge = Arc::new(RwLock::new(SupervisorNodeWrapper::new()));
+
+        // Create ComponentSupervisor with bridge
+        let supervisor = Arc::new(RwLock::new(ComponentSupervisor::with_bridge(bridge)));
+
+        Self {
+            actor_system,
+            registry,
+            broker,
+            supervisor: Some(supervisor),
+        }
+    }
+
+    /// Get reference to ComponentSupervisor (if supervision enabled).
+    ///
+    /// # Returns
+    ///
+    /// - `Some(Arc<RwLock<ComponentSupervisor>>)` if supervision enabled
+    /// - `None` if supervision not enabled
+    pub fn supervisor(&self) -> Option<Arc<RwLock<ComponentSupervisor>>> {
+        self.supervisor.clone()
     }
 
     /// Get reference to underlying MessageBroker.
@@ -236,6 +301,75 @@ impl<B: MessageBroker<ComponentMessage> + Clone + Send + Sync + 'static> Compone
         // 4. Return ActorAddress for message routing
         Ok(actor_ref)
     }
+
+    /// Spawn a supervised component with automatic restart.
+    ///
+    /// This method creates a ComponentActor and registers it with ComponentSupervisor
+    /// for automatic restart based on the provided supervision configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `component_id` - Unique identifier for the component
+    /// * `wasm_path` - Path to WASM component file
+    /// * `metadata` - Component metadata (resource limits, capabilities, etc.)
+    /// * `capabilities` - Security capabilities granted to component
+    /// * `supervision_config` - Supervision configuration for restart behavior
+    ///
+    /// # Returns
+    ///
+    /// Returns `ComponentId` for tracking the supervised component.
+    ///
+    /// # Errors
+    ///
+    /// * `WasmError::Internal` - If supervision not enabled
+    /// * `WasmError::ActorError` - If actor spawning fails
+    /// * `WasmError::InvalidConfiguration` - If metadata is invalid
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// let component_id = spawner.spawn_supervised_component(
+    ///     ComponentId::new("image-processor"),
+    ///     PathBuf::from("./image_processor.wasm"),
+    ///     metadata,
+    ///     capabilities,
+    ///     SupervisorConfig::permanent()
+    /// ).await?;
+    /// ```
+    pub async fn spawn_supervised_component(
+        &self,
+        component_id: ComponentId,
+        _wasm_path: PathBuf,
+        metadata: ComponentMetadata,
+        capabilities: CapabilitySet,
+        supervision_config: SupervisorConfig,
+    ) -> Result<ComponentId, WasmError> {
+        // Verify supervision is enabled
+        let supervisor = self
+            .supervisor
+            .as_ref()
+            .ok_or_else(|| WasmError::internal("Supervision not enabled - use with_supervision()"))?;
+
+        // 1. Create ComponentActor instance
+        let actor = ComponentActor::new(component_id.clone(), metadata, capabilities);
+
+        // 2. Register with ComponentSupervisor (which registers with SupervisorNode)
+        {
+            let mut supervisor_guard = supervisor.write().await;
+            supervisor_guard
+                .supervise_with_actor(component_id.clone(), actor, supervision_config)
+                .await?;
+        }
+
+        // 3. Start the component via supervisor
+        {
+            let mut supervisor_guard = supervisor.write().await;
+            supervisor_guard.start_component(&component_id).await?;
+        }
+
+        // 4. Return ComponentId for tracking
+        Ok(component_id)
+    }
 }
 
 #[cfg(test)]
@@ -244,10 +378,10 @@ impl<B: MessageBroker<ComponentMessage> + Clone + Send + Sync + 'static> Compone
 #[expect(clippy::unwrap_used, reason = "unwrap is acceptable in test code")]
 mod tests {
     use super::*;
+    use crate::core::ResourceLimits;
     use airssys_rt::broker::InMemoryMessageBroker;
     use airssys_rt::system::SystemConfig;
     use airssys_rt::util::ActorAddress;
-    use crate::core::ResourceLimits;
 
     fn create_test_metadata() -> ComponentMetadata {
         ComponentMetadata {
@@ -359,5 +493,73 @@ mod tests {
         // Verify router sees the component
         assert_eq!(router.component_count().unwrap(), 1);
         assert!(router.component_exists(&component_id));
+    }
+
+    // ========================================================================
+    // STEP 3.2.4: Supervised Spawning Tests
+    // ========================================================================
+
+    #[tokio::test]
+    async fn test_component_spawner_with_supervision() {
+        let broker = InMemoryMessageBroker::new();
+        let actor_system = ActorSystem::new(SystemConfig::default(), broker.clone());
+        let registry = ComponentRegistry::new();
+        let spawner = ComponentSpawner::with_supervision(actor_system, registry, broker);
+
+        assert!(spawner.supervisor().is_some());
+    }
+
+    #[tokio::test]
+    async fn test_component_spawner_without_supervision() {
+        let broker = InMemoryMessageBroker::new();
+        let actor_system = ActorSystem::new(SystemConfig::default(), broker.clone());
+        let registry = ComponentRegistry::new();
+        let spawner = ComponentSpawner::new(actor_system, registry, broker);
+
+        assert!(spawner.supervisor().is_none());
+    }
+
+    #[tokio::test]
+    async fn test_spawn_supervised_component_without_supervision_fails() {
+        let broker = InMemoryMessageBroker::new();
+        let actor_system = ActorSystem::new(SystemConfig::default(), broker.clone());
+        let registry = ComponentRegistry::new();
+        let spawner = ComponentSpawner::new(actor_system, registry, broker);
+
+        let component_id = ComponentId::new("test-component");
+        let wasm_path = PathBuf::from("./test.wasm");
+        let metadata = create_test_metadata();
+        let capabilities = CapabilitySet::new();
+        let supervision_config = SupervisorConfig::permanent();
+
+        let result = spawner
+            .spawn_supervised_component(
+                component_id,
+                wasm_path,
+                metadata,
+                capabilities,
+                supervision_config,
+            )
+            .await;
+
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_get_supervisor_reference() {
+        let broker = InMemoryMessageBroker::new();
+        let actor_system = ActorSystem::new(SystemConfig::default(), broker.clone());
+        let registry = ComponentRegistry::new();
+        let spawner = ComponentSpawner::with_supervision(actor_system, registry, broker);
+
+        let supervisor = spawner.supervisor();
+        assert!(supervisor.is_some());
+
+        // Verify we can access the supervisor
+        if let Some(sup) = supervisor {
+            let guard = sup.read().await;
+            let stats = guard.get_statistics();
+            assert_eq!(stats.total_supervised, 0);
+        }
     }
 }

@@ -71,6 +71,9 @@ pub mod component_registry;
 pub mod message_router;
 pub mod supervisor_config;
 pub mod component_supervisor;
+pub mod supervisor_bridge;
+pub mod supervisor_wrapper;
+pub mod health_restart;
 
 // Public re-exports for ergonomic imports
 pub use component_actor::{
@@ -87,3 +90,6 @@ pub use component_supervisor::{
     ComponentSupervisor, RestartDecision, SupervisionHandle, SupervisionState,
     SupervisionStatistics, SupervisionTree, SupervisionTreeNode,
 };
+pub use supervisor_bridge::{ComponentSupervisionState, SupervisorNodeBridge};
+pub use supervisor_wrapper::SupervisorNodeWrapper;
+pub use health_restart::HealthRestartConfig;
