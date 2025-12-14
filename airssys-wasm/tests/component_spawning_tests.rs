@@ -28,7 +28,7 @@ use std::time::Instant;
 // (none)
 
 // Layer 3: Internal module imports
-use airssys_wasm::actor::{ComponentSpawner};
+use airssys_wasm::actor::{ComponentSpawner, ComponentRegistry};
 use airssys_wasm::core::{ComponentId, ComponentMetadata, CapabilitySet, ResourceLimits};
 use airssys_rt::broker::InMemoryMessageBroker;
 use airssys_rt::system::{ActorSystem, SystemConfig};
@@ -55,10 +55,10 @@ fn create_test_metadata(name: &str) -> ComponentMetadata {
 async fn test_spawn_component_via_actor_system() {
     // 1. Create ActorSystem for ComponentMessage
     let broker = InMemoryMessageBroker::new();
-    let actor_system = ActorSystem::new(SystemConfig::default(), broker);
+    let actor_system = ActorSystem::new(SystemConfig::default(), broker.clone());
 
     // 2. Create ComponentSpawner
-    let spawner = ComponentSpawner::new(actor_system);
+    let spawner = ComponentSpawner::new(actor_system, ComponentRegistry::new(), broker.clone());
 
     // 3. Spawn component
     let component_id = ComponentId::new("test-component");
@@ -88,8 +88,8 @@ async fn test_spawn_component_via_actor_system() {
 #[tokio::test]
 async fn test_spawn_multiple_components() {
     let broker = InMemoryMessageBroker::new();
-    let actor_system = ActorSystem::new(SystemConfig::default(), broker);
-    let spawner = ComponentSpawner::new(actor_system);
+    let actor_system = ActorSystem::new(SystemConfig::default(), broker.clone());
+    let spawner = ComponentSpawner::new(actor_system, ComponentRegistry::new(), broker.clone());
 
     // Spawn 5 components
     let mut addresses = Vec::new();
@@ -124,8 +124,8 @@ async fn test_spawn_multiple_components() {
 #[tokio::test]
 async fn test_spawn_component_with_same_id_replaces() {
     let broker = InMemoryMessageBroker::new();
-    let actor_system = ActorSystem::new(SystemConfig::default(), broker);
-    let spawner = ComponentSpawner::new(actor_system);
+    let actor_system = ActorSystem::new(SystemConfig::default(), broker.clone());
+    let spawner = ComponentSpawner::new(actor_system, ComponentRegistry::new(), broker.clone());
 
     let component_id = ComponentId::new("duplicate-test");
     let wasm_path = PathBuf::from("./test.wasm");
@@ -156,8 +156,8 @@ async fn test_spawn_component_with_same_id_replaces() {
 #[tokio::test]
 async fn test_spawn_performance_single_component() {
     let broker = InMemoryMessageBroker::new();
-    let actor_system = ActorSystem::new(SystemConfig::default(), broker);
-    let spawner = ComponentSpawner::new(actor_system);
+    let actor_system = ActorSystem::new(SystemConfig::default(), broker.clone());
+    let spawner = ComponentSpawner::new(actor_system, ComponentRegistry::new(), broker.clone());
 
     let component_id = ComponentId::new("perf-test");
     let wasm_path = PathBuf::from("./perf.wasm");
@@ -186,8 +186,8 @@ async fn test_spawn_performance_single_component() {
 #[tokio::test]
 async fn test_spawn_performance_batch() {
     let broker = InMemoryMessageBroker::new();
-    let actor_system = ActorSystem::new(SystemConfig::default(), broker);
-    let spawner = ComponentSpawner::new(actor_system);
+    let actor_system = ActorSystem::new(SystemConfig::default(), broker.clone());
+    let spawner = ComponentSpawner::new(actor_system, ComponentRegistry::new(), broker.clone());
 
     const BATCH_SIZE: usize = 10;
 
@@ -223,8 +223,8 @@ async fn test_spawn_performance_batch() {
 #[tokio::test]
 async fn test_spawn_component_naming() {
     let broker = InMemoryMessageBroker::new();
-    let actor_system = ActorSystem::new(SystemConfig::default(), broker);
-    let spawner = ComponentSpawner::new(actor_system);
+    let actor_system = ActorSystem::new(SystemConfig::default(), broker.clone());
+    let spawner = ComponentSpawner::new(actor_system, ComponentRegistry::new(), broker.clone());
 
     // Test various naming patterns
     let test_names = vec![
@@ -259,8 +259,8 @@ async fn test_spawn_component_naming() {
 #[tokio::test]
 async fn test_spawn_with_different_resource_limits() {
     let broker = InMemoryMessageBroker::new();
-    let actor_system = ActorSystem::new(SystemConfig::default(), broker);
-    let spawner = ComponentSpawner::new(actor_system);
+    let actor_system = ActorSystem::new(SystemConfig::default(), broker.clone());
+    let spawner = ComponentSpawner::new(actor_system, ComponentRegistry::new(), broker.clone());
 
     // Test with minimal resources
     let component_id = ComponentId::new("minimal-resources");
@@ -313,12 +313,12 @@ async fn test_spawn_with_different_resource_limits() {
 async fn test_spawner_with_multiple_systems() {
     // Create two independent ActorSystems
     let broker1 = InMemoryMessageBroker::new();
-    let system1 = ActorSystem::new(SystemConfig::default(), broker1);
-    let spawner1 = ComponentSpawner::new(system1);
+    let system1 = ActorSystem::new(SystemConfig::default(), broker1.clone());
+    let spawner1 = ComponentSpawner::new(system1, ComponentRegistry::new(), broker1.clone());
 
     let broker2 = InMemoryMessageBroker::new();
-    let system2 = ActorSystem::new(SystemConfig::default(), broker2);
-    let spawner2 = ComponentSpawner::new(system2);
+    let system2 = ActorSystem::new(SystemConfig::default(), broker2.clone());
+    let spawner2 = ComponentSpawner::new(system2, ComponentRegistry::new(), broker2.clone());
 
     // Spawn component in system1
     let component_id1 = ComponentId::new("system1-component");

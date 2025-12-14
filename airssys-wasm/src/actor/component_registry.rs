@@ -104,7 +104,7 @@ use airssys_rt::util::ActorAddress;
 /// registry.unregister(&component_id).unwrap();
 /// assert_eq!(registry.count().unwrap(), 0);
 /// ```
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ComponentRegistry {
     instances: Arc<RwLock<HashMap<ComponentId, ActorAddress>>>,
 }

@@ -63,6 +63,8 @@ use std::path::PathBuf;
 
 // Layer 3: Internal module imports
 use super::component_actor::{ComponentActor, ComponentMessage};
+use super::component_registry::ComponentRegistry;
+use super::message_router::MessageRouter;
 use crate::core::{ComponentId, ComponentMetadata, CapabilitySet, WasmError};
 use airssys_rt::broker::MessageBroker;
 use airssys_rt::system::ActorSystem;
@@ -81,15 +83,18 @@ use airssys_rt::util::ActorAddress;
 /// # Examples
 ///
 /// ```rust,ignore
-/// let spawner = ComponentSpawner::new(actor_system);
+/// let spawner = ComponentSpawner::new(actor_system, registry, broker);
 /// let actor_ref = spawner.spawn_component(
 ///     ComponentId::new("worker"),
 ///     PathBuf::from("./worker.wasm"),
-///     SecurityConfig::default()
+///     metadata,
+///     capabilities
 /// ).await?;
 /// ```
 pub struct ComponentSpawner<B: MessageBroker<ComponentMessage>> {
     actor_system: ActorSystem<ComponentMessage, B>,
+    registry: ComponentRegistry,
+    broker: B,
 }
 
 // Manual Debug implementation since ActorSystem doesn't implement Debug
@@ -102,24 +107,59 @@ impl<B: MessageBroker<ComponentMessage>> std::fmt::Debug for ComponentSpawner<B>
 }
 
 impl<B: MessageBroker<ComponentMessage> + Clone + Send + Sync + 'static> ComponentSpawner<B> {
-    /// Create new spawner with ActorSystem.
+    /// Create new spawner with ActorSystem, ComponentRegistry, and MessageBroker.
     ///
     /// # Arguments
     ///
     /// * `actor_system` - The ActorSystem instance for spawning ComponentActors
+    /// * `registry` - ComponentRegistry for tracking spawned components
+    /// * `broker` - MessageBroker for message routing (cloned from ActorSystem)
     ///
     /// # Examples
     ///
     /// ```rust,ignore
     /// use airssys_rt::system::{ActorSystem, SystemConfig};
     /// use airssys_rt::broker::InMemoryMessageBroker;
+    /// use airssys_wasm::actor::ComponentRegistry;
     ///
     /// let broker = InMemoryMessageBroker::new();
-    /// let actor_system = ActorSystem::new(SystemConfig::default(), broker);
-    /// let spawner = ComponentSpawner::new(actor_system);
+    /// let actor_system = ActorSystem::new(SystemConfig::default(), broker.clone());
+    /// let registry = ComponentRegistry::new();
+    /// let spawner = ComponentSpawner::new(actor_system, registry, broker);
     /// ```
-    pub fn new(actor_system: ActorSystem<ComponentMessage, B>) -> Self {
-        Self { actor_system }
+    pub fn new(actor_system: ActorSystem<ComponentMessage, B>, registry: ComponentRegistry, broker: B) -> Self {
+        Self { actor_system, registry, broker }
+    }
+
+    /// Get reference to underlying MessageBroker.
+    ///
+    /// Used for creating MessageRouter instances.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// let broker = spawner.broker();
+    /// // Use broker for manual message routing or router creation
+    /// ```
+    pub fn broker(&self) -> B {
+        self.broker.clone()
+    }
+
+    /// Create MessageRouter with this spawner's registry and broker.
+    ///
+    /// Convenience method for creating router with correct dependencies.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// let spawner = ComponentSpawner::new(actor_system, registry, broker);
+    /// let router = spawner.create_router();
+    /// ```
+    pub fn create_router(&self) -> MessageRouter<B> {
+        MessageRouter::new(
+            self.registry.clone(),
+            std::sync::Arc::new(self.broker.clone()),
+        )
     }
 
     /// Spawn a component actor instance.
@@ -183,7 +223,17 @@ impl<B: MessageBroker<ComponentMessage> + Clone + Send + Sync + 'static> Compone
                 ))
             })?;
 
-        // 3. Return ActorAddress for message routing
+        // 3. Register component in registry for routing
+        self.registry
+            .register(component_id.clone(), actor_ref.clone())
+            .map_err(|e| {
+                WasmError::internal(format!(
+                    "Failed to register component {} in registry: {}",
+                    component_id.as_str(), e
+                ))
+            })?;
+
+        // 4. Return ActorAddress for message routing
         Ok(actor_ref)
     }
 }
@@ -191,10 +241,12 @@ impl<B: MessageBroker<ComponentMessage> + Clone + Send + Sync + 'static> Compone
 #[cfg(test)]
 #[expect(clippy::expect_used, reason = "expect is acceptable in test code for clear error messages")]
 #[expect(clippy::panic, reason = "panic is acceptable in test code for assertion failures")]
+#[expect(clippy::unwrap_used, reason = "unwrap is acceptable in test code")]
 mod tests {
     use super::*;
     use airssys_rt::broker::InMemoryMessageBroker;
     use airssys_rt::system::SystemConfig;
+    use airssys_rt::util::ActorAddress;
     use crate::core::ResourceLimits;
 
     fn create_test_metadata() -> ComponentMetadata {
@@ -216,8 +268,9 @@ mod tests {
     #[tokio::test]
     async fn test_component_spawner_creation() {
         let broker = InMemoryMessageBroker::new();
-        let actor_system = ActorSystem::new(SystemConfig::default(), broker);
-        let _spawner = ComponentSpawner::new(actor_system);
+        let actor_system = ActorSystem::new(SystemConfig::default(), broker.clone());
+        let registry = ComponentRegistry::new();
+        let _spawner = ComponentSpawner::new(actor_system, registry, broker);
         // Test passes if ComponentSpawner can be created
     }
 
@@ -225,10 +278,11 @@ mod tests {
     async fn test_spawn_component_via_actor_system() {
         // 1. Create ActorSystem
         let broker = InMemoryMessageBroker::new();
-        let actor_system = ActorSystem::new(SystemConfig::default(), broker);
+        let actor_system = ActorSystem::new(SystemConfig::default(), broker.clone());
 
-        // 2. Create ComponentSpawner
-        let spawner = ComponentSpawner::new(actor_system);
+        // 2. Create ComponentSpawner with registry
+        let registry = ComponentRegistry::new();
+        let spawner = ComponentSpawner::new(actor_system, registry.clone(), broker);
 
         // 3. Spawn component
         let component_id = ComponentId::new("test-component");
@@ -250,13 +304,18 @@ mod tests {
         }
         other => panic!("Expected named ActorAddress, got: {:?}", other),
     }
+
+        // 5. Verify component registered in registry
+        let lookup_result = registry.lookup(&component_id);
+        assert!(lookup_result.is_ok(), "Component should be registered in registry");
     }
 
     #[tokio::test]
     async fn test_spawn_multiple_components() {
         let broker = InMemoryMessageBroker::new();
-        let actor_system = ActorSystem::new(SystemConfig::default(), broker);
-        let spawner = ComponentSpawner::new(actor_system);
+        let actor_system = ActorSystem::new(SystemConfig::default(), broker.clone());
+        let registry = ComponentRegistry::new();
+        let spawner = ComponentSpawner::new(actor_system, registry.clone(), broker);
 
         // Spawn 3 components
         for i in 0..3 {
@@ -266,10 +325,39 @@ mod tests {
             let capabilities = CapabilitySet::new();
 
             let result = spawner
-                .spawn_component(component_id, wasm_path, metadata, capabilities)
+                .spawn_component(component_id.clone(), wasm_path, metadata, capabilities)
                 .await;
 
             assert!(result.is_ok(), "Failed to spawn component {}: {:?}", i, result.err());
+            
+            // Verify registration
+            assert!(registry.lookup(&component_id).is_ok(), "Component {} should be registered", i);
         }
+        
+        // Verify all components registered
+        assert_eq!(registry.count().unwrap(), 3);
+    }
+
+    #[tokio::test]
+    async fn test_create_router() {
+        let broker = InMemoryMessageBroker::new();
+        let actor_system = ActorSystem::new(SystemConfig::default(), broker.clone());
+        let registry = ComponentRegistry::new();
+        let spawner = ComponentSpawner::new(actor_system, registry.clone(), broker);
+
+        // Create router via spawner
+        let router = spawner.create_router();
+
+        // Verify router uses same registry
+        assert_eq!(router.component_count().unwrap(), 0);
+
+        // Register a component
+        let component_id = ComponentId::new("test");
+        let actor_addr = ActorAddress::named("test");
+        registry.register(component_id.clone(), actor_addr).unwrap();
+
+        // Verify router sees the component
+        assert_eq!(router.component_count().unwrap(), 1);
+        assert!(router.component_exists(&component_id));
     }
 }

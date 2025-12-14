@@ -68,6 +68,7 @@ pub mod child_impl;
 pub mod type_conversion;
 pub mod component_spawner;
 pub mod component_registry;
+pub mod message_router;
 
 // Public re-exports for ergonomic imports
 pub use component_actor::{
@@ -76,3 +77,4 @@ pub use component_actor::{
 pub use type_conversion::{prepare_wasm_params, extract_wasm_results};
 pub use component_spawner::ComponentSpawner;
 pub use component_registry::ComponentRegistry;
+pub use message_router::MessageRouter;
