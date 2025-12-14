@@ -69,6 +69,8 @@ pub mod type_conversion;
 pub mod component_spawner;
 pub mod component_registry;
 pub mod message_router;
+pub mod supervisor_config;
+pub mod component_supervisor;
 
 // Public re-exports for ergonomic imports
 pub use component_actor::{
@@ -78,3 +80,10 @@ pub use type_conversion::{prepare_wasm_params, extract_wasm_results};
 pub use component_spawner::ComponentSpawner;
 pub use component_registry::ComponentRegistry;
 pub use message_router::MessageRouter;
+pub use supervisor_config::{
+    BackoffStrategy, RestartPolicy, SupervisorConfig,
+};
+pub use component_supervisor::{
+    ComponentSupervisor, RestartDecision, SupervisionHandle, SupervisionState,
+    SupervisionStatistics, SupervisionTree, SupervisionTreeNode,
+};
