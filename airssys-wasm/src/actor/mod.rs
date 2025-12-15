@@ -78,6 +78,7 @@ pub mod exponential_backoff;
 pub mod restart_tracker;
 pub mod sliding_window_limiter;
 pub mod health_monitor;
+pub mod message_broker_bridge;
 
 // Public re-exports for ergonomic imports
 pub use component_actor::{
@@ -101,3 +102,4 @@ pub use exponential_backoff::{ExponentialBackoff, ExponentialBackoffConfig};
 pub use restart_tracker::{RestartReason, RestartRecord, RestartTracker};
 pub use sliding_window_limiter::{SlidingWindowConfig, SlidingWindowLimiter, WindowLimitResult};
 pub use health_monitor::{HealthDecision, HealthMonitor, HealthStatus as MonitorHealthStatus};
+pub use message_broker_bridge::{MessageBrokerBridge, MessageBrokerWrapper, SubscriptionHandle};

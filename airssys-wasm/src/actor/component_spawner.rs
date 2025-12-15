@@ -271,9 +271,16 @@ impl<B: MessageBroker<ComponentMessage> + Clone + Send + Sync + 'static> Compone
         capabilities: CapabilitySet,
     ) -> Result<ActorAddress, WasmError> {
         // 1. Create ComponentActor instance
-        let actor = ComponentActor::new(component_id.clone(), metadata, capabilities);
+        let mut actor = ComponentActor::new(component_id.clone(), metadata, capabilities);
 
-        // 2. Spawn via ActorSystem (NOT tokio::spawn)
+        // 2. Inject MessageBroker bridge
+        // Create broker wrapper and inject into actor
+        let broker_wrapper = Arc::new(
+            super::message_broker_bridge::MessageBrokerWrapper::new(self.broker.clone())
+        );
+        actor.set_broker(broker_wrapper as Arc<dyn super::message_broker_bridge::MessageBrokerBridge>);
+
+        // 3. Spawn via ActorSystem (NOT tokio::spawn)
         // Note: WASM loading happens later via Child::start() when supervised
         let actor_ref = self
             .actor_system
@@ -288,7 +295,7 @@ impl<B: MessageBroker<ComponentMessage> + Clone + Send + Sync + 'static> Compone
                 ))
             })?;
 
-        // 3. Register component in registry for routing
+        // 4. Register component in registry for routing
         self.registry
             .register(component_id.clone(), actor_ref.clone())
             .map_err(|e| {
@@ -298,7 +305,7 @@ impl<B: MessageBroker<ComponentMessage> + Clone + Send + Sync + 'static> Compone
                 ))
             })?;
 
-        // 4. Return ActorAddress for message routing
+        // 5. Return ActorAddress for message routing
         Ok(actor_ref)
     }
 
@@ -351,9 +358,15 @@ impl<B: MessageBroker<ComponentMessage> + Clone + Send + Sync + 'static> Compone
             .ok_or_else(|| WasmError::internal("Supervision not enabled - use with_supervision()"))?;
 
         // 1. Create ComponentActor instance
-        let actor = ComponentActor::new(component_id.clone(), metadata, capabilities);
+        let mut actor = ComponentActor::new(component_id.clone(), metadata, capabilities);
 
-        // 2. Register with ComponentSupervisor (which registers with SupervisorNode)
+        // 2. Inject MessageBroker bridge
+        let broker_wrapper = Arc::new(
+            super::message_broker_bridge::MessageBrokerWrapper::new(self.broker.clone())
+        );
+        actor.set_broker(broker_wrapper as Arc<dyn super::message_broker_bridge::MessageBrokerBridge>);
+
+        // 3. Register with ComponentSupervisor (which registers with SupervisorNode)
         {
             let mut supervisor_guard = supervisor.write().await;
             supervisor_guard
@@ -361,7 +374,7 @@ impl<B: MessageBroker<ComponentMessage> + Clone + Send + Sync + 'static> Compone
                 .await?;
         }
 
-        // 3. Start the component via supervisor
+        // 4. Start the component via supervisor
         {
             let mut supervisor_guard = supervisor.write().await;
             supervisor_guard.start_component(&component_id).await?;

@@ -450,6 +450,44 @@ pub enum WasmError {
         #[source]
         source: Option<Box<dyn std::error::Error + Send + Sync>>,
     },
+
+    /// MessageBroker not configured for component.
+    ///
+    /// Occurs when attempting to publish or subscribe without calling set_broker()
+    /// during component spawning.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::error::WasmError;
+    ///
+    /// let err = WasmError::broker_not_configured("MessageBroker not configured");
+    /// assert!(err.to_string().contains("MessageBroker not configured"));
+    /// ```
+    #[error("MessageBroker not configured: {reason}")]
+    BrokerNotConfigured {
+        /// Reason for the error
+        reason: String,
+    },
+
+    /// MessageBroker operation failed.
+    ///
+    /// Occurs when publish, subscribe, or unsubscribe operations fail due to
+    /// broker errors (invalid topic, network issues, etc.).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::error::WasmError;
+    ///
+    /// let err = WasmError::message_broker_error("Failed to publish to topic 'events'");
+    /// assert!(err.to_string().contains("MessageBroker error"));
+    /// ```
+    #[error("MessageBroker error: {reason}")]
+    MessageBrokerError {
+        /// Reason for the broker error
+        reason: String,
+    },
 }
 
 /// Result type alias for airssys-wasm operations.
@@ -904,6 +942,38 @@ impl WasmError {
         Self::Internal {
             reason: reason.into(),
             source: Some(Box::new(source)),
+        }
+    }
+
+    /// Create a broker not configured error.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::error::WasmError;
+    ///
+    /// let err = WasmError::broker_not_configured("MessageBroker not set");
+    /// assert!(err.to_string().contains("MessageBroker not configured"));
+    /// ```
+    pub fn broker_not_configured(reason: impl Into<String>) -> Self {
+        Self::BrokerNotConfigured {
+            reason: reason.into(),
+        }
+    }
+
+    /// Create a message broker error.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::error::WasmError;
+    ///
+    /// let err = WasmError::message_broker_error("Failed to publish message");
+    /// assert!(err.to_string().contains("MessageBroker error"));
+    /// ```
+    pub fn message_broker_error(reason: impl Into<String>) -> Self {
+        Self::MessageBrokerError {
+            reason: reason.into(),
         }
     }
 }

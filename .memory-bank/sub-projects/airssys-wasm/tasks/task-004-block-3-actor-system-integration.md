@@ -636,47 +636,105 @@ Before starting Phase 2, you MUST review and complete:
 
 ### Phase 4: MessageBroker Integration (Week 4-5)
 
+**📋 DETAILED IMPLEMENTATION PLAN:** See `task-004-phase-4-messagebroker-integration-plan.md` for complete specifications, architecture patterns, bridge design, testing strategy, and step-by-step implementation guidance.
+
+**Overview:**
+Integrate ComponentActor with airssys-rt MessageBroker for event-driven inter-component communication, establishing the foundation for Block 5 (Inter-Component Communication).
+
+**Estimated Effort:** 12-16 hours (Task 4.1: 4-5h, Task 4.2: 4-5h, Task 4.3: 4-6h)  
+**Quality Target:** 9.5/10 (Match Phase 2-3 quality)
+
 #### Task 4.1: MessageBroker Setup for Components
 **Deliverables:**
-- MessageBroker instance for components
-- Topic subscription management
-- Component subscription registration
-- Broker configuration
-- Broker integration documentation
+- MessageBrokerBridge trait for Layer 2 ↔ Layer 3 integration (following SupervisorNodeBridge pattern)
+- MessageBrokerWrapper concrete implementation wrapping InMemoryMessageBroker
+- SubscriptionTracker for component subscription visibility
+- ComponentActor.set_broker() integration
+- ComponentSpawner broker injection
+- 15 tests (10 unit + 5 integration)
+- Comprehensive documentation with bridge pattern explanation
 
 **Success Criteria:**
 - MessageBroker routes component messages
 - Components can subscribe to topics
 - Topic-based message delivery works
-- Routing performance: ~211ns (airssys-rt proven)
+- Routing performance: ~211ns (airssys-rt proven baseline)
+- Layer boundaries maintained (ADR-WASM-018 compliance)
+- Zero warnings, 100% rustdoc coverage
+
+**Architecture:**
+```
+ComponentActor
+    ↓ set_broker()
+MessageBrokerBridge (trait abstraction)
+    ↓ implemented by
+MessageBrokerWrapper (bridge pattern)
+    ↓ wraps
+InMemoryMessageBroker (airssys-rt Layer 3)
+```
 
 #### Task 4.2: Pub-Sub Message Routing
 **Deliverables:**
-- Component message publishing
-- Topic-based message filtering
-- Multiple subscriber handling
-- Message delivery guarantees
-- Pub-sub pattern tests
+- MessagePublisher with topic-based publishing
+- TopicFilter with wildcard support (* and # patterns)
+- SubscriberManager tracking multiple subscribers
+- Multiple subscriber delivery implementation
+- Topic filtering with pattern matching
+- 15 tests (10 unit + 5 integration)
+- Topic pattern documentation with examples
 
 **Success Criteria:**
 - Components publish to topics
-- Messages delivered to all subscribers
-- Topic filtering works correctly
-- Delivery semantics clear
+- Messages delivered to all matching subscribers
+- Topic filtering works correctly (wildcards: "events.*", "events.#")
+- Delivery semantics clear and documented
+- Topic filter performance <50ns per match
+- Zero warnings, comprehensive examples
+
+**Patterns:**
+- Fire-and-forget: `publish("topic", message)`
+- Broadcast: `publish_multi(["topic1", "topic2"], message)`
+- Wildcard matching: `events.user.*` → matches `events.user.login`
 
 #### Task 4.3: ActorSystem as Primary Subscriber Pattern
 **Deliverables:**
-- ActorSystem subscribes to all component messages
-- Routing decisions by ActorSystem
-- ComponentActor mailbox delivery
-- Unified message routing architecture
-- Pattern documentation
+- ActorSystemSubscriber routing messages to mailboxes
+- UnifiedRouter centralizing routing logic
+- Routing statistics tracking (total, successful, failed, latency)
+- Pattern documentation with architecture diagram
+- 15 tests (10 integration + 5 end-to-end)
+- Performance benchmarks (event routing <100ns overhead)
+- Comprehensive documentation
 
 **Success Criteria:**
-- ActorSystem is primary subscriber
-- Messages route through ActorSystem to mailboxes
-- Routing logic centralized
-- Pattern clear and documented
+- ActorSystem is primary subscriber to MessageBroker
+- Messages route through ActorSystem to ComponentActor mailboxes
+- Routing logic centralized in UnifiedRouter
+- Pattern clear and documented with diagrams
+- Routing performance: <100ns overhead (target: ~211ns total)
+- All 30+ Phase 4 tests passing (target: 749+ total tests)
+- Zero warnings, architecture diagram complete
+
+**Pattern Implementation (ADR-WASM-009):**
+```
+ComponentA.publish("topic", msg)
+    ↓
+MessageBroker.publish(envelope)
+    ↓
+ActorSystem (primary subscriber)
+    ↓
+UnifiedRouter.route()
+    ↓ (lookup via ComponentRegistry)
+ComponentB.mailbox
+    ↓
+ComponentB.handle_message()
+```
+
+**Performance Targets:**
+- Event routing overhead: <100ns
+- Message throughput: >4.7M msg/sec
+- Topic filter match: <50ns
+- End-to-end latency: <1ms
 
 ---
 

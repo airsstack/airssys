@@ -580,6 +580,9 @@ pub struct ComponentActor {
 
     /// Start timestamp (None until Child::start())
     started_at: Option<DateTime<Utc>>,
+
+    /// MessageBroker bridge (set during spawn)
+    broker: Option<Arc<dyn super::message_broker_bridge::MessageBrokerBridge>>,
 }
 
 /// Actor lifecycle state machine.
@@ -882,6 +885,7 @@ impl ComponentActor {
             mailbox_rx: None,
             created_at: Utc::now(),
             started_at: None,
+            broker: None,
         }
     }
 
@@ -1142,6 +1146,121 @@ impl ComponentActor {
     #[doc(hidden)]
     pub fn wasm_runtime(&self) -> Option<&WasmRuntime> {
         self.wasm_runtime.as_ref()
+    }
+
+    /// Set MessageBroker bridge (called by ComponentSpawner).
+    ///
+    /// This method is called during component spawning to inject the MessageBroker
+    /// bridge, enabling the component to publish and subscribe to topics.
+    ///
+    /// # Arguments
+    ///
+    /// * `broker` - MessageBrokerBridge implementation
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// use std::sync::Arc;
+    /// use airssys_wasm::actor::{ComponentActor, MessageBrokerWrapper};
+    ///
+    /// let mut actor = ComponentActor::new(/* ... */);
+    /// let broker_wrapper = Arc::new(MessageBrokerWrapper::new(broker));
+    /// actor.set_broker(broker_wrapper);
+    /// ```
+    pub fn set_broker(&mut self, broker: Arc<dyn super::message_broker_bridge::MessageBrokerBridge>) {
+        self.broker = Some(broker);
+    }
+
+    /// Publish message to topic.
+    ///
+    /// Publishes a ComponentMessage to the specified topic via MessageBroker.
+    /// All subscribers to the topic will receive the message (fire-and-forget
+    /// semantics per ADR-WASM-009).
+    ///
+    /// # Arguments
+    ///
+    /// * `topic` - Topic name (e.g., "events", "notifications.user")
+    /// * `message` - ComponentMessage to publish
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(())`: Message published successfully
+    /// - `Err(WasmError::BrokerNotConfigured)`: Broker not set
+    /// - `Err(WasmError::MessageBrokerError)`: Publish failed
+    ///
+    /// # Errors
+    ///
+    /// Returns `WasmError::BrokerNotConfigured` if set_broker() was not called.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// use airssys_wasm::actor::{ComponentActor, ComponentMessage};
+    /// use airssys_wasm::core::ComponentId;
+    ///
+    /// async fn publish_event(actor: &ComponentActor) -> Result<(), WasmError> {
+    ///     let message = ComponentMessage::InterComponent {
+    ///         sender: ComponentId::new("component-a"),
+    ///         payload: vec![1, 2, 3],
+    ///     };
+    ///     
+    ///     actor.publish_message("events.user.login", message).await?;
+    ///     Ok(())
+    /// }
+    /// ```
+    pub async fn publish_message(
+        &self,
+        topic: &str,
+        message: ComponentMessage,
+    ) -> Result<(), WasmError> {
+        let broker = self.broker.as_ref()
+            .ok_or_else(|| WasmError::broker_not_configured(
+                "MessageBroker not configured - call set_broker() first"
+            ))?;
+
+        broker.publish(topic, message).await
+    }
+
+    /// Subscribe to topic.
+    ///
+    /// Subscribes this component to a topic, receiving all messages published
+    /// to it. Returns a subscription handle for tracking and unsubscribe operations.
+    ///
+    /// # Arguments
+    ///
+    /// * `topic` - Topic name to subscribe to
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(SubscriptionHandle)`: Subscription successful
+    /// - `Err(WasmError::BrokerNotConfigured)`: Broker not set
+    /// - `Err(WasmError::MessageBrokerError)`: Subscribe failed
+    ///
+    /// # Errors
+    ///
+    /// Returns `WasmError::BrokerNotConfigured` if set_broker() was not called.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// use airssys_wasm::actor::ComponentActor;
+    ///
+    /// async fn subscribe_to_events(actor: &mut ComponentActor) -> Result<(), WasmError> {
+    ///     let handle = actor.subscribe_topic("events.user").await?;
+    ///     // Store handle for later unsubscribe
+    ///     Ok(())
+    /// }
+    /// ```
+    pub async fn subscribe_topic(
+        &mut self,
+        topic: &str,
+    ) -> Result<super::message_broker_bridge::SubscriptionHandle, WasmError> {
+        let broker = self.broker.as_ref()
+            .ok_or_else(|| WasmError::broker_not_configured(
+                "MessageBroker not configured - call set_broker() first"
+            ))?;
+
+        broker.subscribe(topic, &self.component_id).await
     }
 }
 

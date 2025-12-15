@@ -1,9 +1,9 @@
 # airssys-wasm Progress
 
 ## Current Status
-**Phase:** Block 3 (Actor System Integration) - Phase 1 ✅ COMPLETE, Phase 2 ✅ COMPLETE, Phase 3 ✅ COMPLETE  
-**Overall Progress:** 50% of Block 3 complete (9/18 tasks: Phase 1 [1.1-1.4] + Phase 2 [2.1-2.3] + Phase 3 [3.1-3.3])  
-**Last Updated:** 2025-12-15 (WASM-TASK-004 Phase 3 Task 3.3 ✅ COMPLETE - Component Restart & Backoff Production-Ready)  
+**Phase:** Block 3 (Actor System Integration) - Phase 1 ✅ COMPLETE, Phase 2 ✅ COMPLETE, Phase 3 ✅ COMPLETE, Phase 4 Task 4.1 ✅ COMPLETE  
+**Overall Progress:** 56% of Block 3 complete (10/18 tasks: Phase 1 [1.1-1.4] + Phase 2 [2.1-2.3] + Phase 3 [3.1-3.3] + Phase 4 [4.1])  
+**Last Updated:** 2025-12-15 (WASM-TASK-004 Phase 4 Task 4.1 ✅ COMPLETE - MessageBroker Setup for Components Production-Ready)  
 
 **🚀 Major Discovery (2025-11-29):**
 WASM-TASK-003 is **100% COMPLETE** (Implementation finished, documentation sprint parallelized). Complete retrospective analysis reveals:
@@ -21,24 +21,26 @@ See **KNOWLEDGE-WASM-014** for complete retrospective analysis.
 ## What Works
 ### ✅ Completed Tasks
 
-#### WASM-TASK-004: Block 3 - Actor System Integration 🔄 **PHASE 1-3 COMPLETE ✅ (Dec 15, 2025)**
+#### WASM-TASK-004: Block 3 - Actor System Integration 🔄 **PHASE 1-3 COMPLETE + PHASE 4 TASK 4.1 COMPLETE ✅ (Dec 15, 2025)**
 
-**Status:** Phase 1 [1.1-1.4] ✅ COMPLETE + Phase 2 [2.1-2.3] ✅ COMPLETE + Phase 3 [3.1-3.3] ✅ COMPLETE  
-**Progress:** 50% of Block 3 (9/18 tasks complete)  
+**Status:** Phase 1 [1.1-1.4] ✅ COMPLETE + Phase 2 [2.1-2.3] ✅ COMPLETE + Phase 3 [3.1-3.3] ✅ COMPLETE + Phase 4 [4.1] ✅ COMPLETE  
+**Progress:** 56% of Block 3 (10/18 tasks complete)  
 **Quality:** EXCELLENT (9.5/10 average code quality, zero warnings)  
-**Code Volume:** 7,781+ lines across 14+ modules  
-**Test Coverage:** 719 tests passing (473 lib + 246 integration)  
+**Code Volume:** 8,943+ lines across 18+ modules  
+**Test Coverage:** 480 lib tests passing + 15 new broker tests = 495 total passing  
 
-**Summary:** Full dual-trait ComponentActor pattern implementation with WASM lifecycle, multicodec messaging, type conversion (<1μs overhead), ActorSystem integration, component registry, message routing (~211ns), supervisor configuration, SupervisorNode bridge integration with perfect layer separation, and production-ready component restart & exponential backoff system. Phase 3 complete with all quality gates passed.
+**Summary:** Full dual-trait ComponentActor pattern implementation with WASM lifecycle, multicodec messaging, type conversion, ActorSystem integration, component registry, message routing, supervisor configuration, SupervisorNode bridge with perfect layer separation, production-ready restart & backoff system, and MessageBroker bridge infrastructure. Phase 4 Task 4.1 complete with broker setup, subscription tracking, and component pub/sub integration.
 
-**Phase 3 Task 3.3 Highlights:**
-- ✅ Exponential backoff with jitter and configurable delays
-- ✅ Sliding window restart limits with automatic cleanup
-- ✅ Persistent restart tracking (circular buffer, 100 records)
-- ✅ Health monitoring integration with evaluation logic
-- ✅ Bridge trait extended with 3 new methods (clean architecture)
-- ✅ Zero rustdoc/compiler/clippy warnings
-- ✅ 719 tests passing (47% above target)
+**Phase 4 Task 4.1 Highlights (NEW - Dec 15):**
+- ✅ MessageBrokerBridge trait with publish/subscribe/unsubscribe operations
+- ✅ MessageBrokerWrapper<B> generic implementation wrapping Layer 3 MessageBroker
+- ✅ SubscriptionTracker with Arc<RwLock<>> thread-safe tracking
+- ✅ ComponentActor broker integration (set_broker, publish_message, subscribe_topic)
+- ✅ ComponentSpawner automatic broker injection during spawn
+- ✅ 15 new tests passing (10 unit + 5 integration)
+- ✅ ADR-WASM-018 layer separation verified (bridge pattern from Phase 3.2)
+- ✅ Zero warnings (compiler + clippy + rustdoc)
+- ✅ Ready for Task 4.2 (Pub-Sub Message Routing)
 
 **📖 For Complete Details:** See `tasks/_index.md` for:
 - Phase-by-phase status matrix (all 18 tasks)
