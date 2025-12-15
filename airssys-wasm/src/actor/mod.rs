@@ -74,6 +74,10 @@ pub mod component_supervisor;
 pub mod supervisor_bridge;
 pub mod supervisor_wrapper;
 pub mod health_restart;
+pub mod exponential_backoff;
+pub mod restart_tracker;
+pub mod sliding_window_limiter;
+pub mod health_monitor;
 
 // Public re-exports for ergonomic imports
 pub use component_actor::{
@@ -93,3 +97,7 @@ pub use component_supervisor::{
 pub use supervisor_bridge::{ComponentSupervisionState, SupervisorNodeBridge};
 pub use supervisor_wrapper::SupervisorNodeWrapper;
 pub use health_restart::HealthRestartConfig;
+pub use exponential_backoff::{ExponentialBackoff, ExponentialBackoffConfig};
+pub use restart_tracker::{RestartReason, RestartRecord, RestartTracker};
+pub use sliding_window_limiter::{SlidingWindowConfig, SlidingWindowLimiter, WindowLimitResult};
+pub use health_monitor::{HealthDecision, HealthMonitor, HealthStatus as MonitorHealthStatus};
