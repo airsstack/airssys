@@ -82,6 +82,8 @@ pub mod message_broker_bridge;
 pub mod message_publisher;
 pub mod message_filter;
 pub mod subscriber_manager;
+pub mod actor_system_subscriber;
+pub mod unified_router;
 
 // Public re-exports for ergonomic imports
 pub use component_actor::{
@@ -109,3 +111,5 @@ pub use message_broker_bridge::{MessageBrokerBridge, MessageBrokerWrapper, Subsc
 pub use message_publisher::MessagePublisher;
 pub use message_filter::TopicFilter;
 pub use subscriber_manager::{SubHandle, SubscriberManager};
+pub use actor_system_subscriber::ActorSystemSubscriber;
+pub use unified_router::{RoutingStats, UnifiedRouter};
