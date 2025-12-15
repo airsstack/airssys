@@ -73,7 +73,8 @@ use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 
 // Layer 3: Internal module imports
-use crate::actor::{ComponentMessage, ComponentRegistry, SubscriberManager};
+use crate::actor::component::{ComponentMessage, ComponentRegistry};
+use crate::actor::message::SubscriberManager;
 use crate::core::{ComponentId, WasmError};
 use airssys_rt::broker::MessageBroker;
 use airssys_rt::message::MessageEnvelope;

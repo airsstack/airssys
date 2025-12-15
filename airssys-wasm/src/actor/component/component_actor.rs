@@ -582,7 +582,7 @@ pub struct ComponentActor {
     started_at: Option<DateTime<Utc>>,
 
     /// MessageBroker bridge (set during spawn)
-    broker: Option<Arc<dyn super::message_broker_bridge::MessageBrokerBridge>>,
+    broker: Option<Arc<dyn crate::actor::message::MessageBrokerBridge>>,
 }
 
 /// Actor lifecycle state machine.
@@ -1180,7 +1180,7 @@ impl ComponentActor {
     /// let broker_wrapper = Arc::new(MessageBrokerWrapper::new(broker));
     /// actor.set_broker(broker_wrapper);
     /// ```
-    pub fn set_broker(&mut self, broker: Arc<dyn super::message_broker_bridge::MessageBrokerBridge>) {
+    pub fn set_broker(&mut self, broker: Arc<dyn crate::actor::message::MessageBrokerBridge>) {
         self.broker = Some(broker);
     }
 
@@ -1267,7 +1267,7 @@ impl ComponentActor {
     pub async fn subscribe_topic(
         &mut self,
         topic: &str,
-    ) -> Result<super::message_broker_bridge::SubscriptionHandle, WasmError> {
+    ) -> Result<crate::actor::message::SubscriptionHandle, WasmError> {
         let broker = self.broker.as_ref()
             .ok_or_else(|| WasmError::broker_not_configured(
                 "MessageBroker not configured - call set_broker() first"

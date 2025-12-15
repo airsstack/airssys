@@ -52,7 +52,8 @@ use std::time::Duration;
 use async_trait::async_trait;
 
 // Layer 3: Internal module imports
-use crate::actor::{ComponentActor, SupervisorConfig};
+use crate::actor::component::ComponentActor;
+use crate::actor::supervisor::SupervisorConfig;
 use crate::core::{ComponentId, WasmError};
 
 /// Bridge trait for SupervisorNode integration.

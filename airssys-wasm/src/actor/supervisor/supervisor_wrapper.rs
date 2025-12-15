@@ -53,9 +53,11 @@ use airssys_rt::supervisor::{
 };
 
 // Layer 3: Internal module imports
-use crate::actor::{
-    ComponentActor, ComponentSupervisionState, ExponentialBackoff, ExponentialBackoffConfig,
-    HealthMonitor, RestartPolicy, RestartRecord, RestartTracker, SlidingWindowConfig,
+use crate::actor::component::ComponentActor;
+use crate::actor::health::HealthMonitor;
+use crate::actor::supervisor::{
+    ComponentSupervisionState, ExponentialBackoff, ExponentialBackoffConfig,
+    RestartPolicy, RestartRecord, RestartTracker, SlidingWindowConfig,
     SlidingWindowLimiter, SupervisorConfig, SupervisorNodeBridge,
 };
 use crate::core::{ComponentId, WasmError};
@@ -584,7 +586,7 @@ pub struct RestartStats {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::actor::RestartPolicy as WasmRestartPolicy;
+    use crate::actor::supervisor::RestartPolicy as WasmRestartPolicy;
 
     #[test]
     fn test_restart_policy_conversion() {

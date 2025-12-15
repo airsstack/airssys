@@ -70,9 +70,8 @@ use std::time::Instant;
 use tokio::sync::{Mutex, RwLock};
 
 // Layer 3: Internal module imports
-use crate::actor::{
-    ActorSystemSubscriber, ComponentMessage, ComponentRegistry, SubscriberManager,
-};
+use crate::actor::component::{ComponentMessage, ComponentRegistry};
+use crate::actor::message::{ActorSystemSubscriber, SubscriberManager};
 use crate::core::{ComponentId, WasmError};
 use airssys_rt::broker::MessageBroker;
 

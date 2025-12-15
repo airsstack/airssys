@@ -66,7 +66,7 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 
 // Layer 3: Internal module imports
-use crate::actor::ComponentMessage;
+use crate::actor::component::ComponentMessage;
 use crate::core::{ComponentId, WasmError};
 use airssys_rt::broker::MessageBroker;
 use airssys_rt::message::MessageEnvelope;

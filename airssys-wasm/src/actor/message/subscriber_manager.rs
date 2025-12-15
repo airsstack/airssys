@@ -65,7 +65,7 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 
 // Layer 3: Internal module imports
-use crate::actor::message_filter::TopicFilter;
+use super::TopicFilter;
 use crate::core::{ComponentId, WasmError};
 
 /// Manages component subscriptions to topics.

@@ -32,8 +32,8 @@ use std::sync::Arc;
 // (none)
 
 // Layer 3: Internal module imports
-use super::component_actor::ComponentMessage;
-use super::component_registry::ComponentRegistry;
+use crate::actor::component::ComponentMessage;
+use crate::actor::component::ComponentRegistry;
 use crate::core::{ComponentId, WasmError};
 use airssys_rt::broker::MessageBroker;
 use airssys_rt::message::MessageEnvelope;

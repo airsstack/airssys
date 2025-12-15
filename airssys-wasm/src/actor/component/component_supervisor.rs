@@ -44,7 +44,8 @@ use chrono::{DateTime, Utc};
 use tokio::sync::RwLock;
 
 // Layer 3: Internal module imports
-use crate::actor::{ComponentActor, SupervisorConfig, SupervisorNodeBridge};
+use crate::actor::component::ComponentActor;
+use crate::actor::supervisor::{SupervisorConfig, SupervisorNodeBridge};
 use crate::core::{ComponentId, WasmError};
 
 /// Handle to a supervised component with restart tracking.
@@ -690,7 +691,7 @@ impl ComponentSupervisor {
     pub fn get_restart_stats(
         &self,
         component_id: &ComponentId,
-    ) -> Option<crate::actor::supervisor_wrapper::RestartStats> {
+    ) -> Option<crate::actor::supervisor::RestartStats> {
         // Check if component is supervised
         if !self.supervision_handles.contains_key(component_id) {
             return None;
@@ -1138,7 +1139,7 @@ mod tests {
 
     #[test]
     fn test_component_supervisor_with_bridge() {
-        use crate::actor::SupervisorNodeWrapper;
+        use crate::actor::supervisor::SupervisorNodeWrapper;
 
         let bridge = Arc::new(RwLock::new(SupervisorNodeWrapper::new()));
         let supervisor = ComponentSupervisor::with_bridge(bridge);

@@ -16,14 +16,32 @@
 //! - Integration with airssys-rt SupervisorNode for automatic restart
 //! - Clean separation between communication and lifecycle concerns
 //!
-//! # Module Organization (§4.3)
+//! # Module Organization
 //!
-//! Per workspace standards, this `mod.rs` contains ONLY module declarations
-//! and re-exports. Implementation code resides in individual module files:
+//! The actor module is organized into four subdomains:
 //!
-//! - `component_actor.rs` - ComponentActor struct, ActorState, ComponentMessage
-//! - `actor_impl.rs` - Actor trait implementation (message handling)
-//! - `child_impl.rs` - Child trait implementation (WASM lifecycle)
+//! ## Component (`component/`)
+//! Core component actor implementation including:
+//! - ComponentActor struct and lifecycle management
+//! - Component registry and spawning
+//! - Component-specific supervision
+//!
+//! ## Supervisor (`supervisor/`)
+//! Generic supervision infrastructure including:
+//! - Supervision policies and configuration
+//! - Restart tracking and backoff strategies
+//! - Rate limiting and supervision bridges
+//!
+//! ## Health (`health/`)
+//! Health monitoring system including:
+//! - Health check evaluation
+//! - Health-triggered restart decisions
+//!
+//! ## Message (`message/`)
+//! Message routing and pub/sub system including:
+//! - Inter-component message routing
+//! - Topic filtering and subscription management
+//! - Message broker integration
 //!
 //! # Quick Start
 //!
@@ -61,55 +79,45 @@
 //! - **WASM-TASK-004**: Actor System Integration (Block 3)
 //! - **KNOWLEDGE-WASM-016**: Actor System Integration Implementation Guide
 
-// Module declarations (§4.3 - mod.rs declaration-only pattern)
-pub mod component_actor;
-pub mod actor_impl;
-pub mod child_impl;
-pub mod type_conversion;
-pub mod component_spawner;
-pub mod component_registry;
-pub mod message_router;
-pub mod supervisor_config;
-pub mod component_supervisor;
-pub mod supervisor_bridge;
-pub mod supervisor_wrapper;
-pub mod health_restart;
-pub mod exponential_backoff;
-pub mod restart_tracker;
-pub mod sliding_window_limiter;
-pub mod health_monitor;
-pub mod message_broker_bridge;
-pub mod message_publisher;
-pub mod message_filter;
-pub mod subscriber_manager;
-pub mod actor_system_subscriber;
-pub mod unified_router;
+// Subdomain module declarations
+pub mod component;
+pub mod supervisor;
+pub mod health;
+pub mod message;
 
-// Public re-exports for ergonomic imports
-pub use component_actor::{
-    ActorState, ComponentActor, ComponentMessage, HealthStatus, WasmRuntime,
+// Public re-exports for backward compatibility and ergonomic imports
+
+// Component subdomain re-exports
+#[doc(inline)]
+pub use component::{
+    ActorState, ComponentActor, ComponentMessage, ComponentRegistry,
+    ComponentSpawner, ComponentSupervisor, HealthStatus, RestartDecision,
+    SupervisionHandle, SupervisionState, SupervisionStatistics,
+    SupervisionTree, SupervisionTreeNode, WasmRuntime,
+    extract_wasm_results, prepare_wasm_params,
 };
-pub use type_conversion::{prepare_wasm_params, extract_wasm_results};
-pub use component_spawner::ComponentSpawner;
-pub use component_registry::ComponentRegistry;
-pub use message_router::MessageRouter;
-pub use supervisor_config::{
-    BackoffStrategy, RestartPolicy, SupervisorConfig,
+
+// Supervisor subdomain re-exports
+#[doc(inline)]
+pub use supervisor::{
+    BackoffStrategy, ComponentSupervisionState, ExponentialBackoff,
+    ExponentialBackoffConfig, RestartPolicy, RestartReason, RestartRecord,
+    RestartStats, RestartTracker, SlidingWindowConfig, SlidingWindowLimiter,
+    SupervisorConfig, SupervisorNodeBridge, SupervisorNodeWrapper,
+    WindowLimitResult,
 };
-pub use component_supervisor::{
-    ComponentSupervisor, RestartDecision, SupervisionHandle, SupervisionState,
-    SupervisionStatistics, SupervisionTree, SupervisionTreeNode,
+
+// Health subdomain re-exports
+#[doc(inline)]
+pub use health::{
+    HealthDecision, HealthMonitor, HealthRestartConfig,
+    MonitorHealthStatus,
 };
-pub use supervisor_bridge::{ComponentSupervisionState, SupervisorNodeBridge};
-pub use supervisor_wrapper::{SupervisorNodeWrapper, RestartStats};
-pub use health_restart::HealthRestartConfig;
-pub use exponential_backoff::{ExponentialBackoff, ExponentialBackoffConfig};
-pub use restart_tracker::{RestartReason, RestartRecord, RestartTracker};
-pub use sliding_window_limiter::{SlidingWindowConfig, SlidingWindowLimiter, WindowLimitResult};
-pub use health_monitor::{HealthDecision, HealthMonitor, HealthStatus as MonitorHealthStatus};
-pub use message_broker_bridge::{MessageBrokerBridge, MessageBrokerWrapper, SubscriptionHandle};
-pub use message_publisher::MessagePublisher;
-pub use message_filter::TopicFilter;
-pub use subscriber_manager::{SubHandle, SubscriberManager};
-pub use actor_system_subscriber::ActorSystemSubscriber;
-pub use unified_router::{RoutingStats, UnifiedRouter};
+
+// Message subdomain re-exports
+#[doc(inline)]
+pub use message::{
+    ActorSystemSubscriber, MessageBrokerBridge, MessageBrokerWrapper,
+    MessagePublisher, MessageRouter, RoutingStats, SubHandle,
+    SubscriberManager, SubscriptionHandle, TopicFilter, UnifiedRouter,
+};

@@ -66,9 +66,9 @@ use tokio::sync::RwLock;
 use super::component_actor::{ComponentActor, ComponentMessage};
 use super::component_registry::ComponentRegistry;
 use super::component_supervisor::ComponentSupervisor;
-use super::message_router::MessageRouter;
-use super::supervisor_config::SupervisorConfig;
-use super::supervisor_wrapper::SupervisorNodeWrapper;
+use crate::actor::message::MessageRouter;
+use crate::actor::supervisor::SupervisorConfig;
+use crate::actor::supervisor::SupervisorNodeWrapper;
 use crate::core::{ComponentId, ComponentMetadata, CapabilitySet, WasmError};
 use airssys_rt::broker::MessageBroker;
 use airssys_rt::system::ActorSystem;
@@ -276,9 +276,9 @@ impl<B: MessageBroker<ComponentMessage> + Clone + Send + Sync + 'static> Compone
         // 2. Inject MessageBroker bridge
         // Create broker wrapper and inject into actor
         let broker_wrapper = Arc::new(
-            super::message_broker_bridge::MessageBrokerWrapper::new(self.broker.clone())
+            crate::actor::message::MessageBrokerWrapper::new(self.broker.clone())
         );
-        actor.set_broker(broker_wrapper as Arc<dyn super::message_broker_bridge::MessageBrokerBridge>);
+        actor.set_broker(broker_wrapper as Arc<dyn crate::actor::message::MessageBrokerBridge>);
 
         // 3. Spawn via ActorSystem (NOT tokio::spawn)
         // Note: WASM loading happens later via Child::start() when supervised
@@ -362,9 +362,9 @@ impl<B: MessageBroker<ComponentMessage> + Clone + Send + Sync + 'static> Compone
 
         // 2. Inject MessageBroker bridge
         let broker_wrapper = Arc::new(
-            super::message_broker_bridge::MessageBrokerWrapper::new(self.broker.clone())
+            crate::actor::message::MessageBrokerWrapper::new(self.broker.clone())
         );
-        actor.set_broker(broker_wrapper as Arc<dyn super::message_broker_bridge::MessageBrokerBridge>);
+        actor.set_broker(broker_wrapper as Arc<dyn crate::actor::message::MessageBrokerBridge>);
 
         // 3. Register with ComponentSupervisor (which registers with SupervisorNode)
         {

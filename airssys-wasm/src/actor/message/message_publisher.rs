@@ -67,7 +67,8 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 // Layer 3: Internal module imports
-use crate::actor::{ComponentMessage, MessageBrokerBridge};
+use crate::actor::component::ComponentMessage;
+use crate::actor::message::MessageBrokerBridge;
 use crate::core::{ComponentId, WasmError};
 
 /// Component message publisher with topic support.
@@ -319,7 +320,7 @@ impl MessagePublisher {
 #[allow(clippy::unwrap_used)] // Test code: unwrap is acceptable
 mod tests {
     use super::*;
-    use crate::actor::MessageBrokerWrapper;
+    use crate::actor::message::MessageBrokerWrapper;
     use airssys_rt::broker::InMemoryMessageBroker;
 
     #[tokio::test]

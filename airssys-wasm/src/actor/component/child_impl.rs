@@ -39,8 +39,8 @@ use wasmtime::{Config, Engine, Linker, Module, Store};
 
 // Layer 3: Internal module imports
 use airssys_rt::supervisor::{Child, ChildHealth};
-use crate::actor::{ActorState, ComponentActor, HealthStatus, WasmRuntime};
-use crate::actor::component_actor::{ComponentResourceLimiter, WasmExports};
+use crate::actor::component::{ActorState, ComponentActor, HealthStatus, WasmRuntime};
+use super::component_actor::{ComponentResourceLimiter, WasmExports};
 use crate::core::WasmError;
 
 /// Child trait implementation for ComponentActor (STUB).
