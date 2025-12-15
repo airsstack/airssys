@@ -79,6 +79,9 @@ pub mod restart_tracker;
 pub mod sliding_window_limiter;
 pub mod health_monitor;
 pub mod message_broker_bridge;
+pub mod message_publisher;
+pub mod message_filter;
+pub mod subscriber_manager;
 
 // Public re-exports for ergonomic imports
 pub use component_actor::{
@@ -103,3 +106,6 @@ pub use restart_tracker::{RestartReason, RestartRecord, RestartTracker};
 pub use sliding_window_limiter::{SlidingWindowConfig, SlidingWindowLimiter, WindowLimitResult};
 pub use health_monitor::{HealthDecision, HealthMonitor, HealthStatus as MonitorHealthStatus};
 pub use message_broker_bridge::{MessageBrokerBridge, MessageBrokerWrapper, SubscriptionHandle};
+pub use message_publisher::MessagePublisher;
+pub use message_filter::TopicFilter;
+pub use subscriber_manager::{SubHandle, SubscriberManager};

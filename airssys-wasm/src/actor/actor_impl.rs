@@ -337,6 +337,75 @@ impl Actor for ComponentActor {
                 Ok(())
             }
 
+            ComponentMessage::InterComponentWithCorrelation {
+                sender,
+                payload,
+                correlation_id,
+            } => {
+                let component_id_str = self.component_id().as_str().to_string();
+                let sender_str = sender.as_str().to_string();
+                
+                debug!(
+                    component_id = %component_id_str,
+                    sender = %sender_str,
+                    correlation_id = %correlation_id,
+                    payload_len = payload.len(),
+                    "Processing InterComponentWithCorrelation message"
+                );
+
+                // 1. Verify WASM loaded
+                let runtime = self
+                    .wasm_runtime_mut()
+                    .ok_or_else(|| ComponentActorError::not_ready(&component_id_str))?;
+
+                // 2. Capability checking (FUTURE WORK - Block 4 Security Layer)
+                // NOTE: Security validation deferred to Block 4 implementation.
+
+                // 3. Route to WASM handle-message export  
+                let handle_fn_opt = runtime.exports().handle_message;
+                
+                if let Some(handle_fn) = handle_fn_opt {
+                    trace!(
+                        component_id = %component_id_str,
+                        sender = %sender_str,
+                        correlation_id = %correlation_id,
+                        payload_len = payload.len(),
+                        "Calling handle-message export with correlation ID"
+                    );
+
+                    // 3.1. Call handle-message export
+                    // Note: Component should extract correlation_id from payload if needed
+                    let mut results = vec![];
+                    handle_fn
+                        .call_async(&mut *runtime.store_mut(), &[], &mut results)
+                        .await
+                        .map_err(|e| {
+                            ComponentActorError::from(WasmError::execution_failed(
+                                format!(
+                                    "handle-message trapped in component {} (from {}, correlation: {}): {}",
+                                    component_id_str, sender_str, correlation_id, e
+                                )
+                            ))
+                        })?;
+
+                    debug!(
+                        component_id = %component_id_str,
+                        sender = %sender_str,
+                        correlation_id = %correlation_id,
+                        "handle-message export call completed successfully"
+                    );
+                } else {
+                    warn!(
+                        component_id = %component_id_str,
+                        sender = %sender_str,
+                        correlation_id = %correlation_id,
+                        "Component has no handle-message export, message discarded"
+                    );
+                }
+
+                Ok(())
+            }
+
             ComponentMessage::HealthCheck => {
                 use airssys_rt::supervisor::Child;
                 

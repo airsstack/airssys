@@ -711,6 +711,19 @@ pub enum ComponentMessage {
         payload: Vec<u8>,
     },
 
+    /// Message from another component with correlation ID (request-response).
+    ///
+    /// Used for request-response patterns where the sender expects a correlated
+    /// response message. The correlation_id allows matching responses to requests.
+    InterComponentWithCorrelation {
+        /// Sender component ID
+        sender: ComponentId,
+        /// Multicodec-encoded payload
+        payload: Vec<u8>,
+        /// Correlation ID for request-response pattern
+        correlation_id: uuid::Uuid,
+    },
+
     /// Signal to shutdown the actor.
     Shutdown,
 
