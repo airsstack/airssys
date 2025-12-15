@@ -58,7 +58,7 @@ use airssys_rt::util::ActorAddress;
 /// ComponentRegistry for tracking component instances.
 ///
 /// ComponentRegistry provides thread-safe O(1) lookup of component instances
-/// by ComponentId. It uses Arc<RwLock<HashMap>> for concurrent access with
+/// by ComponentId. It uses `Arc<RwLock<HashMap>>` for concurrent access with
 /// multiple readers or single writer.
 ///
 /// # Thread Safety

@@ -252,6 +252,88 @@ pub trait SupervisorNodeBridge: Send + Sync {
     ///     Ok(())
     /// }
     /// ```
+    /// Get restart statistics for a supervised component.
+    ///
+    /// Returns restart tracking data including total restarts, recent rate,
+    /// and last restart timestamp.
+    ///
+    /// # Parameters
+    ///
+    /// - `component_id`: Component to query
+    ///
+    /// # Returns
+    ///
+    /// - `Some(RestartStats)`: Component is supervised and has tracking data
+    /// - `None`: Component not found or not supervised
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// async fn stats_example(
+    ///     bridge: &dyn SupervisorNodeBridge,
+    ///     component_id: &ComponentId,
+    /// ) {
+    ///     if let Some(stats) = bridge.get_restart_stats(component_id) {
+    ///         println!("Total restarts: {}", stats.total_restarts);
+    ///         println!("Recent rate: {}/sec", stats.recent_rate);
+    ///     }
+    /// }
+    /// ```
+    fn get_restart_stats(&self, component_id: &ComponentId) -> Option<crate::actor::RestartStats>;
+
+    /// Reset restart tracking for a supervised component.
+    ///
+    /// Clears restart history, resets counters, and resets backoff state.
+    /// Useful after successful recovery or manual intervention.
+    ///
+    /// # Parameters
+    ///
+    /// - `component_id`: Component to reset
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// async fn reset_example(
+    ///     bridge: &mut dyn SupervisorNodeBridge,
+    ///     component_id: &ComponentId,
+    /// ) {
+    ///     bridge.reset_restart_tracking(component_id);
+    ///     println!("Restart tracking reset for component");
+    /// }
+    /// ```
+    fn reset_restart_tracking(&mut self, component_id: &ComponentId);
+
+    /// Query restart history for a supervised component.
+    ///
+    /// Returns up to `limit` most recent restart records (newest first).
+    ///
+    /// # Parameters
+    ///
+    /// - `component_id`: Component to query
+    /// - `limit`: Maximum number of records to return
+    ///
+    /// # Returns
+    ///
+    /// Vector of restart records (newest first), empty if component not found
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// async fn history_example(
+    ///     bridge: &dyn SupervisorNodeBridge,
+    ///     component_id: &ComponentId,
+    /// ) {
+    ///     let history = bridge.query_restart_history(component_id, 5);
+    ///     for record in history {
+    ///         println!("Restart at {:?}: {:?}", record.timestamp, record.reason);
+    ///     }
+    /// }
+    /// ```
+    fn query_restart_history(
+        &self,
+        component_id: &ComponentId,
+        limit: usize,
+    ) -> Vec<crate::actor::RestartRecord>;
     async fn stop_all(&mut self, timeout: Duration) -> Result<(), WasmError>;
 }
 

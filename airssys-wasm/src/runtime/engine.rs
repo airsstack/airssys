@@ -13,7 +13,7 @@
 //!
 //! # Design Decisions (ADR-WASM-002)
 //!
-//! - **Arc<Inner> Pattern**: Cheap cloning for multi-threaded use (M-SERVICES-CLONE)
+//! - **`Arc<Inner>` Pattern**: Cheap cloning for multi-threaded use (M-SERVICES-CLONE)
 //! - **Component Model**: WebAssembly Component Model support enabled
 //! - **Async Runtime**: Tokio integration for non-blocking execution
 //! - **Fuel Metering**: Hybrid CPU limiting (fuel + wall-clock timeout)
@@ -65,7 +65,7 @@ use crate::runtime::store_manager::StoreWrapper;
 ///
 /// # Design Pattern (M-SERVICES-CLONE)
 ///
-/// Uses the `Arc<Inner>` pattern for cheap cloning and thread-safe sharing.
+/// Uses the ``Arc<Inner>`` pattern for cheap cloning and thread-safe sharing.
 /// Multiple clones share the same underlying Wasmtime engine and component cache.
 ///
 /// # Configuration

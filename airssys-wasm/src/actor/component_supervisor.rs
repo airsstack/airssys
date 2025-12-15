@@ -666,6 +666,85 @@ impl ComponentSupervisor {
         }
     }
 
+    /// Get restart statistics for a supervised component.
+    ///
+    /// Queries the SupervisorNode bridge for detailed restart metrics including
+    /// total count, recent rate, and last restart time.
+    ///
+    /// # Parameters
+    ///
+    /// * `component_id` - Component to query
+    ///
+    /// # Returns
+    ///
+    /// Restart statistics if component is supervised and bridge is available, None otherwise
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// if let Some(stats) = supervisor.get_restart_stats(&component_id) {
+    ///     println!("Total restarts: {}", stats.total_restarts);
+    ///     println!("Recent rate: {:.2} restarts/sec", stats.recent_rate);
+    /// }
+    /// ```
+    pub fn get_restart_stats(
+        &self,
+        component_id: &ComponentId,
+    ) -> Option<crate::actor::supervisor_wrapper::RestartStats> {
+        // Check if component is supervised
+        if !self.supervision_handles.contains_key(component_id) {
+            return None;
+        }
+
+        // Query bridge if available
+        let bridge = self.supervisor_bridge.as_ref()?;
+        
+        
+        bridge.blocking_read().get_restart_stats(component_id)
+    }
+
+    /// Reset restart tracking for a supervised component.
+    ///
+    /// Clears restart history and counters for the component. Useful after
+    /// successful recovery or manual intervention.
+    ///
+    /// # Parameters
+    ///
+    /// * `component_id` - Component to reset
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(())` on success
+    /// - `Err(WasmError::ComponentNotFound)` if component not supervised
+    /// - `Err(WasmError::BridgeNotConfigured)` if bridge not available
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// supervisor.reset_restart_tracking(&component_id)?;
+    /// println!("Restart tracking reset for component");
+    /// ```
+    pub fn reset_restart_tracking(&mut self, component_id: &ComponentId) -> Result<(), WasmError> {
+        // Check if component is supervised
+        if !self.supervision_handles.contains_key(component_id) {
+            return Err(WasmError::component_not_found(format!("{:?}", component_id)));
+        }
+
+        // Reset local tracking
+        if let Some(handle) = self.supervision_handles.get_mut(component_id) {
+            handle.restart_count = 0;
+            handle.restart_history.clear();
+            handle.last_restart = None;
+        }
+
+        // Reset bridge tracking
+        if let Some(bridge) = &mut self.supervisor_bridge {
+            bridge.blocking_write().reset_restart_tracking(component_id);
+        }
+
+        Ok(())
+    }
+
     /// Set parent-child relationship in supervision tree.
     ///
     /// Builds hierarchy for advanced supervision tree management.

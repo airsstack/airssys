@@ -54,7 +54,9 @@ use airssys_rt::supervisor::{
 
 // Layer 3: Internal module imports
 use crate::actor::{
-    ComponentActor, ComponentSupervisionState, RestartPolicy, SupervisorConfig, SupervisorNodeBridge,
+    ComponentActor, ComponentSupervisionState, ExponentialBackoff, ExponentialBackoffConfig,
+    HealthMonitor, RestartPolicy, RestartRecord, RestartTracker, SlidingWindowConfig,
+    SlidingWindowLimiter, SupervisorConfig, SupervisorNodeBridge,
 };
 use crate::core::{ComponentId, WasmError};
 
@@ -88,6 +90,18 @@ pub struct SupervisorNodeWrapper {
 
     /// Reverse mapping: ChildId → ComponentId
     child_to_component: Arc<RwLock<HashMap<String, ComponentId>>>,
+
+    /// Per-component exponential backoff trackers
+    backoff_trackers: Arc<RwLock<HashMap<ComponentId, ExponentialBackoff>>>,
+
+    /// Per-component restart history trackers
+    restart_trackers: Arc<RwLock<HashMap<ComponentId, RestartTracker>>>,
+
+    /// Per-component sliding window limiters
+    window_limiters: Arc<RwLock<HashMap<ComponentId, SlidingWindowLimiter>>>,
+
+    /// Per-component health monitors
+    health_monitors: Arc<RwLock<HashMap<ComponentId, HealthMonitor>>>,
 }
 
 impl SupervisorNodeWrapper {
@@ -114,6 +128,10 @@ impl SupervisorNodeWrapper {
             supervisor: Arc::new(RwLock::new(supervisor_node)),
             component_to_child: Arc::new(RwLock::new(HashMap::new())),
             child_to_component: Arc::new(RwLock::new(HashMap::new())),
+            backoff_trackers: Arc::new(RwLock::new(HashMap::new())),
+            restart_trackers: Arc::new(RwLock::new(HashMap::new())),
+            window_limiters: Arc::new(RwLock::new(HashMap::new())),
+            health_monitors: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
@@ -143,6 +161,10 @@ impl SupervisorNodeWrapper {
             supervisor: Arc::new(RwLock::new(supervisor)),
             component_to_child: Arc::new(RwLock::new(HashMap::new())),
             child_to_component: Arc::new(RwLock::new(HashMap::new())),
+            backoff_trackers: Arc::new(RwLock::new(HashMap::new())),
+            restart_trackers: Arc::new(RwLock::new(HashMap::new())),
+            window_limiters: Arc::new(RwLock::new(HashMap::new())),
+            health_monitors: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
@@ -208,6 +230,56 @@ impl SupervisorNodeBridge for SupervisorNodeWrapper {
                     component_id.as_str()
                 )));
             }
+        }
+
+        // Initialize restart & backoff tracking systems
+        {
+            // Convert BackoffStrategy to ExponentialBackoffConfig
+            let backoff_config = match &config.backoff_strategy {
+                crate::actor::BackoffStrategy::Immediate => ExponentialBackoffConfig {
+                    base_delay: Duration::ZERO,
+                    max_delay: Duration::ZERO,
+                    multiplier: 1.0,
+                    jitter_factor: 0.0,
+                },
+                crate::actor::BackoffStrategy::Linear { base_delay } => ExponentialBackoffConfig {
+                    base_delay: *base_delay,
+                    max_delay: *base_delay * 10, // Cap at 10x base for linear
+                    multiplier: 1.0, // Linear = multiplier of 1.0
+                    jitter_factor: 0.1, // 10% jitter
+                },
+                crate::actor::BackoffStrategy::Exponential {
+                    base_delay,
+                    multiplier,
+                    max_delay,
+                } => ExponentialBackoffConfig {
+                    base_delay: *base_delay,
+                    max_delay: *max_delay,
+                    multiplier: *multiplier as f64,
+                    jitter_factor: 0.1, // 10% jitter
+                },
+            };
+
+            // Create tracking systems
+            let backoff = ExponentialBackoff::new(backoff_config);
+            let tracker = RestartTracker::new();
+            let window_config = SlidingWindowConfig {
+                max_restarts: config.max_restarts,
+                window_duration: config.time_window,
+            };
+            let limiter = SlidingWindowLimiter::new(window_config);
+            let health_monitor = HealthMonitor::new(Duration::from_secs(10)); // Default 10s check interval
+
+            // Store in wrapper
+            let mut backoff_trackers = self.backoff_trackers.write().await;
+            let mut restart_trackers = self.restart_trackers.write().await;
+            let mut window_limiters = self.window_limiters.write().await;
+            let mut health_monitors = self.health_monitors.write().await;
+
+            backoff_trackers.insert(component_id.clone(), backoff);
+            restart_trackers.insert(component_id.clone(), tracker);
+            window_limiters.insert(component_id.clone(), limiter);
+            health_monitors.insert(component_id.clone(), health_monitor);
         }
 
         // Create ChildSpec for SupervisorNode
@@ -342,12 +414,171 @@ impl SupervisorNodeBridge for SupervisorNodeWrapper {
 
         Ok(())
     }
+
+    fn get_restart_stats(&self, component_id: &ComponentId) -> Option<crate::actor::RestartStats> {
+        let trackers = self.restart_trackers.blocking_read();
+        let tracker = trackers.get(component_id)?;
+
+        let history = tracker.get_history(10); // Last 10 restarts
+        let last_restart = history.first().map(|r| r.timestamp);
+
+        Some(RestartStats {
+            total_restarts: tracker.total_restarts(),
+            recent_rate: tracker.recent_restart_rate(Duration::from_secs(60)),
+            last_restart,
+        })
+    }
+
+    fn reset_restart_tracking(&mut self, component_id: &ComponentId) {
+        // Reset all tracking systems for this component
+        if let Some(backoff) = self.backoff_trackers.blocking_write().get_mut(component_id) {
+            backoff.reset();
+        }
+        if let Some(tracker) = self.restart_trackers.blocking_write().get_mut(component_id) {
+            tracker.reset_on_recovery();
+        }
+        if let Some(limiter) = self.window_limiters.blocking_write().get_mut(component_id) {
+            limiter.reset();
+        }
+        if let Some(monitor) = self.health_monitors.blocking_write().get_mut(component_id) {
+            monitor.reset_on_recovery();
+        }
+    }
+
+    fn query_restart_history(
+        &self,
+        component_id: &ComponentId,
+        limit: usize,
+    ) -> Vec<crate::actor::RestartRecord> {
+        let trackers = self.restart_trackers.blocking_read();
+        trackers
+            .get(component_id)
+            .map(|t| t.get_history(limit))
+            .unwrap_or_default()
+    }
 }
 
 impl Default for SupervisorNodeWrapper {
     fn default() -> Self {
         Self::new()
     }
+}
+
+// Additional helper methods for restart statistics
+impl SupervisorNodeWrapper {
+    /// Get restart statistics for a component.
+    ///
+    /// Returns comprehensive restart data including total count, recent rate,
+    /// and last restart time.
+    ///
+    /// # Parameters
+    ///
+    /// - `component_id`: Component to query
+    ///
+    /// # Returns
+    ///
+    /// Restart statistics if component is supervised, None otherwise
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// let stats = wrapper.get_restart_stats(&component_id);
+    /// if let Some(stats) = stats {
+    ///     println!("Total restarts: {}", stats.total_restarts);
+    ///     println!("Recent rate: {} restarts/sec", stats.recent_rate);
+    /// }
+    /// ```
+    pub fn get_restart_stats(&self, component_id: &ComponentId) -> Option<RestartStats> {
+        let trackers = self.restart_trackers.blocking_read();
+        let tracker = trackers.get(component_id)?;
+
+        let history = tracker.get_history(10); // Last 10 restarts
+        let last_restart = history.first().map(|r| r.timestamp);
+
+        Some(RestartStats {
+            total_restarts: tracker.total_restarts(),
+            recent_rate: tracker.recent_restart_rate(Duration::from_secs(60)),
+            last_restart,
+        })
+    }
+
+    /// Reset restart tracking for a component.
+    ///
+    /// Clears restart history and resets counters. Useful after successful
+    /// recovery or manual intervention.
+    ///
+    /// # Parameters
+    ///
+    /// - `component_id`: Component to reset
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// wrapper.reset_restart_tracking(&component_id);
+    /// ```
+    pub fn reset_restart_tracking(&mut self, component_id: &ComponentId) {
+        // Reset all tracking systems for this component
+        if let Some(backoff) = self.backoff_trackers.blocking_write().get_mut(component_id) {
+            backoff.reset();
+        }
+        if let Some(tracker) = self.restart_trackers.blocking_write().get_mut(component_id) {
+            tracker.reset_on_recovery();
+        }
+        if let Some(limiter) = self.window_limiters.blocking_write().get_mut(component_id) {
+            limiter.reset();
+        }
+        if let Some(monitor) = self.health_monitors.blocking_write().get_mut(component_id) {
+            monitor.reset_on_recovery();
+        }
+    }
+
+    /// Query restart history for a component.
+    ///
+    /// Returns up to `limit` most recent restart records.
+    ///
+    /// # Parameters
+    ///
+    /// - `component_id`: Component to query
+    /// - `limit`: Maximum number of records to return
+    ///
+    /// # Returns
+    ///
+    /// Vector of restart records (newest first), empty if component not found
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// let history = wrapper.query_restart_history(&component_id, 5);
+    /// for record in history {
+    ///     println!("Restart at {:?}: {:?}", record.timestamp, record.reason);
+    /// }
+    /// ```
+    pub fn query_restart_history(
+        &self,
+        component_id: &ComponentId,
+        limit: usize,
+    ) -> Vec<RestartRecord> {
+        let trackers = self.restart_trackers.blocking_read();
+        trackers
+            .get(component_id)
+            .map(|t| t.get_history(limit))
+            .unwrap_or_default()
+    }
+}
+
+/// Restart statistics for a supervised component.
+///
+/// Provides aggregated metrics about component restart behavior.
+#[derive(Debug, Clone)]
+pub struct RestartStats {
+    /// Total number of restarts since component was registered
+    pub total_restarts: u32,
+
+    /// Recent restart rate (restarts per second in last 60s window)
+    pub recent_rate: f64,
+
+    /// Timestamp of most recent restart (if any)
+    pub last_restart: Option<std::time::Instant>,
 }
 
 #[cfg(test)]

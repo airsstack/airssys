@@ -95,7 +95,7 @@ pub use component_supervisor::{
     SupervisionStatistics, SupervisionTree, SupervisionTreeNode,
 };
 pub use supervisor_bridge::{ComponentSupervisionState, SupervisorNodeBridge};
-pub use supervisor_wrapper::SupervisorNodeWrapper;
+pub use supervisor_wrapper::{SupervisorNodeWrapper, RestartStats};
 pub use health_restart::HealthRestartConfig;
 pub use exponential_backoff::{ExponentialBackoff, ExponentialBackoffConfig};
 pub use restart_tracker::{RestartReason, RestartRecord, RestartTracker};

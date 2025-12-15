@@ -171,14 +171,14 @@ pub enum ConfigError {
 // Component.toml Configuration Structures
 // ============================================================================
 
-/// Component metadata from [component] section.
+/// Component metadata from \[component\] section.
 ///
 /// Basic identification and versioning information for the component.
 ///
 /// # Examples
 ///
 /// ```toml
-/// [component]
+/// \[component\]
 /// name = "my-component"
 /// version = "0.1.0"
 /// ```
@@ -246,7 +246,7 @@ pub struct CpuConfigToml {
     pub timeout_seconds: Option<u64>,
 }
 
-/// Resource configuration from [resources] section.
+/// Resource configuration from \[resources\] section.
 ///
 /// Contains memory configuration (MANDATORY) and CPU configuration (MANDATORY).
 /// Following ADR-WASM-002, both memory and CPU limits must be explicitly declared.
@@ -278,7 +278,7 @@ pub struct ResourcesConfigToml {
 ///
 /// # Validation Rules (ADR-WASM-002)
 ///
-/// - `[component]` section is required
+/// - `\[component\]` section is required
 /// - `[resources.memory]` section is MANDATORY
 ///   - Memory limits must be in range 512KB-4MB
 /// - `[resources.cpu]` section is MANDATORY

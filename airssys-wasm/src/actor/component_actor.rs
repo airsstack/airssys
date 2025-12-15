@@ -515,7 +515,7 @@ impl Drop for WasmRuntime {
 ///
 /// # Design Rationale
 ///
-/// - **Option<WasmRuntime>**: Allows safe handling of unloaded state (WASM loads in Child::start())
+/// - **`Option<WasmRuntime>`**: Allows safe handling of unloaded state (WASM loads in Child::start())
 /// - **State Machine**: ActorState tracks lifecycle transitions for monitoring
 /// - **Timestamps**: Track creation and start time for uptime calculations
 /// - **Mailbox Integration**: Receiver stored for message processing loop

@@ -37,7 +37,7 @@
 //! # References
 //!
 //! - **ADR-WASM-001**: Inter-Component Communication Design
-//! - **Multicodec Spec**: https://github.com/multiformats/multicodec
+//! - **Multicodec Spec**: <https://github.com/multiformats/multicodec>
 //! - **KNOWLEDGE-WASM-016**: Actor System Integration Implementation Guide (lines 438-666)
 
 // Layer 1: Standard library imports
