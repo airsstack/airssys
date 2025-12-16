@@ -36,16 +36,24 @@ Lightweight Erlang-Actor model runtime for high-concurrency applications.
 
 [View RT Documentation →](rt/index.md)
 
-## Components in Development
-
-These components are under active development and not yet covered in this unified documentation:
-
-### airssys-wasm
+### [WASM (Component Framework)](wasm/index.md)
 
 WebAssembly Component Framework for pluggable systems.
 
-**Status**: ⏳ In Development  
-**Documentation**: See individual mdbook docs in `airssys-wasm/docs/`
+**Status**: ⏳ In Development (Phase 6)  
+**Version**: 0.1.0  
+**Key Features**:
+- ComponentActor pattern (dual-trait)
+- Hot deployment capability
+- O(1) registry (36ns lookup)
+- High throughput (6.12M msg/sec)
+- Supervisor integration
+
+[View WASM Documentation →](wasm/index.md)
+
+## Components in Development
+
+These components are under active development and not yet covered in this unified documentation:
 
 ### airssys-wasm-cli
 
@@ -58,7 +66,7 @@ CLI tools for WASM component management.
 
 Procedural macros for OSL custom executors.
 
-**Status**: ⏳ In Development  
+**Status**: ✅ Complete  
 **Documentation**: See crate-level docs
 
 ### airssys-wasm-component
@@ -70,26 +78,33 @@ Procedural macros for WASM component development.
 
 ## Component Comparison
 
-| Feature | OSL | RT |
-|---------|-----|-----|
-| **Purpose** | OS abstraction & security | Actor concurrency |
-| **API Style** | Helper functions | Trait-based actors |
-| **Security** | ACL/RBAC policies | Actor isolation |
-| **Performance** | OS-bound operations | 4.7M msgs/sec |
-| **State** | Stateless operations | Encapsulated state |
-| **Async** | Tokio-based | Tokio-based |
-| **Testing** | 60+ tests | 336+ tests |
+| Feature | OSL | RT | WASM |
+|---------|-----|-----|------|
+| **Purpose** | OS abstraction | Actor runtime | Component framework |
+| **API Style** | Helper functions | Trait-based actors | ComponentActor pattern |
+| **Security** | ACL/RBAC | Actor isolation | Capability-based |
+| **Performance** | OS-bound | 4.7M msgs/sec | 6.12M msgs/sec |
+| **State** | Stateless | Encapsulated | Arc<RwLock<T>> |
+| **Async** | Tokio-based | Tokio-based | Tokio-based |
+| **Testing** | 419 tests | 381 tests | 945 tests |
+| **Benchmarks** | N/A | 12 benchmarks | 28 benchmarks |
 
 ## Integration
 
 Components are designed to integrate seamlessly:
 
 ```rust
-// RT supervises OSL operations
-use airssys_rt::supervisor::OSLSupervisor;
+// WASM components run on RT actor system
+use airssys_wasm::actor::ComponentActor;
+use airssys_rt::system::ActorSystem;
 
-let supervisor = OSLSupervisor::new(broker);
-supervisor.start().await?;
+let system = ActorSystem::new();
+let component = ComponentActor::new(id, metadata, capabilities).await?;
+system.spawn_component(component).await?;
+
+// Components use OSL for secure operations (via WASI)
+use airssys_osl::filesystem;
+filesystem::read_file("/secure/config.toml").await?;
 ```
 
 See [Integration Guide](../guides/integration.md) for detailed patterns.
@@ -108,25 +123,31 @@ See [Integration Guide](../guides/integration.md) for detailed patterns.
 - Message-based architectures
 - Supervision trees
 
-### Use both when you need:
-- Secure concurrent operations
-- Fault-tolerant system programming
-- Complete AirsStack integration
+### Use WASM when you need:
+- Hot-deployable components
+- Secure plugin systems
+- Multi-language component support
+- Runtime component updates
+
+### Use all three when you need:
+- Complete pluggable system architecture
+- Secure, fault-tolerant components
+- High-performance component runtime
 
 ## Component Roadmap
 
 ### Immediate (Current)
 - ✅ OSL core functionality
 - ✅ RT actor system
-- ✅ OSL-RT integration
+- ⏳ WASM component system (Phase 6)
 
 ### Short-term (Q1 2026)
-- ⏳ WASM component system
+- ⏳ WASM storage implementation
 - ⏳ CLI tools
-- ⏳ Macro enhancements
+- ⏳ Production deployment guides
 
 ### Long-term (2026+)
-- Distributed actor system
+- Distributed component system
 - Advanced WASM capabilities
 - Cloud-native features
 
@@ -137,4 +158,5 @@ Choose your starting point:
 1. **New to AirsSys?** Start with [Getting Started](../getting-started.md)
 2. **Want secure OS ops?** Go to [OSL Documentation](osl/index.md)
 3. **Need concurrency?** Go to [RT Documentation](rt/index.md)
-4. **Integrating both?** See [Integration Guide](../guides/integration.md)
+4. **Building plugins?** Go to [WASM Documentation](wasm/index.md)
+5. **Integrating multiple?** See [Integration Guide](../guides/integration.md)
