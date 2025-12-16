@@ -211,3 +211,35 @@
 
 ---
 **Note:** Knowledge documentation will be created during implementation phases (estimated Q3 2026+).
+## KNOWLEDGE-WASM-019: Runtime Dependency Architecture
+
+**Created:** 2025-12-16  
+**Status:** Active  
+**Category:** Architecture / Runtime Dependencies
+
+**Purpose:** Comprehensive analysis of runtime dependency architecture, documenting the relationship between Layer 0 (Tokio), Layer 2 (airssys-wasm), and Layer 3 (airssys-rt). Provides verification checklist, design principles, and decision guidelines for future development.
+
+**Key Topics:**
+- Runtime layers (Layer 0: Tokio, Layer 3: airssys-rt, Layer 2: airssys-wasm)
+- Correlation tracking case study (Phase 5 Task 5.1)
+- Runtime responsibility matrix
+- Request-response flow analysis
+- Performance implications
+- Design principles validation
+- Common misconceptions
+- Verification checklist
+
+**Related:**
+- ADR-WASM-018 (Three-Layer Architecture)
+- ADR-WASM-019 (Runtime Dependency Management)
+- KNOWLEDGE-WASM-016 (Actor System Integration)
+- KNOWLEDGE-WASM-018 (Component Definitions)
+
+**Use When:**
+- Implementing new airssys-wasm features
+- Deciding between Tokio vs airssys-rt usage
+- Verifying runtime dependency decisions
+- Understanding layer boundaries
+- Performance optimization
+
+**File:** `docs/knowledges/knowledge-wasm-019-runtime-dependency-architecture.md`

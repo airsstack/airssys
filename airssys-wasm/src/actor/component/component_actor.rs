@@ -583,6 +583,9 @@ pub struct ComponentActor {
 
     /// MessageBroker bridge (set during spawn)
     broker: Option<Arc<dyn crate::actor::message::MessageBrokerBridge>>,
+
+    /// Correlation tracker for request-response patterns (Phase 5 Task 5.1)
+    correlation_tracker: Option<Arc<crate::actor::message::CorrelationTracker>>,
 }
 
 /// Actor lifecycle state machine.
@@ -899,6 +902,7 @@ impl ComponentActor {
             created_at: Utc::now(),
             started_at: None,
             broker: None,
+            correlation_tracker: None,
         }
     }
 
@@ -1274,6 +1278,204 @@ impl ComponentActor {
             ))?;
 
         broker.subscribe(topic, &self.component_id).await
+    }
+
+    /// Set correlation tracker for request-response patterns (Phase 5 Task 5.1).
+    ///
+    /// Configures the correlation tracker used for managing request-response
+    /// correlation IDs and timeouts. Must be called before using send_request().
+    ///
+    /// # Arguments
+    ///
+    /// * `tracker` - Shared correlation tracker instance
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// use airssys_wasm::actor::{ComponentActor, CorrelationTracker};
+    /// use std::sync::Arc;
+    ///
+    /// let mut actor = ComponentActor::new(/* ... */);
+    /// let tracker = Arc::new(CorrelationTracker::new());
+    /// actor.set_correlation_tracker(tracker);
+    /// ```
+    pub fn set_correlation_tracker(
+        &mut self,
+        tracker: Arc<crate::actor::message::CorrelationTracker>,
+    ) {
+        self.correlation_tracker = Some(tracker);
+    }
+
+    /// Send request with correlation tracking and timeout (Phase 5 Task 5.1).
+    ///
+    /// Sends a request message to a target component with automatic correlation
+    /// ID generation, timeout enforcement, and response callback delivery via
+    /// oneshot channel.
+    ///
+    /// # Arguments
+    ///
+    /// * `target` - Target component ID
+    /// * `request` - Request payload (will be multicodec-encoded)
+    /// * `timeout` - Timeout duration
+    ///
+    /// # Returns
+    ///
+    /// Oneshot receiver for response (or timeout error)
+    ///
+    /// # Errors
+    ///
+    /// Returns error if:
+    /// - CorrelationTracker not configured (call set_correlation_tracker() first)
+    /// - Broker not configured (call set_broker() first)
+    /// - Multicodec encoding fails
+    /// - Request registration fails (duplicate correlation ID)
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// use airssys_wasm::actor::ComponentActor;
+    /// use airssys_wasm::core::ComponentId;
+    /// use std::time::Duration;
+    ///
+    /// async fn query_user(actor: &ComponentActor, user_id: &str) -> Result<Vec<u8>, WasmError> {
+    ///     let target = ComponentId::new("user-service");
+    ///     let request = encode_multicodec(&UserQuery { user_id: user_id.to_string() })?;
+    ///     
+    ///     // Send request with 5 second timeout
+    ///     let response_rx = actor.send_request(&target, request, Duration::from_secs(5)).await?;
+    ///     
+    ///     // Wait for response
+    ///     match response_rx.await {
+    ///         Ok(response) => {
+    ///             match response.result {
+    ///                 Ok(payload) => Ok(payload),
+    ///                 Err(e) => Err(WasmError::internal(format!("Request failed: {}", e))),
+    ///             }
+    ///         }
+    ///         Err(_) => Err(WasmError::internal("Response channel closed")),
+    ///     }
+    /// }
+    /// ```
+    pub async fn send_request(
+        &self,
+        target: &ComponentId,
+        payload: Vec<u8>,
+        timeout: std::time::Duration,
+    ) -> Result<tokio::sync::oneshot::Receiver<crate::actor::message::ResponseMessage>, WasmError> {
+        use crate::actor::message::{CorrelationId, RequestMessage};
+        use tokio::sync::oneshot;
+        use tokio::time::Instant;
+
+        // Verify correlation tracker configured
+        let tracker = self.correlation_tracker
+            .as_ref()
+            .ok_or_else(|| WasmError::internal(
+                "CorrelationTracker not configured - call set_correlation_tracker() first"
+            ))?;
+
+        // Generate correlation ID
+        let correlation_id = CorrelationId::new_v4();
+
+        // Create oneshot channel for response
+        let (response_tx, response_rx) = oneshot::channel();
+
+        // Register pending request (this is an internal type, we need to make it public or use a builder pattern)
+        // For now, we'll register directly with the internal struct
+        let pending_request = crate::actor::message::correlation_tracker::PendingRequest {
+            correlation_id,
+            response_tx,
+            requested_at: Instant::now(),
+            timeout: tokio::time::Duration::from_millis(timeout.as_millis() as u64),
+            from: self.component_id.clone(),
+            to: target.clone(),
+        };
+
+        tracker.register_pending(pending_request).await?;
+
+        // Create request message
+        let request_msg = RequestMessage::new(
+            self.component_id.clone(),
+            target.clone(),
+            payload,
+            timeout.as_millis() as u32,
+        );
+
+        // Publish request message via MessageBroker
+        let message = ComponentMessage::InterComponentWithCorrelation {
+            sender: self.component_id.clone(),
+            payload: serde_json::to_vec(&request_msg)
+                .map_err(|e| WasmError::internal(format!("Failed to serialize request: {}", e)))?,
+            correlation_id,
+        };
+
+        self.publish_message("requests", message).await?;
+
+        Ok(response_rx)
+    }
+
+    /// Send response to correlated request (Phase 5 Task 5.1).
+    ///
+    /// Sends a response message matching a previous request's correlation ID.
+    /// The response will be delivered to the original requester via the
+    /// correlation tracker.
+    ///
+    /// # Arguments
+    ///
+    /// * `correlation_id` - Correlation ID from incoming request
+    /// * `result` - Response payload or error
+    ///
+    /// # Errors
+    ///
+    /// Returns error if:
+    /// - CorrelationTracker not configured
+    /// - Correlation ID not found (already resolved or timed out)
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// use airssys_wasm::actor::ComponentActor;
+    ///
+    /// async fn handle_request(
+    ///     actor: &ComponentActor,
+    ///     correlation_id: uuid::Uuid,
+    ///     request_payload: Vec<u8>,
+    /// ) -> Result<(), WasmError> {
+    ///     // Process request
+    ///     let response_payload = process_request(&request_payload)?;
+    ///     
+    ///     // Send response
+    ///     actor.send_response(correlation_id, Ok(response_payload)).await?;
+    ///     Ok(())
+    /// }
+    /// ```
+    pub async fn send_response(
+        &self,
+        correlation_id: uuid::Uuid,
+        result: Result<Vec<u8>, crate::actor::message::RequestError>,
+    ) -> Result<(), WasmError> {
+        use crate::actor::message::ResponseMessage;
+        use chrono::Utc;
+
+        // Verify correlation tracker configured
+        let tracker = self.correlation_tracker
+            .as_ref()
+            .ok_or_else(|| WasmError::internal(
+                "CorrelationTracker not configured - call set_correlation_tracker() first"
+            ))?;
+
+        // Create response message
+        let response = ResponseMessage {
+            correlation_id,
+            from: self.component_id.clone(),
+            to: self.component_id.clone(), // Will be filled by tracker
+            result,
+            timestamp: Utc::now(),
+        };
+
+        // Resolve pending request
+        tracker.resolve(correlation_id, response).await?;
+
+        Ok(())
     }
 }
 

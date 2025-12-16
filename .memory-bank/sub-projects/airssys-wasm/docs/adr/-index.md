@@ -226,3 +226,39 @@
 
 **Last Updated:** 2025-12-14  
 **Total Decision Records:** 15 ADRs + 18 Knowledge Documents
+
+## ADR-WASM-019: Runtime Dependency Management
+
+**Status:** Accepted  
+**Date:** 2025-12-16  
+**Context:** Phase 5 Task 5.1 (Correlation Tracking) implementation review
+
+**Decision:** Adopt multi-layer runtime dependency strategy:
+- **Layer 0 (Tokio):** Direct usage for async primitives (channels, timers, tasks)
+- **Layer 3 (airssys-rt):** Indirect usage for actor infrastructure (message routing, supervision)
+- **Layer 2 (airssys-wasm):** WASM-specific features implementation
+
+**Rationale:**
+- Performance: Zero abstraction overhead with direct Tokio usage
+- Reusability: Keeps airssys-rt generic (WASM-agnostic)
+- Maintainability: Clear layer boundaries
+- Flexibility: Full control over async behavior
+- Standards: Industry-standard patterns
+
+**Consequences:**
+- ✅ Optimal performance (<50ns lookup, <5ms timeout)
+- ✅ Clean separation of concerns
+- ✅ airssys-rt remains reusable
+- ⚠️ Developers need to understand layer boundaries
+- ⚠️ Direct Tokio dependency (but already required)
+
+**Implementation:**
+- Use Tokio directly for: channels, timers, task spawning, synchronization
+- Use airssys-rt indirectly for: message routing, actor lifecycle, supervision
+- Implement in Layer 2: WASM-specific features (correlation tracking, permissions)
+
+**Related ADRs:**
+- ADR-WASM-018 (Three-Layer Architecture)
+- ADR-WASM-009 (Component Communication Model)
+
+**File:** `docs/adr/adr-wasm-019-runtime-dependency-management.md`

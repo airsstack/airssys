@@ -117,7 +117,9 @@ pub use health::{
 // Message subdomain re-exports
 #[doc(inline)]
 pub use message::{
-    ActorSystemSubscriber, MessageBrokerBridge, MessageBrokerWrapper,
-    MessagePublisher, MessageRouter, RoutingStats, SubHandle,
-    SubscriberManager, SubscriptionHandle, TopicFilter, UnifiedRouter,
+    ActorSystemSubscriber, CorrelationId, CorrelationTracker,
+    MessageBrokerBridge, MessageBrokerWrapper, MessagePublisher,
+    MessageRouter, PendingRequest, RequestError, RequestMessage,
+    ResponseMessage, RoutingStats, SubHandle, SubscriberManager,
+    SubscriptionHandle, TimeoutHandler, TopicFilter, UnifiedRouter,
 };
