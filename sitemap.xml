@@ -2,382 +2,458 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://airsstack.github.io/airssys/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/architecture/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/contributing/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/getting-started/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/overview/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/osl/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/osl/api/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/osl/api/core-types/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/osl/api/filesystem/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/osl/api/logging/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/osl/api/macros/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/osl/api/process/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/osl/api/security/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/osl/architecture/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/osl/architecture/core-framework/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/osl/architecture/platform-abstractions/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/osl/architecture/security-model/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/osl/guides/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/osl/guides/configuration/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/osl/guides/custom-executors/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/osl/guides/logging-config/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/osl/guides/middleware/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/osl/guides/security-setup/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/osl/guides/testing/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/osl/reference/compatibility/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/osl/reference/error-handling/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/osl/reference/performance/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/osl/reference/security-practices/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/api/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/architecture/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/chapter_1/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/explanation/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/guides/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/implementation/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/reference/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/researches/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/tutorials/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/api/actor-traits/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/api/core-types/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/api/message-types/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/api/supervisor-api/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/architecture/actor-model/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/architecture/components/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/architecture/core-concepts/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/architecture/message-passing/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/architecture/process-lifecycle/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/architecture/supervision/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/architecture/system-overview/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/explanation/actor-model/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/explanation/builder-pattern/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/explanation/future-use-cases/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/explanation/message-passing/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/explanation/performance-design/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/explanation/supervision/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/guides/actor-development/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/guides/message-passing/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/guides/supervisor-patterns/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/performance/benchmarking/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/performance/optimization/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/performance/targets/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/reference/api/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/reference/architecture/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/reference/performance/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/reference/troubleshooting/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/reference/api/actors/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/reference/api/broker/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/reference/api/core/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/reference/api/mailbox/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/reference/api/messaging/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/reference/api/monitoring/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/reference/api/supervisors/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/reference/architecture/components/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/reference/architecture/message-passing/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/reference/architecture/process-lifecycle/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/reference/architecture/supervision/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/reference/architecture/system-overview/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/researches/beam-inspired-runtime/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/researches/beam-model/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/researches/rust-actor-ecosystem/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/tutorials/actor-creation/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/tutorials/getting-started/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/tutorials/message-handling/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/components/rt/tutorials/supervision-setup/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
+    </url>
+    <url>
+         <loc>https://airsstack.github.io/airssys/components/wasm/</loc>
+         <lastmod>2025-12-16</lastmod>
+    </url>
+    <url>
+         <loc>https://airsstack.github.io/airssys/components/wasm/architecture/</loc>
+         <lastmod>2025-12-16</lastmod>
+    </url>
+    <url>
+         <loc>https://airsstack.github.io/airssys/components/wasm/api/component-actor/</loc>
+         <lastmod>2025-12-16</lastmod>
+    </url>
+    <url>
+         <loc>https://airsstack.github.io/airssys/components/wasm/api/lifecycle-hooks/</loc>
+         <lastmod>2025-12-16</lastmod>
+    </url>
+    <url>
+         <loc>https://airsstack.github.io/airssys/components/wasm/explanation/dual-trait-design/</loc>
+         <lastmod>2025-12-16</lastmod>
+    </url>
+    <url>
+         <loc>https://airsstack.github.io/airssys/components/wasm/explanation/production-readiness/</loc>
+         <lastmod>2025-12-16</lastmod>
+    </url>
+    <url>
+         <loc>https://airsstack.github.io/airssys/components/wasm/explanation/state-management-patterns/</loc>
+         <lastmod>2025-12-16</lastmod>
+    </url>
+    <url>
+         <loc>https://airsstack.github.io/airssys/components/wasm/explanation/supervision-architecture/</loc>
+         <lastmod>2025-12-16</lastmod>
+    </url>
+    <url>
+         <loc>https://airsstack.github.io/airssys/components/wasm/guides/best-practices/</loc>
+         <lastmod>2025-12-16</lastmod>
+    </url>
+    <url>
+         <loc>https://airsstack.github.io/airssys/components/wasm/guides/component-composition/</loc>
+         <lastmod>2025-12-16</lastmod>
+    </url>
+    <url>
+         <loc>https://airsstack.github.io/airssys/components/wasm/guides/production-deployment/</loc>
+         <lastmod>2025-12-16</lastmod>
+    </url>
+    <url>
+         <loc>https://airsstack.github.io/airssys/components/wasm/guides/pubsub-broadcasting/</loc>
+         <lastmod>2025-12-16</lastmod>
+    </url>
+    <url>
+         <loc>https://airsstack.github.io/airssys/components/wasm/guides/request-response-pattern/</loc>
+         <lastmod>2025-12-16</lastmod>
+    </url>
+    <url>
+         <loc>https://airsstack.github.io/airssys/components/wasm/guides/supervision-and-recovery/</loc>
+         <lastmod>2025-12-16</lastmod>
+    </url>
+    <url>
+         <loc>https://airsstack.github.io/airssys/components/wasm/guides/troubleshooting/</loc>
+         <lastmod>2025-12-16</lastmod>
+    </url>
+    <url>
+         <loc>https://airsstack.github.io/airssys/components/wasm/reference/message-routing/</loc>
+         <lastmod>2025-12-16</lastmod>
+    </url>
+    <url>
+         <loc>https://airsstack.github.io/airssys/components/wasm/reference/performance-characteristics/</loc>
+         <lastmod>2025-12-16</lastmod>
+    </url>
+    <url>
+         <loc>https://airsstack.github.io/airssys/components/wasm/tutorials/stateful-component-tutorial/</loc>
+         <lastmod>2025-12-16</lastmod>
+    </url>
+    <url>
+         <loc>https://airsstack.github.io/airssys/components/wasm/tutorials/your-first-component-actor/</loc>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/examples/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/examples/osl-examples/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/examples/rt-examples/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/guides/integration/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/guides/performance/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/guides/security/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/research/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/research/rt/beam-inspired-runtime/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/research/rt/beam-model/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
     <url>
          <loc>https://airsstack.github.io/airssys/research/rt/rust-actor-ecosystem/</loc>
-         <lastmod>2025-12-10</lastmod>
+         <lastmod>2025-12-16</lastmod>
     </url>
 </urlset>
