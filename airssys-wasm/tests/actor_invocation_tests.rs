@@ -51,11 +51,12 @@ fn create_test_metadata(name: &str) -> ComponentMetadata {
 }
 
 /// Create test component actor
-fn create_test_actor(name: &str) -> ComponentActor {
+fn create_test_actor(name: &str) -> ComponentActor<()> {
     ComponentActor::new(
         ComponentId::new(name),
         create_test_metadata(name),
         CapabilitySet::new(),
+        (),
     )
 }
 

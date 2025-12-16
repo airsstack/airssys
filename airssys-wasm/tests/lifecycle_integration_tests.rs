@@ -28,7 +28,7 @@ use tokio::sync::Mutex;
 // Layer 3: Internal module imports
 use airssys_wasm::actor::{ActorState, ComponentActor, ComponentMessage};
 use airssys_wasm::actor::lifecycle::{
-    EventCallback, HookResult, LifecycleContext, LifecycleHooks, RestartReason,
+    EventCallback, HookResult, LifecycleContext, LifecycleHooks,
 };
 use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits, WasmError};
 use airssys_rt::supervisor::Child;
@@ -84,6 +84,7 @@ impl TrackingHooks {
         }
     }
 
+    #[allow(dead_code)]
     fn get_counts(&self) -> (u64, u64, u64, u64, u64, u64) {
         (
             self.pre_start_called.load(Ordering::SeqCst),
@@ -202,9 +203,9 @@ async fn test_complete_lifecycle_with_hooks() {
     // Set up tracking hooks
     let hooks = TrackingHooks::new();
     let pre_start_counter = Arc::clone(&hooks.pre_start_called);
-    let post_start_counter = Arc::clone(&hooks.post_start_called);
-    let pre_stop_counter = Arc::clone(&hooks.pre_stop_called);
-    let post_stop_counter = Arc::clone(&hooks.post_stop_called);
+    let _post_start_counter = Arc::clone(&hooks.post_start_called);
+    let _pre_stop_counter = Arc::clone(&hooks.pre_stop_called);
+    let _post_stop_counter = Arc::clone(&hooks.post_stop_called);
 
     actor.set_lifecycle_hooks(Box::new(hooks));
 
