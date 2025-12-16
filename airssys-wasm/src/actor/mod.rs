@@ -81,9 +81,10 @@
 
 // Subdomain module declarations
 pub mod component;
-pub mod supervisor;
 pub mod health;
+pub mod lifecycle;
 pub mod message;
+pub mod supervisor;
 
 // Public re-exports for backward compatibility and ergonomic imports
 
@@ -112,6 +113,14 @@ pub use supervisor::{
 pub use health::{
     HealthDecision, HealthMonitor, HealthRestartConfig,
     MonitorHealthStatus,
+};
+
+// Lifecycle subdomain re-exports
+#[doc(inline)]
+pub use lifecycle::{
+    EventCallback, HookResult, LifecycleContext, LifecycleHooks,
+    NoOpEventCallback, NoOpHooks, RestartReason as LifecycleRestartReason,
+    call_hook_with_timeout, catch_unwind_hook,
 };
 
 // Message subdomain re-exports
