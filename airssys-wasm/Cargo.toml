@@ -84,5 +84,9 @@ harness = false
 name = "routing_benchmarks"
 harness = false
 
+[[bench]]
+name = "actor_lifecycle_benchmarks"
+harness = false
+
 [lints]
 workspace = true
