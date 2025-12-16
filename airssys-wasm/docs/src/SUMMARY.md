@@ -5,7 +5,13 @@
 
 ---
 
-# User Guides
+# Tutorials
+
+- [Your First ComponentActor](./tutorials/your-first-component-actor.md)
+
+---
+
+# How-To Guides
 
 - [Getting Started](./guides/getting-started.md)
 - [Troubleshooting](./guides/troubleshooting.md)
@@ -13,6 +19,13 @@
 ---
 
 # API Reference
+
+## ComponentActor
+
+- [ComponentActor API](./api/component-actor.md)
+- [Lifecycle Hooks](./api/lifecycle-hooks.md)
+
+## WIT Interfaces
 
 - [WIT Interfaces](./api/wit-interfaces.md)
 - [Component.toml Specification](./reference/component-toml-spec.md)
