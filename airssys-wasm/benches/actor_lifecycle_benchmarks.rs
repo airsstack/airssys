@@ -237,7 +237,7 @@ fn bench_hook_execution_stateful(c: &mut Criterion) {
     c.bench_function("hook_execution_stateful", |b| {
         b.to_async(&rt).iter(|| async {
             let state = Arc::new(RwLock::new(0u64));
-            let state_clone = state.clone();
+            let state_clone = Arc::clone(&state);
 
             // Simulate hook with state access
             let mut write_guard = state_clone.write().await;
