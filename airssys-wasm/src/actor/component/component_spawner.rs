@@ -271,7 +271,7 @@ impl<B: MessageBroker<ComponentMessage> + Clone + Send + Sync + 'static> Compone
         capabilities: CapabilitySet,
     ) -> Result<ActorAddress, WasmError> {
         // 1. Create ComponentActor instance
-        let mut actor = ComponentActor::new(component_id.clone(), metadata, capabilities);
+        let mut actor = ComponentActor::new(component_id.clone(), metadata, capabilities, ());
 
         // 2. Inject MessageBroker bridge
         // Create broker wrapper and inject into actor
@@ -358,7 +358,7 @@ impl<B: MessageBroker<ComponentMessage> + Clone + Send + Sync + 'static> Compone
             .ok_or_else(|| WasmError::internal("Supervision not enabled - use with_supervision()"))?;
 
         // 1. Create ComponentActor instance
-        let mut actor = ComponentActor::new(component_id.clone(), metadata, capabilities);
+        let mut actor = ComponentActor::new(component_id.clone(), metadata, capabilities, ());
 
         // 2. Inject MessageBroker bridge
         let broker_wrapper = Arc::new(

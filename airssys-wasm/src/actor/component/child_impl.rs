@@ -60,7 +60,10 @@ use crate::core::WasmError;
 /// - **stop()**: Call _cleanup export, drop WasmRuntime, verify resource cleanup
 /// - **health_check()**: Call _health export if available, map to ChildHealth
 #[async_trait]
-impl Child for ComponentActor {
+impl<S> Child for ComponentActor<S>
+where
+    S: Send + Sync + 'static,
+{
     type Error = WasmError;
 
     /// Start the component by loading and instantiating WASM.
@@ -129,6 +132,46 @@ impl Child for ComponentActor {
     /// }
     /// ```
     async fn start(&mut self) -> Result<(), Self::Error> {
+        // PHASE 5 TASK 5.2: Call pre_start hook
+        // Note: We don't have ActorAddress in Child::start() context, so we create
+        // a placeholder context. Full context will be available in Actor::handle_message().
+        let lifecycle_ctx = crate::actor::lifecycle::LifecycleContext {
+            component_id: self.component_id().clone(),
+            actor_address: airssys_rt::ActorAddress::anonymous(),
+            timestamp: Utc::now(),
+        };
+
+        // Call pre_start hook synchronously (hooks are sync, not async)
+        let hook_result = {
+            let ctx_clone = lifecycle_ctx.clone();
+            crate::actor::lifecycle::catch_unwind_hook(|| {
+                self.hooks_mut().pre_start(&ctx_clone)
+            })
+        };
+
+        match hook_result {
+            crate::actor::lifecycle::HookResult::Ok => {
+                tracing::debug!(
+                    component_id = %self.component_id().as_str(),
+                    "pre_start hook completed successfully"
+                );
+            }
+            crate::actor::lifecycle::HookResult::Error(e) => {
+                tracing::warn!(
+                    component_id = %self.component_id().as_str(),
+                    error = %e,
+                    "pre_start hook returned error (continuing startup)"
+                );
+            }
+            crate::actor::lifecycle::HookResult::Timeout => {
+                // catch_unwind_hook doesn't timeout, this shouldn't happen
+                tracing::warn!(
+                    component_id = %self.component_id().as_str(),
+                    "pre_start hook unexpectedly timed out"
+                );
+            }
+        }
+
         // 1. Transition to Starting state
         self.set_state(ActorState::Starting);
         
@@ -257,6 +300,36 @@ impl Child for ComponentActor {
             fuel_limit = max_fuel,
             "Component started successfully"
         );
+
+        // PHASE 5 TASK 5.2: Call post_start hook
+        let hook_result = {
+            let ctx_clone = lifecycle_ctx.clone();
+            crate::actor::lifecycle::catch_unwind_hook(|| {
+                self.hooks_mut().post_start(&ctx_clone)
+            })
+        };
+
+        match hook_result {
+            crate::actor::lifecycle::HookResult::Ok => {
+                tracing::debug!(
+                    component_id = %self.component_id().as_str(),
+                    "post_start hook completed successfully"
+                );
+            }
+            crate::actor::lifecycle::HookResult::Error(e) => {
+                tracing::warn!(
+                    component_id = %self.component_id().as_str(),
+                    error = %e,
+                    "post_start hook returned error (startup complete)"
+                );
+            }
+            crate::actor::lifecycle::HookResult::Timeout => {
+                tracing::warn!(
+                    component_id = %self.component_id().as_str(),
+                    "post_start hook unexpectedly timed out"
+                );
+            }
+        }
         
         Ok(())
     }
@@ -329,6 +402,42 @@ impl Child for ComponentActor {
     /// }
     /// ```
     async fn stop(&mut self, timeout: Duration) -> Result<(), Self::Error> {
+        // PHASE 5 TASK 5.2: Call pre_stop hook
+        let lifecycle_ctx = crate::actor::lifecycle::LifecycleContext {
+            component_id: self.component_id().clone(),
+            actor_address: airssys_rt::ActorAddress::anonymous(),
+            timestamp: Utc::now(),
+        };
+
+        let hook_result = {
+            let ctx_clone = lifecycle_ctx.clone();
+            crate::actor::lifecycle::catch_unwind_hook(|| {
+                self.hooks_mut().pre_stop(&ctx_clone)
+            })
+        };
+
+        match hook_result {
+            crate::actor::lifecycle::HookResult::Ok => {
+                tracing::debug!(
+                    component_id = %self.component_id().as_str(),
+                    "pre_stop hook completed successfully"
+                );
+            }
+            crate::actor::lifecycle::HookResult::Error(e) => {
+                tracing::warn!(
+                    component_id = %self.component_id().as_str(),
+                    error = %e,
+                    "pre_stop hook returned error (continuing shutdown)"
+                );
+            }
+            crate::actor::lifecycle::HookResult::Timeout => {
+                tracing::warn!(
+                    component_id = %self.component_id().as_str(),
+                    "pre_stop hook unexpectedly timed out"
+                );
+            }
+        }
+
         // 1. Transition to Stopping state
         self.set_state(ActorState::Stopping);
         
@@ -391,6 +500,36 @@ impl Child for ComponentActor {
                 component_id = %self.component_id().as_str(),
                 "Component stopped successfully (never started)"
             );
+        }
+
+        // PHASE 5 TASK 5.2: Call post_stop hook
+        let hook_result = {
+            let ctx_clone = lifecycle_ctx.clone();
+            crate::actor::lifecycle::catch_unwind_hook(|| {
+                self.hooks_mut().post_stop(&ctx_clone)
+            })
+        };
+
+        match hook_result {
+            crate::actor::lifecycle::HookResult::Ok => {
+                tracing::debug!(
+                    component_id = %self.component_id().as_str(),
+                    "post_stop hook completed successfully"
+                );
+            }
+            crate::actor::lifecycle::HookResult::Error(e) => {
+                tracing::warn!(
+                    component_id = %self.component_id().as_str(),
+                    error = %e,
+                    "post_stop hook returned error (shutdown complete)"
+                );
+            }
+            crate::actor::lifecycle::HookResult::Timeout => {
+                tracing::warn!(
+                    component_id = %self.component_id().as_str(),
+                    "post_stop hook unexpectedly timed out"
+                );
+            }
         }
         
         Ok(())
@@ -473,7 +612,10 @@ impl Child for ComponentActor {
     }
 }
 
-impl ComponentActor {
+impl<S> ComponentActor<S>
+where
+    S: Send + Sync + 'static,
+{
     /// Inner health check implementation without timeout protection.
     ///
     /// Implements comprehensive health aggregation logic based on component state
@@ -689,7 +831,7 @@ impl ComponentActor {
     /// // WASM component returns bytes from _health export
     /// let health_bytes = vec![0x81, 0x0E, 0x00]; // Borsh Healthy
     ///
-    /// let status = ComponentActor::parse_health_status(&health_bytes)?;
+    /// let status = ComponentActor::<()>::parse_health_status(&health_bytes)?;
     /// assert_eq!(status, HealthStatus::Healthy);
     /// ```
     ///
@@ -780,6 +922,7 @@ mod tests {
             ComponentId::new("test-component"),
             create_test_metadata(),
             CapabilitySet::new(),
+            (),
         )
     }
 
@@ -1121,7 +1264,7 @@ mod tests {
     /// Test: parse_health_status() with empty bytes → Error
     #[test]
     fn test_parse_health_status_empty_bytes_error() {
-        let result = ComponentActor::parse_health_status(&[]);
+        let result = ComponentActor::<()>::parse_health_status(&[]);
         assert!(result.is_err());
         
         if let Err(e) = result {
@@ -1141,7 +1284,7 @@ mod tests {
         let encoded = encode_multicodec(Codec::Borsh, &borsh_bytes).unwrap();
         
         // Parse back
-        let parsed = ComponentActor::parse_health_status(&encoded).unwrap();
+        let parsed = ComponentActor::<()>::parse_health_status(&encoded).unwrap();
         assert_eq!(parsed, HealthStatus::Healthy);
     }
 
@@ -1157,7 +1300,7 @@ mod tests {
         let borsh_bytes = borsh::to_vec(&status).unwrap();
         let encoded = encode_multicodec(Codec::Borsh, &borsh_bytes).unwrap();
         
-        let parsed = ComponentActor::parse_health_status(&encoded).unwrap();
+        let parsed = ComponentActor::<()>::parse_health_status(&encoded).unwrap();
         assert_eq!(parsed, status);
     }
 
@@ -1173,7 +1316,7 @@ mod tests {
         let borsh_bytes = borsh::to_vec(&status).unwrap();
         let encoded = encode_multicodec(Codec::Borsh, &borsh_bytes).unwrap();
         
-        let parsed = ComponentActor::parse_health_status(&encoded).unwrap();
+        let parsed = ComponentActor::<()>::parse_health_status(&encoded).unwrap();
         assert_eq!(parsed, status);
     }
 
@@ -1187,7 +1330,7 @@ mod tests {
         let json_bytes = serde_json::to_vec(&status).unwrap();
         let encoded = encode_multicodec(Codec::JSON, &json_bytes).unwrap();
         
-        let parsed = ComponentActor::parse_health_status(&encoded).unwrap();
+        let parsed = ComponentActor::<()>::parse_health_status(&encoded).unwrap();
         assert_eq!(parsed, HealthStatus::Healthy);
     }
 
@@ -1203,7 +1346,7 @@ mod tests {
         let json_bytes = serde_json::to_vec(&status).unwrap();
         let encoded = encode_multicodec(Codec::JSON, &json_bytes).unwrap();
         
-        let parsed = ComponentActor::parse_health_status(&encoded).unwrap();
+        let parsed = ComponentActor::<()>::parse_health_status(&encoded).unwrap();
         assert_eq!(parsed, status);
     }
 
@@ -1217,7 +1360,7 @@ mod tests {
         let cbor_bytes = serde_cbor::to_vec(&status).unwrap();
         let encoded = encode_multicodec(Codec::CBOR, &cbor_bytes).unwrap();
         
-        let parsed = ComponentActor::parse_health_status(&encoded).unwrap();
+        let parsed = ComponentActor::<()>::parse_health_status(&encoded).unwrap();
         assert_eq!(parsed, HealthStatus::Healthy);
     }
 
@@ -1233,7 +1376,7 @@ mod tests {
         let cbor_bytes = serde_cbor::to_vec(&status).unwrap();
         let encoded = encode_multicodec(Codec::CBOR, &cbor_bytes).unwrap();
         
-        let parsed = ComponentActor::parse_health_status(&encoded).unwrap();
+        let parsed = ComponentActor::<()>::parse_health_status(&encoded).unwrap();
         assert_eq!(parsed, status);
     }
 
@@ -1242,7 +1385,7 @@ mod tests {
     fn test_parse_health_status_invalid_multicodec() {
         // Invalid multicodec prefix
         let invalid_bytes = vec![0xFF, 0xFF, 0xFF, 0xFF];
-        let result = ComponentActor::parse_health_status(&invalid_bytes);
+        let result = ComponentActor::<()>::parse_health_status(&invalid_bytes);
         assert!(result.is_err());
     }
 
@@ -1256,7 +1399,7 @@ mod tests {
         let invalid_payload = vec![0x99, 0x99, 0x99];
         let encoded = encode_multicodec(Codec::Borsh, &invalid_payload).unwrap();
         
-        let result = ComponentActor::parse_health_status(&encoded);
+        let result = ComponentActor::<()>::parse_health_status(&encoded);
         assert!(result.is_err());
         
         if let Err(e) = result {
@@ -1278,7 +1421,7 @@ mod tests {
         let mislabeled = encode_multicodec(Codec::Borsh, &json_bytes).unwrap();
         
         // Should still parse correctly because we try all formats
-        let parsed = ComponentActor::parse_health_status(&mislabeled).unwrap();
+        let parsed = ComponentActor::<()>::parse_health_status(&mislabeled).unwrap();
         assert_eq!(parsed, status);
     }
 
@@ -1294,7 +1437,7 @@ mod tests {
         
         let borsh_bytes = borsh::to_vec(&original).unwrap();
         let encoded = encode_multicodec(Codec::Borsh, &borsh_bytes).unwrap();
-        let parsed = ComponentActor::parse_health_status(&encoded).unwrap();
+        let parsed = ComponentActor::<()>::parse_health_status(&encoded).unwrap();
         
         assert_eq!(parsed, original);
     }
@@ -1311,7 +1454,7 @@ mod tests {
         
         let json_bytes = serde_json::to_vec(&original).unwrap();
         let encoded = encode_multicodec(Codec::JSON, &json_bytes).unwrap();
-        let parsed = ComponentActor::parse_health_status(&encoded).unwrap();
+        let parsed = ComponentActor::<()>::parse_health_status(&encoded).unwrap();
         
         assert_eq!(parsed, original);
     }
@@ -1334,7 +1477,7 @@ mod tests {
         // Measure parsing time (should be <1ms)
         let start = Instant::now();
         for _ in 0..1000 {
-            let _ = ComponentActor::parse_health_status(&borsh_encoded).unwrap();
+            let _ = ComponentActor::<()>::parse_health_status(&borsh_encoded).unwrap();
         }
         let elapsed = start.elapsed();
         

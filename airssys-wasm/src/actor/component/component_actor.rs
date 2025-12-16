@@ -80,6 +80,7 @@ use std::time::Duration;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::UnboundedReceiver;
+use tokio::sync::RwLock;
 use wasmtime::{Engine, Instance, Store};
 
 // Layer 3: Internal module imports
@@ -527,7 +528,13 @@ impl Drop for WasmRuntime {
 /// - **Message throughput**: >10,000 messages/sec per component
 /// - **Memory footprint**: <2MB per instance
 ///
-/// # Example
+/// # Generic Parameters
+///
+/// - `S`: Custom state type for this component (default: `()` for no state)
+///   - Must be `Send + Sync + 'static` for thread-safe actor execution
+///   - State is protected by `Arc<RwLock<S>>` for concurrent access
+///
+/// # Example (No State)
 ///
 /// ```rust
 /// use airssys_wasm::actor::{ComponentActor, ActorState};
@@ -549,14 +556,40 @@ impl Drop for WasmRuntime {
 /// };
 /// let caps = CapabilitySet::new();
 ///
-/// let actor = ComponentActor::new(component_id.clone(), metadata, caps);
+/// // Default generic parameter () for no state
+/// let actor = ComponentActor::new(component_id.clone(), metadata, caps, ());
 ///
 /// assert_eq!(actor.component_id(), &component_id);
 /// assert_eq!(*actor.state(), ActorState::Creating);
 /// assert!(!actor.is_wasm_loaded());
 /// ```
+///
+/// # Example (With Custom State)
+///
+/// ```rust,ignore
+/// use airssys_wasm::actor::ComponentActor;
+///
+/// #[derive(Default)]
+/// struct MyComponentState {
+///     request_count: u64,
+///     last_error: Option<String>,
+/// }
+///
+/// let actor: ComponentActor<MyComponentState> = ComponentActor::new(
+///     component_id,
+///     metadata,
+///     caps,
+///     MyComponentState::default(),
+/// );
+///
+/// // Access state
+/// actor.with_state_mut(|state| state.request_count += 1).await;
+/// ```
 #[allow(dead_code)] // Fields will be used in future tasks
-pub struct ComponentActor {
+pub struct ComponentActor<S = ()>
+where
+    S: Send + Sync + 'static,
+{
     /// Unique component identifier
     component_id: ComponentId,
 
@@ -586,6 +619,41 @@ pub struct ComponentActor {
 
     /// Correlation tracker for request-response patterns (Phase 5 Task 5.1)
     correlation_tracker: Option<Arc<crate::actor::message::CorrelationTracker>>,
+
+    /// Custom component state (generic type S)
+    ///
+    /// Thread-safe state storage using `Arc<RwLock<S>>`. Access via:
+    /// - `with_state()` - Read-only access
+    /// - `with_state_mut()` - Mutable access
+    /// - `state()` - Direct read lock
+    /// - `state_mut()` - Direct write lock
+    ///
+    /// Default generic `()` provides zero-overhead no-state variant.
+    custom_state: Arc<RwLock<S>>,
+
+    /// Lifecycle hooks for extensibility (Phase 5 Task 5.2)
+    ///
+    /// Hooks are called at key lifecycle events:
+    /// - `pre_start()` / `post_start()` - Before/after WASM instantiation
+    /// - `pre_stop()` / `post_stop()` - Before/after cleanup
+    /// - `on_message_received()` - Before message routing
+    /// - `on_error()` - On any error
+    /// - `on_restart()` - On supervisor restart
+    ///
+    /// Default: `NoOpHooks` (zero overhead)
+    hooks: Box<dyn crate::actor::lifecycle::LifecycleHooks>,
+
+    /// Event callback for monitoring (Phase 5 Task 5.2)
+    ///
+    /// Optional callback for observability:
+    /// - `on_message_received()` - Message arrival
+    /// - `on_message_processed()` - Message completion with latency
+    /// - `on_error_occurred()` - Error events
+    /// - `on_restart_triggered()` - Restart events
+    /// - `on_health_changed()` - Health status changes
+    ///
+    /// Default: None (no callbacks)
+    event_callback: Option<Arc<dyn crate::actor::lifecycle::EventCallback>>,
 }
 
 /// Actor lifecycle state machine.
@@ -844,21 +912,25 @@ impl borsh::BorshDeserialize for HealthStatus {
     }
 }
 
-impl ComponentActor {
-    /// Create a new ComponentActor instance.
+impl<S> ComponentActor<S>
+where
+    S: Send + Sync + 'static,
+{
+    /// Create a new ComponentActor instance with custom state.
     ///
-    /// Creates a ComponentActor in the `Creating` state. WASM runtime is not
-    /// loaded until `Child::start()` is called.
+    /// Creates a ComponentActor in the `Creating` state with the provided initial state.
+    /// WASM runtime is not loaded until `Child::start()` is called.
     ///
     /// # Arguments
     ///
     /// * `component_id` - Unique identifier for this component
     /// * `metadata` - Component metadata
     /// * `capabilities` - Security capabilities and permissions
+    /// * `initial_state` - Initial custom state value (generic type S)
     ///
     /// # Returns
     ///
-    /// A new ComponentActor instance in Creating state.
+    /// A new ComponentActor instance in Creating state with initialized custom state.
     ///
     /// # Example
     ///
@@ -882,15 +954,33 @@ impl ComponentActor {
     /// };
     /// let caps = CapabilitySet::new();
     ///
-    /// let actor = ComponentActor::new(component_id.clone(), metadata, caps);
+    /// // No custom state
+    /// let actor = ComponentActor::new(component_id.clone(), metadata, caps, ());
     ///
     /// assert_eq!(actor.component_id(), &component_id);
     /// assert!(!actor.is_wasm_loaded());
+    /// ```
+    ///
+    /// # Example (With Custom State)
+    ///
+    /// ```rust,ignore
+    /// #[derive(Default)]
+    /// struct MyState {
+    ///     request_count: u64,
+    /// }
+    ///
+    /// let actor: ComponentActor<MyState> = ComponentActor::new(
+    ///     component_id,
+    ///     metadata,
+    ///     caps,
+    ///     MyState::default(),
+    /// );
     /// ```
     pub fn new(
         component_id: ComponentId,
         metadata: ComponentMetadata,
         capabilities: CapabilitySet,
+        initial_state: S,
     ) -> Self {
         Self {
             component_id,
@@ -903,6 +993,9 @@ impl ComponentActor {
             started_at: None,
             broker: None,
             correlation_tracker: None,
+            custom_state: Arc::new(RwLock::new(initial_state)),
+            hooks: Box::new(crate::actor::lifecycle::NoOpHooks),
+            event_callback: None,
         }
     }
 
@@ -1477,6 +1570,247 @@ impl ComponentActor {
 
         Ok(())
     }
+
+    /// Execute a closure with read-only access to custom state.
+    ///
+    /// Acquires a read lock on the custom state and executes the provided closure
+    /// with a reference to the state. Multiple readers can access state concurrently.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `F` - Closure type: `FnOnce(&S) -> R`
+    /// * `R` - Return type of the closure
+    ///
+    /// # Arguments
+    ///
+    /// * `f` - Closure to execute with state reference
+    ///
+    /// # Returns
+    ///
+    /// The value returned by the closure.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// #[derive(Default)]
+    /// struct MyState {
+    ///     count: u64,
+    /// }
+    ///
+    /// let actor: ComponentActor<MyState> = ComponentActor::new(/* ... */, MyState::default());
+    ///
+    /// // Read state
+    /// let count = actor.with_state(|state| state.count).await;
+    /// ```
+    pub async fn with_state<F, R>(&self, f: F) -> R
+    where
+        F: FnOnce(&S) -> R,
+    {
+        let guard = self.custom_state.read().await;
+        f(&*guard)
+    }
+
+    /// Execute a closure with mutable access to custom state.
+    ///
+    /// Acquires a write lock on the custom state and executes the provided closure
+    /// with a mutable reference to the state. Only one writer can access state at a time.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `F` - Closure type: `FnOnce(&mut S) -> R`
+    /// * `R` - Return type of the closure
+    ///
+    /// # Arguments
+    ///
+    /// * `f` - Closure to execute with mutable state reference
+    ///
+    /// # Returns
+    ///
+    /// The value returned by the closure.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// #[derive(Default)]
+    /// struct MyState {
+    ///     count: u64,
+    /// }
+    ///
+    /// let actor: ComponentActor<MyState> = ComponentActor::new(/* ... */, MyState::default());
+    ///
+    /// // Modify state
+    /// actor.with_state_mut(|state| {
+    ///     state.count += 1;
+    /// }).await;
+    /// ```
+    pub async fn with_state_mut<F, R>(&self, f: F) -> R
+    where
+        F: FnOnce(&mut S) -> R,
+    {
+        let mut guard = self.custom_state.write().await;
+        f(&mut *guard)
+    }
+
+    /// Get a clone of the custom state.
+    ///
+    /// Acquires a read lock and returns a clone of the state. Only available
+    /// when S implements Clone.
+    ///
+    /// # Returns
+    ///
+    /// Cloned copy of the custom state.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// #[derive(Clone, Default)]
+    /// struct MyState {
+    ///     count: u64,
+    /// }
+    ///
+    /// let actor: ComponentActor<MyState> = ComponentActor::new(/* ... */, MyState::default());
+    ///
+    /// // Get cloned state
+    /// let state_copy = actor.get_state().await;
+    /// ```
+    pub async fn get_state(&self) -> S
+    where
+        S: Clone,
+    {
+        let guard = self.custom_state.read().await;
+        (*guard).clone()
+    }
+
+    /// Replace the custom state with a new value.
+    ///
+    /// Acquires a write lock and replaces the entire state with the new value.
+    /// Returns the old state value.
+    ///
+    /// # Arguments
+    ///
+    /// * `new_state` - New state value to set
+    ///
+    /// # Returns
+    ///
+    /// The previous state value.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// #[derive(Default)]
+    /// struct MyState {
+    ///     count: u64,
+    /// }
+    ///
+    /// let actor: ComponentActor<MyState> = ComponentActor::new(/* ... */, MyState::default());
+    ///
+    /// // Replace state
+    /// let old_state = actor.set_state(MyState { count: 42 }).await;
+    /// ```
+    pub async fn set_custom_state(&self, new_state: S) -> S {
+        let mut guard = self.custom_state.write().await;
+        std::mem::replace(&mut *guard, new_state)
+    }
+
+    /// Get Arc clone of the custom state RwLock.
+    ///
+    /// Returns an Arc clone of the underlying RwLock, allowing shared ownership
+    /// of the state. Useful for passing state references to other components.
+    ///
+    /// # Returns
+    ///
+    /// Arc-wrapped RwLock of the custom state.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// let state_ref = actor.state_arc();
+    ///
+    /// // Can share this Arc with other tasks
+    /// tokio::spawn(async move {
+    ///     let guard = state_ref.read().await;
+    ///     // Use state...
+    /// });
+    /// ```
+    pub fn state_arc(&self) -> Arc<RwLock<S>> {
+        Arc::clone(&self.custom_state)
+    }
+
+    /// Set custom lifecycle hooks for this component.
+    ///
+    /// Replaces the default NoOpHooks with a custom implementation. Hooks are
+    /// called at key lifecycle events (pre/post-start/stop, on_message, on_error).
+    ///
+    /// # Arguments
+    ///
+    /// * `hooks` - Custom LifecycleHooks implementation
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// use airssys_wasm::actor::lifecycle::{LifecycleHooks, LifecycleContext, HookResult};
+    ///
+    /// struct MyHooks;
+    ///
+    /// impl LifecycleHooks for MyHooks {
+    ///     fn pre_start(&mut self, ctx: &LifecycleContext) -> HookResult {
+    ///         println!("Component starting: {}", ctx.component_id.as_str());
+    ///         HookResult::Ok
+    ///     }
+    /// }
+    ///
+    /// let mut actor = ComponentActor::new(/* ... */);
+    /// actor.set_lifecycle_hooks(Box::new(MyHooks));
+    /// ```
+    pub fn set_lifecycle_hooks(&mut self, hooks: Box<dyn crate::actor::lifecycle::LifecycleHooks>) {
+        self.hooks = hooks;
+    }
+
+    /// Set event callback for monitoring this component.
+    ///
+    /// Registers an optional callback that receives lifecycle events for
+    /// observability (message received/processed, errors, restarts, health changes).
+    ///
+    /// # Arguments
+    ///
+    /// * `callback` - EventCallback implementation
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// use airssys_wasm::actor::lifecycle::{EventCallback};
+    /// use std::sync::Arc;
+    ///
+    /// struct MyCallback;
+    ///
+    /// impl EventCallback for MyCallback {
+    ///     fn on_message_received(&self, component_id: ComponentId) {
+    ///         println!("Message received: {}", component_id.as_str());
+    ///     }
+    /// }
+    ///
+    /// let mut actor = ComponentActor::new(/* ... */);
+    /// actor.set_event_callback(Arc::new(MyCallback));
+    /// ```
+    pub fn set_event_callback(&mut self, callback: Arc<dyn crate::actor::lifecycle::EventCallback>) {
+        self.event_callback = Some(callback);
+    }
+
+    /// Get reference to lifecycle hooks (internal use).
+    ///
+    /// Used by trait implementations to access hooks during lifecycle events.
+    #[doc(hidden)]
+    pub fn hooks_mut(&mut self) -> &mut Box<dyn crate::actor::lifecycle::LifecycleHooks> {
+        &mut self.hooks
+    }
+
+    /// Get reference to event callback (internal use).
+    ///
+    /// Used by trait implementations to fire callback events.
+    #[doc(hidden)]
+    pub fn event_callback(&self) -> Option<&Arc<dyn crate::actor::lifecycle::EventCallback>> {
+        self.event_callback.as_ref()
+    }
 }
 
 // Actor and Child trait implementations will be in separate files
@@ -1507,6 +1841,7 @@ mod tests {
             ComponentId::new("test-component"),
             create_test_metadata(),
             CapabilitySet::new(),
+            (),
         )
     }
 
@@ -1516,7 +1851,7 @@ mod tests {
         let metadata = create_test_metadata();
         let caps = CapabilitySet::new();
 
-        let actor = ComponentActor::new(component_id.clone(), metadata, caps);
+        let actor = ComponentActor::new(component_id.clone(), metadata, caps, ());
 
         assert_eq!(actor.component_id(), &component_id);
         assert!(!actor.is_wasm_loaded());
@@ -1541,6 +1876,7 @@ mod tests {
             component_id.clone(),
             create_test_metadata(),
             CapabilitySet::new(),
+            (),
         );
 
         assert_eq!(actor.component_id(), &component_id);
@@ -1733,5 +2069,283 @@ mod tests {
                 assert_eq!(health, deserialized);
             }
         }
+    }
+
+    // ========================================================================
+    // Custom State Management Tests (Phase 5 Task 5.2)
+    // ========================================================================
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct TestState {
+        count: u64,
+        name: String,
+    }
+
+    #[tokio::test]
+    async fn test_with_state_read_access() {
+        let state = TestState {
+            count: 42,
+            name: "test".to_string(),
+        };
+        let actor: ComponentActor<TestState> = ComponentActor::new(
+            ComponentId::new("test"),
+            create_test_metadata(),
+            CapabilitySet::new(),
+            state.clone(),
+        );
+
+        // Read state using with_state
+        let count = actor.with_state(|s| s.count).await;
+        assert_eq!(count, 42);
+
+        let name = actor.with_state(|s| s.name.clone()).await;
+        assert_eq!(name, "test");
+    }
+
+    #[tokio::test]
+    async fn test_with_state_mut_write_access() {
+        let state = TestState {
+            count: 0,
+            name: "initial".to_string(),
+        };
+        let actor: ComponentActor<TestState> = ComponentActor::new(
+            ComponentId::new("test"),
+            create_test_metadata(),
+            CapabilitySet::new(),
+            state,
+        );
+
+        // Modify state using with_state_mut
+        actor.with_state_mut(|s| {
+            s.count += 1;
+            s.name = "modified".to_string();
+        }).await;
+
+        // Verify modification
+        let count = actor.with_state(|s| s.count).await;
+        assert_eq!(count, 1);
+
+        let name = actor.with_state(|s| s.name.clone()).await;
+        assert_eq!(name, "modified");
+    }
+
+    #[tokio::test]
+    async fn test_get_state_clone() {
+        let state = TestState {
+            count: 100,
+            name: "original".to_string(),
+        };
+        let actor: ComponentActor<TestState> = ComponentActor::new(
+            ComponentId::new("test"),
+            create_test_metadata(),
+            CapabilitySet::new(),
+            state.clone(),
+        );
+
+        // Get cloned state
+        let cloned = actor.get_state().await;
+        assert_eq!(cloned, state);
+
+        // Modify original via with_state_mut
+        actor.with_state_mut(|s| s.count = 200).await;
+
+        // Cloned value unchanged (it was a snapshot)
+        assert_eq!(cloned.count, 100);
+    }
+
+    #[tokio::test]
+    async fn test_set_custom_state_replacement() {
+        let initial_state = TestState {
+            count: 1,
+            name: "first".to_string(),
+        };
+        let actor: ComponentActor<TestState> = ComponentActor::new(
+            ComponentId::new("test"),
+            create_test_metadata(),
+            CapabilitySet::new(),
+            initial_state.clone(),
+        );
+
+        // Replace state
+        let new_state = TestState {
+            count: 2,
+            name: "second".to_string(),
+        };
+        let old_state = actor.set_custom_state(new_state.clone()).await;
+
+        // Old state returned
+        assert_eq!(old_state, initial_state);
+
+        // New state active
+        let current = actor.get_state().await;
+        assert_eq!(current, new_state);
+    }
+
+    #[tokio::test]
+    async fn test_state_arc_shared_ownership() {
+        let state = TestState {
+            count: 0,
+            name: "shared".to_string(),
+        };
+        let actor: ComponentActor<TestState> = ComponentActor::new(
+            ComponentId::new("test"),
+            create_test_metadata(),
+            CapabilitySet::new(),
+            state,
+        );
+
+        // Get Arc reference
+        let state_ref = actor.state_arc();
+
+        // Modify via actor
+        actor.with_state_mut(|s| s.count = 5).await;
+
+        // Access via Arc reference
+        let count = {
+            let guard = state_ref.read().await;
+            guard.count
+        };
+        assert_eq!(count, 5);
+    }
+
+    #[tokio::test]
+    async fn test_concurrent_state_readers() {
+        let state = TestState {
+            count: 999,
+            name: "concurrent".to_string(),
+        };
+        let actor = Arc::new(ComponentActor::new(
+            ComponentId::new("test"),
+            create_test_metadata(),
+            CapabilitySet::new(),
+            state,
+        ));
+
+        // Spawn multiple concurrent readers
+        let mut handles = vec![];
+        for _ in 0..10 {
+            let actor_clone = Arc::clone(&actor);
+            let handle = tokio::spawn(async move {
+                actor_clone.with_state(|s| s.count).await
+            });
+            handles.push(handle);
+        }
+
+        // All readers should succeed
+        for handle in handles {
+            let count = handle.await.unwrap();
+            assert_eq!(count, 999);
+        }
+    }
+
+    #[tokio::test]
+    async fn test_state_persistence_across_operations() {
+        let state = TestState {
+            count: 0,
+            name: "counter".to_string(),
+        };
+        let actor: ComponentActor<TestState> = ComponentActor::new(
+            ComponentId::new("test"),
+            create_test_metadata(),
+            CapabilitySet::new(),
+            state,
+        );
+
+        // Increment count multiple times
+        for i in 1..=10 {
+            actor.with_state_mut(|s| s.count += 1).await;
+            let count = actor.with_state(|s| s.count).await;
+            assert_eq!(count, i);
+        }
+
+        // Final count should be 10
+        let final_count = actor.with_state(|s| s.count).await;
+        assert_eq!(final_count, 10);
+    }
+
+    #[tokio::test]
+    async fn test_unit_type_state_no_overhead() {
+        // Default case: no custom state (unit type ())
+        let actor: ComponentActor<()> = ComponentActor::new(
+            ComponentId::new("test"),
+            create_test_metadata(),
+            CapabilitySet::new(),
+            (),
+        );
+
+        // with_state should work with unit type
+        actor.with_state(|_| ()).await;
+
+        // with_state_mut should work with unit type
+        actor.with_state_mut(|_| ()).await;
+
+        // State operations are no-op but don't panic
+        let state_ref = actor.state_arc();
+        assert!(Arc::strong_count(&state_ref) >= 1);
+    }
+
+    #[tokio::test]
+    async fn test_state_with_complex_type() {
+        use std::collections::HashMap;
+
+        #[derive(Clone, Debug)]
+        struct ComplexState {
+            map: HashMap<String, u64>,
+            vec: Vec<String>,
+        }
+
+        let mut map = HashMap::new();
+        map.insert("key1".to_string(), 100);
+        map.insert("key2".to_string(), 200);
+
+        let state = ComplexState {
+            map,
+            vec: vec!["a".to_string(), "b".to_string()],
+        };
+
+        let actor: ComponentActor<ComplexState> = ComponentActor::new(
+            ComponentId::new("test"),
+            create_test_metadata(),
+            CapabilitySet::new(),
+            state,
+        );
+
+        // Modify complex state
+        actor.with_state_mut(|s| {
+            s.map.insert("key3".to_string(), 300);
+            s.vec.push("c".to_string());
+        }).await;
+
+        // Verify modifications
+        let map_len = actor.with_state(|s| s.map.len()).await;
+        assert_eq!(map_len, 3);
+
+        let vec_len = actor.with_state(|s| s.vec.len()).await;
+        assert_eq!(vec_len, 3);
+    }
+
+    #[tokio::test]
+    async fn test_state_methods_return_values() {
+        let state = TestState {
+            count: 50,
+            name: "test".to_string(),
+        };
+        let actor: ComponentActor<TestState> = ComponentActor::new(
+            ComponentId::new("test"),
+            create_test_metadata(),
+            CapabilitySet::new(),
+            state,
+        );
+
+        // with_state returns computed value
+        let doubled = actor.with_state(|s| s.count * 2).await;
+        assert_eq!(doubled, 100);
+
+        // with_state_mut returns computed value
+        let incremented = actor.with_state_mut(|s| {
+            s.count += 1;
+            s.count
+        }).await;
+        assert_eq!(incremented, 51);
     }
 }

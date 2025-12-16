@@ -129,7 +129,10 @@ impl Message for ComponentMessage {
 /// let result = actor.handle_message(msg, &mut ctx).await;
 /// ```
 #[async_trait]
-impl Actor for ComponentActor {
+impl<S> Actor for ComponentActor<S>
+where
+    S: Send + Sync + 'static,
+{
     type Message = ComponentMessage;
     type Error = ComponentActorError;
 
@@ -161,7 +164,45 @@ impl Actor for ComponentActor {
         msg: Self::Message,
         _ctx: &mut ActorContext<Self::Message, B>,
     ) -> Result<(), Self::Error> {
-        match msg {
+        // PHASE 5 TASK 5.2: Lifecycle hooks and event callbacks integration
+        use std::time::Instant;
+        use chrono::Utc;
+        
+        let start_time = Instant::now();
+        let component_id_clone = self.component_id().clone();
+
+        // Create lifecycle context for hooks
+        let lifecycle_ctx = crate::actor::lifecycle::LifecycleContext {
+            component_id: component_id_clone.clone(),
+            actor_address: airssys_rt::ActorAddress::anonymous(),
+            timestamp: Utc::now(),
+        };
+
+        // Call on_message_received hook (sync, panic-safe)
+        let hook_result = {
+            let ctx_clone = lifecycle_ctx.clone();
+            let msg_ref = &msg;
+            crate::actor::lifecycle::catch_unwind_hook(|| {
+                self.hooks_mut().on_message_received(&ctx_clone, msg_ref)
+            })
+        };
+
+        if let crate::actor::lifecycle::HookResult::Error(e) = hook_result {
+            tracing::warn!(
+                component_id = %component_id_clone.as_str(),
+                error = %e,
+                "on_message_received hook returned error (continuing message processing)"
+            );
+        }
+
+        // Fire event callback: on_message_received
+        if let Some(callback) = self.event_callback() {
+            callback.on_message_received(component_id_clone.clone());
+        }
+
+        // Process the message (original logic below, wrapped in result capture)
+        let process_result: Result<(), ComponentActorError> = async {
+            match msg {
             ComponentMessage::Invoke { function, args } => {
                 let component_id_str = self.component_id().as_str().to_string();
                 
@@ -491,6 +532,46 @@ impl Actor for ComponentActor {
                 Ok(())
             }
         }
+        }.await;
+
+        // PHASE 5 TASK 5.2: Post-processing with event callbacks and error hooks
+        let latency = start_time.elapsed();
+        
+        match &process_result {
+            Ok(()) => {
+                // Fire success event callback with latency
+                if let Some(callback) = self.event_callback() {
+                    callback.on_message_processed(component_id_clone.clone(), latency);
+                }
+            }
+            Err(e) => {
+                // Extract WasmError from ComponentActorError
+                let wasm_error = &e.inner;
+
+                // Call on_error hook
+                let hook_result = {
+                    let ctx_clone = lifecycle_ctx.clone();
+                    crate::actor::lifecycle::catch_unwind_hook(|| {
+                        self.hooks_mut().on_error(&ctx_clone, wasm_error)
+                    })
+                };
+
+                if let crate::actor::lifecycle::HookResult::Error(hook_err) = hook_result {
+                    tracing::warn!(
+                        component_id = %component_id_clone.as_str(),
+                        error = %hook_err,
+                        "on_error hook returned error"
+                    );
+                }
+
+                // Fire error event callback
+                if let Some(callback) = self.event_callback() {
+                    callback.on_error_occurred(component_id_clone.clone(), wasm_error);
+                }
+            }
+        }
+
+        process_result
     }
 
     /// Initialize actor before message processing.
@@ -595,6 +676,7 @@ mod tests {
             ComponentId::new("test-component"),
             create_test_metadata(),
             CapabilitySet::new(),
+            (),
         )
     }
 
