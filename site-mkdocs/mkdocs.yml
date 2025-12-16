@@ -165,6 +165,31 @@ nav:
               - Performance by Design: components/rt/explanation/performance-design.md
               - Builder Pattern Design: components/rt/explanation/builder-pattern.md
               - Future Use Cases: components/rt/explanation/future-use-cases.md
+      - WASM (Component Framework):
+          - Introduction: components/wasm/index.md
+          - Architecture: components/wasm/architecture.md
+          - Tutorials:
+              - Your First ComponentActor: components/wasm/tutorials/your-first-component-actor.md
+              - Building a Stateful Component: components/wasm/tutorials/stateful-component-tutorial.md
+          - How-To Guides:
+              - Request-Response Pattern: components/wasm/guides/request-response-pattern.md
+              - Pub-Sub Broadcasting: components/wasm/guides/pubsub-broadcasting.md
+              - Supervision and Recovery: components/wasm/guides/supervision-and-recovery.md
+              - Component Composition: components/wasm/guides/component-composition.md
+              - Production Deployment: components/wasm/guides/production-deployment.md
+              - Best Practices: components/wasm/guides/best-practices.md
+              - Troubleshooting: components/wasm/guides/troubleshooting.md
+          - API Reference:
+              - ComponentActor API: components/wasm/api/component-actor.md
+              - Lifecycle Hooks: components/wasm/api/lifecycle-hooks.md
+          - Reference:
+              - Message Routing: components/wasm/reference/message-routing.md
+              - Performance Characteristics: components/wasm/reference/performance-characteristics.md
+          - Explanation:
+              - Dual-Trait Design: components/wasm/explanation/dual-trait-design.md
+              - State Management Patterns: components/wasm/explanation/state-management-patterns.md
+              - Supervision Architecture: components/wasm/explanation/supervision-architecture.md
+              - Production Readiness: components/wasm/explanation/production-readiness.md
   
   - Guides:
       - Integration: guides/integration.md
