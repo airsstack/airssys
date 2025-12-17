@@ -54,3 +54,37 @@ Agents MUST adhere to the following guidelines found in `.aiassisted/guidelines`
 - Documentation Quality: $ROOT_PROJECT/.aiassisted/guidelines/documentation/documentation-quality-standards.md - Standards for professional, objective, and accurate technical documentation, avoiding hyperbole.
 - Task Documentation: $ROOT_PROJECT/.aiassisted/guidelines/documentation/task-documentation-standards.md - Mandatory patterns for documenting tasks, including standards compliance and technical debt.
 - Microsoft Rust Guidelines: $ROOT_PROJECT/.aiassisted/guidelines/rust/microsoft-rust-guidelines.md - Production-quality Rust standards optimized for AI collaboration, covering API design and safety.
+
+## 6. Git Commit Policy (CRITICAL - NO EXCEPTIONS)
+**MANDATORY RULE**: Agents are STRICTLY FORBIDDEN from creating git commits or executing git commit commands without EXPLICIT user approval.
+
+### Commit Workflow Requirements:
+1. **Always Present Changes First**: Before any commit, agents MUST:
+   - Show all modified, added, or deleted files using `git status`
+   - Display the full diff of changes using `git diff` and `git diff --staged`
+   - Provide a clear summary of what changed and why
+
+2. **Await Explicit Approval**: After presenting changes, agents MUST:
+   - Wait for the user to explicitly approve the commit with phrases like:
+     - "commit these changes"
+     - "create a commit"
+     - "go ahead and commit"
+   - NEVER assume approval from general statements like "looks good" or "nice work"
+
+3. **Draft Commit Message**: Only after receiving explicit approval, agents should:
+   - Analyze the changes following conventional commit standards
+   - Draft a meaningful commit message
+   - Present the proposed commit message to the user for review
+
+4. **Execute Commit**: Only proceed with `git commit` after:
+   - User has explicitly approved the changes
+   - User has reviewed and approved the commit message (or explicitly delegated this)
+
+### Prohibited Actions:
+- Creating commits during task completion without asking
+- Auto-committing after running tests or builds
+- Committing as part of "cleanup" or "finalization" steps
+- Using `git commit` in any automated workflow without user interaction
+
+### Exception:
+The ONLY exception is when the user explicitly requests in their initial message: "commit the changes when done" or similar unambiguous pre-approval.

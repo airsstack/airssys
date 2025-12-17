@@ -265,19 +265,113 @@ flowchart TD
 
 ## Tasks Management
 
-Each sub-project's `tasks/` folder contains:
+### Task Taxonomy & Hierarchy
 
+**CRITICAL**: All tasks MUST follow a standardized taxonomy to ensure consistency across all sub-projects.
+
+#### Hierarchy Levels
+
+```
+TASK (Top Level)
+  └─ PHASE (Optional: For tasks >4 weeks)
+      └─ SUBTASK (Mandatory: Granular work units)
+```
+
+#### Level Definitions
+
+| Level | ID Format | Example | Duration | When to Use | Max Count |
+|-------|-----------|---------|----------|-------------|-----------|
+| **Task** | `[PREFIX]-TASK-###` | `WASM-TASK-004` | 1-12 weeks | Top-level work item | N/A |
+| **Phase** | `Phase N` | `Phase 1`, `Phase 2` | 1-4 weeks | Major milestone within task (>4 weeks total) | 8 per task |
+| **Subtask** | `N.M` | `1.1`, `1.2`, `3.5` | <1 week | Granular work unit | 10 per phase |
+
+#### Hierarchy Rules
+
+1. **Task**: Always required. One file = one task.
+2. **Phase**: Optional. Use ONLY if total task duration >4 weeks. Maximum 8 phases per task.
+3. **Subtask**: Always required. Each phase (or task if no phases) MUST have subtasks. Maximum 10 subtasks per phase.
+4. **No Deeper Nesting**: Subtasks CANNOT have sub-subtasks. Use checklists within subtasks if needed.
+5. **Numbering**:
+   - Phases: Sequential integers (`Phase 1`, `Phase 2`, `Phase 3`, ...)
+   - Subtasks: `Phase.Subtask` format (`1.1`, `1.2`, `2.1`, `2.2`, ...)
+   - If no phases: Use `1.1, 1.2, 1.3, ...` directly under task
+
+#### Examples
+
+**Example 1: Simple Task (No Phases)**
+```
+TASK-001: Implement User Login
+  ├─ Subtask 1.1: Create login form UI
+  ├─ Subtask 1.2: Add authentication API endpoint
+  ├─ Subtask 1.3: Implement session management
+  └─ Subtask 1.4: Add login tests
+```
+
+**Example 2: Complex Task (With Phases)**
+```
+WASM-TASK-004: Actor System Integration (6 phases, 18 subtasks)
+  ├─ Phase 1: ComponentActor Foundation
+  │   ├─ Subtask 1.1: ComponentActor struct design
+  │   ├─ Subtask 1.2: Child trait WASM lifecycle
+  │   ├─ Subtask 1.3: Actor trait message handling
+  │   └─ Subtask 1.4: Health check implementation
+  ├─ Phase 2: ActorSystem Integration
+  │   ├─ Subtask 2.1: ActorSystem spawning
+  │   ├─ Subtask 2.2: Component registry
+  │   └─ Subtask 2.3: Performance optimization
+  ... (continues through Phase 6)
+```
+
+### Single File Per Task Mandate
+
+**CRITICAL RULE**: Each task MUST be tracked in **ONE canonical file**: `tasks/task-[id]-[name].md`
+
+#### What MUST Be in the Task File
+
+ALL of the following MUST be in the single task file:
+- Task metadata (status, dates, priority, duration)
+- Original request
+- Thought process and architectural decisions
+- **Complete implementation plan** (all phases, all subtasks)
+- **All progress tracking tables** (one per phase if multi-phase)
+- **All progress logs** (chronological, consolidated)
+- **All completion summaries** (inline, not separate files)
+- Dependencies and integration points
+- Standards compliance checklist
+- Definition of done criteria
+
+#### What is FORBIDDEN
+
+The following patterns are **STRICTLY PROHIBITED**:
+- ❌ Separate plan files per phase/subtask (e.g., `task-004-phase-1-plan.md`)
+- ❌ Separate completion files per phase/subtask (e.g., `task-004-phase-1-completion.md`)
+- ❌ Separate status tracking files (e.g., `TASK-004-STATUS.md`)
+- ❌ Separate checkpoint files (e.g., `task-004-checkpoint-1.md`)
+- ❌ Separate audit/review files (e.g., `task-004-audit-report.md`)
+- ❌ Any pattern that scatters task information across multiple files
+
+#### Allowed Exceptions
+
+The following are the ONLY exceptions to the single-file rule:
+- ✅ External reference documentation (ADRs in `docs/adr/`, knowledge docs in `docs/knowledges/`)
+- ✅ Technical debt tracking (DEBT files in `docs/debts/`)
+- ✅ Historical snapshots (in `.memory-bank/context-snapshots/`)
+- ✅ Task index file (`tasks/_index.md`)
+
+### Task File Structure
+
+Each sub-project's `tasks/` folder contains:
 - `tasks/_index.md` - Master list of all tasks with IDs, names, and statuses
 - `tasks/task-[id]-[name].md` - Individual files for each task (e.g., `task-001-implement-login.md`)
 
-### Task Index Structure
+#### Task Index Structure
 
 ```markdown
 # Tasks Index
 
 ## In Progress
-- [task-003] implement-user-authentication - Working on OAuth integration
-- [task-005] create-dashboard-ui - Building main components
+- [task-003] implement-user-authentication - Working on OAuth integration (Phase 2/3)
+- [task-005] create-dashboard-ui - Building main components (60% complete)
 
 ## Pending
 - [task-006] add-export-functionality - Planned for next sprint
@@ -292,14 +386,19 @@ Each sub-project's `tasks/` folder contains:
 - [task-008] integrate-with-legacy-system - Abandoned due to API deprecation
 ```
 
-### Individual Task Structure
+#### Individual Task File Template
+
+**For Simple Tasks (No Phases):**
 
 ```markdown
-# [Task ID] - [Task Name]
+# [TASK-ID] - Task Name
 
 **Status:** [pending/in_progress/complete/blocked/abandoned]  
-**Added:** [date_added]  
-**Updated:** [date_last_updated]
+**Added:** [YYYY-MM-DD]  
+**Updated:** [YYYY-MM-DD]  
+**Priority:** [high/medium/low]  
+**Estimated Duration:** [X weeks]  
+**Actual Duration:** [X weeks] (if complete)
 
 ## Original Request
 [The original task description as provided by the user]
@@ -308,42 +407,234 @@ Each sub-project's `tasks/` folder contains:
 [Documentation of the discussion and reasoning that shaped the approach to this task]
 
 ## Implementation Plan
-- [Step 1]
-- [Step 2]
-- [Step 3]
+
+### Subtask 1.1: [Name]
+**Deliverables:**
+- Item 1
+- Item 2
+
+**Success Criteria:**
+- Criterion 1
+- Criterion 2
+
+### Subtask 1.2: [Name]
+...
 
 ## Progress Tracking
 
-**Overall Status:** [not_started/in_progress/blocked/complete] - [completion_percentage]
+**Overall Status:** [X%] complete ([Y/Z] subtasks complete)
 
 ### Subtasks
 | ID | Description | Status | Updated | Notes |
 |----|-------------|--------|---------|-------|
-| 1.1 | [Subtask description] | [complete/in_progress/not_started/blocked] | [YYYY-MM-DD] | [Brief description or "Ready for implementation"] |
-| 1.2 | [Subtask description] | [complete/in_progress/not_started/blocked] | [YYYY-MM-DD] | [Brief description or "Ready for implementation"] |
-| 1.3 | [Subtask description] | [complete/in_progress/not_started/blocked] | [YYYY-MM-DD] | [Brief description or "Ready for implementation"] |
+| 1.1 | [Subtask description] | [complete/in_progress/not_started/blocked] | [YYYY-MM-DD] | [Progress notes] |
+| 1.2 | [Subtask description] | [complete/in_progress/not_started/blocked] | [YYYY-MM-DD] | [Progress notes] |
+| 1.3 | [Subtask description] | [complete/in_progress/not_started/blocked] | [YYYY-MM-DD] | [Progress notes] |
 
 ## Progress Log
-### [YYYY-MM-DD]
-- Updated subtask 1.1 status to complete
-- Started work on subtask 1.2
-- Encountered issue with [problem]
-- Made decision to [approach/solution]
 
-### [YYYY-MM-DD]
-- [Additional updates as work progresses]
+### [YYYY-MM-DD] - Subtask 1.1
+- Completed [specific work]
+- Encountered [issue]
+- Resolved by [solution]
+- Next: Start subtask 1.2
+
+### [YYYY-MM-DD] - Subtask 1.2
+...
+
+## Completion Summary (When Task Complete)
+
+**Completion Date:** [YYYY-MM-DD]  
+**Total Duration:** [X weeks]  
+**Quality:** [overall metrics]
+
+**Deliverables:**
+- [List all deliverables]
+
+**Achievements:**
+- [Key achievements]
+
+**Lessons Learned:**
+- [Insights for future tasks]
+
+## Dependencies
+- **Upstream:** [Tasks that must complete first]
+- **Downstream:** [Tasks that depend on this]
+
+## Definition of Done
+- [ ] All subtasks complete
+- [ ] All acceptance criteria met
+- [ ] Tests passing
+- [ ] Documentation complete
+- [ ] Code reviewed
+- [ ] Standards compliance verified
 ```
 
-**CRITICAL FORMATTING RULES**: 
+**For Complex Tasks (With Phases):**
+
+```markdown
+# [TASK-ID] - Task Name
+
+**Status:** [pending/in_progress/complete/blocked/abandoned]  
+**Added:** [YYYY-MM-DD]  
+**Updated:** [YYYY-MM-DD]  
+**Priority:** [high/medium/low]  
+**Estimated Duration:** [X weeks]  
+**Actual Duration:** [X weeks] (if complete)  
+**Progress:** Phase X/Y complete ([Z%] overall)
+
+## Original Request
+[The original task description as provided by the user]
+
+## Thought Process
+[Documentation of the discussion and reasoning that shaped the approach to this task]
+
+## Implementation Plan
+
+### Phase 1: [Phase Name] ([duration])
+
+**Objective:** [What this phase achieves]
+
+#### Subtask 1.1: [Name]
+**Deliverables:**
+- Item 1
+- Item 2
+
+**Success Criteria:**
+- Criterion 1
+- Criterion 2
+
+#### Subtask 1.2: [Name]
+...
+
+### Phase 2: [Phase Name] ([duration])
+
+**Objective:** [What this phase achieves]
+
+#### Subtask 2.1: [Name]
+...
+
+## Progress Tracking
+
+### Phase 1: [Phase Name]
+
+| Subtask | Description | Status | Updated | Notes |
+|---------|-------------|--------|---------|-------|
+| 1.1 | [Description] | [complete/in_progress/not_started/blocked] | [YYYY-MM-DD] | [Progress notes] |
+| 1.2 | [Description] | [complete/in_progress/not_started/blocked] | [YYYY-MM-DD] | [Progress notes] |
+| 1.3 | [Description] | [complete/in_progress/not_started/blocked] | [YYYY-MM-DD] | [Progress notes] |
+
+**Phase 1 Status:** [X%] complete ([Y/Z] subtasks complete)  
+**Phase 1 Completion:** [YYYY-MM-DD] (if complete)
+
+#### Phase 1 Completion Summary (When Phase Complete)
+
+**Completion Date:** [YYYY-MM-DD]  
+**Duration:** [X weeks]  
+**Quality:** [phase metrics]
+
+**Deliverables:**
+- [List phase deliverables]
+
+**Key Achievements:**
+- [Phase-specific achievements]
+
+**Issues & Resolutions:**
+- [Problems encountered and solutions]
+
+---
+
+### Phase 2: [Phase Name]
+
+| Subtask | Description | Status | Updated | Notes |
+|---------|-------------|--------|---------|-------|
+| 2.1 | [Description] | [status] | [YYYY-MM-DD] | [Progress notes] |
+| 2.2 | [Description] | [status] | [YYYY-MM-DD] | [Progress notes] |
+
+**Phase 2 Status:** [X%] complete ([Y/Z] subtasks complete)  
+**Phase 2 Completion:** [YYYY-MM-DD] (if complete)
+
+---
+
+**Task Overall Status:** [X%] complete ([Y/Z] phases complete)
+
+## Progress Log
+
+### [YYYY-MM-DD] - Phase 1, Subtask 1.1
+- Completed [specific work]
+- Encountered [issue]
+- Resolved by [solution]
+- Next: Start subtask 1.2
+
+### [YYYY-MM-DD] - Phase 1, Subtask 1.2
+...
+
+### [YYYY-MM-DD] - Phase 1 COMPLETE ✅
+**Summary:** [Brief phase completion summary]
+
+### [YYYY-MM-DD] - Phase 2, Subtask 2.1
+...
+
+## Task Completion Summary (When All Phases Complete)
+
+**Completion Date:** [YYYY-MM-DD]  
+**Total Duration:** [X weeks] (Estimated: [Y weeks])  
+**Overall Quality:** [aggregate metrics]
+
+**All Deliverables:**
+- [Consolidated list from all phases]
+
+**Key Achievements:**
+- [Major achievements across all phases]
+
+**Performance Metrics:**
+- [Performance results if applicable]
+
+**Lessons Learned:**
+- [Insights for future tasks]
+
+**Technical Debt Created:**
+- [Link to DEBT-XXX files if applicable]
+
+## Dependencies
+- **Upstream:** [Tasks that must complete first]
+- **Downstream:** [Tasks that depend on this]
+
+## Definition of Done
+- [ ] All phases complete
+- [ ] All subtasks complete
+- [ ] All acceptance criteria met
+- [ ] Tests passing (specify coverage)
+- [ ] Documentation complete
+- [ ] Code reviewed
+- [ ] Performance validated
+- [ ] Standards compliance verified
+```
+
+### Critical Formatting Rules
+
 1. **NO EMPTY CELLS**: Every table cell MUST contain content. Use "TBD" or "Ready for implementation" for placeholder content.
 2. **DATE FORMAT**: Always use YYYY-MM-DD format for dates. Never leave Updated column empty.
 3. **NOTES REQUIREMENT**: Notes column must contain meaningful text, never empty. Use descriptive status or next action.
 4. **CONSISTENCY**: All task files must follow this exact format for parsing compatibility.
-5. **STALE TASK DETECTION**: Tasks unchanged for 7+ days MUST be reviewed for status accuracy:
+5. **PHASE COMPLETION SUMMARIES**: Must be inline within the task file, under the respective phase section.
+6. **PROGRESS LOG CHRONOLOGICAL**: Progress log entries MUST be in reverse chronological order (newest first).
+7. **STALE TASK DETECTION**: Tasks unchanged for 7+ days MUST be reviewed for status accuracy:
    - **In Progress** tasks stale for 7+ days: Review if still actively worked on or should be marked as blocked/pending
    - **Pending** tasks stale for 7+ days: Review priority and dependencies, consider if abandoned or blocked
    - **Update Required**: When updating stale tasks, provide clear reason for delay and realistic next steps
    - **Status Change**: If task is no longer viable, mark as abandoned with explanation
+
+### Task Update Protocol
+
+**When updating task progress, you MUST:**
+
+1. **Update Progress Tracking Table**: Mark subtask status and add notes
+2. **Add Progress Log Entry**: Document what was done, issues encountered, solutions
+3. **Update Phase Status**: Recalculate phase completion percentage
+4. **Update Overall Status**: Recalculate task completion percentage
+5. **Update Task Metadata**: Update "Updated" date at top of file
+6. **Update _index.md**: Sync task status in index file
 
 **Important**: Update both the subtask status table AND the progress log when making progress on a task. Always update the overall task status and completion percentage, subtask statuses, and the `_index.md` file.
 
@@ -493,7 +784,7 @@ Use the following commands to operate the multi-project memory bank framework:
 
 ### Sub-Project & Task Management
 - `add-task [sub-project] [task-name]`  
-  Create a new task file in the specified sub-project’s `tasks/` folder.
+  Create a new task file in the specified sub-project's `tasks/` folder.
 - `update-task [sub-project] [task-id]`  
   Update the specified task file and the `_index.md` in the relevant sub-project.
 - `show-tasks [sub-project] [filter]`  
