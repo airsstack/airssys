@@ -1,33 +1,30 @@
 # [WASM-TASK-005] - Block 4: Security & Isolation Layer
 
-**Status:** ready-to-start  
+**Status:** not-started  
 **Added:** 2025-10-20  
-**Updated:** 2025-12-17  
-**Priority:** 🔒 CRITICAL PATH - Security Layer  
+**Updated:** 2025-12-13  
+**Priority:** 🔒 CRITICAL PATH - Security Layer + Task 1.3 Deferred Work  
 **Layer:** 2 - Core Services  
 **Block:** 4 of 11  
-**Estimated Effort:** 5-6 weeks
+**Estimated Effort:** 5-6 weeks + 16-20 hours (Task 1.3 deferred work)
 
-**✅ PREREQUISITES COMPLETE (2025-12-17)**
+**⚠️ CRITICAL PREREQUISITES - MUST COMPLETE BEFORE STARTING ⚠️**
 
-- **DEBT-WASM-004 Item #3**: ✅ **COMPLETE** - Capability Enforcement in InterComponent Messages
-  - **Completion Date:** 2025-12-17
-  - **Location:** `src/actor/actor_impl.rs` lines 326-416
-  - **Implementation:** 3-layer security enforcement (sender authorization, payload size limits, rate limiting)
-  - **Testing:** 16/16 security tests passing (100% pass rate)
-  - **Performance:** 554 ns overhead (9x faster than 5μs target)
-  - **Verification:** Zero warnings, full security audit logging, 10 benchmarks passed
-  - **Documentation:** See `.memory-bank/sub-projects/airssys-wasm/docs/technical-debt/debt-wasm-004-task-1.3-deferred-implementation.md` (lines 161-240)
+Before starting Block 4, you MUST complete:
+- **DEBT-WASM-004 Item #3**: Capability Enforcement in InterComponent Messages
+  - Location: `src/actor/actor_impl.rs` lines 223-228
+  - Estimated: 16-20 hours
+  - **SECURITY CRITICAL** - System vulnerable until implemented
+  - See: `.memory-bank/sub-projects/airssys-wasm/docs/technical-debt/debt-wasm-004-task-1.3-deferred-implementation.md`
 
-**📋 Completion Checklist:** ✅ ALL COMPLETE
-- [x] Review DEBT-WASM-004 Item #3 requirements
-- [x] Implement capability checking in actor_impl.rs InterComponent handler
-- [x] Remove "FUTURE WORK" comments from lines 223-228 (now lines 326-416)
-- [x] Security tests achieve ≥95% coverage (100% achieved - 16/16 tests)
-- [x] Security audit passed (Performance: 554 ns, 9x better than target)
-- [x] Sign-off obtained (2025-12-17 completion verified)
+**📋 Mandatory Checklist:**
+- [ ] Review DEBT-WASM-004 Item #3 requirements
+- [ ] Implement capability checking in actor_impl.rs InterComponent handler
+- [ ] Remove "FUTURE WORK" comments from lines 223-228
+- [ ] Security tests achieve ≥95% coverage
+- [ ] Security audit passed
+- [ ] Sign-off obtained (see DEBT-WASM-004)
 
-**Status:** ✅ READY TO START PHASE 1 - All prerequisites satisfied
 ## Overview
 
 Implement the multi-layered security and isolation system that protects the host from malicious or buggy components through fine-grained capability-based permissions, pattern matching for resources, trust-level workflows, actor isolation, and supervision trees. This block establishes the security foundation that all host function access depends upon.
@@ -541,57 +538,10 @@ This task is complete when:
 | 6.2 | Comprehensive Security Testing | not-started | - | Validation |
 | 6.3 | Security Documentation and Examples | not-started | - | Developer guide |
 
-
 ## Progress Log
 
-### 2025-12-17 - DEBT-WASM-004 Item #3 COMPLETE ✅
+*No progress yet - task just created*
 
-**Prerequisite Satisfied:** Capability Enforcement in InterComponent Messages
-
-**Implementation Summary:**
-- **Location:** `src/actor/actor_impl.rs` lines 326-416 (91 lines)
-- **Architecture:** 3-layer security enforcement pattern
-  1. **Sender Authorization** - `allows_receiving_from()` capability check (lines 334-357)
-  2. **Payload Size Validation** - `max_message_size` limit enforcement (lines 359-379)
-  3. **Rate Limiting** - `MessageRateLimiter` DoS prevention (lines 381-399)
-  4. **Audit Logging** - Security event logging when enabled (lines 401-410)
-
-**Testing Results:**
-- 16/16 security tests passing (100% pass rate)
-- Test file: `tests/actor_security_tests.rs`
-- Coverage: ≥95% security-critical code coverage achieved
-
-**Performance Benchmarks:**
-- Full 3-layer security check: **554 ns** (target: <5μs, **9x faster**)
-- Capability check: 1.82 ns (1000x faster than 2μs target)
-- Payload size check: 350 ps (2800x faster than 1μs target)
-- Rate limit check: 519 ns (3.8x faster than 2μs target)
-- Concurrent load (100 senders): 555 ns (no degradation)
-- **Benchmark file:** `benches/security_benchmarks.rs` (10 benchmarks, all passed)
-
-**Quality Verification:**
-- Zero compiler warnings
-- Zero clippy warnings  
-- Zero rustdoc warnings
-- Full rustdoc coverage with security examples
-- All FUTURE WORK comments removed
-
-**Documentation:**
-- Technical debt record updated: `debt-wasm-004-task-1.3-deferred-implementation.md`
-- Inline rustdoc with security examples
-- Security audit passed (2025-12-17)
-
-**Sign-off:** Implementation complete and verified (2025-12-17)
-
-**Next Action:** Phase 1, Subtask 1.1 - Capability Data Structures (ready to start)
-
----
-
-### Task Created
-
-**Date:** 2025-10-20  
-**Status:** Task file created with complete implementation plan (6 phases, 18 subtasks)  
-**Prerequisite Identified:** DEBT-WASM-004 Item #3 must complete before starting Phase 1
 ## Related Documentation
 
 ### ADRs
