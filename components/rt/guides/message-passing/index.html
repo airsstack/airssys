@@ -15,10 +15,6 @@
         <link rel="canonical" href="https://airsstack.github.io/airssys/components/rt/guides/message-passing/">
       
       
-        <link rel="prev" href="../supervisor-patterns/">
-      
-      
-        <link rel="next" href="../../architecture/">
       
       
         
@@ -29,7 +25,7 @@
     
     
       
-        <title>Message Passing - AirsSys - System Programming Components</title>
+        <title>Message Passing Best Practices - AirsSys - System Programming Components</title>
       
     
     
@@ -120,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Message Passing
+              Message Passing Best Practices
             
           </span>
         </div>
@@ -256,12 +252,10 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
+      <li class="md-tabs__item">
         <a href="../../../" class="md-tabs__link">
           
   
@@ -575,31 +569,28 @@
       
   
   
-    
   
   
-  
     
     
     
     
-      
-        
-        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
         
           
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
             
   
   
@@ -617,7 +608,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -642,7 +633,7 @@
   <span class="md-ellipsis">
     
   
-    Overview
+    Components Overview
   
 
     
@@ -655,63 +646,6 @@
   
 
               
-            
-              
-                
-  
-  
-  
-  
-    
-    
-    
-    
-      
-      
-        
-          
-          
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_2" >
-        
-          
-          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    OSL (OS Layer)
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_2">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    OSL (OS Layer)
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
             
               
                 
@@ -727,7 +661,7 @@
   <span class="md-ellipsis">
     
   
-    Introduction
+    OSL - OS Layer
   
 
     
@@ -740,419 +674,6 @@
   
 
               
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../osl/architecture/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Architecture
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_2_3" >
-        
-          
-          <label class="md-nav__link" for="__nav_2_2_3" id="__nav_2_2_3_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    User Guides
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_2_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_2_3">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    User Guides
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../osl/guides/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Overview
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../osl/guides/middleware/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Middleware
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../osl/guides/custom-executors/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Custom Executors
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_2_4" >
-        
-          
-          <label class="md-nav__link" for="__nav_2_2_4" id="__nav_2_2_4_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    API Reference
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_2_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_2_4">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    API Reference
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../osl/api/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Overview
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../osl/api/core-types/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Core Types
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../osl/api/security/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Security Framework
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../osl/api/macros/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Macros
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-    
-  
-  
-  
-    
-    
-    
-    
-      
-      
-        
-          
-          
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" checked>
-        
-          
-          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    RT (Actor Runtime)
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_2_3">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    RT (Actor Runtime)
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
             
               
                 
@@ -1168,7 +689,7 @@
   <span class="md-ellipsis">
     
   
-    Introduction
+    RT - Actor Runtime
   
 
     
@@ -1181,1971 +702,6 @@
   
 
               
-            
-              
-                
-  
-  
-  
-  
-    
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3_2" >
-        
-          
-          <label class="md-nav__link" for="__nav_2_3_2" id="__nav_2_3_2_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Tutorials
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_3_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_3_2">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Tutorials
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../tutorials/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Overview
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../tutorials/getting-started/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Getting Started
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../tutorials/actor-creation/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Your First Actor
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../tutorials/message-handling/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Message Handling
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../tutorials/supervision-setup/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Building a Supervisor Tree
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-    
-  
-  
-  
-    
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3_3" checked>
-        
-          
-          <label class="md-nav__link" for="__nav_2_3_3" id="__nav_2_3_3_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    How-To Guides
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_3_3_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_2_3_3">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    How-To Guides
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Overview
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../actor-development/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Actor Development
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../supervisor-patterns/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Supervisor Patterns
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-    
-  
-  
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Message Passing
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Message Passing
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#overview" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Overview
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#1-message-design-principles" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. Message Design Principles
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="1. Message Design Principles">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#11-keep-messages-small" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1.1 Keep Messages Small
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#12-immutable-message-data" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1.2 Immutable Message Data
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#13-avoid-large-clones-with-arct" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1.3 Avoid Large Clones with Arc&lt;T&gt;
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#14-message-type-organization" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1.4 Message Type Organization
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#2-communication-patterns" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. Communication Patterns
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="2. Communication Patterns">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#21-fire-and-forget-async-send" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.1 Fire-and-Forget (Async Send)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#22-requestreply-oneshot-channels" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.2 Request/Reply (Oneshot Channels)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#23-pubsub-via-messagebroker" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.3 Pub/Sub (Via MessageBroker)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#24-broadcast-patterns" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.4 Broadcast Patterns
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#25-scattergather-patterns" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.5 Scatter/Gather Patterns
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#3-performance-optimization" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. Performance Optimization
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="3. Performance Optimization">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#31-zero-copy-patterns-with-arc" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3.1 Zero-Copy Patterns with Arc
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#32-batching-messages" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3.2 Batching Messages
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#33-priority-messages" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3.3 Priority Messages
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#34-message-pooling" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3.4 Message Pooling
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#35-performance-benchmarks" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3.5 Performance Benchmarks
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#4-error-handling-in-messaging" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4. Error Handling in Messaging
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="4. Error Handling in Messaging">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#41-send-failures" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4.1 Send Failures
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#42-timeout-patterns" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4.2 Timeout Patterns
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#43-dead-letter-handling" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4.3 Dead Letter Handling
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#5-type-safety-and-message-versioning" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5. Type Safety and Message Versioning
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="5. Type Safety and Message Versioning">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#51-strong-typing-benefits" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5.1 Strong Typing Benefits
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#52-message-evolution-strategies" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5.2 Message Evolution Strategies
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#53-backward-compatibility-patterns" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5.3 Backward Compatibility Patterns
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#summary" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Summary
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3_4" >
-        
-          
-          <label class="md-nav__link" for="__nav_2_3_4" id="__nav_2_3_4_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Architecture
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_3_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_3_4">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Architecture
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../architecture/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Overview
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../architecture/core-concepts/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Core Concepts
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../architecture/actor-model/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Actor Model Design
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../architecture/system-overview/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    System Overview
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../architecture/components/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Components
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../architecture/message-passing/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Message Passing
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../architecture/supervision/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Supervision
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../architecture/process-lifecycle/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Process Lifecycle
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3_5" >
-        
-          
-          <label class="md-nav__link" for="__nav_2_3_5" id="__nav_2_3_5_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    API Reference
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_3_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_3_5">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    API Reference
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../api/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Overview
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../api/core-types/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Core Types
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../api/actor-traits/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Actor Traits
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../api/message-types/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Message Types
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../api/supervisor-api/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Supervisor API
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3_6" >
-        
-          
-          <label class="md-nav__link" for="__nav_2_3_6" id="__nav_2_3_6_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Reference
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_3_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_3_6">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Reference
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../reference/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Overview
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3_6_2" >
-        
-          
-          <label class="md-nav__link" for="__nav_2_3_6_2" id="__nav_2_3_6_2_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    API
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_2_3_6_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_3_6_2">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    API
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../reference/api/core/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Core
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../reference/api/actors/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Actors
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../reference/api/messaging/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Messaging
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../reference/api/supervisors/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Supervisors
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../reference/api/mailbox/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Mailbox
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../reference/api/broker/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Broker
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../reference/api/monitoring/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Monitoring
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../reference/performance/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Performance
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../reference/troubleshooting/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Troubleshooting
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3_7" >
-        
-          
-          <label class="md-nav__link" for="__nav_2_3_7" id="__nav_2_3_7_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Explanation
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_3_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_3_7">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Explanation
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../explanation/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Overview
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../explanation/actor-model/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    The Actor Model
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../explanation/supervision/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Supervision & Fault Tolerance
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../explanation/message-passing/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Message Passing Architecture
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../explanation/performance-design/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Performance by Design
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../explanation/builder-pattern/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Builder Pattern Design
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../explanation/future-use-cases/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Future Use Cases
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-    
-    
-      
-      
-        
-          
-          
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_4" >
-        
-          
-          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    WASM (Component Framework)
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_4">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    WASM (Component Framework)
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
             
               
                 
@@ -3161,7 +717,7 @@
   <span class="md-ellipsis">
     
   
-    Introduction
+    WASM - Component Framework
   
 
     
@@ -3170,828 +726,6 @@
   
 
       </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../wasm/architecture/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Architecture
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_4_3" >
-        
-          
-          <label class="md-nav__link" for="__nav_2_4_3" id="__nav_2_4_3_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Tutorials
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_4_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_4_3">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Tutorials
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../wasm/tutorials/your-first-component-actor/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Your First ComponentActor
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../wasm/tutorials/stateful-component-tutorial/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Building a Stateful Component
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_4_4" >
-        
-          
-          <label class="md-nav__link" for="__nav_2_4_4" id="__nav_2_4_4_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    How-To Guides
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_4_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_4_4">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    How-To Guides
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../wasm/guides/request-response-pattern/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Request-Response Pattern
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../wasm/guides/pubsub-broadcasting/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Pub-Sub Broadcasting
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../wasm/guides/supervision-and-recovery/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Supervision and Recovery
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../wasm/guides/component-composition/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Component Composition
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../wasm/guides/production-deployment/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Production Deployment
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../wasm/guides/best-practices/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best Practices
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../wasm/guides/troubleshooting/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Troubleshooting
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_4_5" >
-        
-          
-          <label class="md-nav__link" for="__nav_2_4_5" id="__nav_2_4_5_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    API Reference
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_4_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_4_5">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    API Reference
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../wasm/api/component-actor/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    ComponentActor API
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../wasm/api/lifecycle-hooks/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Lifecycle Hooks
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_4_6" >
-        
-          
-          <label class="md-nav__link" for="__nav_2_4_6" id="__nav_2_4_6_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Reference
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_4_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_4_6">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Reference
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../wasm/reference/message-routing/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Message Routing
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../wasm/reference/performance-characteristics/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Performance Characteristics
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_4_7" >
-        
-          
-          <label class="md-nav__link" for="__nav_2_4_7" id="__nav_2_4_7_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Explanation
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_4_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_4_7">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Explanation
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../wasm/explanation/dual-trait-design/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Dual-Trait Design
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../wasm/explanation/state-management-patterns/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    State Management Patterns
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../wasm/explanation/supervision-architecture/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Supervision Architecture
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../wasm/explanation/production-readiness/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Production Readiness
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
     </li>
   
 
@@ -4936,16 +1670,20 @@
 </blockquote>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
 <p>This guide covers best practices for designing, implementing, and optimizing message passing in AirsSys RT. Message passing is the fundamental communication mechanism in the actor model, and proper message design directly impacts system performance, maintainability, and reliability.</p>
-<p><strong>What you'll learn:</strong>
-- How to design efficient message types
-- Communication patterns for different scenarios
-- Performance optimization techniques
-- Error handling strategies in messaging
-- Type safety and message evolution</p>
-<p><strong>Prerequisites:</strong>
-- Completed <a href="../implementation/getting-started.md">Getting Started</a>
-- Understanding of <a href="../actor-development/">Actor Development</a> basics
-- Familiarity with Rust async/await and channels</p>
+<p><strong>What you'll learn:</strong></p>
+<ul>
+<li>How to design efficient message types</li>
+<li>Communication patterns for different scenarios</li>
+<li>Performance optimization techniques</li>
+<li>Error handling strategies in messaging</li>
+<li>Type safety and message evolution</li>
+</ul>
+<p><strong>Prerequisites:</strong></p>
+<ul>
+<li>Completed <a href="../implementation/getting-started.md">Getting Started</a></li>
+<li>Understanding of <a href="../actor-development/">Actor Development</a> basics</li>
+<li>Familiarity with Rust async/await and channels</li>
+</ul>
 <hr />
 <h2 id="1-message-design-principles">1. Message Design Principles<a class="headerlink" href="#1-message-design-principles" title="Permanent link">&para;</a></h2>
 <p>Effective message design balances performance, clarity, and maintainability. Follow these principles for optimal results.</p>
@@ -4973,11 +1711,13 @@
 </span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">timestamp</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span><span class="w">             </span><span class="c1">// Could be computed</span>
 </span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="p">}</span>
 </span></code></pre></div>
-<p><strong>Why it matters:</strong>
-- Smaller messages = faster serialization (if needed)
-- Reduced memory allocations
-- Better cache locality
-- Lower clone costs</p>
+<p><strong>Why it matters:</strong></p>
+<ul>
+<li>Smaller messages = faster serialization (if needed)</li>
+<li>Reduced memory allocations</li>
+<li>Better cache locality</li>
+<li>Lower clone costs</li>
+</ul>
 <p><strong>Performance data</strong> (from BENCHMARKING.md §6.2):
 - Small messages (&lt;64 bytes): ~50-100ns send latency
 - Medium messages (64-512 bytes): ~100-200ns send latency
@@ -4996,11 +1736,13 @@
 </span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">shared_data</span><span class="p">:</span><span class="w"> </span><span class="nc">Arc</span><span class="o">&lt;</span><span class="n">Mutex</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">String</span><span class="o">&gt;&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="c1">// Invites race conditions</span>
 </span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="p">}</span>
 </span></code></pre></div>
-<p><strong>Benefits:</strong>
-- Thread-safe by design
-- No accidental mutations
-- Easier to test and debug
-- Aligns with actor model isolation</p>
+<p><strong>Benefits:</strong></p>
+<ul>
+<li>Thread-safe by design</li>
+<li>No accidental mutations</li>
+<li>Easier to test and debug</li>
+<li>Aligns with actor model isolation</li>
+</ul>
 <h3 id="13-avoid-large-clones-with-arct">1.3 Avoid Large Clones with <code>Arc&lt;T&gt;</code><a class="headerlink" href="#13-avoid-large-clones-with-arct" title="Permanent link">&para;</a></h3>
 <p><strong>Principle</strong>: For large data, use <code>Arc&lt;T&gt;</code> to avoid expensive clones.</p>
 <div class="language-rust highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">use</span><span class="w"> </span><span class="n">std</span><span class="p">::</span><span class="n">sync</span><span class="p">::</span><span class="n">Arc</span><span class="p">;</span>
@@ -5026,11 +1768,13 @@
 </span><span id="__span-2-21"><a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="c1">// Clone is cheap - only increments reference count</span>
 </span><span id="__span-2-22"><a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="kd">let</span><span class="w"> </span><span class="n">msg_clone</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">msg</span><span class="p">.</span><span class="n">clone</span><span class="p">();</span><span class="w"> </span><span class="c1">// ~10ns, not 1MB copy</span>
 </span></code></pre></div>
-<p><strong>Guidelines:</strong>
-- Use <code>Arc&lt;T&gt;</code> when data &gt; 1KB
-- Use <code>Arc&lt;T&gt;</code> when sending to multiple actors
-- Use owned data for small types (&lt;64 bytes)
-- Consider <code>Arc&lt;[T]&gt;</code> for immutable slices</p>
+<p><strong>Guidelines:</strong></p>
+<ul>
+<li>Use <code>Arc&lt;T&gt;</code> when data &gt; 1KB</li>
+<li>Use <code>Arc&lt;T&gt;</code> when sending to multiple actors</li>
+<li>Use owned data for small types (&lt;64 bytes)</li>
+<li>Consider <code>Arc&lt;[T]&gt;</code> for immutable slices</li>
+</ul>
 <p><strong>Performance comparison:</strong>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Clone 1KB Vec&lt;u8&gt;:        ~1,000ns (copy)
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>Clone Arc&lt;1KB Vec&lt;u8&gt;&gt;:   ~10ns (ref count)
@@ -5053,10 +1797,12 @@
 </span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">    </span><span class="k">type</span><span class="w"> </span><span class="nb">Result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">();</span>
 </span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="p">}</span>
 </span></code></pre></div>
-<p><strong>Benefits:</strong>
-- Clear API surface
-- Easy pattern matching
-- Single message type per actor</p>
+<p><strong>Benefits:</strong></p>
+<ul>
+<li>Clear API surface</li>
+<li>Easy pattern matching</li>
+<li>Single message type per actor</li>
+</ul>
 <p><strong>Pattern B: Separate Types (Complex Actors)</strong></p>
 <div class="language-rust highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1">// ✅ GOOD - Separate types for distinct domains</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="cp">#[derive(Debug, Clone)]</span>
@@ -5077,18 +1823,24 @@
 </span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="w">    </span><span class="k">type</span><span class="w"> </span><span class="nb">Result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">();</span>
 </span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a><span class="p">}</span>
 </span></code></pre></div>
-<p><strong>Benefits:</strong>
-- Explicit type signatures
-- Better for actors with many operations
-- Easier to evolve independently</p>
-<p><strong>Choose enum when:</strong>
-- Actor has &lt;10 message types
-- Messages are closely related
-- Simple request/response patterns</p>
-<p><strong>Choose separate types when:</strong>
-- Actor has &gt;10 message types
-- Messages have different result types
-- Complex domain logic</p>
+<p><strong>Benefits:</strong></p>
+<ul>
+<li>Explicit type signatures</li>
+<li>Better for actors with many operations</li>
+<li>Easier to evolve independently</li>
+</ul>
+<p><strong>Choose enum when:</strong></p>
+<ul>
+<li>Actor has &lt;10 message types</li>
+<li>Messages are closely related</li>
+<li>Simple request/response patterns</li>
+</ul>
+<p><strong>Choose separate types when:</strong></p>
+<ul>
+<li>Actor has &gt;10 message types</li>
+<li>Messages have different result types</li>
+<li>Complex domain logic</li>
+</ul>
 <hr />
 <h2 id="2-communication-patterns">2. Communication Patterns<a class="headerlink" href="#2-communication-patterns" title="Permanent link">&para;</a></h2>
 <p>Different communication needs require different patterns. Choose the right pattern for your use case.</p>
@@ -5131,11 +1883,13 @@
 </span><span id="__span-6-35"><a id="__codelineno-6-35" name="__codelineno-6-35" href="#__codelineno-6-35"></a><span class="w">    </span><span class="n">do_work</span><span class="p">().</span><span class="k">await</span><span class="p">;</span>
 </span><span id="__span-6-36"><a id="__codelineno-6-36" name="__codelineno-6-36" href="#__codelineno-6-36"></a><span class="p">}</span>
 </span></code></pre></div>
-<p><strong>When to use:</strong>
-- Logging, metrics, notifications
-- One-way commands
-- When sender doesn't need confirmation
-- High-throughput scenarios</p>
+<p><strong>When to use:</strong></p>
+<ul>
+<li>Logging, metrics, notifications</li>
+<li>One-way commands</li>
+<li>When sender doesn't need confirmation</li>
+<li>High-throughput scenarios</li>
+</ul>
 <p><strong>Performance</strong>: ~50-100ns send latency (BENCHMARKING.md §6.2)</p>
 <h3 id="22-requestreply-oneshot-channels">2.2 Request/Reply (Oneshot Channels)<a class="headerlink" href="#22-requestreply-oneshot-channels" title="Permanent link">&para;</a></h3>
 <p><strong>Use case</strong>: Send message and wait for response.</p>
@@ -5185,11 +1939,13 @@
 </span><span id="__span-7-44"><a id="__codelineno-7-44" name="__codelineno-7-44" href="#__codelineno-7-44"></a><span class="w">        </span><span class="p">.</span><span class="n">map_err</span><span class="p">(</span><span class="o">|</span><span class="n">e</span><span class="o">|</span><span class="w"> </span><span class="fm">format!</span><span class="p">(</span><span class="s">&quot;Receive failed: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">e</span><span class="p">))</span>
 </span><span id="__span-7-45"><a id="__codelineno-7-45" name="__codelineno-7-45" href="#__codelineno-7-45"></a><span class="p">}</span>
 </span></code></pre></div>
-<p><strong>When to use:</strong>
-- Queries that need results
-- Synchronous-style APIs
-- When caller needs confirmation
-- RPC-style interactions</p>
+<p><strong>When to use:</strong></p>
+<ul>
+<li>Queries that need results</li>
+<li>Synchronous-style APIs</li>
+<li>When caller needs confirmation</li>
+<li>RPC-style interactions</li>
+</ul>
 <p><strong>Pattern variations:</strong>
 <div class="language-rust highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1">// Variation 1: Return Result</span>
 </span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="cp">#[derive(Debug, Clone)]</span>
@@ -5280,11 +2036,13 @@
 </span><span id="__span-9-62"><a id="__codelineno-9-62" name="__codelineno-9-62" href="#__codelineno-9-62"></a><span class="w">    </span><span class="p">}).</span><span class="k">await</span><span class="p">;</span>
 </span><span id="__span-9-63"><a id="__codelineno-9-63" name="__codelineno-9-63" href="#__codelineno-9-63"></a><span class="p">}</span>
 </span></code></pre></div>
-<p><strong>When to use:</strong>
-- Event notifications
-- Broadcasting state changes
-- Decoupling publishers from subscribers
-- Fan-out patterns</p>
+<p><strong>When to use:</strong></p>
+<ul>
+<li>Event notifications</li>
+<li>Broadcasting state changes</li>
+<li>Decoupling publishers from subscribers</li>
+<li>Fan-out patterns</li>
+</ul>
 <p><strong>Performance</strong>: ~100-200ns per subscriber (BENCHMARKING.md §6.2.3)</p>
 <h3 id="24-broadcast-patterns">2.4 Broadcast Patterns<a class="headerlink" href="#24-broadcast-patterns" title="Permanent link">&para;</a></h3>
 <p><strong>Use case</strong>: Send same message to multiple actors.</p>
@@ -5314,10 +2072,12 @@
 </span><span id="__span-10-24"><a id="__codelineno-10-24" name="__codelineno-10-24" href="#__codelineno-10-24"></a><span class="w">    </span><span class="nb">Ok</span><span class="p">(())</span>
 </span><span id="__span-10-25"><a id="__codelineno-10-25" name="__codelineno-10-25" href="#__codelineno-10-25"></a><span class="p">}</span>
 </span></code></pre></div>
-<p><strong>When to use:</strong>
-- Shutdown/restart commands
-- Configuration updates
-- Coordinated state changes</p>
+<p><strong>When to use:</strong></p>
+<ul>
+<li>Shutdown/restart commands</li>
+<li>Configuration updates</li>
+<li>Coordinated state changes</li>
+</ul>
 <h3 id="25-scattergather-patterns">2.5 Scatter/Gather Patterns<a class="headerlink" href="#25-scattergather-patterns" title="Permanent link">&para;</a></h3>
 <p><strong>Use case</strong>: Send to multiple actors and collect responses.</p>
 <div class="language-rust highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">scatter_gather_query</span><span class="p">(</span>
@@ -5357,11 +2117,13 @@
 </span><span id="__span-11-35"><a id="__codelineno-11-35" name="__codelineno-11-35" href="#__codelineno-11-35"></a><span class="w">    </span><span class="nb">Ok</span><span class="p">(</span><span class="n">results</span><span class="p">.</span><span class="n">into_iter</span><span class="p">().</span><span class="n">flatten</span><span class="p">().</span><span class="n">collect</span><span class="p">())</span>
 </span><span id="__span-11-36"><a id="__codelineno-11-36" name="__codelineno-11-36" href="#__codelineno-11-36"></a><span class="p">}</span>
 </span></code></pre></div>
-<p><strong>When to use:</strong>
-- Aggregating data from multiple sources
-- Parallel query processing
-- Consensus algorithms
-- Load distribution</p>
+<p><strong>When to use:</strong></p>
+<ul>
+<li>Aggregating data from multiple sources</li>
+<li>Parallel query processing</li>
+<li>Consensus algorithms</li>
+<li>Load distribution</li>
+</ul>
 <hr />
 <h2 id="3-performance-optimization">3. Performance Optimization<a class="headerlink" href="#3-performance-optimization" title="Permanent link">&para;</a></h2>
 <p>Optimize message passing for high-throughput scenarios.</p>
@@ -5391,10 +2153,12 @@
 </span><span id="__span-12-22"><a id="__codelineno-12-22" name="__codelineno-12-22" href="#__codelineno-12-22"></a><span class="w">    </span><span class="p">}</span>
 </span><span id="__span-12-23"><a id="__codelineno-12-23" name="__codelineno-12-23" href="#__codelineno-12-23"></a><span class="p">}</span>
 </span></code></pre></div>
-<p><strong>Performance gain:</strong>
-- 1MB message copy: ~1ms
-- 1MB Arc clone: ~10ns
-- <strong>100x faster</strong> for large data</p>
+<p><strong>Performance gain:</strong></p>
+<ul>
+<li>1MB message copy: ~1ms</li>
+<li>1MB Arc clone: ~10ns</li>
+<li><strong>100x faster</strong> for large data</li>
+</ul>
 <h3 id="32-batching-messages">3.2 Batching Messages<a class="headerlink" href="#32-batching-messages" title="Permanent link">&para;</a></h3>
 <p><strong>Strategy</strong>: Process multiple messages together to reduce per-message overhead.</p>
 <div class="language-rust highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="cp">#[derive(Debug, Clone)]</span>
@@ -5453,15 +2217,19 @@
 </span><span id="__span-13-54"><a id="__codelineno-13-54" name="__codelineno-13-54" href="#__codelineno-13-54"></a><span class="w">    </span><span class="p">}</span>
 </span><span id="__span-13-55"><a id="__codelineno-13-55" name="__codelineno-13-55" href="#__codelineno-13-55"></a><span class="p">}</span>
 </span></code></pre></div>
-<p><strong>Performance gain:</strong>
-- Individual processing: ~1,000ns per message
-- Batched processing: ~100ns per message (10x improvement)
-- Trade-off: Increased latency for batch accumulation</p>
-<p><strong>When to use:</strong>
-- Database writes
-- Network requests
-- File I/O operations
-- High-volume data processing</p>
+<p><strong>Performance gain:</strong></p>
+<ul>
+<li>Individual processing: ~1,000ns per message</li>
+<li>Batched processing: ~100ns per message (10x improvement)</li>
+<li>Trade-off: Increased latency for batch accumulation</li>
+</ul>
+<p><strong>When to use:</strong></p>
+<ul>
+<li>Database writes</li>
+<li>Network requests</li>
+<li>File I/O operations</li>
+<li>High-volume data processing</li>
+</ul>
 <h3 id="33-priority-messages">3.3 Priority Messages<a class="headerlink" href="#33-priority-messages" title="Permanent link">&para;</a></h3>
 <p><strong>Strategy</strong>: Process critical messages before normal messages.</p>
 <blockquote>
@@ -5502,11 +2270,13 @@
 </span><span id="__span-14-33"><a id="__codelineno-14-33" name="__codelineno-14-33" href="#__codelineno-14-33"></a><span class="w">    </span><span class="p">}</span>
 </span><span id="__span-14-34"><a id="__codelineno-14-34" name="__codelineno-14-34" href="#__codelineno-14-34"></a><span class="p">}</span>
 </span></code></pre></div>
-<p><strong>When to use:</strong>
-- Health check messages (high priority)
-- Shutdown commands (high priority)
-- Control plane vs data plane separation
-- Real-time vs batch processing</p>
+<p><strong>When to use:</strong></p>
+<ul>
+<li>Health check messages (high priority)</li>
+<li>Shutdown commands (high priority)</li>
+<li>Control plane vs data plane separation</li>
+<li>Real-time vs batch processing</li>
+</ul>
 <h3 id="34-message-pooling">3.4 Message Pooling<a class="headerlink" href="#34-message-pooling" title="Permanent link">&para;</a></h3>
 <p><strong>Strategy</strong>: Reuse message allocations for extremely high-throughput scenarios.</p>
 <blockquote>
@@ -5555,15 +2325,19 @@
 </span><span id="__span-15-41"><a id="__codelineno-15-41" name="__codelineno-15-41" href="#__codelineno-15-41"></a><span class="w">    </span><span class="p">}</span>
 </span><span id="__span-15-42"><a id="__codelineno-15-42" name="__codelineno-15-42" href="#__codelineno-15-42"></a><span class="p">}</span>
 </span></code></pre></div>
-<p><strong>Performance gain:</strong>
-- Without pooling: ~1,000ns per allocation
-- With pooling: ~100ns per acquisition
-- <strong>10x faster</strong> for allocation-heavy workloads</p>
-<p><strong>When to use:</strong>
-- Message rates &gt;100,000/sec
-- Large message buffers
-- Real-time systems with strict latency requirements
-- Only after profiling confirms allocation bottleneck</p>
+<p><strong>Performance gain:</strong></p>
+<ul>
+<li>Without pooling: ~1,000ns per allocation</li>
+<li>With pooling: ~100ns per acquisition</li>
+<li><strong>10x faster</strong> for allocation-heavy workloads</li>
+</ul>
+<p><strong>When to use:</strong></p>
+<ul>
+<li>Message rates &gt;100,000/sec</li>
+<li>Large message buffers</li>
+<li>Real-time systems with strict latency requirements</li>
+<li>Only after profiling confirms allocation bottleneck</li>
+</ul>
 <h3 id="35-performance-benchmarks">3.5 Performance Benchmarks<a class="headerlink" href="#35-performance-benchmarks" title="Permanent link">&para;</a></h3>
 <p><strong>Reference data</strong> from BENCHMARKING.md §6.2:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>Message Send Latency:
@@ -5729,11 +2503,13 @@
 </span><span id="__span-20-26"><a id="__codelineno-20-26" name="__codelineno-20-26" href="#__codelineno-20-26"></a><span class="w">    </span><span class="p">}</span>
 </span><span id="__span-20-27"><a id="__codelineno-20-27" name="__codelineno-20-27" href="#__codelineno-20-27"></a><span class="p">}</span>
 </span></code></pre></div>
-<p><strong>Timeout guidelines:</strong>
-- Fast queries: 100ms - 1s
-- Normal operations: 1s - 5s
-- Long-running tasks: 30s - 5min
-- Always set timeouts for request/reply patterns</p>
+<p><strong>Timeout guidelines:</strong></p>
+<ul>
+<li>Fast queries: 100ms - 1s</li>
+<li>Normal operations: 1s - 5s</li>
+<li>Long-running tasks: 30s - 5min</li>
+<li>Always set timeouts for request/reply patterns</li>
+</ul>
 <h3 id="43-dead-letter-handling">4.3 Dead Letter Handling<a class="headerlink" href="#43-dead-letter-handling" title="Permanent link">&para;</a></h3>
 <blockquote>
 <p><strong>Note</strong>: Dead letter queues are a planned feature (future RT task). Current approach: log and handle manually.</p>
@@ -5796,12 +2572,14 @@
 </span><span id="__span-23-28"><a id="__codelineno-23-28" name="__codelineno-23-28" href="#__codelineno-23-28"></a><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">session_id</span><span class="p">:</span><span class="w"> </span><span class="nb">Option</span><span class="o">&lt;</span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="c1">// Could be Some when disconnected!</span>
 </span><span id="__span-23-29"><a id="__codelineno-23-29" name="__codelineno-23-29" href="#__codelineno-23-29"></a><span class="p">}</span>
 </span></code></pre></div>
-<p><strong>Type safety checklist:</strong>
-- Use enums for finite states
-- Use newtypes for domain-specific values
-- Use Result<T, E> for operations that can fail
-- Use Option<T> only when absence is meaningful
-- Avoid stringly-typed data</p>
+<p><strong>Type safety checklist:</strong></p>
+<ul>
+<li>Use enums for finite states</li>
+<li>Use newtypes for domain-specific values</li>
+<li>Use Result<T, E> for operations that can fail</li>
+<li>Use Option<T> only when absence is meaningful</li>
+<li>Avoid stringly-typed data</li>
+</ul>
 <h3 id="52-message-evolution-strategies">5.2 Message Evolution Strategies<a class="headerlink" href="#52-message-evolution-strategies" title="Permanent link">&para;</a></h3>
 <p><strong>Strategy 1: Versioned Messages</strong></p>
 <div class="language-rust highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="cp">#[derive(Debug, Clone)]</span>
@@ -5966,50 +2744,66 @@
 </span></code></pre></div></p>
 <hr />
 <h2 id="summary">Summary<a class="headerlink" href="#summary" title="Permanent link">&para;</a></h2>
-<p><strong>Message Design Principles:</strong>
-- Keep messages small (&lt;64 bytes ideal)
-- Use immutable data structures
-- Share large data with <code>Arc&lt;T&gt;</code>
-- Choose enum vs separate types based on complexity</p>
-<p><strong>Communication Patterns:</strong>
-- Fire-and-forget: One-way commands, logging
-- Request/reply: Queries, RPC-style interactions
-- Pub/Sub: Event broadcasting, decoupling
-- Broadcast: Multiple recipients, same message
-- Scatter/gather: Parallel queries, aggregation</p>
-<p><strong>Performance Optimization:</strong>
-- Use <code>Arc&lt;T&gt;</code> for zero-copy sharing (100x faster for large data)
-- Batch messages for high throughput (10x improvement)
-- Implement priority queues for critical messages
-- Pool objects only after profiling confirms bottleneck
-- Reference BENCHMARKING.md §6.2 for performance targets</p>
-<p><strong>Error Handling:</strong>
-- Handle send failures with retry and backoff
-- Always use timeouts for request/reply
-- Log dead letters for debugging
-- Implement circuit breakers for failing actors</p>
-<p><strong>Type Safety:</strong>
-- Use strong types to prevent runtime errors
-- Version messages for backward compatibility
-- Use builder patterns for complex messages
-- Leverage Rust's type system for correctness</p>
-<p><strong>Performance Reference (BENCHMARKING.md §6.2):</strong>
-- Small message send: 50-100ns
-- Arc clone vs copy: 10ns vs 1ms (100x)
-- Single actor throughput: 1M+ msg/sec
-- Batched throughput: 5M+ msg/sec</p>
-<p><strong>Next Steps:</strong>
-- See <a href="../../examples/message_patterns.rs">message_patterns.rs</a> for working examples
-- Review <a href="../actor-development/">Actor Development</a> for message handling patterns
-- Check <a href="../supervisor-patterns/">Supervisor Patterns</a> for error recovery integration
-- Consult BENCHMARKING.md for performance tuning guidance</p>
+<p><strong>Message Design Principles:</strong></p>
+<ul>
+<li>Keep messages small (&lt;64 bytes ideal)</li>
+<li>Use immutable data structures</li>
+<li>Share large data with <code>Arc&lt;T&gt;</code></li>
+<li>Choose enum vs separate types based on complexity</li>
+</ul>
+<p><strong>Communication Patterns:</strong></p>
+<ul>
+<li>Fire-and-forget: One-way commands, logging</li>
+<li>Request/reply: Queries, RPC-style interactions</li>
+<li>Pub/Sub: Event broadcasting, decoupling</li>
+<li>Broadcast: Multiple recipients, same message</li>
+<li>Scatter/gather: Parallel queries, aggregation</li>
+</ul>
+<p><strong>Performance Optimization:</strong></p>
+<ul>
+<li>Use <code>Arc&lt;T&gt;</code> for zero-copy sharing (100x faster for large data)</li>
+<li>Batch messages for high throughput (10x improvement)</li>
+<li>Implement priority queues for critical messages</li>
+<li>Pool objects only after profiling confirms bottleneck</li>
+<li>Reference BENCHMARKING.md §6.2 for performance targets</li>
+</ul>
+<p><strong>Error Handling:</strong></p>
+<ul>
+<li>Handle send failures with retry and backoff</li>
+<li>Always use timeouts for request/reply</li>
+<li>Log dead letters for debugging</li>
+<li>Implement circuit breakers for failing actors</li>
+</ul>
+<p><strong>Type Safety:</strong></p>
+<ul>
+<li>Use strong types to prevent runtime errors</li>
+<li>Version messages for backward compatibility</li>
+<li>Use builder patterns for complex messages</li>
+<li>Leverage Rust's type system for correctness</li>
+</ul>
+<p><strong>Performance Reference (BENCHMARKING.md §6.2):</strong></p>
+<ul>
+<li>Small message send: 50-100ns</li>
+<li>Arc clone vs copy: 10ns vs 1ms (100x)</li>
+<li>Single actor throughput: 1M+ msg/sec</li>
+<li>Batched throughput: 5M+ msg/sec</li>
+</ul>
+<p><strong>Next Steps:</strong></p>
+<ul>
+<li>See <a href="../../examples/message_patterns.rs">message_patterns.rs</a> for working examples</li>
+<li>Review <a href="../actor-development/">Actor Development</a> for message handling patterns</li>
+<li>Check <a href="../supervisor-patterns/">Supervisor Patterns</a> for error recovery integration</li>
+<li>Consult BENCHMARKING.md for performance tuning guidance</li>
+</ul>
 <hr />
-<p><strong>Related Documentation:</strong>
-- <a href="../implementation/getting-started.md">Getting Started</a> - Basic message passing
-- <a href="../actor-development/">Actor Development</a> - Message handling implementation
-- <a href="../supervisor-patterns/">Supervisor Patterns</a> - Error recovery with messages
-- BENCHMARKING.md §6.2 - Message passing performance data
-- <a href="../reference/broker.md">MessageBroker API</a> - Pub/sub implementation details</p>
+<p><strong>Related Documentation:</strong></p>
+<ul>
+<li><a href="../implementation/getting-started.md">Getting Started</a> - Basic message passing</li>
+<li><a href="../actor-development/">Actor Development</a> - Message handling implementation</li>
+<li><a href="../supervisor-patterns/">Supervisor Patterns</a> - Error recovery with messages</li>
+<li>BENCHMARKING.md §6.2 - Message passing performance data</li>
+<li><a href="../reference/broker.md">MessageBroker API</a> - Pub/sub implementation details</li>
+</ul>
 
 
 
@@ -6040,44 +2834,6 @@
       
         <footer class="md-footer">
   
-    
-      
-      <nav class="md-footer__inner md-grid" aria-label="Footer" >
-        
-          
-          <a href="../supervisor-patterns/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Supervisor Patterns">
-            <div class="md-footer__button md-icon">
-              
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
-            </div>
-            <div class="md-footer__title">
-              <span class="md-footer__direction">
-                Previous
-              </span>
-              <div class="md-ellipsis">
-                Supervisor Patterns
-              </div>
-            </div>
-          </a>
-        
-        
-          
-          <a href="../../architecture/" class="md-footer__link md-footer__link--next" aria-label="Next: Overview">
-            <div class="md-footer__title">
-              <span class="md-footer__direction">
-                Next
-              </span>
-              <div class="md-ellipsis">
-                Overview
-              </div>
-            </div>
-            <div class="md-footer__button md-icon">
-              
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
-            </div>
-          </a>
-        
-      </nav>
     
   
   <div class="md-footer-meta md-typeset">
