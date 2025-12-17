@@ -62,6 +62,9 @@ lru = "0.12"
 # Concurrent collections for correlation tracking (WASM-TASK-004 Phase 5 Task 5.1)
 dashmap = { workspace = true }
 
+# SHA-256 hashing for component identity (WASM-TASK-005 Phase 2 Task 2.2)
+sha2 = "0.10"
+
 [dev-dependencies]
 # WAT compiler for test fixtures (workspace dependency)
 wat = { workspace = true }

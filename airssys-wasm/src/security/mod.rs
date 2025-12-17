@@ -162,11 +162,16 @@
 //! - **Microsoft Rust Guidelines**: M-MODULE-DOCS, M-CANONICAL-DOCS ✅
 
 // Module declarations (§4.3 - ONLY declarations in mod.rs)
+pub mod approval;
 pub mod capability;
 pub mod parser;
 pub mod trust;
 
 // Re-export primary types for ergonomic imports
+pub use approval::{
+    ApprovalDecision, ApprovalError, ApprovalRequest, ApprovalResult, ApprovalState,
+    ApprovalStore, ApprovalWorkflow, ReviewQueue, StateTransition,
+};
 pub use capability::{WasmCapability, WasmCapabilitySet, WasmSecurityContext};
 pub use parser::{ComponentManifestParser, ParseError, ParseResult};
 pub use trust::{ComponentSource, TrustError, TrustLevel, TrustRegistry, TrustResult, TrustSource};
