@@ -285,3 +285,48 @@
 ---
 **Template Version:** 1.0  
 **Last Updated:** 2025-09-27
+---
+
+
+## KNOWLEDGE-OSL-004: API Ergonomics Architecture
+**Category**: Architecture / API Design  
+**Created**: 2025-10-XX (moved 2025-12-17)  
+**Status**: Active  
+
+**Purpose**: API ergonomics patterns and design principles for airssys-osl
+
+**File**: `knowledge-osl-004-api-ergonomics-architecture.md`
+
+---
+
+## KNOWLEDGE-OSL-005: Strategic Prioritization Rationale
+**Category**: Strategy / Planning  
+**Created**: 2025-10-XX (moved 2025-12-17)  
+**Status**: Active  
+
+**Purpose**: Strategic prioritization decisions and rationale for airssys-osl development
+
+**File**: `knowledge-osl-005-strategic-prioritization-rationale.md`
+
+---
+
+## KNOWLEDGE-OSL-013: Architecture Refactoring Plan (2025-10)
+**Category**: Architecture / Refactoring  
+**Created**: 2025-10-XX (moved 2025-12-17)  
+**Status**: Active  
+
+**Purpose**: Architecture refactoring plan from October 2025
+
+**File**: `knowledge-osl-013-architecture-refactoring-plan-2025-10.md`
+
+---
+
+## KNOWLEDGE-OSL-014: Phase 5 Integration Testing Findings
+**Category**: Testing / Quality  
+**Created**: 2025-10-XX (moved 2025-12-17)  
+**Status**: Active  
+
+**Purpose**: Findings and insights from Phase 5 integration testing
+
+**File**: `knowledge-osl-014-phase5-integration-testing-findings.md`
+

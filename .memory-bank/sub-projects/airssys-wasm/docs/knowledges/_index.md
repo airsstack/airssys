@@ -243,3 +243,56 @@
 - Performance optimization
 
 **File:** `docs/knowledges/knowledge-wasm-019-runtime-dependency-architecture.md`
+
+---
+
+
+## KNOWLEDGE-WASM-020: airssys-osl Security Integration Architecture
+**Category**: Integration / Security  
+**Created**: 2025-12-17  
+**Status**: Active  
+**Related**: ADR-WASM-005 (Capability-Based Security), ADR-WASM-010 (Implementation Strategy)
+
+**Purpose**: Documents the integration architecture between airssys-wasm component security and airssys-osl security infrastructure (ACL, RBAC, audit logging).
+
+**Key Content**:
+- Integration verification methodology
+- ACL, SecurityPolicy, SecurityContext, and audit logger integration points
+- Data flow validation (Component.toml → Parser → ACL → Policy)
+- Security model alignment verification (deny-by-default, glob patterns)
+- Future integration patterns (Tasks 1.3, 3.1, 3.3)
+
+**Audience**: Developers implementing security features in airssys-wasm
+
+**File**: `knowledge-wasm-020-airssys-osl-security-integration.md`
+
+
+## KNOWLEDGE-WASM-021: Architecture References
+**Category**: Architecture  
+**Created**: 2025-10-23 (moved 2025-12-17)  
+**Status**: Active  
+
+**Purpose**: Central reference for airssys-wasm architecture documentation
+
+**File**: `knowledge-wasm-021-architecture-references.md`
+
+---
+
+## KNOWLEDGE-WASM-022: Runtime Architecture Summary
+**Category**: Architecture / Runtime  
+**Created**: 2025-12-16 (moved 2025-12-17)  
+**Status**: Active  
+**Related**: ADR-WASM-018 (Three-Layer Architecture), ADR-WASM-019 (Runtime Dependency Management)
+
+**Purpose**: Quick reference for runtime dependency decisions - Tokio vs airssys-rt usage patterns
+
+**Key Content**:
+- Three runtime layers (Layer 2: airssys-wasm, Layer 3: airssys-rt, Layer 0: Tokio)
+- Golden rules for runtime selection
+- Decision guide (when to use which layer)
+- Common patterns (timeout handling, channels, message routing)
+
+**Audience**: Developers working on airssys-wasm runtime features
+
+**File**: `knowledge-wasm-022-runtime-architecture-summary.md`
+
