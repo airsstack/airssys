@@ -3,11 +3,13 @@
 This comprehensive tutorial teaches you how to build robust, production-ready actors. You'll learn lifecycle management, state patterns, message design, error handling, and testing strategies.
 
 **Prerequisites:**
+
 - Completed [Getting Started](../implementation/getting-started.md)
 - Understanding of async/await in Rust
 - Basic familiarity with actor model concepts
 
 **What You'll Learn:**
+
 - Actor lifecycle in depth (pre_start, handle_message, post_stop)
 - State management patterns (immutable, mutable, persistent)
 - Message design patterns (commands, queries, events)
@@ -31,6 +33,7 @@ Created → Starting → Running → Stopping → Stopped
 ```
 
 **State Transitions:**
+
 - **Created**: Initial state after instantiation
 - **Starting**: Executing `pre_start()`, initializing resources
 - **Running**: Processing messages via `handle_message()`
@@ -42,6 +45,7 @@ Created → Starting → Running → Stopping → Stopped
 The `pre_start()` hook runs **once** before the actor begins processing messages.
 
 **When to use:**
+
 - Open file handles or database connections
 - Initialize network connections
 - Load configuration or state from disk
@@ -104,6 +108,7 @@ impl Actor for FileProcessor {
 ```
 
 **Best practices:**
+
 - Return `Err` if initialization fails (prevents starting broken actor)
 - Keep initialization fast (<100ms ideal)
 - Log initialization steps for debugging
@@ -191,6 +196,7 @@ async fn handle_message<B: MessageBroker<Self::Message>>(
 ```
 
 **Performance Note:**
+
 - Message processing baseline: ~31.5ns per message
 - Keep processing fast for high throughput
 - Offload expensive I/O to separate actors
@@ -201,6 +207,7 @@ async fn handle_message<B: MessageBroker<Self::Message>>(
 The `post_stop()` hook runs when the actor is shutting down.
 
 **When to use:**
+
 - Close file handles or connections
 - Flush buffers to disk
 - Deregister from external services
@@ -232,6 +239,7 @@ async fn post_stop<B: MessageBroker<Self::Message>>(
 ```
 
 **Best practices:**
+
 - **Always** clean up resources (prevent leaks)
 - Handle cleanup errors gracefully (log, don't panic)
 - Keep shutdown fast (<1 second ideal)
@@ -246,6 +254,7 @@ Choosing the right state management pattern affects correctness, performance, an
 ### Pattern 1: Immutable State
 
 **When to use:**
+
 - State changes are infrequent
 - State is small (< 1KB)
 - Functional programming style preferred
@@ -279,17 +288,20 @@ async fn handle_message<B: MessageBroker<Self::Message>>(
 ```
 
 **Pros:**
+
 - Simple reasoning (no hidden mutations)
 - Easy to test (pure functions)
 - Works well with undo/redo patterns
 
 **Cons:**
+
 - Memory allocation on every change
 - Slower for large state (cloning overhead)
 
 ### Pattern 2: Mutable State
 
 **When to use:**
+
 - Frequent state updates
 - Large state objects (> 1KB)
 - Performance-critical paths
@@ -324,17 +336,20 @@ async fn handle_message<B: MessageBroker<Self::Message>>(
 ```
 
 **Pros:**
+
 - Zero allocation for updates
 - Best performance
 - Natural for imperative style
 
 **Cons:**
+
 - Must track mutations carefully
 - More complex testing
 
 ### Pattern 3: Interior Mutability (Advanced)
 
 **When to use:**
+
 - Shared state across async boundaries
 - Complex borrowing scenarios
 - Performance-critical with thread safety
@@ -370,11 +385,13 @@ async fn handle_message<B: MessageBroker<Self::Message>>(
 ```
 
 **Pros:**
+
 - Share state across async tasks
 - Fine-grained locking
 - Concurrent reads
 
 **Cons:**
+
 - Complexity (deadlock risk)
 - Slower than direct mutation
 - Requires careful lock management
@@ -384,6 +401,7 @@ async fn handle_message<B: MessageBroker<Self::Message>>(
 ### Pattern 4: State Persistence
 
 **When to use:**
+
 - Actors must survive restarts
 - Audit trail required
 - Recovery from crashes needed
@@ -449,6 +467,7 @@ async fn handle_message<B: MessageBroker<Self::Message>>(
 ```
 
 **Best practices:**
+
 - Batch writes (don't persist every message)
 - Use write-ahead logging for durability
 - Handle corruption gracefully
@@ -465,6 +484,7 @@ Well-designed messages improve clarity, type safety, and maintainability.
 Commands instruct the actor to **do something**.
 
 **Characteristics:**
+
 - Imperative naming (Verb + Object)
 - Fire-and-forget semantics
 - May have side effects
@@ -489,6 +509,7 @@ impl Message for FileCommand {
 Queries request information **without** modifying state.
 
 **Characteristics:**
+
 - Request/reply pattern (oneshot channel)
 - No side effects (read-only)
 - Returns data to caller
@@ -522,6 +543,7 @@ async fn query_file_size(file_actor: &ActorAddress) -> Result<u64, Error> {
 Events notify observers that **something happened**.
 
 **Characteristics:**
+
 - Past tense naming (Subject + Past Verb)
 - Pub/sub semantics (via MessageBroker)
 - Immutable facts
@@ -590,6 +612,7 @@ async fn handle_message<B: MessageBroker<Self::Message>>(
 ```
 
 **Best practices:**
+
 - Use enums for message variants
 - Derive `Clone` (messages are cloned when sent)
 - Derive `Serialize` for routing/persistence
@@ -605,11 +628,13 @@ Actors use supervision for fault tolerance. Understanding error handling is crit
 ### Error Types
 
 **Recoverable Errors:**
+
 - Temporary failures (network timeout, file lock)
 - Can be retried
 - Don't indicate actor corruption
 
 **Non-Recoverable Errors:**
+
 - Logic errors (invalid state)
 - Resource exhaustion
 - Indicate actor needs restart
@@ -649,6 +674,7 @@ impl Actor for MyActor {
 ```
 
 **ErrorAction variants:**
+
 - **Resume**: Continue processing (error handled)
 - **Stop**: Graceful shutdown
 - **Restart**: Reset state and restart

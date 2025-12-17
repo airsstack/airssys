@@ -19,6 +19,7 @@ Performance characteristics of the ComponentActor system, measured in Task 6.2 (
 | State write access | 39ns | `actor_lifecycle_benchmarks.rs::bench_state_write_access` | macOS M1, 100 samples |
 
 **Notes:**
+
 - Component spawn measures `ComponentActor::new()` construction time
 - Full lifecycle includes `pre_start()` → `post_start()` → `pre_stop()` → `post_stop()`
 - State access measured with `Arc<RwLock<T>>` pattern (read lock + write lock)
@@ -34,6 +35,7 @@ Performance characteristics of the ComponentActor system, measured in Task 6.2 (
 | Pub-sub fanout (100) | 85.2µs | `messaging_benchmarks.rs::bench_pubsub_fanout_100` | macOS M1, 100 samples |
 
 **Notes:**
+
 - Registry lookup is O(1) constant time (HashMap-based)
 - Message routing includes lookup + send operation
 - Request-response includes correlation tracker creation + routing
@@ -47,6 +49,7 @@ Performance characteristics of the ComponentActor system, measured in Task 6.2 (
 | Correlation tracker construction | 7.8ns | `messaging_benchmarks.rs::bench_correlation_tracker_construction` | macOS M1, 100 samples |
 
 **Notes:**
+
 - Throughput measured over 10-second sustained period
 - Correlation tracker is lightweight (Arc-based)
 
@@ -74,6 +77,7 @@ Registry lookup remains O(1) constant time across all scales:
 | 100 component batch registration | <1ms | `scalability_benchmarks.rs::bench_registry_registration_scale` |
 
 **Notes:**
+
 - Concurrent lookups use `RwLock` read locks (multiple readers allowed)
 - Batch registration measured total time for sequential inserts
 
@@ -103,6 +107,7 @@ Comparison with underlying actor runtime (RT-TASK-008):
 | Message latency | 737ns | 1.05µs | +313ns (+42%) |
 
 **Notes:**
+
 - ComponentActor spawn is faster because benchmarks measure construction only (not ActorSystem spawn)
 - Message latency includes registry lookup overhead (not present in direct actor messaging)
 - Overhead is acceptable for isolation and routing benefits
@@ -252,16 +257,19 @@ if actor_ref.mailbox_size() > MAX_QUEUE_SIZE {
 ### Key Metrics to Track
 
 **Latency Percentiles:**
+
 - P50 (median): Expected ~1µs for message routing
 - P95: Expected <10µs
 - P99: Expected <100µs
 - P99.9: Alert if >1ms
 
 **Throughput:**
+
 - Messages/second: Expected 100k-1M msg/sec (production workload)
 - Component spawns/second: Expected <1000/sec (typical)
 
 **Resource Usage:**
+
 - Memory per component: ~1KB overhead (Arc + RwLock)
 - Registry memory: ~100 bytes per component entry
 

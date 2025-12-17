@@ -52,18 +52,21 @@ The actor model was first described by **Carl Hewitt, Peter Bishop, and Richard 
 ### Evolution Through Languages
 
 **Erlang (1986):**
+
 - Developed at Ericsson for telecom switching systems
 - Demonstrated actors could build fault-tolerant, highly available systems
 - Introduced supervision trees for fault tolerance
 - Proven in production: 99.9999999% (nine nines) availability
 
 **Akka (2009):**
+
 - Brought actor model to JVM ecosystem (Scala/Java)
 - Added location transparency (actors can be local or remote)
 - Demonstrated scalability: millions of actors per machine
 - Widespread adoption in reactive, event-driven architectures
 
 **Modern Implementations:**
+
 - **Actix (Rust):** High-performance actor framework for Rust
 - **Orleans (.NET):** Virtual actors for distributed systems
 - **CAF (C++):** Actor framework for high-performance computing
@@ -191,6 +194,7 @@ tokio::spawn(async move {
 ```
 
 **Complexity Explosion:**
+
 - With N threads and M locks, potential states = O(2^(N×M))
 - Deadlock detection requires global system knowledge
 - Performance unpredictable due to lock contention
@@ -222,6 +226,7 @@ impl Handler<Increment> for Counter {
 ```
 
 **Complexity Reduction:**
+
 - Each actor's behavior is independent
 - No global reasoning required
 - Failures isolated to actor boundaries
@@ -251,6 +256,7 @@ AirsSys RT is inspired by **Erlang's actor model** with Rust's **zero-cost abstr
 **Goal:** Spawn millions of actors without excessive memory overhead.
 
 **Approach:**
+
 - Each actor ~1KB memory footprint
 - Measured performance: 624ns to spawn actor
 - Benchmark target: 1.6M actors/second spawn rate
@@ -279,6 +285,7 @@ impl Handler<MyMessage> for MyActor {
 **Goal:** Automatic fault recovery through supervision trees.
 
 **Approach:**
+
 - OneForOne: Restart only failed child
 - OneForAll: Restart all children (coordinated state)
 - RestForOne: Restart failed child and later siblings (dependency chains)
@@ -290,6 +297,7 @@ impl Handler<MyMessage> for MyActor {
 **Goal:** Actor model convenience without runtime performance penalty.
 
 **Approach:**
+
 - Generic traits compiled to concrete types
 - No virtual dispatch unless explicitly needed
 - Inlined message handling for hot paths
@@ -305,6 +313,7 @@ impl Handler<MyMessage> for MyActor {
 **Choice:** Provide both bounded (with backpressure) and unbounded mailboxes.
 
 **Rationale:**
+
 - **Unbounded:** Simplicity, matches Erlang semantics, suitable for low-traffic actors
 - **Bounded:** Prevents memory exhaustion, applies backpressure, suitable for high-traffic
 
@@ -317,6 +326,7 @@ impl Handler<MyMessage> for MyActor {
 **Choice:** Use Rust's `async/await` for all message handlers.
 
 **Rationale:**
+
 - Integrates with Tokio ecosystem
 - Familiar to Rust developers
 - Efficient cooperative scheduling
@@ -330,6 +340,7 @@ impl Handler<MyMessage> for MyActor {
 **Choice:** Provide `MessageBroker` trait with pub-sub support.
 
 **Rationale:**
+
 - Decouples message routing from actor implementation
 - Supports both point-to-point and pub-sub patterns
 - Enables future extensions (remote actors, clustering)
@@ -345,11 +356,13 @@ impl Handler<MyMessage> for MyActor {
 **Shared-Memory Threading (Mutex, RwLock):**
 
 **Pros:**
+
 - Direct memory access (no message copying)
 - Fine-grained locking for performance
 - Familiar to most developers
 
 **Cons:**
+
 - Deadlock risk with multiple locks
 - Race conditions if locks forgotten
 - Difficult to reason about correctness
@@ -360,12 +373,14 @@ impl Handler<MyMessage> for MyActor {
 **Actor Model:**
 
 **Pros:**
+
 - No deadlocks by design
 - No race conditions within actors
 - Naturally distributable
 - Easier to reason about
 
 **Cons:**
+
 - Message passing overhead (~737ns)
 - Cannot share memory (must copy messages)
 - May require more memory (message copies)
@@ -389,11 +404,13 @@ let value = rx.recv().await.unwrap();
 ```
 
 **Pros:**
+
 - Simple mental model (pipes between processes)
 - Lightweight (just channels, no actor abstraction)
 - Composable (select between channels)
 
 **Cons:**
+
 - No built-in supervision or fault tolerance
 - Manual lifecycle management
 - No natural abstraction for stateful entities
@@ -403,11 +420,13 @@ let value = rx.recv().await.unwrap();
 **Actor Model:**
 
 **Pros:**
+
 - Encapsulates state and behavior together
 - Built-in supervision and fault tolerance
 - Natural abstraction for entities (users, sessions, devices)
 
 **Cons:**
+
 - More abstraction overhead
 - Requires actor framework
 
@@ -426,11 +445,13 @@ tokio::spawn(async {
 ```
 
 **Pros:**
+
 - Minimal overhead
 - Direct control over task lifecycle
 - No framework required
 
 **Cons:**
+
 - No structured concurrency
 - No fault tolerance
 - No state encapsulation patterns
@@ -441,12 +462,14 @@ tokio::spawn(async {
 **Actor Model:**
 
 **Pros:**
+
 - Structured concurrency through supervision
 - Automatic fault recovery
 - State encapsulation patterns
 - Message-driven coordination
 
 **Cons:**
+
 - Framework dependency
 - More complex setup
 
@@ -465,6 +488,7 @@ tokio::spawn(async {
 **Implication:** For extremely high-frequency operations (>1M ops/sec per entity), shared memory may be faster.
 
 **Mitigation:**
+
 - Batch messages when possible (681ns/actor for batch operations)
 - Use direct actor references instead of broker (saves ~180ns routing)
 - Profile hot paths and optimize critical message handlers
@@ -476,6 +500,7 @@ tokio::spawn(async {
 **Implication:** 1 million actors = ~1GB memory minimum
 
 **Mitigation:**
+
 - Pool actors for similar workloads
 - Use lazy actor creation (create on-demand)
 - Implement actor hibernation for idle actors
@@ -489,6 +514,7 @@ tokio::spawn(async {
 **Benefit:** Once learned, applicable across languages (Erlang, Akka, Orleans, AirsSys).
 
 **Mitigation:**
+
 - Comprehensive tutorials and examples
 - Builder patterns for common use cases
 - Clear error messages and debugging tools
@@ -500,6 +526,7 @@ tokio::spawn(async {
 **Benefit:** Isolated failures are easier to reproduce and reason about.
 
 **Mitigation:**
+
 - Distributed tracing support
 - Comprehensive logging in supervisors
 - Health monitoring infrastructure
@@ -631,12 +658,14 @@ async fn handle(&mut self, msg: DoWork, ctx: &mut ActorContext<Self>) -> Result<
 AirsSys RT builds on 35+ years of Erlang production experience:
 
 **Proven Patterns:**
+
 - Supervision trees for fault tolerance
 - Process isolation for reliability
 - Message passing for scalability
 - "Let it crash" for simplicity
 
 **Modern Enhancements:**
+
 - Rust's type safety eliminates entire classes of errors
 - Zero-cost abstractions provide performance without compromising safety
 - Async/await enables efficient cooperative scheduling

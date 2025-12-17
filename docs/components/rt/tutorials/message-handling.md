@@ -1,12 +1,14 @@
 # Tutorial: Message Handling Patterns
 
 **Learning Objectives:**
+
 - Implement request-reply messaging
 - Use fire-and-forget pattern
 - Handle message routing with brokers
 - Implement pub-sub pattern
 
 **Prerequisites:**
+
 - Complete [Your First Actor](./actor-creation.md) tutorial
 - Understanding of async/await in Rust
 - Familiarity with actor basics
@@ -60,6 +62,7 @@ Let's implement each pattern!
 We'll build a simple order processing system:
 
 **Actors:**
+
 - `OrderProcessor` - Processes orders (request-reply)
 - `InventoryChecker` - Checks stock (request-reply)
 - `NotificationService` - Sends notifications (fire-and-forget)
@@ -154,6 +157,7 @@ impl Message for AnalyticsEvent {
 ```
 
 **Key design points:**
+
 - **Request-Reply pattern**: Use `oneshot::Sender<T>` in message variants for replies
 - **Fire-and-Forget**: Messages without reply channels
 - **Message trait**: Only requires `const MESSAGE_TYPE`, no associated Result type
@@ -246,6 +250,7 @@ impl Actor for InventoryChecker {
 ```
 
 **Request-Reply pattern:**
+
 - ✅ Actor always returns `Result<(), E>` (unit type)
 - ✅ Response sent via `oneshot::Sender<T>` embedded in message
 - ✅ Caller waits on `oneshot::Receiver<T>` for response
@@ -307,6 +312,7 @@ impl Actor for NotificationService {
 ```
 
 **Fire-and-Forget pattern:**
+
 - ✅ Returns `Result<(), E>` (unit type)
 - ✅ Caller doesn't wait for processing
 - ✅ ~600ns send latency (no response wait)
@@ -414,6 +420,7 @@ impl Actor for LoggerService {
 ```
 
 **Pub-Sub pattern:**
+
 - ✅ Multiple actors subscribe to same topic
 - ✅ Publisher doesn't know subscribers
 - ✅ ~395ns per subscriber (linear scaling)
@@ -672,16 +679,19 @@ Pattern Combination: Full Order Flow
 ### Request-Reply (~737ns roundtrip)
 
 **When to use:**
+
 - ✅ Need response data
 - ✅ Sequential workflow (step depends on result)
 - ✅ Synchronous operations
 
 **Example use cases:**
+
 - Database queries
 - Validation checks
 - Configuration lookups
 
 **Performance:**
+
 - Latency: 737ns (direct), 917ns (via broker)
 - Throughput: 1.36M msgs/sec
 - Memory: Minimal (stack-allocated response)
@@ -689,16 +699,19 @@ Pattern Combination: Full Order Flow
 ### Fire-and-Forget (~600ns)
 
 **When to use:**
+
 - ✅ No response needed
 - ✅ Asynchronous notifications
 - ✅ Side effects (logging, metrics)
 
 **Example use cases:**
+
 - Sending emails
 - Writing logs
 - Updating caches
 
 **Performance:**
+
 - Latency: ~600ns (no response wait)
 - Throughput: Higher than request-reply
 - Memory: No response storage needed
@@ -706,16 +719,19 @@ Pattern Combination: Full Order Flow
 ### Pub-Sub (395ns per subscriber)
 
 **When to use:**
+
 - ✅ Multiple subscribers
 - ✅ Broadcast notifications
 - ✅ Event-driven architecture
 
 **Example use cases:**
+
 - Event sourcing
 - Multi-service notifications
 - Real-time updates
 
 **Performance:**
+
 - Latency: 395ns per subscriber (linear)
 - Scaling: O(n) with subscriber count
 - Memory: One message copy per subscriber

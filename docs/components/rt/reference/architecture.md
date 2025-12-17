@@ -94,11 +94,13 @@ AirsSys RT architecture follows these core principles:
 ### 1. Actor Model Foundations
 
 **Encapsulation and Isolation:**
+
 - Actors own their state (no shared mutable state)
 - Message passing for all communication
 - Location transparency (local and remote actors use same API)
 
 **Sequential Message Processing:**
+
 - One message at a time (no internal concurrency)
 - FIFO message ordering guaranteed
 - Deterministic message handling
@@ -106,11 +108,13 @@ AirsSys RT architecture follows these core principles:
 ### 2. Erlang/OTP-Inspired Supervision
 
 **"Let it Crash" Philosophy:**
+
 - Simple happy path logic in actors
 - Supervisors handle failure recovery
 - Clear separation: actors do work, supervisors provide fault tolerance
 
 **Supervision Trees:**
+
 - Hierarchical fault isolation
 - Different strategies for different failure scenarios
 - Automatic restart with configurable limits
@@ -118,12 +122,14 @@ AirsSys RT architecture follows these core principles:
 ### 3. Zero-Cost Abstractions
 
 **Performance Without Compromise:**
+
 - Generic compilation (monomorphization)
 - No runtime type dispatch on hot paths
 - Direct memory access (no unnecessary indirection)
 - Inline message processing
 
 **Benchmarked Performance:**
+
 - Actor spawn: 624ns (1.6M actors/sec)
 - Message passing: 737ns roundtrip (1.36M msgs/sec)
 - Supervision overhead: ~2x base actor (acceptable for fault tolerance)
@@ -131,11 +137,13 @@ AirsSys RT architecture follows these core principles:
 ### 4. Type Safety
 
 **Compile-Time Guarantees:**
+
 - Associated types for messages and errors
 - Generic constraints for trait bounds
 - Type-state pattern (future) for lifecycle validation
 
 **No Runtime Surprises:**
+
 - Explicit error types (`Result<T, E>`)
 - No `Any` or type erasure on hot paths
 - Clear message protocols with associated `Result` types
@@ -143,11 +151,13 @@ AirsSys RT architecture follows these core principles:
 ### 5. Dependency Injection
 
 **Testability and Flexibility (ADR-006):**
+
 - `MessageBroker` trait injected into `ActorContext`
 - Swap implementations (in-memory, distributed, test doubles)
 - No global state or singletons
 
 **Benefits:**
+
 - Unit test actors in isolation
 - Different brokers for different deployment scenarios
 - Clear component boundaries
@@ -181,24 +191,28 @@ AirsSys RT architecture follows these core principles:
 ### Layer Responsibilities
 
 **Application Layer:**
+
 - Business logic implementation
 - Actor and supervisor instantiation
 - Message protocol definition
 - Application-specific error handling
 
 **Actor Framework Layer:**
+
 - Actor lifecycle management
 - Supervision tree construction
 - Restart strategy implementation
 - Actor context and metadata
 
 **Messaging Layer:**
+
 - Message routing (direct and broker-based)
 - Mailbox management and backpressure
 - Pub-sub topic management
 - Message delivery guarantees
 
 **Runtime Layer:**
+
 - Async task scheduling (Tokio)
 - Concurrency primitives (channels, tasks)
 - I/O event loop
@@ -211,12 +225,14 @@ AirsSys RT architecture follows these core principles:
 ### Monitoring and Observability
 
 **Built-in Metrics:**
+
 - Actor message counts
 - Supervisor restart counts
 - Mailbox depth tracking
 - Health check API
 
 **Integration Points:**
+
 - Custom metrics via `ActorContext`
 - Supervision events for monitoring
 - Health check endpoints
@@ -224,6 +240,7 @@ AirsSys RT architecture follows these core principles:
 ### Error Handling
 
 **Layered Error Strategy:**
+
 - Actor-level: `Result<T, Self::Error>`
 - Supervisor-level: `ErrorAction` (Resume, Restart, Stop, Escalate)
 - System-level: Supervisor escalation and shutdown
@@ -236,12 +253,14 @@ Actor Error → on_error() → ErrorAction → Supervisor → Restart Strategy
 ### Performance Optimization
 
 **Hot Path Optimizations:**
+
 - Inline message processing (31.55ns)
 - Direct mailbox access (no indirection)
 - Monomorphized generics (no dynamic dispatch)
 - Bounded mailboxes for predictable performance
 
 **Cold Path Acceptable Costs:**
+
 - Actor spawn: 624ns (infrequent)
 - Supervision overhead: +656ns (fault tolerance worth it)
 - Broker routing: +180ns (flexibility worth it)
@@ -253,11 +272,13 @@ Actor Error → on_error() → ErrorAction → Supervisor → Restart Strategy
 ### Single Process
 
 **Architecture:**
+
 - All actors in one process
 - In-memory message passing
 - Shared Tokio runtime
 
 **Use Cases:**
+
 - Development and testing
 - Single-machine deployments
 - Embedded systems
@@ -265,11 +286,13 @@ Actor Error → on_error() → ErrorAction → Supervisor → Restart Strategy
 ### Distributed (Future)
 
 **Architecture:**
+
 - Actors across multiple processes/machines
 - Network-based message passing
 - Location transparency maintained
 
 **Use Cases:**
+
 - Horizontal scaling
 - Geographic distribution
 - High availability

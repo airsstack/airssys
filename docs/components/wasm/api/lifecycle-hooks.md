@@ -70,6 +70,7 @@ Called before WASM instantiation begins.
 **Invocation:** Before `Child::start()` creates the WASM runtime
 
 **Purpose:** 
+
 - Validate component metadata
 - Initialize external resources (databases, connections)
 - Pre-allocate resources
@@ -114,6 +115,7 @@ Called after successful WASM instantiation.
 **Invocation:** After `Child::start()` successfully creates WASM runtime
 
 **Purpose:**
+
 - Initialize component state
 - Subscribe to topics
 - Register with external services
@@ -149,6 +151,7 @@ Called before component shutdown begins.
 **Invocation:** Before `Child::stop()` initiates cleanup
 
 **Purpose:**
+
 - Flush pending operations
 - Save state to persistent storage
 - Unsubscribe from topics
@@ -181,6 +184,7 @@ Called after successful component shutdown.
 **Invocation:** After `Child::stop()` completes cleanup
 
 **Purpose:**
+
 - Release external resources
 - Log final statistics
 - Send termination notifications
@@ -216,6 +220,7 @@ Called before routing each incoming message.
 **Invocation:** Before `Actor::handle_message()` processes the message
 
 **Purpose:**
+
 - Message-level logging
 - Rate limiting
 - Message filtering
@@ -263,6 +268,7 @@ Called when an error occurs during component execution.
 **Invocation:** After any error in lifecycle or message handling
 
 **Purpose:**
+
 - Error logging
 - Error metrics
 - Alert notifications
@@ -304,6 +310,7 @@ Called when supervisor triggers component restart.
 **Invocation:** Before restart attempt after failure
 
 **Purpose:**
+
 - Log restart reason
 - Restart metrics
 - Reset internal state

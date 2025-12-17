@@ -24,6 +24,7 @@ This document explains the performance philosophy behind AirsSys RT, design deci
 **Why:** "Fast enough" is subjective and changes with scale. Concrete baselines enable capacity planning and performance regression detection.
 
 **Approach:**
+
 - Establish baseline measurements (actor spawn: 624ns, messaging: 737ns)
 - Document scaling characteristics (linear O(n), sub-linear, super-linear)
 - Provide performance reference for capacity planning
@@ -35,6 +36,7 @@ This document explains the performance philosophy behind AirsSys RT, design deci
 **Why:** Actor model provides high-level abstractions (message passing, supervision). These must not impose prohibitive overhead.
 
 **Approach:**
+
 - Generic traits compile to concrete types (no virtual dispatch)
 - Inline hot paths (message handling, mailbox operations)
 - Benchmark abstractions against hand-coded alternatives
@@ -46,6 +48,7 @@ This document explains the performance philosophy behind AirsSys RT, design deci
 **Why:** Retrofitting performance into a slow system is harder than building it in from day one.
 
 **Approach:**
+
 - Benchmarks from RT-TASK-008 (baseline measurement)
 - Performance regression detection in CI (future)
 - Documentation of performance characteristics
@@ -140,6 +143,7 @@ struct ActorRuntime<A> {
 **Memory Footprint:** ~1KB per actor (struct size + mailbox buffer)
 
 **Spawn Performance:**
+
 - Single spawn: 624.74ns (P50)
 - Batch spawn (10 actors): 681.40ns per actor (P50)
 
@@ -191,6 +195,7 @@ pub enum Mailbox<A> {
 | Unbounded | 181ns | 150ns | `queue_depth * msg_size` |
 
 **Tradeoff:**
+
 - **Bounded:** Prevents memory exhaustion, applies backpressure (may block sender)
 - **Unbounded:** Never blocks sender, but may exhaust memory
 
@@ -244,6 +249,7 @@ impl MyActor {
 **Implication:** Doubling actors doubles total time, but per-actor cost remains constant.
 
 **Why Linear:**
+
 - Independent actor spawning (no shared locks)
 - Per-actor mailboxes (no contention)
 - Isolated state (no synchronization overhead)
@@ -264,6 +270,7 @@ impl MyActor {
 **Implication:** Broker suitable for infrequent messaging (pub-sub, discovery), not hot paths.
 
 **Why Constant:**
+
 - Hash map lookup for topic → subscribers (O(1))
 - Fixed routing logic (no dynamic dispatch)
 - Parallel delivery to subscribers
@@ -285,6 +292,7 @@ impl MyActor {
 **Implication:** Each subscriber adds fixed cost. 1,000 subscribers = ~400µs total.
 
 **Why Linear:**
+
 - Independent message delivery (parallel sends)
 - No synchronization between subscribers
 - Each subscriber has own mailbox
@@ -305,6 +313,7 @@ impl MyActor {
 **Implication:** Supervision worthwhile for fault tolerance, but not free.
 
 **Why Constant:**
+
 - Fixed supervisor bookkeeping (child registration)
 - One-time restart policy evaluation
 - No scaling with child count (per-child overhead)
@@ -326,11 +335,13 @@ actor_ref.send(MyMessage).await?;  // Type-checked!
 ```
 
 **Pros:**
+
 - Catch errors at compile time
 - Zero runtime type checking overhead
 - Self-documenting (handler existence proven by types)
 
 **Cons:**
+
 - Cannot send arbitrary messages at runtime
 - Requires implementing trait for each message type
 
@@ -342,10 +353,12 @@ Actor ! {my_message, Data}.
 ```
 
 **Pros:**
+
 - Maximum flexibility (send any message anytime)
 - Rapid prototyping (no trait implementations)
 
 **Cons:**
+
 - Runtime errors (message not handled crashes actor)
 - No compile-time verification
 - Runtime type matching overhead
@@ -363,11 +376,13 @@ actor_ref.send(LargeData { vec: large_vec }).await?;
 ```
 
 **Pros:**
+
 - Isolation (no data races)
 - Type-safe (compiler-checked message types)
 - Location transparent (can be made distributed)
 
 **Cons:**
+
 - Memory copying overhead (message size dependent)
 - Latency overhead (~737ns per message)
 
@@ -381,10 +396,12 @@ let data_clone = data.clone();  // Cheap Arc clone
 ```
 
 **Pros:**
+
 - No memory copying (shared reference)
 - Minimal overhead (Arc increment/decrement)
 
 **Cons:**
+
 - Potential data races (if locking incorrect)
 - Deadlock risk (complex lock orderings)
 - Not location transparent (cannot distribute)
@@ -408,11 +425,13 @@ let mailbox = Mailbox::bounded(100);  // Max 100 messages
 ```
 
 **Pros:**
+
 - Prevents memory exhaustion (finite memory use)
 - Applies backpressure (slows down fast producers)
 - Predictable memory footprint
 
 **Cons:**
+
 - May block senders (if mailbox full)
 - May drop messages (if Drop strategy)
 - Requires capacity tuning
@@ -424,11 +443,13 @@ let mailbox = Mailbox::unbounded();  // No limit
 ```
 
 **Pros:**
+
 - Never blocks senders (always accepts messages)
 - Simple (no capacity configuration)
 - Matches Erlang semantics
 
 **Cons:**
+
 - Risk of memory exhaustion (queue grows unbounded)
 - No backpressure (fast producer can overwhelm slow consumer)
 - Unpredictable memory use
@@ -616,12 +637,14 @@ heaptrack target/release/my_app
 ### 1. Design for Hot and Cold Paths
 
 **Hot Path (High-Frequency):**
+
 - Use direct actor references
 - Minimize message size (use Arc for large data)
 - Keep handlers simple and fast
 - Avoid broker overhead
 
 **Cold Path (Infrequent):**
+
 - Message broker acceptable
 - Pub-sub for events
 - Complex processing ok
@@ -671,6 +694,7 @@ if elapsed > Duration::from_millis(1) {
 ```
 
 **Use profiling tools:**
+
 - `cargo flamegraph` for CPU profiling
 - `heaptrack` for memory profiling
 - `criterion` for micro-benchmarking

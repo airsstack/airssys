@@ -135,6 +135,7 @@ Request Flow:
 ```
 
 **Key Points:**
+
 - **Outermost middleware runs first** for `before_execution` hooks
 - **Innermost middleware is closest** to the actual executor
 - **Reverse order** for `after_execution` and error handling
@@ -235,6 +236,7 @@ struct RateLimitState {
 ```
 
 **Key Points:**
+
 - Use `#[derive(Debug, Clone)]` for middleware that will be shared across executors
 - Use `Arc<Mutex<T>>` for thread-safe shared state
 - Separate state into its own struct for clarity

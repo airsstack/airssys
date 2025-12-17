@@ -29,9 +29,11 @@ pub trait Message: Send + 'static {
 Marker trait for messages that can be sent between actors.
 
 **Type Parameters:**
+
 - `Result`: The type returned when processing this message
 
 **Trait Bounds:**
+
 - `Send`: Messages must be sendable across thread boundaries
 - `'static`: Messages must not contain non-static references
 
@@ -80,9 +82,11 @@ pub fn new(name: &str) -> Result<Self, SystemError>
 Creates a new actor system with the given name.
 
 **Parameters:**
+
 - `name`: A unique identifier for this actor system
 
 **Returns:**
+
 - `Ok(ActorSystem)`: Successfully created actor system
 - `Err(SystemError)`: System initialization failed
 
@@ -106,16 +110,20 @@ where
 Spawns a new actor in the system.
 
 **Type Parameters:**
+
 - `A`: The actor type implementing the `Actor` trait
 
 **Parameters:**
+
 - `actor`: The actor instance to spawn
 
 **Returns:**
+
 - `Ok(ActorRef<A>)`: Reference to the spawned actor
 - `Err(SpawnError)`: Actor spawn failed
 
 **Performance:**
+
 - Average spawn time: ~624ns (see [Performance Reference](../performance.md))
 - Memory per actor: ~512 bytes base + mailbox
 
@@ -150,10 +158,12 @@ pub async fn shutdown(self) -> Result<(), SystemError>
 Gracefully shuts down the actor system.
 
 **Returns:**
+
 - `Ok(())`: System shut down successfully
 - `Err(SystemError)`: Shutdown encountered errors
 
 **Behavior:**
+
 - Stops all running actors in reverse spawn order
 - Waits for actors to complete shutdown hooks
 - Releases all system resources
@@ -194,6 +204,7 @@ Core trait that all actors must implement.
 - `post_stop()`: Called after actor stops (default: no-op)
 
 **Trait Bounds:**
+
 - `Send`: Actors must be sendable across threads
 - `'static`: Actors must not contain non-static references
 
@@ -232,6 +243,7 @@ pub struct ActorContext<A: Actor> {
 Context provided to actors for interaction with the actor system.
 
 **Type Parameters:**
+
 - `A`: The actor type this context belongs to
 
 #### Methods
@@ -245,9 +257,11 @@ pub fn actor_ref(&self) -> &ActorRef<A>
 Returns a reference to this actor's `ActorRef`.
 
 **Returns:**
+
 - `&ActorRef<A>`: Reference to this actor
 
 **Use Cases:**
+
 - Passing self-reference to spawned children
 - Registering with services
 - Setting up request-reply patterns
@@ -272,6 +286,7 @@ pub fn stop(&mut self)
 Stops this actor.
 
 **Behavior:**
+
 - Actor will finish processing current message
 - No new messages will be processed
 - `post_stop()` hook will be called
@@ -300,12 +315,15 @@ where
 Spawns a child actor supervised by this actor.
 
 **Type Parameters:**
+
 - `C`: The child actor type
 
 **Parameters:**
+
 - `child`: The child actor instance
 
 **Returns:**
+
 - `Ok(ActorRef<C>)`: Reference to spawned child
 - `Err(SpawnError)`: Child spawn failed
 
@@ -332,9 +350,11 @@ pub struct ActorRef<A: Actor> {
 Reference to an actor that can be used to send messages.
 
 **Type Parameters:**
+
 - `A`: The actor type this reference points to
 
 **Traits Implemented:**
+
 - `Clone`: Cheap to clone (uses `Arc` internally)
 - `Send`: Can be sent across threads
 - `Sync`: Can be shared across threads
@@ -353,16 +373,20 @@ where
 Sends a message to the actor and waits for the result.
 
 **Type Parameters:**
+
 - `M`: The message type
 
 **Parameters:**
+
 - `msg`: The message to send
 
 **Returns:**
+
 - `Ok(M::Result)`: The result from processing the message
 - `Err(SendError)`: Message delivery or processing failed
 
 **Performance:**
+
 - Average roundtrip: ~737ns (send + process + respond)
 - Throughput: ~4.7M messages/second
 
@@ -396,16 +420,20 @@ where
 Sends a fire-and-forget message (no response expected).
 
 **Type Parameters:**
+
 - `M`: The message type (must have `Result = ()`)
 
 **Parameters:**
+
 - `msg`: The message to send
 
 **Returns:**
+
 - `Ok(())`: Message queued successfully
 - `Err(SendError)`: Message delivery failed
 
 **Performance:**
+
 - Non-blocking send operation
 - Lower latency than `send()` (no wait for response)
 
@@ -434,6 +462,7 @@ pub struct ActorId(/* private fields */);
 Unique identifier for an actor.
 
 **Traits Implemented:**
+
 - `Copy`, `Clone`: Lightweight value type
 - `Eq`, `PartialEq`: Equality comparison
 - `Hash`: Can be used in hash maps
@@ -450,9 +479,11 @@ pub fn new() -> Self
 Creates a new unique actor ID.
 
 **Returns:**
+
 - `ActorId`: Globally unique identifier
 
 **Thread Safety:**
+
 - Uses atomic counter for uniqueness
 - Safe to call from multiple threads concurrently
 
@@ -486,6 +517,7 @@ Errors that can occur during system operations.
 - `ShutdownFailed(String)`: System shutdown encountered errors
 
 **Traits Implemented:**
+
 - `Error`, `Display`, `Debug`: Standard error traits
 - `Send`, `Sync`: Thread-safe error type
 

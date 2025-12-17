@@ -36,6 +36,7 @@ Trait for actors that supervise child actors.
 - `handle_child_failure()`: Handles child actor failures (default: apply restart_strategy)
 
 **Trait Bounds:**
+
 - Must implement `Actor`
 
 **Example:**
@@ -148,14 +149,17 @@ where
 Creates a child specification with default restart policy.
 
 **Type Parameters:**
+
 - `F`: Factory function type
 - `A`: Actor type
 
 **Parameters:**
+
 - `id`: Unique identifier
 - `factory`: Function to create actor instances
 
 **Default Policy:**
+
 - `RestartPolicy::Permanent` (always restart)
 
 **Example:**
@@ -325,6 +329,7 @@ pub fn new(name: &str) -> Self
 Creates a new supervisor builder.
 
 **Parameters:**
+
 - `name`: Supervisor identifier
 
 **Example:**
@@ -344,9 +349,11 @@ pub fn with_strategy(mut self, strategy: RestartStrategy) -> Self
 Sets the restart strategy.
 
 **Parameters:**
+
 - `strategy`: Restart strategy to use
 
 **Returns:**
+
 - `Self`: Builder for method chaining
 
 **Example:**
@@ -364,9 +371,11 @@ pub fn add_child(mut self, spec: ChildSpec) -> Self
 Adds a child specification.
 
 **Parameters:**
+
 - `spec`: Child specification
 
 **Returns:**
+
 - `Self`: Builder for method chaining
 
 **Example:**
@@ -384,6 +393,7 @@ pub fn build(self) -> Result<GenericSupervisor, BuildError>
 Builds the supervisor.
 
 **Returns:**
+
 - `Ok(GenericSupervisor)`: Successfully built supervisor
 - `Err(BuildError)`: Build failed (e.g., no children specified)
 

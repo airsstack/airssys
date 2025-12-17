@@ -69,6 +69,7 @@ counter_ref.send(Increment).await?;
 ```
 
 **Benefits:**
+
 - **No locks:** Actors process messages sequentially
 - **No race conditions:** Each actor owns its state exclusively
 - **No deadlocks:** Asynchronous message passing never blocks
@@ -95,6 +96,7 @@ println!("Message sent!");  // Executes before message is processed
 ```
 
 **Use Cases:**
+
 - Logging and auditing (don't wait for log to be written)
 - Event notifications (fire events without blocking)
 - Background processing (queue work without waiting)
@@ -102,6 +104,7 @@ println!("Message sent!");  // Executes before message is processed
 **Performance:** Lowest latency (~181ns mailbox enqueue + ~400ns processing = ~600ns total)
 
 **Guarantees:**
+
 - ✅ **At-most-once delivery:** Message delivered to mailbox or error returned
 - ✅ **Ordered within sender:** Messages from same sender arrive in order
 - ❌ **No delivery confirmation:** Sender doesn't know if message was processed
@@ -118,6 +121,7 @@ println!("Got response: {}", result);  // Waits for actor to respond
 ```
 
 **Use Cases:**
+
 - Queries requiring responses (database lookups, calculations)
 - RPC-style interactions (client-server communication)
 - Synchronous workflows (need result before proceeding)
@@ -125,6 +129,7 @@ println!("Got response: {}", result);  // Waits for actor to respond
 **Performance:** Higher latency (~737ns roundtrip: send + receive + processing)
 
 **Guarantees:**
+
 - ✅ **Response guaranteed:** Receive typed response or timeout error
 - ✅ **Type-safe:** Response type matches `Message::Result`
 - ✅ **Timeout support:** Prevent indefinite waiting
@@ -145,6 +150,7 @@ subscriber_c.handle(UserLoginEvent { user_id: 123 });  // Notification service
 ```
 
 **Use Cases:**
+
 - Event-driven architectures (domain events, notifications)
 - Multi-subscriber patterns (multiple services react to same event)
 - Decoupling (publishers don't know subscribers)
@@ -152,6 +158,7 @@ subscriber_c.handle(UserLoginEvent { user_id: 123 });  // Notification service
 **Performance:** Scales with subscriber count (~395ns per subscriber)
 
 **Guarantees:**
+
 - ✅ **All subscribers notified:** Every active subscriber receives message
 - ✅ **Parallel delivery:** Subscribers process independently
 - ❌ **No delivery confirmation:** Publisher doesn't know who received
@@ -178,11 +185,13 @@ actor_ref.send(MyMessage).await?;
 **Performance:** Fastest path (~737ns roundtrip, no routing overhead)
 
 **Use Cases:**
+
 - Parent-child communication (supervisor → children)
 - Request-reply patterns (client → server)
 - Known recipient (reference available at compile time)
 
 **Tradeoffs:**
+
 - ✅ **Fastest:** No routing overhead
 - ✅ **Type-safe:** Compiler ensures actor handles message type
 - ❌ **Tight coupling:** Sender must have reference to specific actor
@@ -205,11 +214,13 @@ broker.publish("events.user", UserEvent { user_id: 123 }).await?;
 **Performance:** Adds routing overhead (~180ns + ~395ns per subscriber)
 
 **Use Cases:**
+
 - Pub-sub patterns (one-to-many messaging)
 - Dynamic discovery (find actors by topic at runtime)
 - Decoupling (senders don't need specific actor references)
 
 **Tradeoffs:**
+
 - ✅ **Decoupling:** Publisher doesn't know subscribers
 - ✅ **Dynamic:** Subscribe/unsubscribe at runtime
 - ✅ **One-to-many:** Single publish reaches multiple subscribers
@@ -219,12 +230,14 @@ broker.publish("events.user", UserEvent { user_id: 123 }).await?;
 ### Choosing Between Direct and Broker
 
 **Use Direct References When:**
+
 - Communication is point-to-point (one sender, one receiver)
 - Actors are tightly coupled (parent-child, client-server)
 - Performance critical (hot path, high-frequency messaging)
 - Type safety important (compiler enforces handler exists)
 
 **Use Message Broker When:**
+
 - Communication is one-to-many (pub-sub, events)
 - Actors are loosely coupled (decoupled services)
 - Dynamic discovery needed (find actors at runtime)
@@ -269,6 +282,7 @@ impl Handler<Query> for MyActor {
 ```
 
 **Rationale:**
+
 - Compile-time type checking (response type must match)
 - Self-documenting (message definition includes response type)
 - No runtime type errors (impossible to return wrong type)
@@ -287,6 +301,7 @@ actor_ref.send(msg).await?;
 ```
 
 **Rationale:**
+
 - **Non-blocking:** Sender can do other work while message is in flight
 - **Integrates with Tokio:** Natural fit with async ecosystem
 - **Backpressure support:** Bounded mailbox can apply backpressure
@@ -307,6 +322,7 @@ pub enum Mailbox<A> {
 ```
 
 **Rationale:**
+
 - **Decoupling:** Sender doesn't block waiting for receiver
 - **Buffering:** Absorbs traffic bursts
 - **Backpressure:** Bounded mailbox prevents memory exhaustion
@@ -320,6 +336,7 @@ pub enum Mailbox<A> {
 **Choice:** Strictly FIFO (first-in-first-out) message processing.
 
 **Rationale:**
+
 - **Predictable:** Messages processed in send order
 - **Fair:** No message starvation
 - **Simple:** Easy to reason about
@@ -366,6 +383,7 @@ pub enum Mailbox<A> {
 - **Broadcast events:** ~200K events/sec (10 subscribers)
 
 **Bottlenecks:**
+
 - Mailbox contention (multiple senders to one actor)
 - Message processing time (handler complexity)
 - Memory allocation (large message payloads)
@@ -410,11 +428,13 @@ let value = rx.recv().await.unwrap();
 ```
 
 **Pros:**
+
 - Lightweight (no actor framework)
 - Simple producer-consumer pattern
 - Built into Tokio
 
 **Cons:**
+
 - No state encapsulation (just pipes)
 - No supervision or fault tolerance
 - Manual lifecycle management
@@ -424,11 +444,13 @@ let value = rx.recv().await.unwrap();
 **Actor Message Passing:**
 
 **Pros:**
+
 - Encapsulates state with behavior
 - Built-in supervision and fault tolerance
 - Typed message handlers
 
 **Cons:**
+
 - Requires actor framework
 - More abstraction overhead
 
@@ -444,11 +466,13 @@ let response = client.call_remote("service.method", params).await?;
 ```
 
 **Pros:**
+
 - Familiar (like local function calls)
 - Language-agnostic (network protocols)
 - Tooling (code generation, service definitions)
 
 **Cons:**
+
 - Synchronous (blocks waiting for response)
 - Network overhead (serialization, latency)
 - Tight coupling (client must know service API)
@@ -458,11 +482,13 @@ let response = client.call_remote("service.method", params).await?;
 **Actor Message Passing:**
 
 **Pros:**
+
 - Asynchronous by default (non-blocking)
 - Local optimization (no serialization overhead)
 - Type-safe (compile-time checking)
 
 **Cons:**
+
 - Local only (not distributed by default)
 - Requires actor framework
 

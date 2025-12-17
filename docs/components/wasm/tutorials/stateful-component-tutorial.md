@@ -165,6 +165,7 @@ struct CounterStats {
 ```
 
 **Message Design:**
+
 - `Increment/Decrement`: Simple mutations (no reply needed)
 - `Add`: Parameterized mutation
 - `GetCount/GetStats`: Queries with reply channel
@@ -240,6 +241,7 @@ impl Actor for CounterComponent {
 ```
 
 **Key Points:**
+
 - **Write locks** for mutations (exclusive)
 - **Read locks** for queries (concurrent)
 - **Drop locks** immediately after use
@@ -341,6 +343,7 @@ Stats: CounterStats { count: 6, operations: 4, last_update: 2025-12-16T... }
 ```
 
 **Verification:**
+
 - ✅ Lifecycle hooks execute (pre_start → post_start → pre_stop → post_stop)
 - ✅ State persists across operations (count = 6)
 - ✅ Operations are tracked (operations = 4)
@@ -407,6 +410,7 @@ Final count after concurrent access: 100
 ```
 
 **What This Proves:**
+
 - ✅ RwLock prevents race conditions
 - ✅ All increments are applied correctly
 - ✅ No data loss under concurrency

@@ -8,6 +8,7 @@
 Request-response is a fundamental communication pattern where one component sends a request and waits for a response from another component. This pattern is essential for synchronous-style interactions in distributed component systems.
 
 **Key Features:**
+
 - Unique correlation ID per request (UUID v4)
 - Automatic timeout handling
 - Type-safe response delivery via oneshot channel
@@ -18,12 +19,14 @@ Request-response is a fundamental communication pattern where one component send
 ## When to Use Request-Response
 
 **Use request-response when:**
+
 - You need a reply to a specific request
 - The response is required before proceeding
 - You want to enforce request timeouts
 - One-to-one communication is sufficient
 
 **Don't use request-response when:**
+
 - Broadcasting to multiple components is needed (use pub-sub)
 - Fire-and-forget messaging is sufficient
 - The response may arrive much later (use event-driven pattern)

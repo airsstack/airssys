@@ -59,6 +59,7 @@ Valid transitions in the state machine:
 ```
 
 **Key Properties:**
+
 - **Starting** → **Running**: Successful initialization
 - **Starting** → **Failed**: Initialization error
 - **Running** → **Stopping**: Graceful shutdown request
@@ -103,6 +104,7 @@ pub struct ActorLifecycle {
 ```
 
 **Fields:**
+
 - `state`: Current actor state
 - `last_state_change`: When state last changed (UTC timestamp)
 - `restart_count`: Number of times actor has been restarted
@@ -272,6 +274,7 @@ See `examples/actor_lifecycle.rs` for complete lifecycle hook examples.
 ```
 
 **Timing:**
+
 - Steps 1-4: ~624 ns for actor spawn (measured)
 - `pre_start()`: Depends on initialization logic (aim for <10ms)
 
@@ -288,6 +291,7 @@ See `examples/actor_lifecycle.rs` for complete lifecycle hook examples.
 ```
 
 **Timing:**
+
 - Steps 2-4: ~10-50 µs typical (depends on cleanup logic)
 
 ### Failure and Restart
@@ -319,6 +323,7 @@ See `examples/actor_lifecycle.rs` for complete lifecycle hook examples.
 ```
 
 **Timing:**
+
 - Complete restart cycle: 10-50 µs (OneForOne)
 - Complete restart cycle: 30-150 µs (OneForAll, 3 children)
 
@@ -500,6 +505,7 @@ async fn handle_child_failure(&mut self, child_id: &ChildId) -> Result<(), Super
 ### Lifecycle Hook Design
 
 **DO:**
+
 - ✅ Keep `pre_start()` fast (<10ms ideal) for quick spawning
 - ✅ Make `post_stop()` idempotent (safe to call multiple times)
 - ✅ Handle all resource cleanup in `post_stop()`
@@ -507,6 +513,7 @@ async fn handle_child_failure(&mut self, child_id: &ChildId) -> Result<(), Super
 - ✅ Log state transitions for debugging
 
 **DON'T:**
+
 - ❌ Block indefinitely in lifecycle hooks
 - ❌ Ignore errors in `pre_start()` (return proper errors)
 - ❌ Leave resources open if `post_stop()` fails
@@ -516,21 +523,25 @@ async fn handle_child_failure(&mut self, child_id: &ChildId) -> Result<(), Super
 ### Error Action Selection
 
 **Resume:**
+
 - Use for: Transient network errors, timeouts, retryable operations
 - Example: HTTP request timeout, temporary database unavailable
 - Effect: Actor continues with current state
 
 **Restart:**
+
 - Use for: Corrupted state, logical errors, recoverable failures
 - Example: Invalid state detected, cache corruption, connection lost
 - Effect: Actor stops, cleans up, and restarts fresh
 
 **Stop:**
+
 - Use for: Configuration errors, unrecoverable failures, fatal issues
 - Example: Invalid config file, missing required resource, critical bug
 - Effect: Actor stops permanently, supervisor won't restart (unless Permanent policy)
 
 **Escalate:**
+
 - Use for: System-level issues, supervisor decision needed
 - Example: Disk full, out of memory, authentication service down
 - Effect: Supervisor handles based on its strategy

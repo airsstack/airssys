@@ -190,6 +190,7 @@ For the macro to detect operation methods, they must follow strict signature rul
 The macro recognizes these operation method names:
 
 **Filesystem Operations (5):**
+
 - `file_read` → `FileReadOperation`
 - `file_write` → `FileWriteOperation`
 - `file_delete` → `FileDeleteOperation`
@@ -197,11 +198,13 @@ The macro recognizes these operation method names:
 - `directory_list` → `DirectoryListOperation`
 
 **Process Operations (3):**
+
 - `process_spawn` → `ProcessSpawnOperation`
 - `process_kill` → `ProcessKillOperation`
 - `process_signal` → `ProcessSignalOperation`
 
 **Network Operations (3):**
+
 - `network_connect` → `NetworkConnectOperation`
 - `network_listen` → `NetworkListenOperation`
 - `network_socket` → `NetworkSocketOperation`

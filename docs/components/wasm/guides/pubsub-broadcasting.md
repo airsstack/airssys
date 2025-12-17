@@ -8,6 +8,7 @@
 Pub-sub (publish-subscribe) is a messaging pattern where publishers broadcast messages to multiple subscribers without knowing who the subscribers are. This decoupling enables flexible, scalable communication in component-based systems.
 
 **Key Features:**
+
 - Topic-based message routing
 - Multiple subscribers per topic
 - Subscriber isolation (crash doesn't affect others)
@@ -18,12 +19,14 @@ Pub-sub (publish-subscribe) is a messaging pattern where publishers broadcast me
 ## When to Use Pub-Sub
 
 **Use pub-sub when:**
+
 - Broadcasting to multiple components is needed
 - Publishers shouldn't know about subscribers
 - Dynamic subscriber addition/removal is required
 - Event-driven architecture is preferred
 
 **Don't use pub-sub when:**
+
 - One-to-one communication is sufficient (use request-response)
 - Guaranteed delivery to specific component is required
 - Response from subscriber is needed (use request-response instead)
@@ -174,6 +177,7 @@ Use hierarchical topic names for better organization:
 ```
 
 **Benefits of hierarchical topics:**
+
 - Easier to manage subscriptions
 - Supports wildcard subscriptions (if implemented)
 - Better logging and debugging
@@ -275,11 +279,13 @@ async fn publish_multi_topic(&self, topics: &[String], payload: Vec<u8>) {
 ## Message Delivery Guarantees
 
 **Pub-sub provides:**
+
 - **At-most-once delivery:** Each subscriber receives each message at most once
 - **Best-effort delivery:** Messages are delivered if subscriber is available and responsive
 - **No ordering guarantees:** Messages may arrive out of order across different subscribers
 
 **Pub-sub does NOT guarantee:**
+
 - **Exactly-once delivery:** Use request-response for guaranteed delivery
 - **Message persistence:** Messages are not stored if no subscribers are available
 - **Ordered delivery:** Use sequence numbers if ordering is critical

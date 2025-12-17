@@ -73,6 +73,7 @@ let supervisor = SupervisorBuilder::new()
 AirsSys RT components (supervisors, actors, mailboxes) have many configuration options:
 
 **Supervisor Configuration:**
+
 - Restart strategy (OneForOne, OneForAll, RestForOne)
 - Max restarts and restart window
 - Child specifications (multiple children)
@@ -80,6 +81,7 @@ AirsSys RT components (supervisors, actors, mailboxes) have many configuration o
 - Shutdown policies
 
 **Actor Configuration:**
+
 - Mailbox type (Bounded, Unbounded)
 - Mailbox capacity (if bounded)
 - Backpressure strategy (Block, Drop, Error)
@@ -101,6 +103,7 @@ AirsSys RT components (supervisors, actors, mailboxes) have many configuration o
 5. **Validation:** `build()` method validates configuration before construction
 
 **Implementation Status:**
+
 - ✅ **Completed:** Supervisor builder pattern
 - ✅ **Completed:** Batch supervisor operations
 - ✅ **Completed:** Migration guide and examples
@@ -400,6 +403,7 @@ pub fn new(...) -> Self { ... }
 ```
 
 **Timeline:**
+
 - v0.1.x: Old API primary, builder experimental
 - v0.2.x: Builder primary, old API deprecated
 - v0.3.x: Old API removed (breaking change)
@@ -486,6 +490,7 @@ pub async fn build(self) -> Result<Supervisor, BuildError> {
 ```
 
 **Benefits:**
+
 - Invalid configuration detected early (at `build()`, not later)
 - Clear error messages (explain what's missing/wrong)
 - Prevents invalid objects from being constructed

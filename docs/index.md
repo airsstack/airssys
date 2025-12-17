@@ -15,6 +15,7 @@ AirsSys consists of multiple specialized components that work together to provid
 Secure, cross-platform abstraction over operating system functionality with comprehensive audit trails and security policy enforcement.
 
 **Key Features:**
+
 - Cross-platform OS abstraction (filesystem, process, network)
 - Built-in ACL and RBAC security policies
 - Comprehensive activity logging and audit trails
@@ -22,6 +23,7 @@ Secure, cross-platform abstraction over operating system functionality with comp
 - Helper functions for common operations
 
 **Use Cases:**
+
 - Secure application development requiring system resources
 - Enterprise system administration with compliance requirements
 - Foundation for higher-level AirsStack components
@@ -31,6 +33,7 @@ Secure, cross-platform abstraction over operating system functionality with comp
 Lightweight Erlang-Actor model runtime system for high-concurrency applications with BEAM-inspired supervision and fault tolerance.
 
 **Key Features:**
+
 - Zero-cost actor abstraction with compile-time type safety
 - BEAM-inspired supervision trees (OneForOne, OneForAll, RestForOne)
 - High performance: ~625ns actor spawn, 4.7M msgs/sec throughput
@@ -38,6 +41,7 @@ Lightweight Erlang-Actor model runtime system for high-concurrency applications 
 - Comprehensive monitoring and observability
 
 **Use Cases:**
+
 - High-concurrency servers requiring fault tolerance
 - Event-driven architectures with complex state management
 - System programming with reliable process supervision
@@ -48,6 +52,7 @@ Lightweight Erlang-Actor model runtime system for high-concurrency applications 
 Production-ready WebAssembly component framework for building fault-tolerant, scalable component-based systems with actor-based runtime integration.
 
 **Key Features:**
+
 - Dual-trait pattern: lifecycle management (Child) + message handling (Actor)
 - Automatic crash recovery with configurable restart strategies
 - High performance: 286ns component spawn, 6.12M msg/sec throughput
@@ -56,6 +61,7 @@ Production-ready WebAssembly component framework for building fault-tolerant, sc
 - Production-ready documentation (19 docs, 6 examples)
 
 **Use Cases:**
+
 - Pluggable component architectures requiring isolation
 - Fault-tolerant systems with automatic recovery
 - High-throughput message processing (6M+ msg/sec)

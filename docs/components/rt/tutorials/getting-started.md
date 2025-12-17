@@ -11,6 +11,7 @@ A simple counter actor that:
 - Handles shutdown gracefully
 
 **Prerequisites:**
+
 - Rust 1.70 or higher
 - Basic understanding of async/await in Rust
 - Familiarity with Cargo
@@ -68,6 +69,7 @@ impl Message for CounterMessage {
 ```
 
 **Key concepts:**
+
 - **Enums for clarity**: Each variant represents a distinct operation
 - **Derive Clone**: Messages are cloned when sent
 - **Derive Serialize**: Enables message routing and persistence
@@ -135,6 +137,7 @@ impl Actor for CounterActor {
 ```
 
 **Understanding the Actor trait:**
+
 - **Associated types**: Define your message and error types
 - **handle_message**: Core message processing logic
 - **context**: Provides actor metadata and messaging capabilities

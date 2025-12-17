@@ -20,6 +20,7 @@ where
 Trait for actors that can handle specific message types.
 
 **Type Parameters:**
+
 - `M`: The message type this handler processes
 
 **Required Methods:**
@@ -27,6 +28,7 @@ Trait for actors that can handle specific message types.
 - `handle()`: Processes a message and returns its result
 
 **Trait Bounds:**
+
 - Must implement `Actor`
 - `M` must implement `Message`
 
@@ -91,6 +93,7 @@ Tracks actor lifecycle state and restart history.
 - `last_error`: Most recent error message, if any
 
 **See Also:**
+
 - [Architecture: Process Lifecycle](../../architecture/process-lifecycle.md)
 
 ### Enum: `LifecycleState`
@@ -411,6 +414,7 @@ async fn create_pool(system: &ActorSystem) -> WorkerPool<Worker> {
 | Mailbox (unbounded) | 128 bytes | 64 bytes | Grows dynamically |
 
 **See Also:**
+
 - [Performance Reference](../performance.md) - Detailed benchmarks
 - [BENCHMARKING.md](../../../BENCHMARKING.md) - Raw benchmark data
 

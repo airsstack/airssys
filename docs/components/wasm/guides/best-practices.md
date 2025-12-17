@@ -405,6 +405,7 @@ struct SensorComponent {
 **Target:** < 500 lines per component implementation
 
 **Rationale:**
+
 - Easier to test
 - Easier to reason about
 - Easier to replace or upgrade

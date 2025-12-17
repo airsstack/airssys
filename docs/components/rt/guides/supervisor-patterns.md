@@ -3,11 +3,13 @@
 This guide teaches you how to build fault-tolerant systems using supervision trees. You'll learn the "let it crash" philosophy, restart strategies, supervision hierarchies, and health monitoring integration.
 
 **Prerequisites:**
+
 - Completed [Getting Started](../implementation/getting-started.md)
 - Understanding of basic Rust async programming
 - Familiarity with error handling patterns
 
 **What You'll Learn:**
+
 - "Let it crash" philosophy and when to use it
 - Restart strategies (OneForOne, OneForAll, RestForOne)
 - Supervision tree patterns (flat, hierarchical)
@@ -89,6 +91,7 @@ async fn process_work(&mut self) -> Result<()> {
 ```
 
 **Benefits:**
+
 - **Simpler code**: Less error handling clutter
 - **Clean state**: Restart gives fresh state
 - **Fault isolation**: Failures don't cascade
@@ -97,12 +100,14 @@ async fn process_work(&mut self) -> Result<()> {
 ### When to Use Supervisors vs Defensive Programming
 
 **Use Supervisors When:**
+
 - Errors indicate corrupted state (restart needed)
 - External dependencies fail (network, database)
 - Resource exhaustion (memory, file handles)
 - Recovery requires reinitialization
 
 **Use Defensive Programming When:**
+
 - Expected errors (user input validation)
 - Recoverable conditions (retry-able operations)
 - Performance-critical paths (avoid restart overhead)
@@ -142,6 +147,7 @@ Worker Worker    Conn  Conn      Read  Write
 ```
 
 **Isolation Benefits:**
+
 - Web server failure doesn't affect database
 - Individual worker failure doesn't crash server
 - Cache failure doesn't break core functionality
@@ -153,6 +159,7 @@ Worker Worker    Conn  Conn      Read  Write
 ### OneForOne: Independent Workers
 
 **Use When:**
+
 - Workers are independent
 - One failure shouldn't affect others
 - Examples: HTTP request handlers, background jobs
@@ -183,6 +190,7 @@ for i in 0..10 {
 ```
 
 **Behavior:**
+
 - Worker-3 crashes → Only Worker-3 restarts
 - Other workers continue unaffected
 - No cascading failures
@@ -230,6 +238,7 @@ for id in 0..num_cpus::get() {
 ### OneForAll: Tightly Coupled Services
 
 **Use When:**
+
 - Services depend on each other
 - Inconsistent state if one fails
 - Examples: Transaction processors, coordinated caches
@@ -254,6 +263,7 @@ supervisor.spawn_child("payment", PaymentGateway::new()).await?;
 ```
 
 **Behavior:**
+
 - Payment gateway crashes → All three services restart
 - Ensures consistent state across services
 - Prevents partial transaction state
@@ -279,6 +289,7 @@ trading_supervisor.spawn_child("executor", OrderExecutor::new()).await?;
 ### RestForOne: Pipeline/Sequential Dependencies
 
 **Use When:**
+
 - Services form a pipeline
 - Later stages depend on earlier ones
 - Examples: Data processing pipelines, message queues
@@ -306,6 +317,7 @@ supervisor.spawn_child("storage", DataStorage::new()).await?;
 ```
 
 **Behavior:**
+
 - Validation crashes → Restart validation, transform, storage
 - Ingestion keeps running (not affected)
 - Transform crashes → Restart only transform and storage
@@ -369,6 +381,7 @@ What relationship do children have?
 ```
 
 **Use When:**
+
 - Simple worker pools
 - All workers same type
 - No worker dependencies
@@ -391,11 +404,13 @@ for i in 0..10 {
 ```
 
 **Pros:**
+
 - Simple to understand
 - Easy to manage
 - Low overhead
 
 **Cons:**
+
 - No subsystem isolation
 - All failures handled same way
 - Doesn't scale to complex systems
@@ -415,6 +430,7 @@ for i in 0..10 {
 ```
 
 **Use When:**
+
 - Multiple subsystems
 - Different restart policies per subsystem
 - Need fault isolation between components
@@ -466,12 +482,14 @@ root.add_supervisor(cache_supervisor).await?;
 ```
 
 **Pros:**
+
 - Subsystem isolation
 - Different policies per level
 - Scales to large systems
 - Clear component boundaries
 
 **Cons:**
+
 - More complex
 - Higher overhead
 - Requires design planning
@@ -752,6 +770,7 @@ supervisor
 ### Proactive vs Reactive Monitoring
 
 **Reactive Monitoring (traditional):**
+
 - Wait for errors
 - React to failures
 - Downtime during recovery
@@ -789,6 +808,7 @@ supervisor
 ```
 
 **Benefits:**
+
 - Detect degradation early
 - Restart before complete failure
 - Minimize downtime

@@ -9,6 +9,7 @@
 This guide covers best practices for designing, implementing, and optimizing message passing in AirsSys RT. Message passing is the fundamental communication mechanism in the actor model, and proper message design directly impacts system performance, maintainability, and reliability.
 
 **What you'll learn:**
+
 - How to design efficient message types
 - Communication patterns for different scenarios
 - Performance optimization techniques
@@ -16,6 +17,7 @@ This guide covers best practices for designing, implementing, and optimizing mes
 - Type safety and message evolution
 
 **Prerequisites:**
+
 - Completed [Getting Started](../implementation/getting-started.md)
 - Understanding of [Actor Development](actor-development.md) basics
 - Familiarity with Rust async/await and channels
@@ -55,6 +57,7 @@ pub struct BloatedMsg {
 ```
 
 **Why it matters:**
+
 - Smaller messages = faster serialization (if needed)
 - Reduced memory allocations
 - Better cache locality
@@ -84,6 +87,7 @@ pub struct MutableMsg {
 ```
 
 **Benefits:**
+
 - Thread-safe by design
 - No accidental mutations
 - Easier to test and debug
@@ -119,6 +123,7 @@ let msg_clone = msg.clone(); // ~10ns, not 1MB copy
 ```
 
 **Guidelines:**
+
 - Use `Arc<T>` when data > 1KB
 - Use `Arc<T>` when sending to multiple actors
 - Use owned data for small types (<64 bytes)
@@ -154,6 +159,7 @@ impl Message for WorkerMsg {
 ```
 
 **Benefits:**
+
 - Clear API surface
 - Easy pattern matching
 - Single message type per actor
@@ -182,16 +188,19 @@ impl Message for GetMetrics {
 ```
 
 **Benefits:**
+
 - Explicit type signatures
 - Better for actors with many operations
 - Easier to evolve independently
 
 **Choose enum when:**
+
 - Actor has <10 message types
 - Messages are closely related
 - Simple request/response patterns
 
 **Choose separate types when:**
+
 - Actor has >10 message types
 - Messages have different result types
 - Complex domain logic
@@ -246,6 +255,7 @@ async fn example(logger_ref: ActorRef<LogMsg>) {
 ```
 
 **When to use:**
+
 - Logging, metrics, notifications
 - One-way commands
 - When sender doesn't need confirmation
@@ -306,6 +316,7 @@ async fn example(counter_ref: ActorRef<QueryMsg>) -> Result<i32, String> {
 ```
 
 **When to use:**
+
 - Queries that need results
 - Synchronous-style APIs
 - When caller needs confirmation
@@ -407,6 +418,7 @@ async fn setup_pubsub() {
 ```
 
 **When to use:**
+
 - Event notifications
 - Broadcasting state changes
 - Decoupling publishers from subscribers
@@ -447,6 +459,7 @@ async fn parallel_broadcast(
 ```
 
 **When to use:**
+
 - Shutdown/restart commands
 - Configuration updates
 - Coordinated state changes
@@ -495,6 +508,7 @@ async fn parallel_scatter_gather(
 ```
 
 **When to use:**
+
 - Aggregating data from multiple sources
 - Parallel query processing
 - Consensus algorithms
@@ -537,6 +551,7 @@ impl Actor for DataProcessor {
 ```
 
 **Performance gain:**
+
 - 1MB message copy: ~1ms
 - 1MB Arc clone: ~10ns
 - **100x faster** for large data
@@ -604,11 +619,13 @@ impl Actor for BatchProcessor {
 ```
 
 **Performance gain:**
+
 - Individual processing: ~1,000ns per message
 - Batched processing: ~100ns per message (10x improvement)
 - Trade-off: Increased latency for batch accumulation
 
 **When to use:**
+
 - Database writes
 - Network requests
 - File I/O operations
@@ -658,6 +675,7 @@ impl PriorityMailbox {
 ```
 
 **When to use:**
+
 - Health check messages (high priority)
 - Shutdown commands (high priority)
 - Control plane vs data plane separation
@@ -715,11 +733,13 @@ impl Default for PooledData {
 ```
 
 **Performance gain:**
+
 - Without pooling: ~1,000ns per allocation
 - With pooling: ~100ns per acquisition
 - **10x faster** for allocation-heavy workloads
 
 **When to use:**
+
 - Message rates >100,000/sec
 - Large message buffers
 - Real-time systems with strict latency requirements
@@ -912,6 +932,7 @@ async fn example(actor_ref: ActorRef<QueryMsg>) {
 ```
 
 **Timeout guidelines:**
+
 - Fast queries: 100ms - 1s
 - Normal operations: 1s - 5s
 - Long-running tasks: 30s - 5min
@@ -991,6 +1012,7 @@ pub struct WeakState {
 ```
 
 **Type safety checklist:**
+
 - Use enums for finite states
 - Use newtypes for domain-specific values
 - Use Result<T, E> for operations that can fail
@@ -1181,12 +1203,14 @@ pub struct FeatureConfig {
 ## Summary
 
 **Message Design Principles:**
+
 - Keep messages small (<64 bytes ideal)
 - Use immutable data structures
 - Share large data with `Arc<T>`
 - Choose enum vs separate types based on complexity
 
 **Communication Patterns:**
+
 - Fire-and-forget: One-way commands, logging
 - Request/reply: Queries, RPC-style interactions
 - Pub/Sub: Event broadcasting, decoupling
@@ -1194,6 +1218,7 @@ pub struct FeatureConfig {
 - Scatter/gather: Parallel queries, aggregation
 
 **Performance Optimization:**
+
 - Use `Arc<T>` for zero-copy sharing (100x faster for large data)
 - Batch messages for high throughput (10x improvement)
 - Implement priority queues for critical messages
@@ -1201,24 +1226,28 @@ pub struct FeatureConfig {
 - Reference BENCHMARKING.md §6.2 for performance targets
 
 **Error Handling:**
+
 - Handle send failures with retry and backoff
 - Always use timeouts for request/reply
 - Log dead letters for debugging
 - Implement circuit breakers for failing actors
 
 **Type Safety:**
+
 - Use strong types to prevent runtime errors
 - Version messages for backward compatibility
 - Use builder patterns for complex messages
 - Leverage Rust's type system for correctness
 
 **Performance Reference (BENCHMARKING.md §6.2):**
+
 - Small message send: 50-100ns
 - Arc clone vs copy: 10ns vs 1ms (100x)
 - Single actor throughput: 1M+ msg/sec
 - Batched throughput: 5M+ msg/sec
 
 **Next Steps:**
+
 - See [message_patterns.rs](../../examples/message_patterns.rs) for working examples
 - Review [Actor Development](actor-development.md) for message handling patterns
 - Check [Supervisor Patterns](supervisor-patterns.md) for error recovery integration
@@ -1227,6 +1256,7 @@ pub struct FeatureConfig {
 ---
 
 **Related Documentation:**
+
 - [Getting Started](../implementation/getting-started.md) - Basic message passing
 - [Actor Development](actor-development.md) - Message handling implementation
 - [Supervisor Patterns](supervisor-patterns.md) - Error recovery with messages

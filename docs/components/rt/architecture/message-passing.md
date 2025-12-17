@@ -35,6 +35,7 @@ pub trait Message: Clone + Send + Sync + 'static
 ```
 
 **Design Rationale:**
+
 - `Clone`: Messages can be sent to multiple subscribers
 - `Send + Sync + 'static`: Thread-safe cross-actor messaging
 - `Serialize + Deserialize`: Future network/persistence support
@@ -59,12 +60,14 @@ impl Message for CounterMessage {
 ### Message Best Practices
 
 **DO:**
+
 - ✅ Keep messages small and focused
 - ✅ Use strongly-typed enums for variants
 - ✅ Make fields `pub` for builder patterns
 - ✅ Derive `Debug` for logging
 
 **DON'T:**
+
 - ❌ Include large data structures (use references/IDs)
 - ❌ Add non-serializable types
 - ❌ Mutate messages (they're cloned)
@@ -86,6 +89,7 @@ pub struct MessageEnvelope<M> {
 ```
 
 **Fields:**
+
 - `id`: Unique message identifier (UUID-based)
 - `message`: Actual message payload
 - `timestamp`: When envelope was created (UTC)
@@ -129,6 +133,7 @@ pub trait MessageBroker<M: Message>: Clone + Send + Sync + 'static {
 ```
 
 **Design Rationale:**
+
 - `Clone`: Brokers can be shared across actors (Arc internally)
 - Generic `<M: Message>`: Type-safe message routing
 - `async`: Non-blocking operations
@@ -171,6 +176,7 @@ impl<M: Message> InMemoryMessageBroker<M> {
 ```
 
 **Characteristics:**
+
 - **Thread-safe**: Arc + Mutex for multi-threaded access
 - **Cheap Clone**: Arc-based, no deep copy
 - **Dynamic subscribers**: Add/remove at runtime
@@ -187,6 +193,7 @@ Based on `benches/message_benchmarks.rs`:
 | Broadcast to 10 actors | 395 ns total | ~40 ns/subscriber |
 
 **Broker Overhead:**
+
 - Direct actor processing: 31.55 ns/message
 - Via broker routing: 211.88 ns/message
 - **6.7x overhead** - acceptable for pub-sub semantics
@@ -281,6 +288,7 @@ pub enum BackpressureStrategy {
 ```
 
 **Usage Guidelines:**
+
 - **Block**: Critical messages that must be delivered
 - **Drop**: Optional updates (metrics, status) where latest is enough
 - **DropOldest**: Event streams where recent data matters most
@@ -429,6 +437,7 @@ pub enum BrokerError {
 ```
 
 **Recovery Strategies:**
+
 - `SubscriberNotFound`: Retry with discovery or fail gracefully
 - `ChannelClosed`: Cleanup subscriber, log issue
 - `SendError`: Escalate to supervisor
@@ -445,6 +454,7 @@ pub enum MailboxError {
 ```
 
 **Handling Guidelines:**
+
 - **Full + Block**: Automatic backpressure (sender waits)
 - **Full + Drop**: Log dropped message, continue
 - **Closed**: Stop sending, cleanup references
@@ -455,11 +465,13 @@ pub enum MailboxError {
 ### Message Design
 
 **Optimize for:**
+
 - Small message size (<100 bytes ideal)
 - Cheap cloning (primitives, small vecs)
 - Serialization efficiency (serde derives)
 
 **Avoid:**
+
 - Large vecs/strings (use Arc or IDs)
 - Boxed trait objects (static dispatch preferred)
 - Deep nesting (flattens better)
@@ -467,6 +479,7 @@ pub enum MailboxError {
 ### Broker Selection
 
 **InMemoryMessageBroker:**
+
 - ✅ Low latency (737 ns roundtrip)
 - ✅ High throughput (4.7M msgs/sec)
 - ✅ Simple, correct, fast
@@ -481,11 +494,13 @@ pub enum MailboxError {
 ### Mailbox Tuning
 
 **Unbounded:**
+
 - Use for: Control messages, low-volume actors
 - Avoids: Backpressure complexity
 - Risk: Unbounded memory growth
 
 **Bounded:**
+
 - Use for: High-volume data streams
 - Capacity: 100-1000 typical (balance latency vs memory)
 - Strategy: Match to use case (Block/Drop/DropOldest)

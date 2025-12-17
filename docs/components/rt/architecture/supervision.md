@@ -36,6 +36,7 @@ pub trait Child: Send + Sync {
 ```
 
 **Design Rationale:**
+
 - `start/stop`: Lifecycle control for supervisor restarts
 - `health_check`: Automatic monitoring integration
 - `Send + Sync`: Multi-threaded supervision support
@@ -259,6 +260,7 @@ pub struct ChildSpec {
 ```
 
 **Fields:**
+
 - `id`: Unique child identifier
 - `restart_policy`: When to restart (Permanent/Transient/Temporary)
 - `shutdown_policy`: How to stop gracefully
@@ -283,6 +285,7 @@ ChildSpec {
 ```
 
 **Use cases:**
+
 - `significant: true` - Core services (database, auth, cache)
 - `significant: false` - Optional services (metrics, logs, monitoring)
 
@@ -341,6 +344,7 @@ impl SupervisorBuilder {
 ```
 
 **Benefits:**
+
 - Type-safe configuration (compile-time checks)
 - Fluent API (method chaining)
 - Minimal overhead (5-20 µs spawn latency)
@@ -424,6 +428,7 @@ monitor.monitor_supervisor(&mut supervisor).await?;
 ```
 
 **Features:**
+
 - Periodic health checks via `Child::health_check()`
 - Configurable thresholds
 - Automatic restart on unhealthy children
@@ -538,16 +543,19 @@ async fn handle_child_failure(
 ### Strategy Selection
 
 **OneForOne:**
+
 - ✅ Use for: Independent workers, pools, parallel tasks
 - ✅ Example: HTTP request handlers, background jobs
 - ❌ Avoid for: Stateful, interdependent services
 
 **OneForAll:**
+
 - ✅ Use for: Tightly coupled services, consistent state requirements
 - ✅ Example: Cache + database, auth + session store
 - ❌ Avoid for: Large numbers of independent children (restart overhead)
 
 **RestForOne:**
+
 - ✅ Use for: Pipelines, sequential dependencies
 - ✅ Example: Data ingestion → transform → storage
 - ❌ Avoid for: Parallel, independent processing
@@ -555,12 +563,14 @@ async fn handle_child_failure(
 ### Child Design
 
 **DO:**
+
 - ✅ Implement proper `start()`/`stop()` lifecycle
 - ✅ Make `health_check()` fast and accurate (<1ms)
 - ✅ Use `significant` flag appropriately
 - ✅ Keep child state minimal for fast restarts
 
 **DON'T:**
+
 - ❌ Block in `start()`/`stop()` (use async properly)
 - ❌ Ignore errors in lifecycle methods
 - ❌ Make all children significant (limits fault isolation)
@@ -569,11 +579,13 @@ async fn handle_child_failure(
 ### Performance Tuning
 
 **Minimize restart latency:**
+
 - Keep `start()` logic simple (<10ms ideal)
 - Preallocate resources where possible
 - Use connection pools instead of per-child connections
 
 **Monitor restart patterns:**
+
 - Track restart counts (via `ActorLifecycle`)
 - Alert on excessive restarts (possible underlying issue)
 - Use `HealthMonitor` for automatic detection

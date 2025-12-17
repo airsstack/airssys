@@ -210,6 +210,7 @@ match result {
 ### Issue: High Lock Contention
 
 **Symptom:**
+
 - Slow response times
 - High CPU usage
 - Messages queuing up
@@ -263,6 +264,7 @@ self.send(UpdateStateMessage { new_value }).await?;
 ### Issue: Unbounded Message Queue
 
 **Symptom:**
+
 - Memory usage growing
 - Message delays increasing
 - System becomes unresponsive
@@ -307,6 +309,7 @@ async fn process_batch(&mut self, messages: Vec<Message>) {
 ### Issue: Memory Leaks
 
 **Symptom:**
+
 - Memory usage grows over time
 - Component not garbage collected
 
@@ -549,6 +552,7 @@ tokio-console
 ```
 
 **Features:**
+
 - Task visualization
 - Async call stack traces
 - Resource usage tracking
@@ -670,6 +674,7 @@ if processing > Duration::from_millis(100) {
 ### Compare with Baselines
 
 **Task 6.2 Baselines (macOS M1):**
+
 - Component spawn: 286ns
 - Message routing: 1.05µs
 - Registry lookup: 36ns
@@ -677,6 +682,7 @@ if processing > Duration::from_millis(100) {
 - Throughput: 6.12M msg/sec
 
 **Alert Thresholds:**
+
 - Component spawn >1ms → Investigate spawn bottleneck
 - Message latency >100µs → Check lock contention
 - Throughput <100k msg/sec → Check system load

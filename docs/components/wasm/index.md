@@ -70,12 +70,14 @@ Measured in Task 6.2 (Phase 6 validation):
 ## When to Use ComponentActor
 
 **Ideal for:**
+
 - ✅ Pluggable systems (WASM components, plugins)
 - ✅ Multi-component architectures (microservices, actors)
 - ✅ Fault-tolerant systems (automatic recovery)
 - ✅ High-throughput systems (6M+ msg/sec)
 
 **Consider alternatives for:**
+
 - ❌ Simple single-process applications
 - ❌ Systems without isolation requirements
 - ❌ Stateless request-response services

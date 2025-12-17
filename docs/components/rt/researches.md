@@ -24,6 +24,7 @@ A comprehensive examination of the Erlang/BEAM runtime system, covering:
 - **Supervision Philosophy**: "Let it crash" principles and recovery mechanisms
 
 **Key Insights:**
+
 - BEAM's success comes from integrated system design, not individual features
 - Process isolation through separate heaps is fundamental to fault tolerance
 - Preemptive scheduling ensures fairness under all workload conditions
@@ -37,6 +38,7 @@ An in-depth architectural analysis and practical implementation guide covering:
 - **Technology Integration**: Leveraging Rust ecosystem while maintaining BEAM principles
 
 **Key Insights:**
+
 - Hybrid scheduling models can combine cooperative and preemptive benefits
 - WebAssembly provides promising path for true process isolation
 - Supervision must be runtime-integrated, not just library-level
@@ -50,6 +52,7 @@ Comprehensive analysis of existing Rust actor frameworks and their design decisi
 - **Lessons Learned**: Successful patterns and common pitfalls to avoid
 
 **Key Insights:**
+
 - Channel-based message passing is the proven standard approach
 - Runtime-integrated supervision enables better optimization than library-level
 - Type safety and zero-cost abstractions are crucial for adoption

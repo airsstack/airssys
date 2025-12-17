@@ -22,6 +22,7 @@ This reference provides measured performance characteristics and capacity planni
 | Supervision tree (3 children) | 3.01 µs | 997K/sec (total) | ✅ 2-5 microseconds |
 
 **Performance Legend:**
+
 - 🚀 **Extremely fast**: <100 ns (10M+ ops/sec)
 - ⚡ **Sub-microsecond**: 100ns - 1µs (1-10M ops/sec)
 - ✅ **Microseconds**: 1-10µs (100K-1M ops/sec)
@@ -44,6 +45,7 @@ This reference provides measured performance characteristics and capacity planni
 | **Outliers** | 6.67% | 2 of 30 samples |
 
 **Theoretical Capacity:**
+
 - **1.6 million actors/second** spawn rate
 - **10,000 actors**: 6.25 ms to spawn all
 - **Constant time**: O(1) - independent of existing actor count
@@ -79,6 +81,7 @@ This reference provides measured performance characteristics and capacity planni
 | 50 | 762.68 ns | +6.2% | 36.67% |
 
 **Scaling Characteristics:**
+
 - ✅ **Linear scaling**: Only 6.2% overhead at 50 actors
 - ⚠️ **Higher variance at scale**: OS allocator variance increases with count
 - ✅ **Predictable**: Memory allocation is NOT a scaling bottleneck
@@ -107,6 +110,7 @@ This reference provides measured performance characteristics and capacity planni
 | **Throughput** | 1.36M roundtrips/sec | Sustained rate |
 
 **Latency Breakdown (Estimated):**
+
 - Topic lookup/routing: ~50 ns (6.8%)
 - Subscription management: ~60 ns (8.1%)
 - Channel send/receive: ~70 ns (9.5%)
@@ -126,16 +130,19 @@ This reference provides measured performance characteristics and capacity planni
 | **vs Direct** | 6.7x slower | vs 31.55 ns direct |
 
 **Broker Overhead Analysis:**
+
 - **Direct processing**: 31.55 ns/msg (no broker)
 - **Broker routing**: 211.88 ns/msg (with broker)
 - **Overhead**: 180.33 ns (6.7x slower)
 
 **When Broker Overhead is Acceptable:**
+
 - ✅ Pub-sub patterns (1-to-many, dynamic subscriptions)
 - ✅ Decoupling (publishers don't know subscribers)
 - ✅ Still fast (4.7M msgs/sec is excellent for most workloads)
 
 **When to Avoid Broker:**
+
 - ⚠️ Ultra-hot paths requiring 31M msgs/sec
 - ⚠️ Known fixed topology (use direct `ActorRef`)
 - ⚠️ Latency-critical microsecond budgets
@@ -174,11 +181,13 @@ This reference provides measured performance characteristics and capacity planni
 **Recommendations:**
 
 **Use Unbounded:**
+
 - ✅ Default choice (23% faster creation, simpler semantics)
 - ✅ Trusted internal actors
 - ✅ Low message rate (<1000 msgs/sec)
 
 **Use Bounded:**
+
 - ✅ Backpressure needed (slow consumers, prevent memory bloat)
 - ✅ Untrusted sources (external inputs, rate limiting)
 - ✅ Known capacity constraints
@@ -217,27 +226,32 @@ This reference provides measured performance characteristics and capacity planni
 | **Tree (small)** | 3.0073 µs | 1002.4 ns | -21.3% faster | 0% |
 
 **Critical Insight:**
+
 - ✅ **Strategy choice is semantic, not performance-based**: <1% difference between strategies
 - ✅ **Perfect stability**: Tree construction has 0% outliers (most stable benchmark)
 - ✅ **Batch efficiency**: All batch strategies ~21% faster per-child
 
 **Restart Latency Estimate:**
+
 - **Stop existing child**: ~500 ns (cleanup, deregistration)
 - **Spawn new child**: ~1,283 ns (measured baseline)
 - **Total restart**: **~1.8 µs** (estimated)
 
 **Restart Capacity:**
+
 - **Single child restarts**: ~556,000 restarts/second
 - **Batch restarts (3 children)**: ~1 million restarts/second total
 
 ### Supervision Tree Scaling
 
 **Small Tree (3 children, 1 level):**
+
 - **Construction**: 3.0073 µs
 - **Per Child**: 1.002 µs
 - **Outliers**: 0% (perfect stability)
 
 **Projected Scaling (extrapolated):**
+
 - **2 levels (9 children)**: ~9 µs construction (linear)
 - **3 levels (27 children)**: ~27 µs construction (linear)
 - **Pattern**: ✅ Linear scaling O(n) with tree size, no depth penalty
@@ -247,17 +261,20 @@ This reference provides measured performance characteristics and capacity planni
 ### Linear Scaling Confirmed
 
 **Actor Memory Allocation:**
+
 - 1 actor: 718.43 ns
 - 10 actors: 742.76 ns/actor (+3.4%)
 - 50 actors: 762.68 ns/actor (+6.2%)
 - **Conclusion**: Linear scaling with minimal overhead
 
 **Message Processing:**
+
 - Direct: 31.55 ns/msg (constant)
 - Broker: 211.88 ns/msg (constant)
 - **Conclusion**: O(1) per-message cost
 
 **Supervision:**
+
 - Single child: 1.28 µs
 - 3 children: 1.00 µs/child (batch efficiency)
 - **Conclusion**: Batch spawn more efficient than single
@@ -277,11 +294,13 @@ This reference provides measured performance characteristics and capacity planni
 ### Broker Overhead
 
 **Overhead Breakdown:**
+
 - **Direct actor processing**: 31.55 ns/msg
 - **Broker routing**: 211.88 ns/msg
 - **Overhead**: 180.33 ns (6.7x slower)
 
 **Acceptable Trade-offs:**
+
 - ✅ 180 ns overhead is still sub-microsecond
 - ✅ 4.7M msgs/sec sufficient for most workloads
 - ✅ Pub-sub flexibility worth the cost
@@ -291,16 +310,19 @@ This reference provides measured performance characteristics and capacity planni
 ### Theoretical Limits
 
 **Actor Capacity:**
+
 - **Spawn rate**: 1.6M actors/second
 - **10,000 actors**: ~6.25 ms to spawn all
 - **Memory**: Limited by available RAM, not framework
 
 **Message Capacity:**
+
 - **Direct processing**: 31.7M msgs/sec theoretical
 - **Broker routing**: 4.7M msgs/sec theoretical
 - **Realistic**: 1-5M msgs/sec (accounting for business logic)
 
 **Supervision Capacity:**
+
 - **Child spawns**: 779K/sec (single), 997K/sec (batch)
 - **Restarts**: ~556K/sec estimated
 - **Overhead**: <1% in normal operation
@@ -359,11 +381,13 @@ broker.publish("topic", msg).await?;
 ```
 
 **When to Optimize:**
+
 - ⚠️ Proven bottleneck via profiling
 - ⚠️ >1M msgs/sec on hot path
 - ⚠️ Sub-millisecond latency budget
 
 **When NOT to Optimize:**
+
 - ✅ 4.7M msgs/sec is sufficient for workload
 - ✅ Pub-sub flexibility needed
 - ✅ No profiler evidence of bottleneck
@@ -371,20 +395,24 @@ broker.publish("topic", msg).await?;
 ### Mailbox Sizing
 
 **Small Mailboxes (10-50):**
+
 - **Use for**: Latency-sensitive, fast turnaround
 - **Trade-off**: Higher blocking probability
 
 **Medium Mailboxes (100-500):**
+
 - **Use for**: Standard workloads
 - **Trade-off**: Balanced memory/throughput
 
 **Large Mailboxes (1000+):**
+
 - **Use for**: Batch processing, high variance
 - **Trade-off**: Higher memory footprint
 
 ### Supervision Strategy
 
 **Strategy Selection (Performance Neutral):**
+
 - ✅ All strategies have <1% variance
 - ✅ Choose based on semantics, not performance:
   - **OneForOne**: Independent child failures
@@ -412,6 +440,7 @@ open target/criterion/report/index.html
 ### Baseline Comparison
 
 **Verify Against Baselines:**
+
 - Actor spawn: Should be ~625 ns
 - Message roundtrip: Should be ~737 ns
 - Supervisor spawn: Should be ~1.28 µs

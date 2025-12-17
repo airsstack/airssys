@@ -255,6 +255,7 @@ async fn handle(&mut self, _msg: M, _ctx: &mut ActorContext<Self>) {
 ```
 
 **Prevention:**
+
 - Design message flow as directed acyclic graph (DAG)
 - Use async I/O operations exclusively
 - Reserve `spawn_blocking` for unavoidable synchronous code
@@ -328,6 +329,7 @@ let actor_ref = system.spawn(actor).await?;
 ```
 
 **Prevention:**
+
 - Always check send results
 - Monitor actor lifecycle state
 - Use appropriate mailbox configuration
@@ -351,6 +353,7 @@ cargo bench --bench message_benchmarks
 ```
 
 **Expected baselines:**
+
 - Point-to-point messaging: ~737ns
 - Message broker routing: ~181ns overhead
 - Actor spawn: ~625ns
@@ -428,6 +431,7 @@ struct EfficientMessage {
 ```
 
 **Prevention:**
+
 - Benchmark message paths regularly
 - Use direct actor references for hot paths
 - Profile with `cargo flamegraph` to identify bottlenecks
@@ -520,6 +524,7 @@ actors.retain(|actor_ref| !actor_ref.is_stopped());
 ```
 
 **Prevention:**
+
 - Use bounded mailboxes for all non-critical actors
 - Implement proper actor lifecycle management
 - Monitor memory metrics continuously
@@ -614,6 +619,7 @@ let supervisor = SupervisorBuilder::new()
 ```
 
 **Prevention:**
+
 - Configure appropriate restart limits for expected failure rates
 - Choose restart strategy matching fault tolerance requirements
 - Always register critical actors with supervisor
@@ -671,6 +677,7 @@ let supervisor = SupervisorBuilder::new()
 ```
 
 **Prevention:**
+
 - Choose minimal restart strategy meeting fault tolerance needs
 - Document why OneForAll or RestForOne is required
 - Monitor restart metrics to detect excessive restarts
@@ -764,6 +771,7 @@ impl Handler<MyRequest> for MyActor {
 ```
 
 **Prevention:**
+
 - Set timeouts appropriate for operation latency
 - Monitor mailbox queue depth
 - Ensure all request handlers return results
@@ -855,6 +863,7 @@ let supervisor = SupervisorBuilder::new()
 ```
 
 **Prevention:**
+
 - Validate initialization conditions in `pre_start`
 - Use supervisor for critical actors
 - Avoid panics in handlers, use error results
@@ -942,6 +951,7 @@ let mailbox = Mailbox::bounded(capacity);
 ```
 
 **Prevention:**
+
 - Profile message rates during peak traffic
 - Size mailbox capacity for burst handling
 - Monitor mailbox queue depth metrics
@@ -1032,6 +1042,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```
 
 **Prevention:**
+
 - Validate configuration values before system creation
 - Size system based on available resources
 - Ensure async runtime is properly initialized

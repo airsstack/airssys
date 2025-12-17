@@ -7,6 +7,7 @@ This guide shows you how to deploy ComponentActor systems to production environm
 ### System Requirements
 
 **Minimum Requirements:**
+
 - **Rust**: 1.70+ (stable toolchain)
 - **Tokio**: 1.x runtime
 - **CPU**: 2+ cores (4+ recommended for production)
@@ -14,6 +15,7 @@ This guide shows you how to deploy ComponentActor systems to production environm
 - **OS**: Linux (Ubuntu 20.04+), macOS (10.15+), Windows (Server 2019+)
 
 **Recommended for Production:**
+
 - **CPU**: 8+ cores for high-throughput workloads
 - **Memory**: 16GB+ RAM for 1000+ components
 - **Storage**: SSD for logging and metrics
@@ -88,11 +90,13 @@ export AIRSSYS_AUDIT_LOG_PATH=/var/log/airssys/audit.log
 ### Memory Recommendations
 
 **Per Component:**
+
 - Small components (stateless): 64-128 MB
 - Medium components (stateful): 128-512 MB
 - Large components (data processing): 512 MB - 2 GB
 
 **System-Wide:**
+
 - Reserve 2 GB for ActorSystem overhead
 - Example: 16 GB RAM → 14 GB available for components
 - With 256 MB avg per component → ~55 components per node
@@ -111,6 +115,7 @@ let runtime = Builder::new_multi_thread()
 ```
 
 **Component Count Recommendations:**
+
 - 4 cores: 10-50 components (depending on workload)
 - 8 cores: 50-200 components
 - 16 cores: 200-1000 components

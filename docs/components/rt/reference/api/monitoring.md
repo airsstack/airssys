@@ -25,6 +25,7 @@ Trait for implementing health checks on actors.
 - `health_check_timeout()`: Maximum time to wait for response
 
 **Trait Bounds:**
+
 - `Send + Sync`: Can be safely shared across threads
 
 **Example:**
@@ -134,6 +135,7 @@ pub struct HealthMonitor {
 Monitors actor health and triggers recovery actions.
 
 **Features:**
+
 - Periodic health checks
 - Automatic unhealthy actor detection
 - Integration with supervisor for restarts
@@ -151,6 +153,7 @@ pub fn new(system: Arc<ActorSystem>) -> Self
 Creates a new health monitor.
 
 **Parameters:**
+
 - `system`: The actor system to monitor
 
 **Example:**
@@ -171,6 +174,7 @@ pub fn with_config(system: Arc<ActorSystem>, config: HealthMonitorConfig) -> Sel
 Creates a health monitor with custom configuration.
 
 **Parameters:**
+
 - `system`: Actor system to monitor
 - `config`: Health monitor configuration
 
@@ -203,13 +207,16 @@ where
 Starts monitoring an actor with a custom health check.
 
 **Type Parameters:**
+
 - `H`: The health check implementation
 
 **Parameters:**
+
 - `actor_id`: Actor to monitor
 - `health_check`: Health check implementation
 
 **Behavior:**
+
 - Spawns background task for periodic checks
 - Continues until actor stops or monitor is stopped
 - Reports status changes to supervisor (if supervised)
@@ -231,9 +238,11 @@ pub fn stop_monitoring(&self, actor_id: ActorId) -> Result<(), MonitoringError>
 Stops monitoring an actor.
 
 **Parameters:**
+
 - `actor_id`: Actor to stop monitoring
 
 **Returns:**
+
 - `Ok(())`: Monitoring stopped successfully
 - `Err(MonitoringError::NotMonitored)`: Actor was not being monitored
 
@@ -252,9 +261,11 @@ pub fn get_health_status(&self, actor_id: ActorId) -> Option<HealthStatus>
 Gets the current health status of an actor.
 
 **Parameters:**
+
 - `actor_id`: Actor to query
 
 **Returns:**
+
 - `Some(HealthStatus)`: Current health status
 - `None`: Actor not being monitored
 
@@ -275,10 +286,12 @@ pub fn get_health_history(&self, actor_id: ActorId, limit: usize) -> Vec<HealthR
 Gets the health check history for an actor.
 
 **Parameters:**
+
 - `actor_id`: Actor to query
 - `limit`: Maximum number of records to return
 
 **Returns:**
+
 - `Vec<HealthRecord>`: Health check history (most recent first)
 
 **Example:**
@@ -361,6 +374,7 @@ pub struct PingHealthCheck;
 Simple ping-based health check.
 
 **Behavior:**
+
 - Sends ping message to actor
 - Expects pong response within timeout
 - Marks healthy if response received
@@ -384,9 +398,11 @@ pub struct MessageRateHealthCheck {
 Health check based on message processing rate.
 
 **Fields:**
+
 - `min_messages_per_sec`: Minimum expected message processing rate
 
 **Behavior:**
+
 - Tracks actor's message processing rate
 - Marks degraded if below minimum rate
 - Marks unhealthy if processing stopped
@@ -414,9 +430,11 @@ pub struct MemoryHealthCheck {
 Health check based on actor memory usage.
 
 **Fields:**
+
 - `max_memory_mb`: Maximum acceptable memory usage in MB
 
 **Behavior:**
+
 - Monitors actor's memory footprint
 - Marks degraded if approaching limit (>80%)
 - Marks unhealthy if exceeding limit
@@ -444,6 +462,7 @@ pub struct CompositeHealthCheck {
 Combines multiple health checks with AND logic.
 
 **Behavior:**
+
 - Runs all health checks in parallel
 - Healthy only if all checks are healthy
 - Degraded if any check is degraded

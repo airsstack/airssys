@@ -20,6 +20,7 @@ The WASM Component Framework provides a runtime deployment model for WebAssembly
 ```
 
 **Key Components:**
+
 - **ComponentActor**: Dual-trait pattern combining WASM lifecycle (Child) with actor messaging (Actor)
 - **ActorSystem**: Runtime environment for spawning and managing components
 - **ComponentRegistry**: O(1) component lookup and discovery
@@ -273,6 +274,7 @@ let component_ref = supervisor_ref
 5. Component resumes operation
 
 **Performance Impact:**
+
 - Restart overhead: 1.49µs (full lifecycle)
 - Exponential backoff delays: 1s, 2s, 4s, 8s, 16s, 30s (capped)
 
@@ -340,6 +342,7 @@ registry.unregister(&component_id);
 ```
 
 **Thread Safety:**
+
 - All operations are thread-safe (concurrent access safe)
 - No global locks (DashMap uses sharded locking)
 - Wait-free reads (readers don't block each other)
@@ -381,6 +384,7 @@ Layer 1: Tokio Runtime
 | Tokio | Task execution | OS threads | spawn(), sleep(), select!() |
 
 **Benefits:**
+
 - Clear responsibilities (no overlap)
 - Easy to test (mock one layer at a time)
 - Easy to swap implementations (e.g., replace ActorSystem)
@@ -422,6 +426,7 @@ Layer 1: Tokio Runtime
 | Concurrent ops (100) | 120µs | 833k ops/sec |
 
 **O(1) Validation:**
+
 - 10 components: 37.5ns
 - 100 components: 35.6ns (5% faster)
 - 1,000 components: 36.5ns (3% slower)
@@ -497,6 +502,7 @@ impl Actor for MyComponent {
 - Low contention: <5% variance across 5 runs
 
 **Best Practices:**
+
 - Minimize lock duration (hold lock briefly, release quickly)
 - Avoid holding locks across await points (causes contention)
 - Clone data out of lock before expensive operations
@@ -519,6 +525,7 @@ impl StatelessParser {
 ```
 
 **Benefits:**
+
 - No lock contention (no shared state)
 - Trivially scalable (spawn multiple instances)
 - Easy to test (no setup/teardown)
@@ -534,6 +541,7 @@ pub struct StatefulAccumulator {
 ```
 
 **Use When:**
+
 - Caching required (avoid recomputing)
 - Aggregation needed (sum, count, average)
 - Session management (user sessions, connections)
@@ -600,6 +608,7 @@ Supervisor decides action:
 ```
 
 **Restart Triggers:**
+
 - Component panic (unhandled panic in handle_message)
 - Repeated errors (error rate > threshold)
 - Health check failure (component not responding)

@@ -106,6 +106,7 @@ fn create_metadata() -> ComponentMetadata {
 **What we're doing:** Metadata describes the component and sets resource limits. These limits protect the host system from runaway components.
 
 **Notice:**
+
 - `max_memory_bytes`: Wasmtime enforces this memory limit
 - `max_fuel`: CPU execution limit (prevents infinite loops)
 - `max_execution_ms`: Timeout for function calls
@@ -126,6 +127,7 @@ struct HelloState {
 **What we're doing:** Custom state lets components maintain data across their lifetime. The state is protected by `Arc<RwLock<HelloState>>` automatically.
 
 **Notice:**
+
 - `Default` trait: Provides initial state
 - `Clone` trait: Enables `get_state()` method
 - Fields can be any type implementing `Send + Sync + 'static`
@@ -198,6 +200,7 @@ Uptime: None
 ```
 
 **Notice:**
+
 - `state()` returns `ActorState::Creating` (initial state)
 - `is_wasm_loaded()` returns `false` (WASM loads in `Child::start()`)
 - `uptime()` returns `None` (not started yet)
@@ -253,6 +256,7 @@ Read the final message count:
 **What we're doing:** Using `with_state()` for read-only access and `get_state()` to clone the entire state.
 
 **Notice:**
+
 - `with_state()`: Read-only access (multiple readers allowed)
 - `with_state_mut()`: Mutable access (exclusive lock)
 - `get_state()`: Clones state (requires `Clone` trait)

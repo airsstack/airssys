@@ -7,6 +7,7 @@ This document explains the comprehensive considerations for deploying ComponentA
 ### Why Production Deployment Differs from Development
 
 **Development Environment:**
+
 - Single node, local execution
 - Limited concurrency (10-100 operations)
 - Forgiving error handling (panics visible in console)
@@ -14,6 +15,7 @@ This document explains the comprehensive considerations for deploying ComponentA
 - No performance requirements
 
 **Production Environment:**
+
 - Distributed deployment (multiple nodes)
 - High concurrency (1000+ components, millions of messages)
 - Resilient error handling (automatic recovery required)
@@ -43,6 +45,7 @@ Production ComponentActor System
 ```
 
 **Design Rationale:**
+
 - **Multiple Nodes**: Horizontal scalability and fault tolerance
 - **Shared Registry**: O(1) component lookup across nodes (36ns measured in Task 6.2)
 - **Monitoring**: Real-time performance tracking against baselines
@@ -54,12 +57,14 @@ Production ComponentActor System
 ### Why Comprehensive Monitoring is Critical
 
 **Without Monitoring:**
+
 - Performance degradation unnoticed until user complaints
 - Errors silently accumulate, causing cascading failures
 - Resource leaks go undetected, leading to crashes
 - No data for capacity planning or optimization
 
 **With Monitoring:**
+
 - Early detection of performance regressions (P99 latency trending up)
 - Proactive alerting before user impact (component spawn > 1ms)
 - Data-driven capacity planning (current utilization vs capacity)
@@ -131,6 +136,7 @@ warn!(
 ```
 
 **Log Levels in Production:**
+
 - **ERROR**: Failures requiring attention (spawn failures, capability violations)
 - **WARN**: Degraded conditions (slow spawns, high error rates)
 - **INFO**: Normal operations (component started, message sent)
@@ -163,6 +169,7 @@ async fn handle_message(
 ```
 
 **Tracing Benefits:**
+
 - Identify bottlenecks in multi-component pipelines
 - Measure end-to-end latency (ingress → processing → egress)
 - Correlate errors across component boundaries
@@ -175,23 +182,27 @@ async fn handle_message(
 **Baseline Performance** (macOS M1, 100 samples, 95% CI, measured in Task 6.2):
 
 **Lifecycle Operations:**
+
 - Component construction: 286ns (2.65 million/sec capacity)
 - Full lifecycle (start+stop): 1.49µs
 - State access (read): 37ns
 - State access (write): 39ns
 
 **Messaging Operations:**
+
 - Message routing: 1.05µs (952k msg/sec per component)
 - Request-response cycle: 3.18µs (314k req/sec per component)
 - Message throughput: 6.12 million msg/sec (system-wide)
 - Pub-sub fanout (100): 85.2µs (11,737 fanouts/sec)
 
 **Scalability:**
+
 - Registry lookup: 36ns O(1) (constant from 10-1,000 components)
 - Component spawn rate: 2.65 million/sec
 - Concurrent operations (100): 120µs (833k ops/sec)
 
 **Implications for Production:**
+
 - Single node can handle 1000+ components with O(1) lookup
 - Message throughput supports 6M msg/sec before bottleneck
 - Component spawn is nearly instantaneous (286ns)
@@ -242,6 +253,7 @@ futures::future::join_all(futures).await;  // Parallel execution
 ```
 
 **Measured Impact:**
+
 - Single message: 1.05µs per message
 - Batch of 100: ~105µs total (1.05µs per message maintained)
 - Benefit: Lower latency variance, higher throughput consistency
@@ -286,6 +298,7 @@ cargo bench --bench scalability_benchmarks
 - Registry lookup: Current vs 36ns baseline
 
 **Step 3: Optimize Only If:**
+
 - Current performance < 50% of baseline (e.g., spawn > 572ns)
 - Performance degrading over time (trending analysis)
 - SLA violations occurring (P99 latency > threshold)
@@ -304,6 +317,7 @@ cargo bench --bench actor_lifecycle_benchmarks -- --baseline before_optimization
 ### Issue 1: High Lock Contention (State Access Bottlenecks)
 
 **Symptom:**
+
 - State access latency > 100ns (baseline: 37-39ns)
 - Component message handling slowing down
 - CPU utilization low despite high load
@@ -337,12 +351,14 @@ let result = expensive_computation(&data).await;  // Await outside lock
 ```
 
 **Validation:**
+
 - State access returns to 37-39ns baseline
 - Message throughput returns to expected rate
 
 ### Issue 2: Memory Leaks (Component Cleanup Issues)
 
 **Symptom:**
+
 - Memory usage grows over time (never decreases)
 - Eventually OOM (Out of Memory) crash
 - Component count correct but memory usage high
@@ -392,6 +408,7 @@ impl Child for CleanComponent {
 ```
 
 **Validation:**
+
 - Memory usage stable over time
 - Memory drops after component stop
 - Use tools: `heaptrack`, `valgrind --tool=massif`
@@ -399,6 +416,7 @@ impl Child for CleanComponent {
 ### Issue 3: Message Queue Growth (Backpressure Handling)
 
 **Symptom:**
+
 - Message queues growing unbounded
 - Latency increasing over time
 - Eventually OOM or timeout failures
@@ -436,6 +454,7 @@ match tx.try_send(message) {
 ```
 
 **Validation:**
+
 - Queue size bounded (monitored via metrics)
 - Latency stable under load
 - No OOM failures
@@ -447,11 +466,13 @@ match tx.try_send(message) {
 ComponentActor leverages WebAssembly sandboxing for security:
 
 **Memory Isolation:**
+
 - Each component has separate linear memory
 - Components cannot access host memory directly
 - Memory bounds checked by WASM runtime
 
 **Capability-Based Security:**
+
 - Components granted explicit capabilities (file:read, network:outbound)
 - All system calls require capability check
 - Deny-by-default security model
@@ -473,6 +494,7 @@ component.read_file("/data/input/data.json").await?;  // ✅ Allowed
 ```
 
 **Threat Model:**
+
 - **Malicious Components**: Assume components may be adversarial
 - **Resource Exhaustion**: Limit CPU time, memory, I/O per component
 - **Data Exfiltration**: Prevent unauthorized data access via capabilities
@@ -515,6 +537,7 @@ info!(
 ```
 
 **Audit Log Storage:**
+
 - Structured logs (JSON format)
 - Centralized storage (Elasticsearch, Splunk)
 - Immutable (append-only)
@@ -534,6 +557,7 @@ Step 5: Decommission Blue (or rollback if issues)
 ```
 
 **Benefits:**
+
 - Deployment without system restart
 - Instant rollback capability (switch traffic back to Blue)
 - Parallel testing (smoke test before user traffic)
@@ -547,6 +571,7 @@ Step 4: Rollback if metrics degrade
 ```
 
 **Benefits:**
+
 - Gradual rollout minimizes blast radius
 - Early detection of issues (only 5% of users affected initially)
 - Data-driven rollout (metrics-based decision making)
@@ -554,6 +579,7 @@ Step 4: Rollback if metrics degrade
 ### Rollback Strategies
 
 **Automatic Rollback Triggers:**
+
 - Error rate > 5% (baseline: <1%)
 - P99 latency > 100ms (baseline: 1-10µs)
 - Component crash rate > 1/minute
@@ -583,18 +609,21 @@ curl http://production/health
 ### Resource Requirements per Component
 
 **Small Component (Stateless):**
+
 - Memory: 64-128 MB
 - CPU: 0.1-0.5 cores (10-50% of one core)
 - Message rate: 1k-10k msg/sec
 - Example: JSON parser, data transformer
 
 **Medium Component (Stateful):**
+
 - Memory: 128-512 MB
 - CPU: 0.5-2 cores
 - Message rate: 10k-100k msg/sec
 - Example: Request handler, cache manager
 
 **Large Component (Data Processing):**
+
 - Memory: 512 MB - 2 GB
 - CPU: 2-8 cores
 - Message rate: 100k-1M msg/sec
@@ -627,18 +656,21 @@ Large components (4 cores avg): 7 / 4 = ~1 component
 ```
 
 **Recommended Capacity:**
+
 - Conservative: Use minimum of memory or CPU limit (avoid overcommitment)
 - Monitor utilization: Stay below 80% of capacity (headroom for bursts)
 
 ### Horizontal Scaling Triggers
 
 **Scale Out (Add Nodes) When:**
+
 - CPU utilization > 80% sustained for 5 minutes
 - Memory utilization > 80%
 - Message queue depth > 10,000
 - Component spawn latency > 1ms P99
 
 **Scale In (Remove Nodes) When:**
+
 - CPU utilization < 40% sustained for 15 minutes
 - Memory utilization < 40%
 - Spare capacity > 50%
@@ -655,6 +687,7 @@ Production readiness requires comprehensive attention to:
 6. **Capacity Planning**: Calculate node capacity based on component resource needs
 
 **Production Readiness Validation:**
+
 - ✅ Monitoring configured (metrics, logs, traces)
 - ✅ Performance meets SLAs (P99 < 100ms, throughput > 100k msg/sec)
 - ✅ Security enforced (capability-based, audit logging)

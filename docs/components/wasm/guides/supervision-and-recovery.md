@@ -7,6 +7,7 @@ This guide shows you how to implement supervision and crash recovery for Compone
 Supervision patterns allow components to recover automatically from failures without manual intervention. The SupervisorNode (from airssys-rt) monitors component health and restarts crashed components according to configured policies.
 
 **Key Benefits:**
+
 - **Automatic Recovery**: Components restart automatically after crashes
 - **Fault Isolation**: One component crash doesn't affect others
 - **Configurable Strategies**: Choose restart policies for your use case
@@ -79,11 +80,13 @@ let config = SupervisorConfig {
 ```
 
 **Use When:**
+
 - Development and testing
 - Transient failures expected
 - Fast recovery more important than avoiding cascading failures
 
 **Avoid When:**
+
 - Resource exhaustion causes crashes (immediate restart amplifies problem)
 - External dependency failures (restart won't help)
 
@@ -102,11 +105,13 @@ let config = SupervisorConfig {
 ```
 
 **Use When:**
+
 - Transient external failures (API rate limits, network hiccups)
 - Give external systems time to recover
 - Production deployments with moderate failure rates
 
 **Benefits:**
+
 - Prevents rapid restart loops
 - Allows external dependencies to stabilize
 - Reduces supervisor overhead
@@ -128,6 +133,7 @@ let config = SupervisorConfig {
 ```
 
 **Delay Sequence:**
+
 - 1st restart: 1s
 - 2nd restart: 2s (1s × 2.0)
 - 3rd restart: 4s (2s × 2.0)
@@ -137,11 +143,13 @@ let config = SupervisorConfig {
 - 7th+ restart: 60s (capped at max_delay)
 
 **Use When:**
+
 - Production environments (recommended default)
 - Persistent failures possible
 - Want to balance recovery speed and stability
 
 **Benefits:**
+
 - Fast recovery for transient failures (1s initial delay)
 - Prevents restart storms for persistent failures
 - Adaptive to failure patterns
@@ -299,11 +307,13 @@ Restart only the crashed component (default behavior):
 ```
 
 **Benefits:**
+
 - Minimal disruption
 - Fast recovery
 - Other components unaffected
 
 **Use For:**
+
 - Stateless components
 - Independent components
 - Components with no shared state
@@ -381,6 +391,7 @@ let config = SupervisorConfig {
 ```
 
 **Behavior:**
+
 - Allow 5 restarts within 60 seconds
 - If 6th restart needed within window → component permanently stopped
 - After 60 seconds pass without restart → counter resets to 0
@@ -453,6 +464,7 @@ SupervisorNode
 ```
 
 **Use When:**
+
 - All components have similar restart policies
 - Simple architectures (< 10 components)
 - All components are independent
@@ -472,6 +484,7 @@ RootSupervisor
 ```
 
 **Use When:**
+
 - Components have different restart policies
 - Logical grouping desired (API, data, compute)
 - Want to isolate failure domains

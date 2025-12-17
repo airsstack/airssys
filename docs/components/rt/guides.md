@@ -17,6 +17,7 @@ How-To Guides provide practical directions for solving real-world problems. Each
 Comprehensive guide to developing actors with best practices, lifecycle management, error handling, and testing strategies.
 
 **What you'll learn:**
+
 - Actor trait implementation patterns
 - Lifecycle hook usage (pre_start, post_stop, on_error)
 - Message handling best practices
@@ -29,6 +30,7 @@ Comprehensive guide to developing actors with best practices, lifecycle manageme
 Learn how to design and implement fault-tolerant supervision trees using different supervision strategies.
 
 **What you'll learn:**
+
 - Supervision strategy selection (OneForOne, OneForAll, RestForOne)
 - Restart policy configuration (Permanent, Transient, Temporary)
 - Supervisor tree design patterns
@@ -41,6 +43,7 @@ Learn how to design and implement fault-tolerant supervision trees using differe
 Master message design, performance optimization, and communication patterns between actors.
 
 **What you'll learn:**
+
 - Message type design patterns
 - Performance optimization (small messages, Arc<T>, batching)
 - Request/reply patterns

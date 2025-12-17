@@ -25,6 +25,7 @@ The foundation layer providing type-safe message contracts and metadata.
 **Location:** `src/message/`
 
 **Responsibilities:**
+
 - Define message trait contract
 - Provide message envelope wrapper
 - Generate unique message identifiers
@@ -44,6 +45,7 @@ pub trait Message: Clone + Send + Sync + 'static
 ```
 
 **Design Rationale:**
+
 - `Clone`: Messages broadcast to multiple subscribers need cloning
 - `Send + Sync + 'static`: Cross-thread messaging requires thread safety
 - `Serialize + Deserialize`: Future network/persistence support
@@ -77,6 +79,7 @@ impl MessageId {
 ```
 
 **Characteristics:**
+
 - UUID v4 for global uniqueness
 - 128-bit identifier
 - Copy-able (16 bytes on stack)
@@ -115,6 +118,7 @@ impl<M: Message> MessageEnvelope<M> {
 ```
 
 **Features:**
+
 - Automatic ID generation
 - Timestamp at creation (UTC)
 - Optional reply address for request/reply pattern
@@ -129,6 +133,7 @@ impl<M: Message> MessageEnvelope<M> {
 | Message clone | Varies | Depends on message size |
 
 **Memory:**
+
 - `MessageId`: 16 bytes (UUID)
 - `MessageEnvelope<M>`: 16 + sizeof(M) + 16 + 24 = 56 + sizeof(M) bytes
 
@@ -143,6 +148,7 @@ Pub/sub message routing system connecting actors through publish/subscribe seman
 **Location:** `src/broker/`
 
 **Responsibilities:**
+
 - Route messages from publishers to subscribers
 - Manage subscriber registration
 - Handle message broadcast
@@ -167,6 +173,7 @@ pub trait MessageBroker<M: Message>: Clone + Send + Sync + 'static {
 ```
 
 **Design Rationale:**
+
 - `Clone`: Brokers shared across actors via cheap Arc cloning
 - Generic `<M: Message>`: Type-safe message routing per message type
 - `async`: Non-blocking pub/sub operations
@@ -220,6 +227,7 @@ impl<M: Message> MessageBroker<M> for InMemoryMessageBroker<M> {
 ```
 
 **Implementation Details:**
+
 - `Arc<Mutex<HashMap>>`: Thread-safe subscriber map, cheap cloning
 - Tokio `mpsc::channel`: Async message channels
 - Buffer size: 100 messages per subscriber
@@ -248,21 +256,25 @@ From `benches/message_benchmarks.rs`:
 | Broadcast (10 actors) | 395 ns | ~40 ns/actor | Efficient multi-cast |
 
 **Overhead Analysis:**
+
 - Direct actor processing: 31.55 ns/msg
 - Via broker: 211.88 ns/msg
 - **Broker overhead: 6.7x** - acceptable for pub/sub semantics
 
 **Bottlenecks:**
+
 - `Mutex<HashMap>` contention with many concurrent publishers
 - Message cloning for broadcast (scales with subscriber count)
 
 **Memory:**
+
 - Base broker: ~48 bytes (Arc + Mutex)
 - Per subscriber: ~32 bytes (ActorId) + channel overhead
 
 ### Future Enhancements
 
 **Planned (not yet implemented):**
+
 - Sharded broker (reduce contention)
 - Network broker (distributed actors)
 - Persistent broker (message durability)
@@ -279,6 +291,7 @@ Business logic execution layer providing actor trait, context, and lifecycle man
 **Location:** `src/actor/`
 
 **Responsibilities:**
+
 - Define actor behavior contract
 - Provide actor execution context
 - Manage actor lifecycle state
@@ -326,6 +339,7 @@ pub trait Actor: Send + Sync + 'static {
 ```
 
 **Design Rationale:**
+
 - Generic constraint `<B: MessageBroker>`: Dependency injection, testability
 - Associated types: Type safety without parameter explosion
 - Lifecycle hooks: Initialization and cleanup integration points
@@ -380,6 +394,7 @@ impl<M: Message, B: MessageBroker<M>> ActorContext<M, B> {
 ```
 
 **Features:**
+
 - Actor metadata (address, ID, timestamps)
 - Message statistics tracking
 - Broker access for messaging
@@ -438,6 +453,7 @@ impl ActorLifecycle {
 ```
 
 **State Machine:**
+
 - Starting → Running (successful init)
 - Starting → Failed (init error)
 - Running → Stopping (graceful shutdown)
@@ -469,6 +485,7 @@ From `benches/actor_benchmarks.rs`:
 | Message processing | 31.55 ns/msg | Direct handle_message call |
 
 **Memory:**
+
 - `ActorContext<M, B>`: ~200 bytes (address, timestamps, broker clone, stats)
 - `ActorLifecycle`: ~32 bytes (state, timestamp, counter)
 - Actor implementation: Varies (user-defined state)
@@ -484,6 +501,7 @@ Message queue management providing buffering and backpressure control.
 **Location:** `src/mailbox/`
 
 **Responsibilities:**
+
 - Buffer incoming messages
 - Implement backpressure strategies
 - Track mailbox metrics
@@ -542,12 +560,14 @@ impl<M: Message> MailboxReceiver<M> for UnboundedMailbox<M> {
 ```
 
 **Characteristics:**
+
 - Unlimited capacity (bounded only by memory)
 - No backpressure (sender never blocks)
 - Tokio `mpsc::unbounded_channel` backend
 - Atomic metrics tracking
 
 **Use Cases:**
+
 - Low-volume control messages
 - Actors with predictable load
 - Development and prototyping
@@ -597,12 +617,14 @@ impl<M: Message> BoundedMailbox<M> {
 ```
 
 **Characteristics:**
+
 - Fixed capacity (prevents unbounded growth)
 - Configurable backpressure strategy
 - Tokio `mpsc::channel(capacity)` backend
 - Atomic metrics tracking
 
 **Use Cases:**
+
 - High-volume data streams
 - Memory-constrained environments
 - Flow control requirements
@@ -629,6 +651,7 @@ From `benches/message_benchmarks.rs`:
 | Bounded mailbox (capacity 100) | 244.18 ns/mailbox | Creation overhead |
 
 **Memory:**
+
 - `UnboundedMailbox<M>`: ~100 bytes base + queue size
 - `BoundedMailbox<M>`: ~150 bytes base + (capacity × sizeof(envelope))
 
@@ -668,6 +691,7 @@ Fault tolerance layer implementing Erlang/OTP supervision patterns with builder-
 **Location:** `src/supervisor/`
 
 **Responsibilities:**
+
 - Supervise child actors/components
 - Implement restart strategies
 - Handle child lifecycle
@@ -988,6 +1012,7 @@ From `benches/supervisor_benchmarks.rs`:
 | RestForOne restart (2 children) | 20-100 µs | Between OneForOne and OneForAll |
 
 **Memory:**
+
 - `SupervisorNode`: ~200 bytes base + children vec
 - Per child: ~80 bytes (ChildSpec + Box<dyn Child> pointer)
 
@@ -1002,6 +1027,7 @@ Health checks and metrics tracking for actors and supervisors.
 **Location:** `src/monitoring/`
 
 **Responsibilities:**
+
 - Monitor child health status
 - Track actor performance metrics
 - Provide automatic health checks
@@ -1118,6 +1144,7 @@ impl ActorMetrics {
 - Monitoring loop: Configurable interval (default: 5 seconds)
 
 **Memory:**
+
 - `HealthMonitor`: ~100 bytes + checks vec
 - `ActorMetrics`: 32 bytes (4 × AtomicU64)
 
@@ -1132,6 +1159,7 @@ Future runtime coordination layer for actor registry and distributed nodes.
 **Location:** `src/system/` (planned for Q1 2026)
 
 **Planned Responsibilities:**
+
 - Global actor registry
 - Actor address resolution
 - System lifecycle management

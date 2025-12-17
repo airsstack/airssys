@@ -36,9 +36,11 @@ Core trait for message routing and delivery.
 - `unregister()`: Removes an actor from the broker
 
 **Trait Bounds:**
+
 - `Send + Sync`: Can be safely shared across threads
 
 **Implementations:**
+
 - `InMemoryMessageBroker`: Default in-memory broker (production-ready)
 - `DistributedMessageBroker`: Future distributed broker implementation
 
@@ -53,12 +55,14 @@ pub struct InMemoryMessageBroker {
 High-performance in-memory message broker.
 
 **Architecture:**
+
 - Lock-free routing using `DashMap<ActorId, Mailbox>`
 - Per-actor mailbox isolation (no shared state)
 - Zero-copy message passing where possible
 - Concurrent send/receive operations
 
 **Performance Characteristics:**
+
 - Send latency: ~737ns (includes actor processing)
 - Routing overhead: ~50ns
 - Broadcast (10 actors): ~12M msgs/sec
@@ -75,6 +79,7 @@ pub fn new() -> Self
 Creates a new in-memory message broker.
 
 **Returns:**
+
 - `InMemoryMessageBroker`: New broker instance ready for use
 
 **Example:**
@@ -94,9 +99,11 @@ pub fn with_capacity(capacity: usize) -> Self
 Creates a broker with pre-allocated capacity.
 
 **Parameters:**
+
 - `capacity`: Expected number of actors to register
 
 **Performance:**
+
 - Reduces allocations during actor registration
 - Useful for systems with known actor counts
 
@@ -120,17 +127,21 @@ where
 Registers an actor's mailbox with the broker.
 
 **Type Parameters:**
+
 - `A`: The actor type
 
 **Parameters:**
+
 - `actor_id`: Unique identifier for the actor
 - `mailbox`: The actor's mailbox for receiving messages
 
 **Returns:**
+
 - `Ok(())`: Registration successful
 - `Err(BrokerError::AlreadyRegistered)`: Actor ID already in use
 
 **Thread Safety:**
+
 - Safe to call from multiple threads concurrently
 - Atomic registration operation
 
@@ -155,13 +166,16 @@ pub fn unregister(&self, actor_id: ActorId) -> Result<(), BrokerError>
 Unregisters an actor from the broker.
 
 **Parameters:**
+
 - `actor_id`: The actor to unregister
 
 **Returns:**
+
 - `Ok(())`: Unregistration successful
 - `Err(BrokerError::NotFound)`: Actor not registered
 
 **Behavior:**
+
 - Removes actor from routing table
 - Remaining messages in mailbox are dropped
 - In-flight sends will fail with `SendError::ActorNotFound`
@@ -186,13 +200,16 @@ where
 Sends a message to a specific actor and awaits the result.
 
 **Type Parameters:**
+
 - `M`: The message type
 
 **Parameters:**
+
 - `actor_id`: Target actor identifier
 - `msg`: The message to send
 
 **Returns:**
+
 - `Ok(M::Result)`: Message processed successfully, contains result
 - `Err(SendError::ActorNotFound)`: Actor not registered
 - `Err(SendError::ActorStopped)`: Actor has stopped
@@ -200,6 +217,7 @@ Sends a message to a specific actor and awaits the result.
 - `Err(SendError::Timeout)`: Operation timed out
 
 **Performance:**
+
 - Average latency: ~737ns (routing + delivery + processing)
 - Routing overhead: ~50ns
 - Throughput: ~4.7M messages/second (single actor)
@@ -229,17 +247,21 @@ where
 Attempts to send a fire-and-forget message without blocking.
 
 **Type Parameters:**
+
 - `M`: The message type (must have `Result = ()`)
 
 **Parameters:**
+
 - `actor_id`: Target actor
 - `msg`: Message to send
 
 **Returns:**
+
 - `Ok(())`: Message enqueued successfully
 - `Err(SendError)`: Delivery failed
 
 **Performance:**
+
 - Non-blocking operation
 - Lower latency than `send()` (~181ns)
 - No result returned
@@ -268,20 +290,25 @@ where
 Broadcasts a message to all registered actors.
 
 **Type Parameters:**
+
 - `M`: The message type (must implement `Clone`)
 
 **Parameters:**
+
 - `msg`: The message to broadcast (will be cloned for each actor)
 
 **Returns:**
+
 - `Vec<Result<M::Result, SendError>>`: Results from all actors (one per registered actor)
 
 **Behavior:**
+
 - Parallel delivery to all actors
 - Individual failures don't affect other deliveries
 - Order of results matches registration order
 
 **Performance:**
+
 - Parallel delivery via `tokio::join_all`
 - Throughput: ~12M msgs/sec (10 actors)
 - Scales with actor count
@@ -319,14 +346,17 @@ where
 Broadcasts a message to actors matching a filter predicate.
 
 **Type Parameters:**
+
 - `M`: The message type
 - `F`: Filter function type
 
 **Parameters:**
+
 - `msg`: Message to broadcast
 - `filter`: Predicate to select target actors
 
 **Returns:**
+
 - `Vec<Result<M::Result, SendError>>`: Results from matching actors
 
 **Example:**
@@ -353,9 +383,11 @@ pub fn is_registered(&self, actor_id: ActorId) -> bool
 Checks if an actor is registered with the broker.
 
 **Parameters:**
+
 - `actor_id`: Actor to check
 
 **Returns:**
+
 - `true`: Actor is registered
 - `false`: Actor not found
 
@@ -378,9 +410,11 @@ pub fn registered_count(&self) -> usize
 Returns the number of registered actors.
 
 **Returns:**
+
 - `usize`: Count of registered actors
 
 **Use Cases:**
+
 - Monitoring system health
 - Capacity planning
 - Load balancing decisions
@@ -401,9 +435,11 @@ pub fn actor_ids(&self) -> Vec<ActorId>
 Returns a snapshot of all registered actor IDs.
 
 **Returns:**
+
 - `Vec<ActorId>`: List of registered actors
 
 **Note:**
+
 - Snapshot at time of call
 - May become stale immediately
 - Use for monitoring/debugging, not synchronization

@@ -32,12 +32,14 @@ Supervisor (Parent)
 **Key Responsibilities:**
 
 **Supervisor:**
+
 - Starts child actors during initialization
 - Monitors child actors for failures
 - Decides how to handle failures (restart, stop, escalate)
 - Cleans up resources when children terminate
 
 **Child:**
+
 - Performs actual work (processing messages, managing state)
 - Reports failures to supervisor
 - Accepts restart commands from supervisor
@@ -111,6 +113,7 @@ async fn process_request(req: Request) -> Result<Response, Error> {
 ```
 
 **Problems:**
+
 - Complex error handling logic in every function
 - Difficult to anticipate all possible failure modes
 - Error handling code often larger than business logic
@@ -145,6 +148,7 @@ let supervisor = SupervisorBuilder::new()
 ```
 
 **Benefits:**
+
 - Simpler code focused on happy path
 - Supervisor handles recovery consistently
 - Failed actor state is discarded (no corrupted state)
@@ -153,12 +157,14 @@ let supervisor = SupervisorBuilder::new()
 ### When to "Let it Crash"
 
 **✅ Good Candidates:**
+
 - **Transient failures:** Network timeouts, temporary resource unavailability
 - **Corrupted state:** State machine in unexpected state, data corruption detected
 - **Resource exhaustion:** Out of memory, file descriptors exhausted
 - **Unexpected conditions:** Assertion failures, invariant violations
 
 **❌ Poor Candidates:**
+
 - **Expected errors:** User input validation, business logic errors
 - **Recoverable errors:** Authentication failures (should return error, not crash)
 - **Deterministic failures:** Configuration errors (restart won't fix)
@@ -190,16 +196,19 @@ Handler  Handler  Reader Writer
 **Fault Isolation Zones:**
 
 **Level 1 (Application Supervisor):**
+
 - Supervises major subsystems (API, Database, Workers)
 - Strategy: OneForOne (independent subsystems)
 - Failure impact: Only failed subsystem restarts
 
 **Level 2 (Subsystem Supervisors):**
+
 - Supervises related components (HTTP handlers, DB connections)
 - Strategy: May vary (OneForAll for coordinated state)
 - Failure impact: Contained within subsystem
 
 **Level 3 (Worker Actors):**
+
 - Performs actual work
 - Not supervisors themselves
 - Failure impact: Individual worker only
@@ -274,6 +283,7 @@ let supervisor = SupervisorBuilder::new()
 **Performance:** Low overhead - only failed child affected (~1.28µs restart latency).
 
 **When to Use:**
+
 - Workers processing independent tasks (HTTP handlers, job processors)
 - Stateless services with no shared state
 - High-throughput systems where restarting everything is too expensive
@@ -313,6 +323,7 @@ let supervisor = SupervisorBuilder::new()
 **Performance:** Higher overhead - all children affected (30-150µs for full restart).
 
 **When to Use:**
+
 - State machines with coordinated state across actors
 - Distributed consensus protocols (Raft, Paxos)
 - Tightly coupled services that must stay synchronized
@@ -353,6 +364,7 @@ let supervisor = SupervisorBuilder::new()
 **Performance:** Medium overhead - only dependent children affected.
 
 **When to Use:**
+
 - Processing pipelines with dependency order
 - Services with startup dependencies (database connection before query executor)
 - Systems where later stages depend on earlier stages
@@ -368,6 +380,7 @@ let supervisor = SupervisorBuilder::new()
 **Choice:** Implement OneForOne, OneForAll, RestForOne (skip SimpleOneForOne).
 
 **Rationale:**
+
 - **OneForOne:** Most common, covers independent workers (80% of use cases)
 - **OneForAll:** Essential for coordinated state (15% of use cases)
 - **RestForOne:** Handles dependency chains (5% of use cases)
@@ -388,6 +401,7 @@ ChildSpec::new("worker")
 ```
 
 **Rationale:**
+
 - Prevents infinite restart loops (deterministic failures)
 - Escalates persistent failures to parent supervisor
 - Protects system resources from thrashing
@@ -411,6 +425,7 @@ pub enum ShutdownPolicy {
 ```
 
 **Rationale:**
+
 - **Graceful:** Most services need cleanup time (default)
 - **Immediate:** For non-critical workers (faster restarts)
 - **Infinity:** For critical transactions (must complete)
@@ -443,6 +458,7 @@ let supervisor = SupervisorBuilder::new()
 ```
 
 **Rationale:**
+
 - Clear, readable configuration
 - Compile-time validation of required fields
 - Follows Rust builder pattern conventions (RT-TASK-013)
@@ -473,6 +489,7 @@ loop {
 ```
 
 **Problems:**
+
 - Recovery logic scattered throughout code
 - Inconsistent recovery strategies
 - Difficult to test recovery paths
@@ -493,6 +510,7 @@ let supervisor = SupervisorBuilder::new()
 ```
 
 **Advantages:**
+
 - Centralized recovery strategy
 - Consistent across all supervised actors
 - Testable recovery logic
@@ -549,48 +567,57 @@ let supervisor = SupervisorBuilder::new()
 ### OneForOne Strategy
 
 **Choose When:**
+
 - ✅ Workers are **stateless** or have **independent state**
 - ✅ High throughput required (minimize restart impact)
 - ✅ Failures are **isolated** to individual workers
 
 **Examples:**
+
 - HTTP request handlers (each request independent)
 - Job processors (each job independent)
 - WebSocket connections (each connection independent)
 
 **Anti-Patterns:**
+
 - ❌ Workers share mutable state (use OneForAll)
 - ❌ Workers have dependencies (use RestForOne)
 
 ### OneForAll Strategy
 
 **Choose When:**
+
 - ✅ Workers have **coordinated state** (must stay synchronized)
 - ✅ Partial restart would cause **inconsistency**
 - ✅ Workers are **tightly coupled**
 
 **Examples:**
+
 - Distributed consensus (Raft nodes must synchronize)
 - State machine replicas (must maintain identical state)
 - Transaction coordinators (must agree on outcome)
 
 **Anti-Patterns:**
+
 - ❌ Workers are independent (unnecessary restart overhead)
 - ❌ High-throughput system (OneForAll restarts too disruptive)
 
 ### RestForOne Strategy
 
 **Choose When:**
+
 - ✅ Workers have **dependency chains** (A depends on B depends on C)
 - ✅ Later workers **depend on** earlier workers
 - ✅ Restart order matters
 
 **Examples:**
+
 - Processing pipelines (Reader -> Transformer -> Writer)
 - Service initialization (Config -> Database -> API Server)
 - Layered architecture (Data Layer -> Business Layer -> Presentation Layer)
 
 **Anti-Patterns:**
+
 - ❌ No clear dependency order (use OneForOne)
 - ❌ Circular dependencies (redesign architecture)
 

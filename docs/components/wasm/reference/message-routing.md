@@ -62,6 +62,7 @@ Registers a component instance. Replaces existing registration if component ID a
 
 **Complexity:** O(1)  
 **Errors:**
+
 - `WasmError::Internal` if lock is poisoned
 
 **Example:**
@@ -78,6 +79,7 @@ Looks up ActorAddress by ComponentId.
 **Complexity:** O(1)  
 **Performance:** 36ns average (measured in Task 6.2 `scalability_benchmarks.rs` benchmark `bench_registry_lookup_scale`, constant from 10 to 1,000 components)  
 **Errors:**
+
 - `WasmError::ComponentNotFound` if component not registered
 - `WasmError::Internal` if lock is poisoned
 
@@ -92,6 +94,7 @@ Removes a component from the registry.
 
 **Complexity:** O(1)  
 **Errors:**
+
 - `WasmError::ComponentNotFound` if component not registered
 - `WasmError::Internal` if lock is poisoned
 
@@ -106,6 +109,7 @@ Returns the number of registered components.
 
 **Complexity:** O(1)  
 **Errors:**
+
 - `WasmError::Internal` if lock is poisoned
 
 **Example:**
@@ -121,6 +125,7 @@ Returns a list of all registered component IDs.
 **Complexity:** O(n) where n is the number of components  
 **Allocations:** New Vec with capacity n  
 **Errors:**
+
 - `WasmError::Internal` if lock is poisoned
 
 **Example:**
@@ -184,12 +189,14 @@ Sends a message to a component by ComponentId.
 **Complexity:** O(1) lookup + O(1) publish  
 **Performance:** ~1.05µs total (measured in Task 6.2 `messaging_benchmarks.rs` benchmark `bench_message_routing_overhead`)  
 **Breakdown:**
+
 - Registry lookup: ~36ns
 - Message envelope creation: ~20ns
 - Broker publish: ~211ns (airssys-rt baseline)
 - ActorAddress routing: ~783ns
 
 **Errors:**
+
 - `WasmError::ComponentNotFound` if target not registered
 - `WasmError::MessagingError` if broker publish fails
 
@@ -244,6 +251,7 @@ Occurs when target ComponentId is not registered.
 **Error Type:** `WasmError::ComponentNotFound(ComponentId)`
 
 **Common Causes:**
+
 - Component never registered
 - Component already unregistered
 - Typo in ComponentId
@@ -285,6 +293,7 @@ If a thread panics while holding the registry lock, the lock becomes poisoned.
 **Error Type:** `WasmError::Internal(String)`
 
 **Mitigation:**
+
 - Use panic-free code in registry operations
 - Catch panics at thread boundaries
 - Restart affected components

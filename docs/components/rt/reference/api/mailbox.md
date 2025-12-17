@@ -18,6 +18,7 @@ pub enum Mailbox<A: Actor> {
 Actor mailbox abstraction supporting bounded and unbounded message queues.
 
 **Type Parameters:**
+
 - `A`: The actor type that owns this mailbox
 
 **Variants:**
@@ -36,6 +37,7 @@ Actor mailbox abstraction supporting bounded and unbounded message queues.
 | Configuration complexity | Higher | ✅ Simple |
 
 **Recommendation:**
+
 - **Production systems**: Use `Bounded` with appropriate capacity
 - **Development/prototyping**: `Unbounded` for simplicity
 - **Critical path**: `Bounded` with `BackpressureStrategy::Block`
@@ -52,9 +54,11 @@ pub fn bounded(capacity: usize) -> Self
 Creates a bounded mailbox with specified capacity.
 
 **Parameters:**
+
 - `capacity`: Maximum number of messages (must be > 0)
 
 **Default Configuration:**
+
 - Backpressure: `BackpressureStrategy::Block`
 - Overflow behavior: Sender blocks until space available
 
@@ -82,9 +86,11 @@ pub fn unbounded() -> Self
 Creates an unbounded mailbox with unlimited capacity.
 
 **Returns:**
+
 - `Mailbox<A>`: Unbounded mailbox instance
 
 **Memory Characteristics:**
+
 - Initial allocation: ~128 bytes
 - Growth: Dynamic based on message count
 - No upper limit (can exhaust memory)
@@ -106,9 +112,11 @@ pub async fn enqueue(&self, msg: Box<dyn Message>) -> Result<(), MailboxError>
 Adds a message to the mailbox.
 
 **Parameters:**
+
 - `msg`: Boxed message to enqueue
 
 **Returns:**
+
 - `Ok(())`: Message enqueued successfully
 - `Err(MailboxError::Full)`: Bounded mailbox at capacity (strategy-dependent)
 - `Err(MailboxError::Closed)`: Mailbox has been closed
@@ -122,6 +130,7 @@ Adds a message to the mailbox.
 | Unbounded | Always succeeds | Constant (~150ns) |
 
 **Performance:**
+
 - Bounded mailbox: ~181ns average
 - Unbounded mailbox: ~150ns average
 - Cross-thread overhead: +50-100ns
@@ -151,15 +160,18 @@ pub async fn dequeue(&self) -> Option<Box<dyn Message>>
 Removes and returns the next message from the mailbox.
 
 **Returns:**
+
 - `Some(msg)`: Next message available
 - `None`: Mailbox is empty and closed
 
 **Behavior:**
+
 - Blocks until message available or mailbox closed
 - FIFO ordering (first-in, first-out)
 - Atomic operation (no lost messages)
 
 **Performance:**
+
 - Average latency: ~150ns
 - No allocation (returns existing Box)
 
@@ -182,10 +194,12 @@ pub fn try_dequeue(&self) -> Option<Box<dyn Message>>
 Attempts to dequeue a message without blocking.
 
 **Returns:**
+
 - `Some(msg)`: Message available
 - `None`: Mailbox is empty (or closed)
 
 **Use Cases:**
+
 - Non-blocking message processing loops
 - Polling-based designs
 - Integration with custom event loops
@@ -209,6 +223,7 @@ pub fn close(&self)
 Closes the mailbox, preventing new messages.
 
 **Behavior:**
+
 - Pending messages can still be dequeued
 - New `enqueue()` calls will return `Err(MailboxError::Closed)`
 - `dequeue()` returns `None` when empty
@@ -235,6 +250,7 @@ pub fn is_closed(&self) -> bool
 Checks if the mailbox is closed.
 
 **Returns:**
+
 - `true`: Mailbox is closed
 - `false`: Mailbox is open
 
@@ -259,11 +275,13 @@ pub struct BoundedMailbox<A: Actor> {
 Fixed-capacity mailbox with configurable backpressure.
 
 **Implementation Details:**
+
 - Uses `tokio::sync::mpsc::channel` internally
 - Lock-free send/receive operations
 - Memory-bounded operation
 
 **Type Parameters:**
+
 - `A`: The actor type
 
 #### Constructors
@@ -277,6 +295,7 @@ pub fn new(capacity: usize) -> Self
 Creates a bounded mailbox with default backpressure (Block).
 
 **Parameters:**
+
 - `capacity`: Maximum messages (must be > 0)
 
 **Example:**
@@ -296,6 +315,7 @@ pub fn with_backpressure(capacity: usize, strategy: BackpressureStrategy) -> Sel
 Creates a bounded mailbox with custom backpressure strategy.
 
 **Parameters:**
+
 - `capacity`: Maximum messages
 - `strategy`: Backpressure behavior on overflow
 
@@ -328,6 +348,7 @@ pub fn capacity(&self) -> usize
 Returns the maximum capacity of the mailbox.
 
 **Returns:**
+
 - `usize`: Maximum message count
 
 **Example:**
@@ -346,9 +367,11 @@ pub fn len(&self) -> usize
 Returns the current number of messages in the mailbox.
 
 **Returns:**
+
 - `usize`: Current message count
 
 **Use Cases:**
+
 - Monitoring mailbox pressure
 - Load balancing decisions
 - Health checks and metrics
@@ -371,6 +394,7 @@ pub fn is_empty(&self) -> bool
 Checks if the mailbox contains no messages.
 
 **Returns:**
+
 - `true`: No messages
 - `false`: Has messages
 
@@ -383,6 +407,7 @@ pub fn is_full(&self) -> bool
 Checks if the mailbox is at capacity.
 
 **Returns:**
+
 - `true`: At maximum capacity
 - `false`: Has available space
 
@@ -403,6 +428,7 @@ pub fn available_capacity(&self) -> usize
 Returns the number of messages that can be enqueued without blocking.
 
 **Returns:**
+
 - `usize`: Available slots
 
 **Example:**
@@ -425,16 +451,19 @@ pub struct UnboundedMailbox<A: Actor> {
 Unlimited-capacity mailbox.
 
 **Implementation Details:**
+
 - Uses `tokio::sync::mpsc::unbounded_channel` internally
 - No capacity checks (faster enqueue)
 - Can grow to system memory limits
 
 **Warning:**
+
 - No backpressure protection
 - Can consume unbounded memory under sustained load
 - Monitor `len()` in production systems
 
 **Type Parameters:**
+
 - `A`: The actor type
 
 #### Constructors
@@ -466,6 +495,7 @@ pub fn len(&self) -> usize
 Returns the current number of messages in the mailbox.
 
 **Returns:**
+
 - `usize`: Current message count
 
 **Monitoring:**

@@ -214,6 +214,7 @@ Based on measurements from `BENCHMARKING.md`:
 | **Total** | **Point-to-point roundtrip** | **737 ns** | **100%** |
 
 **Key Insights:**
+
 - Broker routing and mailbox operations dominate latency (~49%)
 - Actual business logic is still the majority of time (~43%)
 - Infrastructure overhead is sub-microsecond (422 ns)
@@ -309,6 +310,7 @@ Measured on macOS development machine (October 16, 2025) with release build:
 ### Scalability Characteristics
 
 **Memory per actor:**
+
 - Actor struct: ~500 bytes - 2 KB (depends on state)
 - ActorContext: ~200 bytes
 - Mailbox (unbounded): ~100 bytes base
@@ -316,11 +318,13 @@ Measured on macOS development machine (October 16, 2025) with release build:
 - **Total**: ~1-3 KB per actor typical
 
 **Throughput scaling:**
+
 - Message processing scales linearly with message count
 - Broadcast scales linearly with subscriber count (~40 ns/subscriber)
 - Batch actor spawn has 9% overhead vs single spawn (excellent)
 
 **Concurrency:**
+
 - Actors are `Send + Sync` - true parallelism
 - Message broker uses `Arc<Mutex<HashMap>>` - contention point for many subscribers
 - Tokio runtime handles async/await scheduling efficiently
@@ -353,6 +357,7 @@ async fn handle_message(
 ```
 
 **Benefits:**
+
 - Compile-time type checking
 - No runtime type dispatch overhead
 - No heap allocations for message passing
@@ -454,6 +459,7 @@ let supervisor = SupervisorNode::builder()
 ```
 
 **Benefits:**
+
 - Compile-time validation
 - Fluent API
 - Clear intent
@@ -472,6 +478,7 @@ pub struct InMemoryMessageBroker<M: Message> {
 ```
 
 **Benefits:**
+
 - Services can be shared across actors
 - No deep copying overhead
 - Thread-safe via Arc
@@ -490,6 +497,7 @@ async fn handle_message<B: MessageBroker<Self::Message>>(
 ```
 
 **Benefits:**
+
 - Mock brokers in tests
 - Swap implementations (InMemory, Network, etc.)
 - No runtime coupling

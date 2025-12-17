@@ -1,12 +1,14 @@
 # Tutorial: Building Your First Supervision Tree
 
 **Learning Objectives:**
+
 - Build a supervision tree from scratch
 - Understand restart strategies
 - Implement fault tolerance
 - Handle cascading failures
 
 **Prerequisites:**
+
 - Complete [Message Handling](./message-handling.md) tutorial
 - Understanding of actor lifecycle
 - Familiarity with error handling
@@ -225,6 +227,7 @@ impl Actor for ScraperWorker {
 ```
 
 **Key supervision features:**
+
 - **pre_start**: Initialize worker
 - **post_restart**: Clean up state after restart
 - **post_stop**: Final cleanup
@@ -275,6 +278,7 @@ let supervisor = SupervisorNode::new(
 ```
 
 **Supervisor configuration:**
+
 - **RestartStrategy::OneForOne**: Independent workers
 - **max_restarts: 3**: Max 3 restarts per window
 - **restart_window: 60s**: Rolling time window
@@ -626,6 +630,7 @@ pub async fn build_nested_supervision() -> Supervisor<WorkerMessage> {
 ```
 
 **Benefits:**
+
 - Different strategies at different levels
 - Isolated fault domains
 - Flexible failure handling

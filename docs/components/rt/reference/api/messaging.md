@@ -17,9 +17,11 @@ pub trait Message: Send + 'static {
 Marker trait for types that can be sent as messages between actors.
 
 **Type Parameters:**
+
 - `Result`: The type returned when this message is processed
 
 **Trait Bounds:**
+
 - `Send`: Must be safe to send across thread boundaries
 - `'static`: Must not contain non-static references
 
@@ -82,9 +84,11 @@ Trait for message routing and delivery.
 - `broadcast()`: Sends a message to all registered actors
 
 **Trait Bounds:**
+
 - `Send + Sync`: Can be safely shared across threads
 
 **Implementations:**
+
 - `InMemoryMessageBroker`: Default in-memory broker
 
 ### Struct: `InMemoryMessageBroker`
@@ -115,6 +119,7 @@ pub fn new() -> Self
 Creates a new in-memory message broker.
 
 **Returns:**
+
 - `InMemoryMessageBroker`: New broker instance
 
 **Example:**
@@ -136,13 +141,16 @@ where
 Registers an actor's mailbox with the broker.
 
 **Type Parameters:**
+
 - `A`: The actor type
 
 **Parameters:**
+
 - `actor_id`: Unique identifier for the actor
 - `mailbox`: The actor's mailbox for receiving messages
 
 **Returns:**
+
 - `Ok(())`: Registration successful
 - `Err(BrokerError::AlreadyRegistered)`: Actor ID already in use
 
@@ -162,13 +170,16 @@ pub fn unregister(&self, actor_id: ActorId) -> Result<(), BrokerError>
 Unregisters an actor from the broker.
 
 **Parameters:**
+
 - `actor_id`: The actor to unregister
 
 **Returns:**
+
 - `Ok(())`: Unregistration successful
 - `Err(BrokerError::NotFound)`: Actor not registered
 
 **Behavior:**
+
 - Remaining messages in mailbox are dropped
 - In-flight sends will fail with `SendError::ActorNotFound`
 
@@ -183,17 +194,21 @@ where
 Sends a message to an actor and waits for the result.
 
 **Type Parameters:**
+
 - `M`: The message type
 
 **Parameters:**
+
 - `actor_id`: Target actor identifier
 - `msg`: The message to send
 
 **Returns:**
+
 - `Ok(M::Result)`: Message processed successfully
 - `Err(SendError)`: Delivery or processing failed
 
 **Performance:**
+
 - Average latency: ~737ns (including actor processing)
 - Throughput: ~4.7M messages/second
 
@@ -221,15 +236,19 @@ where
 Broadcasts a message to all registered actors.
 
 **Type Parameters:**
+
 - `M`: The message type (must implement `Clone`)
 
 **Parameters:**
+
 - `msg`: The message to broadcast
 
 **Returns:**
+
 - `Vec<Result<M::Result, SendError>>`: Results from all actors
 
 **Performance:**
+
 - Parallel delivery to all actors
 - Individual failures don't affect other deliveries
 
@@ -265,6 +284,7 @@ pub enum Mailbox<A: Actor> {
 Actor mailbox abstraction supporting bounded and unbounded queues.
 
 **Type Parameters:**
+
 - `A`: The actor type
 
 **Variants:**
@@ -292,9 +312,11 @@ pub fn bounded(capacity: usize) -> Self
 Creates a bounded mailbox with specified capacity.
 
 **Parameters:**
+
 - `capacity`: Maximum number of messages
 
 **Default Backpressure:**
+
 - Strategy: `BackpressureStrategy::Block`
 - Behavior: Senders block when mailbox is full
 
@@ -315,6 +337,7 @@ pub fn unbounded() -> Self
 Creates an unbounded mailbox with unlimited capacity.
 
 **Returns:**
+
 - `Mailbox<A>`: Unbounded mailbox instance
 
 **Example:**
@@ -334,14 +357,17 @@ pub async fn enqueue(&self, msg: Box<dyn Message>) -> Result<(), MailboxError>
 Adds a message to the mailbox.
 
 **Parameters:**
+
 - `msg`: Boxed message to enqueue
 
 **Returns:**
+
 - `Ok(())`: Message enqueued successfully
 - `Err(MailboxError::Full)`: Bounded mailbox at capacity
 - `Err(MailboxError::Closed)`: Mailbox has been closed
 
 **Performance:**
+
 - Bounded mailbox: ~181ns average
 - Unbounded mailbox: ~150ns average
 
@@ -354,10 +380,12 @@ pub async fn dequeue(&self) -> Option<Box<dyn Message>>
 Removes and returns the next message from the mailbox.
 
 **Returns:**
+
 - `Some(msg)`: Next message available
 - `None`: Mailbox is empty and closed
 
 **Behavior:**
+
 - Blocks until message available or mailbox closed
 - FIFO ordering (first-in, first-out)
 
@@ -370,6 +398,7 @@ pub fn close(&self)
 Closes the mailbox, preventing new messages.
 
 **Behavior:**
+
 - Pending messages can still be dequeued
 - New `enqueue()` calls will fail
 - Dequeue returns `None` when empty
@@ -385,6 +414,7 @@ pub struct BoundedMailbox<A: Actor> {
 Fixed-capacity mailbox with backpressure support.
 
 **Implementation:**
+
 - Uses `tokio::sync::mpsc::channel` internally
 - Configurable backpressure strategies
 - Memory-bounded operation
@@ -400,6 +430,7 @@ pub fn with_backpressure(capacity: usize, strategy: BackpressureStrategy) -> Sel
 Creates a bounded mailbox with custom backpressure strategy.
 
 **Parameters:**
+
 - `capacity`: Maximum messages
 - `strategy`: Backpressure behavior
 
@@ -423,9 +454,11 @@ pub fn len(&self) -> usize
 Returns the current number of messages in the mailbox.
 
 **Returns:**
+
 - `usize`: Message count
 
 **Use Cases:**
+
 - Monitoring mailbox pressure
 - Load balancing decisions
 - Health checks
@@ -439,6 +472,7 @@ pub fn is_full(&self) -> bool
 Checks if the mailbox is at capacity.
 
 **Returns:**
+
 - `true`: Mailbox is full
 - `false`: Mailbox has available capacity
 
@@ -453,11 +487,13 @@ pub struct UnboundedMailbox<A: Actor> {
 Unlimited-capacity mailbox.
 
 **Implementation:**
+
 - Uses `tokio::sync::mpsc::unbounded_channel` internally
 - No backpressure (will grow unbounded)
 - Faster enqueue than bounded (no capacity check)
 
 **Warning:**
+
 - Can consume unbounded memory under load
 - Recommend monitoring message queue length
 - Consider bounded mailbox for production systems

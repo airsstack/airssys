@@ -116,6 +116,7 @@ impl TemperatureSensor {
 - ✅ Simpler mental model (always exclusive)
 
 **When to use Mutex instead:**
+
 - State is small and access is infrequent
 - Writes are as frequent as reads
 - Simpler code is preferred over performance
@@ -158,10 +159,12 @@ state.value = 42;
 Lock contention occurs when multiple threads compete for the lock:
 
 **Low Contention (Read-heavy):**
+
 - 90% reads, 10% writes
 - RwLock excels: readers don't block each other
 
 **High Contention (Write-heavy):**
+
 - 50% reads, 50% writes
 - RwLock and Mutex perform similarly
 - Consider alternative patterns (see below)
@@ -189,16 +192,19 @@ impl Actor for PrivateStateComponent {
 ```
 
 **Pros:**
+
 - ✅ Zero lock overhead
 - ✅ Simplest mental model
 - ✅ Fastest access (direct field access)
 
 **Cons:**
+
 - ❌ State not accessible outside message handler
 - ❌ Cannot share state across lifecycle hooks
 - ❌ Breaks ComponentActor pattern (lifecycle hooks need state)
 
 **When to Use:**
+
 - State is only accessed in message handlers
 - No lifecycle hooks need state access
 - Performance is critical
@@ -233,16 +239,19 @@ let value = rx.await?;
 ```
 
 **Pros:**
+
 - ✅ No shared locks
 - ✅ Actor serializes all access (no races)
 - ✅ Explicit state access (clear intent)
 
 **Cons:**
+
 - ❌ Higher latency (message passing overhead)
 - ❌ More complex code (request-response for reads)
 - ❌ Doesn't work well with lifecycle hooks
 
 **When to Use:**
+
 - Strong guarantees of serialized access are needed
 - Message passing overhead is acceptable
 - State access is infrequent
@@ -279,16 +288,19 @@ async fn state_manager(mut rx: mpsc::Receiver<StateQuery>) {
 ```
 
 **Pros:**
+
 - ✅ Serialized access (no locks)
 - ✅ Decoupled from actor lifecycle
 - ✅ Can use different concurrency model
 
 **Cons:**
+
 - ❌ Highest complexity (requires background task)
 - ❌ Message passing overhead for all access
 - ❌ Harder to debug
 
 **When to Use:**
+
 - State management is complex (needs dedicated task)
 - State access patterns don't fit actor model
 - Advanced use cases only
@@ -317,16 +329,19 @@ impl AtomicComponent {
 ```
 
 **Pros:**
+
 - ✅ Lock-free (best performance)
 - ✅ No deadlocks
 - ✅ Minimal overhead
 
 **Cons:**
+
 - ❌ Limited to primitive types (u32, u64, bool, etc.)
 - ❌ Complex memory ordering semantics
 - ❌ Cannot represent complex state
 
 **When to Use:**
+
 - State is a single primitive value
 - Extremely high performance required
 - Simple increment/decrement operations

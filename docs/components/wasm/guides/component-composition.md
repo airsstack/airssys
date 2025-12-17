@@ -7,6 +7,7 @@ This guide shows you how to orchestrate multiple components together to build co
 Component composition enables building sophisticated systems from simple, reusable components. Components communicate via messages, forming pipelines, parallel processing units, or complex orchestration patterns.
 
 **Key Patterns:**
+
 - **Pipeline**: Sequential processing (A → B → C)
 - **Parallel**: Independent concurrent processing
 - **Fan-Out/Fan-In**: Distribute work, aggregate results (1 → N → 1)
@@ -156,6 +157,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```
 
 **Performance:**
+
 - Message routing: 1.05µs per stage (Task 6.2 messaging_benchmarks.rs)
 - 3-stage pipeline: ~3µs total latency
 - Throughput: 333k pipelines/sec (1 / 3µs)
@@ -199,6 +201,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```
 
 **Performance:**
+
 - Concurrent operations validated in Task 6.2 (scalability_benchmarks.rs)
 - 100 concurrent operations: 120µs total
 - Throughput: 833k concurrent ops/sec
@@ -248,6 +251,7 @@ impl Actor for Coordinator {
 ```
 
 **Performance (Task 6.2 messaging_benchmarks.rs):**
+
 - Pub-sub fanout to 100 subscribers: 85.2µs
 - Per-subscriber overhead: ~852ns
 - Throughput: 11,737 fanouts/sec (100 subscribers each)
@@ -331,6 +335,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```
 
 **Performance:**
+
 - Component spawn: 286ns per component (Task 6.2 actor_lifecycle_benchmarks.rs)
 - 10 components: 2.86µs total spawn time
 - 100 components: 28.6µs total spawn time
@@ -483,11 +488,13 @@ match self.process_data(&data).await {
 ### When to Share State
 
 **Appropriate Use Cases:**
+
 - Configuration data (read-only, infrequent updates)
 - Metrics aggregation (write-mostly, periodic reads)
 - Shared caches (read-heavy, concurrent access)
 
 **Avoid Sharing State When:**
+
 - Frequent writes from multiple components (high contention)
 - Order-dependent operations (use message passing instead)
 - Complex synchronization needed (deadlock risk)
@@ -540,6 +547,7 @@ if let Some(value) = cache.get("key1") {
 ```
 
 **Performance (Task 6.2 actor_lifecycle_benchmarks.rs):**
+
 - State access (read): 37ns
 - State access (write): 39ns
 - Concurrent access validated in scalability tests
@@ -632,6 +640,7 @@ Compose components in under 45 minutes:
 6. **State Sharing**: Minimize shared state, prefer message passing
 
 **Performance Characteristics:**
+
 - Message routing: 1.05µs per hop (messaging_benchmarks.rs)
 - Pipeline (3 stages): ~3µs total latency
 - Fan-out (100 components): 85.2µs (messaging_benchmarks.rs)

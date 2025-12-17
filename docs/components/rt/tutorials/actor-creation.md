@@ -1,12 +1,14 @@
 # Tutorial: Your First Actor
 
 **Learning Objectives:**
+
 - Create a custom actor from scratch
 - Understand actor state management
 - Implement message handling logic
 - Test your actor in isolation
 
 **Prerequisites:**
+
 - Complete [Getting Started](./getting-started.md) tutorial
 - Basic Rust knowledge (structs, enums, traits)
 - Understanding of async/await
@@ -32,15 +34,18 @@ A `GreeterActor` that:
 Before writing code, define what your actor does:
 
 **State:**
+
 - Count of greetings sent
 - Map of person names to greeting count
 
 **Messages it handles:**
+
 - `Greet(name)` - Send a greeting
 - `GetStats` - Return greeting statistics
 - `Reset` - Clear all state
 
 **Responses:**
+
 - Greeting messages (personalized by count)
 - Statistics summary
 - Confirmation of reset
@@ -81,6 +86,7 @@ pub enum GreeterResponse {
 ```
 
 **Key design decisions:**
+
 - **Enum for messages**: Each variant = one operation
 - **Struct fields**: Use named fields for clarity (not tuples)
 - **Response types**: Explicit types make API clear
@@ -134,6 +140,7 @@ impl GreeterActor {
 ```
 
 **Design principles:**
+
 - **Private state**: Fields are not `pub` (encapsulation)
 - **Helper methods**: Keep `handle_message` clean
 - **Descriptive names**: Code reads like documentation
@@ -167,6 +174,7 @@ impl std::error::Error for GreeterError {}
 ```
 
 **Error design:**
+
 - **Enum for error types**: Different error scenarios
 - **Display trait**: Human-readable error messages
 - **std::error::Error**: Standard Rust error trait
@@ -254,6 +262,7 @@ impl Actor for GreeterActor {
 ```
 
 **Implementation highlights:**
+
 - **Pattern matching**: Clean separation of message handling
 - **Validation first**: Check inputs before processing
 - **State updates**: Encapsulated in one place
