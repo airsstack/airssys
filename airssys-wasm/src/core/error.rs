@@ -488,6 +488,50 @@ pub enum WasmError {
         /// Reason for the broker error
         reason: String,
     },
+
+    /// Rate limit exceeded for sender.
+    ///
+    /// Indicates that a sender has exceeded the configured message rate limit.
+    /// Used to prevent DoS attacks via message flooding.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::error::WasmError;
+    ///
+    /// let err = WasmError::rate_limit_exceeded("malicious-component", 1000);
+    /// assert!(err.to_string().contains("malicious-component"));
+    /// assert!(err.to_string().contains("1000"));
+    /// ```
+    #[error("Rate limit exceeded for sender '{sender}' (limit: {limit} msg/sec)")]
+    RateLimitExceeded {
+        /// Sender component ID
+        sender: String,
+        /// Rate limit (messages per second)
+        limit: u32,
+    },
+
+    /// Payload size exceeds maximum allowed.
+    ///
+    /// Indicates that a message payload is too large. Prevents memory
+    /// exhaustion attacks.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::error::WasmError;
+    ///
+    /// let err = WasmError::payload_too_large(2_000_000, 1_048_576);
+    /// assert!(err.to_string().contains("2000000"));
+    /// assert!(err.to_string().contains("1048576"));
+    /// ```
+    #[error("Payload too large: {size} bytes (max: {max_size} bytes)")]
+    PayloadTooLarge {
+        /// Actual payload size
+        size: usize,
+        /// Maximum allowed size
+        max_size: usize,
+    },
 }
 
 /// Result type alias for airssys-wasm operations.
@@ -976,6 +1020,39 @@ impl WasmError {
             reason: reason.into(),
         }
     }
+
+    /// Create a rate limit exceeded error.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::error::WasmError;
+    ///
+    /// let err = WasmError::rate_limit_exceeded("malicious-component", 1000);
+    /// assert!(err.to_string().contains("malicious-component"));
+    /// assert!(err.to_string().contains("1000"));
+    /// ```
+    pub fn rate_limit_exceeded(sender: impl Into<String>, limit: u32) -> Self {
+        Self::RateLimitExceeded {
+            sender: sender.into(),
+            limit,
+        }
+    }
+
+    /// Create a payload too large error.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::error::WasmError;
+    ///
+    /// let err = WasmError::payload_too_large(2_000_000, 1_048_576);
+    /// assert!(err.to_string().contains("2000000"));
+    /// assert!(err.to_string().contains("1048576"));
+    /// ```
+    pub fn payload_too_large(size: usize, max_size: usize) -> Self {
+        Self::PayloadTooLarge { size, max_size }
+    }
 }
 
 #[cfg(test)]
@@ -1150,5 +1227,35 @@ mod tests {
             assert!(source_str.contains("file not found"));
         }
         Ok(())
+    }
+
+    #[test]
+    fn test_rate_limit_exceeded_error() {
+        let err = WasmError::rate_limit_exceeded("malicious-component", 1000);
+        assert!(matches!(err, WasmError::RateLimitExceeded { .. }));
+        let msg = err.to_string();
+        assert!(msg.contains("malicious-component"));
+        assert!(msg.contains("1000"));
+        assert!(msg.contains("msg/sec"));
+    }
+
+    #[test]
+    fn test_payload_too_large_error() {
+        let err = WasmError::payload_too_large(2_000_000, 1_048_576);
+        assert!(matches!(err, WasmError::PayloadTooLarge { .. }));
+        let msg = err.to_string();
+        assert!(msg.contains("2000000"));
+        assert!(msg.contains("1048576"));
+        assert!(msg.contains("bytes"));
+    }
+
+    #[test]
+    fn test_payload_too_large_at_exact_limit() {
+        let limit = 4 * 1024 * 1024; // 4MB
+        let actual = limit + 1; // Just over limit
+        let err = WasmError::payload_too_large(actual, limit);
+        let msg = err.to_string();
+        assert!(msg.contains(&actual.to_string()));
+        assert!(msg.contains(&limit.to_string()));
     }
 }

@@ -437,8 +437,12 @@ impl TopicPattern {
     ///
     /// # Note
     ///
-    /// This is a placeholder that will be implemented in the security module (Phase 7).
-    /// For now, it uses simple string equality.
+    /// This is a simplified implementation for Phase 1. It supports:
+    /// - Exact string matching
+    /// - Single wildcard `*` matching any single component
+    /// - Double wildcard `**` matching any path
+    ///
+    /// Full pattern matching will be implemented in the security module (Phase 7).
     ///
     /// # Examples
     ///
@@ -446,14 +450,35 @@ impl TopicPattern {
     /// use airssys_wasm::core::capability::TopicPattern;
     ///
     /// let pattern = TopicPattern::new("user.activity");
+    /// assert!(pattern.matches("user.activity"));
     ///
-    /// // Note: Full pattern matching will be implemented in Phase 7
-    /// // For now, this does simple string comparison
+    /// let wildcard = TopicPattern::new("*");
+    /// assert!(wildcard.matches("any.topic"));
     /// ```
     pub fn matches(&self, topic: &str) -> bool {
+        // Phase 1: Simple pattern matching
+        // "*" matches everything
+        if self.0 == "*" || self.0 == "**" {
+            return true;
+        }
+        
+        // Exact match
+        if self.0 == topic {
+            return true;
+        }
+        
+        // Simple wildcard matching: "events.*" matches "events.user"
+        if self.0.ends_with(".*") {
+            let prefix = &self.0[..self.0.len() - 2]; // Remove ".*"
+            if topic.starts_with(prefix) && topic.len() > prefix.len() {
+                // Check if there's exactly one more component
+                let remaining = &topic[prefix.len()..];
+                return remaining.starts_with('.') && !remaining[1..].contains('.');
+            }
+        }
+        
         // TODO(Phase 7): Implement proper topic matching in security/ module
-        // For now, just compare strings directly
-        self.0 == topic
+        false
     }
 }
 
@@ -656,6 +681,90 @@ impl CapabilitySet {
     pub fn is_empty(&self) -> bool {
         self.capabilities.is_empty()
     }
+
+    /// Check if component can send messages to a specific recipient.
+    ///
+    /// This validates that the component has a Messaging capability that
+    /// matches the recipient's topic pattern. For direct messages (no topic),
+    /// uses "*" wildcard pattern.
+    ///
+    /// # Arguments
+    ///
+    /// * `recipient` - The target component ID
+    /// * `topic` - Optional topic pattern to match against
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::capability::{Capability, CapabilitySet, TopicPattern};
+    /// use airssys_wasm::core::component::ComponentId;
+    ///
+    /// let mut caps = CapabilitySet::new();
+    /// caps.grant(Capability::Messaging(TopicPattern::new("events.*")));
+    ///
+    /// let recipient = ComponentId::new("event-processor");
+    /// assert!(caps.can_send_to(&recipient, Some("events.user")));
+    /// assert!(!caps.can_send_to(&recipient, Some("admin.command")));
+    /// ```
+    ///
+    /// # Performance
+    ///
+    /// Target: <1μs per check (O(n) where n = number of Messaging capabilities)
+    pub fn can_send_to(&self, _recipient: &crate::core::component::ComponentId, topic: Option<&str>) -> bool {
+        // Extract topic pattern from recipient or use wildcard
+        let target_pattern = topic.unwrap_or("*");
+        
+        // Check if any Messaging capability matches
+        for cap in &self.capabilities {
+            if let Capability::Messaging(pattern) = cap {
+                if pattern.matches(target_pattern) {
+                    return true;
+                }
+            }
+        }
+        
+        false
+    }
+    
+    /// Check if component allows receiving messages from a specific sender.
+    ///
+    /// This validates that the recipient component trusts the sender based on
+    /// Messaging capabilities. For now, uses simple allow-list pattern.
+    /// Future: Implement pattern-based sender filtering.
+    ///
+    /// # Arguments
+    ///
+    /// * `sender` - The component ID attempting to send a message
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::capability::{Capability, CapabilitySet, TopicPattern};
+    /// use airssys_wasm::core::component::ComponentId;
+    ///
+    /// let mut caps = CapabilitySet::new();
+    /// caps.grant(Capability::Messaging(TopicPattern::new("*"))); // Accept all
+    ///
+    /// let sender = ComponentId::new("trusted-component");
+    /// assert!(caps.allows_receiving_from(&sender));
+    /// ```
+    ///
+    /// # Performance
+    ///
+    /// Target: <1μs per check
+    pub fn allows_receiving_from(&self, _sender: &crate::core::component::ComponentId) -> bool {
+        // For Phase 1: If component has ANY Messaging capability, allow receiving
+        // Phase 2+: Implement sender-specific filtering via topic patterns
+        
+        for cap in &self.capabilities {
+            if matches!(cap, Capability::Messaging(_)) {
+                return true;
+            }
+        }
+        
+        // No Messaging capability = reject all incoming messages
+        false
+    }
 }
 
 #[cfg(test)]
@@ -842,5 +951,91 @@ mod tests {
 
         assert_eq!(caps.len(), deserialized.len());
         Ok(())
+    }
+
+    // ============================================================================
+    // Messaging Capability Tests (DEBT-WASM-004 Item #3)
+    // ============================================================================
+
+    #[test]
+    fn test_can_send_to_with_matching_topic() {
+        use crate::core::component::ComponentId;
+        
+        let mut caps = CapabilitySet::new();
+        caps.grant(Capability::Messaging(TopicPattern::new("events.*")));
+        
+        let recipient = ComponentId::new("event-handler");
+        assert!(caps.can_send_to(&recipient, Some("events.user")));
+        assert!(caps.can_send_to(&recipient, Some("events.order")));
+        assert!(!caps.can_send_to(&recipient, Some("admin.command")));
+    }
+    
+    #[test]
+    fn test_can_send_to_wildcard() {
+        use crate::core::component::ComponentId;
+        
+        let mut caps = CapabilitySet::new();
+        caps.grant(Capability::Messaging(TopicPattern::new("*")));
+        
+        let recipient = ComponentId::new("any-component");
+        assert!(caps.can_send_to(&recipient, Some("any.topic")));
+        assert!(caps.can_send_to(&recipient, None));
+    }
+    
+    #[test]
+    fn test_can_send_to_no_capability() {
+        use crate::core::component::ComponentId;
+        
+        let caps = CapabilitySet::new(); // No capabilities
+        
+        let recipient = ComponentId::new("any-component");
+        assert!(!caps.can_send_to(&recipient, Some("any.topic")));
+        assert!(!caps.can_send_to(&recipient, None));
+    }
+    
+    #[test]
+    fn test_allows_receiving_from_with_messaging_cap() {
+        use crate::core::component::ComponentId;
+        
+        let mut caps = CapabilitySet::new();
+        caps.grant(Capability::Messaging(TopicPattern::new("*")));
+        
+        let sender = ComponentId::new("sender-component");
+        assert!(caps.allows_receiving_from(&sender));
+    }
+    
+    #[test]
+    fn test_allows_receiving_from_without_messaging_cap() {
+        use crate::core::component::ComponentId;
+        
+        let caps = CapabilitySet::new(); // No capabilities
+        
+        let sender = ComponentId::new("sender-component");
+        assert!(!caps.allows_receiving_from(&sender));
+    }
+    
+    #[test]
+    fn test_allows_receiving_from_with_different_capability() {
+        use crate::core::component::ComponentId;
+        
+        let mut caps = CapabilitySet::new();
+        caps.grant(Capability::ProcessSpawn); // Different capability
+        
+        let sender = ComponentId::new("sender-component");
+        assert!(!caps.allows_receiving_from(&sender));
+    }
+    
+    #[test]
+    fn test_messaging_capabilities_multiple_patterns() {
+        use crate::core::component::ComponentId;
+        
+        let mut caps = CapabilitySet::new();
+        caps.grant(Capability::Messaging(TopicPattern::new("events.*")));
+        caps.grant(Capability::Messaging(TopicPattern::new("logs.*")));
+        
+        let recipient = ComponentId::new("processor");
+        assert!(caps.can_send_to(&recipient, Some("events.user")));
+        assert!(caps.can_send_to(&recipient, Some("logs.error")));
+        assert!(!caps.can_send_to(&recipient, Some("admin.command")));
     }
 }

@@ -96,5 +96,9 @@ harness = false
 name = "scalability_benchmarks"
 harness = false
 
+[[bench]]
+name = "security_benchmarks"
+harness = false
+
 [lints]
 workspace = true

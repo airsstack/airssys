@@ -654,6 +654,21 @@ where
     ///
     /// Default: None (no callbacks)
     event_callback: Option<Arc<dyn crate::actor::lifecycle::EventCallback>>,
+
+    /// Rate limiter for inter-component messages (DEBT-WASM-004 Item #3).
+    ///
+    /// Tracks message rate per sender to prevent DoS attacks via message flooding.
+    /// Uses sliding window algorithm with default 1000 msg/sec limit.
+    rate_limiter: crate::core::rate_limiter::MessageRateLimiter,
+
+    /// Security configuration (DEBT-WASM-004 Item #3).
+    ///
+    /// Contains security settings including:
+    /// - Security mode (Strict, Permissive, Development)
+    /// - Audit logging flag
+    /// - Max message size (default 1MB)
+    /// - Capability check timeout
+    security_config: crate::core::config::SecurityConfig,
 }
 
 /// Actor lifecycle state machine.
@@ -996,6 +1011,8 @@ where
             custom_state: Arc::new(RwLock::new(initial_state)),
             hooks: Box::new(crate::actor::lifecycle::NoOpHooks),
             event_callback: None,
+            rate_limiter: crate::core::rate_limiter::MessageRateLimiter::default(),
+            security_config: crate::core::config::SecurityConfig::default(),
         }
     }
 
@@ -1811,12 +1828,165 @@ where
     pub fn event_callback(&self) -> Option<&Arc<dyn crate::actor::lifecycle::EventCallback>> {
         self.event_callback.as_ref()
     }
+
+    /// Get reference to capabilities (internal use for security checks).
+    ///
+    /// Used by Actor trait message handler for capability-based security enforcement.
+    #[doc(hidden)]
+    pub fn capabilities(&self) -> &CapabilitySet {
+        &self.capabilities
+    }
+
+    /// Get reference to rate limiter (internal use for security checks).
+    ///
+    /// Used by Actor trait message handler for rate limiting enforcement.
+    #[doc(hidden)]
+    pub fn rate_limiter(&self) -> &crate::core::rate_limiter::MessageRateLimiter {
+        &self.rate_limiter
+    }
+
+    /// Get reference to security config (internal use for security checks).
+    ///
+    /// Used by Actor trait message handler for security policy enforcement.
+    #[doc(hidden)]
+    pub fn security_config(&self) -> &crate::core::config::SecurityConfig {
+        &self.security_config
+    }
+
+    /// Set custom security configuration.
+    ///
+    /// This method is primarily intended for testing scenarios where
+    /// custom security policies need to be enforced.
+    ///
+    /// **Note**: This is a testing utility. In production, security config
+    /// should be set via the constructor or system configuration.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// let mut actor = ComponentActor::new(...);
+    /// actor.set_security_config(SecurityConfig {
+    ///     mode: SecurityMode::Strict,
+    ///     audit_logging: true,
+    ///     max_message_size: 512 * 1024,
+    ///     capability_check_timeout_us: 5,
+    /// });
+    /// ```
+    #[doc(hidden)]
+    pub fn set_security_config(&mut self, config: crate::core::config::SecurityConfig) {
+        self.security_config = config;
+    }
+
+    /// Set custom rate limiter.
+    ///
+    /// This method is primarily intended for testing scenarios where
+    /// custom rate limits need to be enforced.
+    ///
+    /// **Note**: This is a testing utility. In production, rate limiter
+    /// should be configured via system configuration.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// let mut actor = ComponentActor::new(...);
+    /// actor.set_rate_limiter(MessageRateLimiter::new(RateLimiterConfig {
+    ///     messages_per_second: 10,
+    ///     window_duration: Duration::from_secs(1),
+    /// }));
+    /// ```
+    #[doc(hidden)]
+    pub fn set_rate_limiter(&mut self, limiter: crate::core::rate_limiter::MessageRateLimiter) {
+        self.rate_limiter = limiter;
+    }
+
+    /// Perform security checks on an incoming message.
+    ///
+    /// This method extracts the security check logic from handle_message
+    /// to allow independent testing of security enforcement.
+    ///
+    /// Checks performed:
+    /// 1. Sender authorization (capability check)
+    /// 2. Payload size validation
+    /// 3. Rate limiting
+    ///
+    /// **Note**: This is primarily a testing utility. In production, security
+    /// checks are automatically performed by the Actor trait implementation.
+    ///
+    /// # Arguments
+    ///
+    /// * `msg` - Message to check
+    ///
+    /// # Returns
+    ///
+    /// Ok(()) if all security checks pass, Err otherwise.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// let actor = ComponentActor::new(...);
+    /// let msg = ComponentMessage::InterComponent {
+    ///     sender: ComponentId::new("sender"),
+    ///     payload: b"test".to_vec(),
+    /// };
+    ///
+    /// match actor.check_message_security(&msg) {
+    ///     Ok(()) => println!("Security checks passed"),
+    ///     Err(e) => println!("Security check failed: {}", e),
+    /// }
+    /// ```
+    #[doc(hidden)]
+    pub fn check_message_security(&self, msg: &ComponentMessage) -> Result<(), crate::core::WasmError> {
+        use crate::core::WasmError;
+
+        match msg {
+            ComponentMessage::InterComponent { sender, payload } |
+            ComponentMessage::InterComponentWithCorrelation { sender, payload, .. } => {
+                let component_id_str = self.component_id().as_str();
+                let sender_str = sender.as_str();
+
+                // 2.1. Sender Authorization Check
+                if !self.capabilities().allows_receiving_from(sender) {
+                    let error_msg = format!(
+                        "Component {} not authorized to send to {} (no Messaging capability)",
+                        sender_str, component_id_str
+                    );
+                    return Err(WasmError::capability_denied(
+                        crate::core::capability::Capability::Messaging(
+                            crate::core::capability::TopicPattern::new("*")
+                        ),
+                        error_msg
+                    ));
+                }
+
+                // 2.2. Payload Size Validation
+                let max_size = self.security_config().max_message_size;
+                if payload.len() > max_size {
+                    return Err(WasmError::payload_too_large(payload.len(), max_size));
+                }
+
+                // 2.3. Rate Limiting Check
+                if !self.rate_limiter().check_rate_limit(sender) {
+                    return Err(WasmError::rate_limit_exceeded(
+                        sender_str.to_string(),
+                        crate::core::rate_limiter::DEFAULT_RATE_LIMIT
+                    ));
+                }
+
+                Ok(())
+            },
+            _ => {
+                // Other message types don't have security checks
+                Ok(())
+            }
+        }
+    }
 }
 
 // Actor and Child trait implementations will be in separate files
 // to maintain clean separation of concerns (§4.3)
 
 #[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "unwrap acceptable in test code")]
 mod tests {
     use super::*;
 

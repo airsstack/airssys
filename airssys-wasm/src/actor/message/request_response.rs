@@ -312,6 +312,7 @@ impl fmt::Display for RequestError {
 impl std::error::Error for RequestError {}
 
 #[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "unwrap acceptable in test code")]
 mod tests {
     use super::*;
 

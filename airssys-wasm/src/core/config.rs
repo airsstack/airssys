@@ -569,6 +569,12 @@ pub const DEFAULT_AUDIT_LOGGING: bool = true;
 /// Default capability check timeout in microseconds (5μs target).
 pub const DEFAULT_CAPABILITY_CHECK_TIMEOUT_US: u64 = 5;
 
+/// Default maximum message size (1MB).
+///
+/// This prevents memory exhaustion attacks via oversized payloads.
+/// Components requiring larger messages must explicitly configure higher limits.
+pub const DEFAULT_MAX_MESSAGE_SIZE: usize = 1_024 * 1_024; // 1 MB
+
 // ============================================================================
 // StorageConfig Default Constants
 // ============================================================================
@@ -717,6 +723,21 @@ pub struct SecurityConfig {
     ///
     /// Maximum time allowed for capability verification. Target: 5μs.
     pub capability_check_timeout_us: u64,
+
+    /// Maximum message size in bytes.
+    ///
+    /// Messages exceeding this size are rejected with PayloadTooLarge error.
+    /// Default: 1MB (prevents memory exhaustion attacks).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::config::SecurityConfig;
+    ///
+    /// let mut config = SecurityConfig::default();
+    /// config.max_message_size = 512 * 1_024; // 512 KB limit
+    /// ```
+    pub max_message_size: usize,
 }
 
 impl Default for SecurityConfig {
@@ -740,6 +761,7 @@ impl Default for SecurityConfig {
             mode: DEFAULT_SECURITY_MODE,
             audit_logging: DEFAULT_AUDIT_LOGGING,
             capability_check_timeout_us: DEFAULT_CAPABILITY_CHECK_TIMEOUT_US,
+            max_message_size: DEFAULT_MAX_MESSAGE_SIZE,
         }
     }
 }
@@ -987,6 +1009,22 @@ mod tests {
         assert_eq!(config, deserialized);
 
         Ok(())
+    }
+
+    #[test]
+    fn test_security_config_max_message_size() {
+        let config = SecurityConfig::default();
+        assert_eq!(config.max_message_size, DEFAULT_MAX_MESSAGE_SIZE);
+        assert_eq!(config.max_message_size, 1_024 * 1_024);
+    }
+
+    #[test]
+    fn test_security_config_custom_message_size() {
+        let config = SecurityConfig {
+            max_message_size: 512 * 1_024,
+            ..Default::default()
+        };
+        assert_eq!(config.max_message_size, 512 * 1_024);
     }
 
     // ============================================================================

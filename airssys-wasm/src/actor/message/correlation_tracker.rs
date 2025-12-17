@@ -428,6 +428,7 @@ impl Default for CorrelationTracker {
 }
 
 #[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "unwrap acceptable in test code")]
 mod tests {
     use super::*;
     use crate::core::ComponentId;

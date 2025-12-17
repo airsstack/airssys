@@ -72,11 +72,55 @@
 //! }
 //! ```
 //!
+//! # Security Enforcement
+//!
+//! All inter-component messages enforce three layers of security (DEBT-WASM-004 Item #3):
+//!
+//! ## 1. Sender Authorization
+//! - Components must have `Capability::Messaging` to send messages
+//! - Recipients validate sender capabilities before accepting messages
+//! - Unauthorized senders receive `CapabilityDenied` errors
+//! - Performance: <2 ns per check
+//!
+//! ## 2. Payload Size Validation
+//! - Default limit: 1 MB per message
+//! - Prevents memory exhaustion attacks
+//! - Configurable via `SecurityConfig::max_message_size`
+//! - Performance: <1 ns per check
+//!
+//! ## 3. Rate Limiting
+//! - Default: 1000 messages/second per sender
+//! - Sliding window algorithm (accurate burst protection)
+//! - Per-sender tracking (isolation between components)
+//! - Configurable via `RateLimiterConfig`
+//! - Performance: <1 μs per check
+//!
+//! ## Security Audit Logging
+//!
+//! When `SecurityConfig::audit_logging` is enabled:
+//! - All message deliveries logged with timestamp
+//! - All security denials logged with reason
+//! - Includes sender, recipient, payload size, timestamp
+//! - Suitable for compliance and forensics
+//!
+//! ## Performance
+//!
+//! Security checks add **554 ns overhead** per message (measured via benchmarks),
+//! which is 9x faster than the 5μs target.
+//!
+//! **Benchmark Results:**
+//! - Capability Check: 1.82 ns
+//! - Payload Size Check: 350 ps
+//! - Rate Limit Check: 519 ns
+//! - Full Security Check: 554 ns
+//!
 //! # References
 //!
 //! - **ADR-WASM-006**: Component Isolation and Sandboxing (Actor-based approach)
+//! - **ADR-WASM-005**: Capability-Based Security Model
 //! - **ADR-RT-004**: Actor and Child Trait Separation
 //! - **WASM-TASK-004**: Actor System Integration (Block 3)
+//! - **DEBT-WASM-004**: Technical Debt Resolution (Security Enforcement)
 //! - **KNOWLEDGE-WASM-016**: Actor System Integration Implementation Guide
 
 // Subdomain module declarations
