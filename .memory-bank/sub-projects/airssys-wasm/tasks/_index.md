@@ -346,7 +346,7 @@ See [Task 3.3 Plan](./wasm-task-004-phase-3-task-3.3-plan.md) for detailed imple
 
 ## WASM-TASK-005: Block 4 - Security & Isolation Layer (REVISED 2025-12-17)
 
-**Status:** ✅ READY TO START (All prerequisites complete)  
+**Status:** ✅ IN PROGRESS - Phase 1 COMPLETE (Dec 17)  
 **Priority:** 🔒 CRITICAL PATH  
 **Estimated Effort:** 3-4 weeks (reduced from 5-6 weeks)  
 **Approach:** ✅ **LEVERAGE airssys-osl** (ACL/RBAC/audit infrastructure)
@@ -363,12 +363,12 @@ See [Task 3.3 Plan](./wasm-task-004-phase-3-task-3.3-plan.md) for detailed imple
 
 ### Phase Overview (REVISED)
 
-#### Phase 1: WASM-OSL Security Bridge (Week 1)
+#### Phase 1: WASM-OSL Security Bridge ✅ COMPLETE (Dec 17, 2025)
 | Task | Description | Status | Deliverables |
 |------|-------------|--------|--------------|
-| 1.1 | WASM Capability Types & OSL Mapping | ⏳ Pending | WasmCapability → ACL/RBAC mapping |
-| 1.2 | Component.toml Capability Parser | ⏳ Pending | Parse capabilities, build WasmCapabilitySet |
-| 1.3 | SecurityContext Bridge | ⏳ Pending | WasmSecurityContext → OSL SecurityContext |
+| 1.1 | WASM Capability Types & OSL Mapping | ✅ COMPLETE | WasmCapability → ACL/RBAC mapping |
+| 1.2 | Component.toml Capability Parser | ✅ COMPLETE | Parse capabilities, build WasmCapabilitySet |
+| 1.3 | SecurityContext Bridge | ✅ COMPLETE | WasmSecurityContext → OSL SecurityContext |
 
 **Focus:** Map WASM capabilities (Component.toml) to airssys-osl policies (ACL/RBAC)
 
