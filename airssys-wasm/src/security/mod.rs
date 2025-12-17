@@ -164,7 +164,9 @@
 // Module declarations (§4.3 - ONLY declarations in mod.rs)
 pub mod capability;
 pub mod parser;
+pub mod trust;
 
 // Re-export primary types for ergonomic imports
 pub use capability::{WasmCapability, WasmCapabilitySet, WasmSecurityContext};
 pub use parser::{ComponentManifestParser, ParseError, ParseResult};
+pub use trust::{ComponentSource, TrustError, TrustLevel, TrustRegistry, TrustResult, TrustSource};
