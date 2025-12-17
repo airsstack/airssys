@@ -63,6 +63,9 @@ pub mod runtime;
 // Actor system integration (Block 3 - WASM-TASK-004)
 pub mod actor;
 
+// Security and Isolation Layer (Block 4 - WASM-TASK-005)
+pub mod security;
+
 // Generated WIT bindings (build.rs output)
 // Note: This module contains auto-generated code from wit-bindgen
 // DO NOT EDIT - Regenerated on every build when WIT files change

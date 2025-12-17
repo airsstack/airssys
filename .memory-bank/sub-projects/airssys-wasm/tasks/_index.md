@@ -341,3 +341,95 @@ See [Task 3.3 Plan](./wasm-task-004-phase-3-task-3.3-plan.md) for detailed imple
 
 **Next Task:** WASM-TASK-005 - Block 4: Security & Isolation Layer
 
+
+---
+
+## WASM-TASK-005: Block 4 - Security & Isolation Layer (REVISED 2025-12-17)
+
+**Status:** ✅ READY TO START (All prerequisites complete)  
+**Priority:** 🔒 CRITICAL PATH  
+**Estimated Effort:** 3-4 weeks (reduced from 5-6 weeks)  
+**Approach:** ✅ **LEVERAGE airssys-osl** (ACL/RBAC/audit infrastructure)
+
+### 🚨 MAJOR REVISION (2025-12-17)
+
+**CHANGED APPROACH:** Instead of building security from scratch, **REUSE airssys-osl**:
+- ✅ ACL/RBAC/audit logging already implemented (1000+ lines, 311+ tests)
+- ✅ Glob pattern matching already optimized
+- ✅ SecurityPolicy trait already extensible
+- ✅ SecurityAuditLogger already production-ready
+
+**NEW FOCUS:** Build WASM-to-OSL security bridge + trust-level system
+
+### Phase Overview (REVISED)
+
+#### Phase 1: WASM-OSL Security Bridge (Week 1)
+| Task | Description | Status | Deliverables |
+|------|-------------|--------|--------------|
+| 1.1 | WASM Capability Types & OSL Mapping | ⏳ Pending | WasmCapability → ACL/RBAC mapping |
+| 1.2 | Component.toml Capability Parser | ⏳ Pending | Parse capabilities, build WasmCapabilitySet |
+| 1.3 | SecurityContext Bridge | ⏳ Pending | WasmSecurityContext → OSL SecurityContext |
+
+**Focus:** Map WASM capabilities (Component.toml) to airssys-osl policies (ACL/RBAC)
+
+#### Phase 2: Trust-Level System (Week 2)
+| Task | Description | Status | Deliverables |
+|------|-------------|--------|--------------|
+| 2.1 | Trust Level Implementation | ⏳ Pending | TrustLevel enum (Trusted/Unknown/DevMode) |
+| 2.2 | Approval Workflow Engine | ⏳ Pending | Approval state machine, review queue |
+| 2.3 | Trust Configuration System | ⏳ Pending | Trust config file, Git repos, signing keys |
+
+**Focus:** WASM-specific trust system (trusted/unknown/dev sources)
+
+#### Phase 3: Capability Enforcement (Week 2-3)
+| Task | Description | Status | Deliverables |
+|------|-------------|--------|--------------|
+| 3.1 | Capability Check API | ⏳ Pending | check_capability() via airssys-osl |
+| 3.2 | Host Function Integration Points | ⏳ Pending | Capability check macros for host functions |
+| 3.3 | Audit Logging Integration | ⏳ Pending | Use airssys-osl SecurityAuditLogger |
+
+**Focus:** Integrate capability checks with airssys-osl SecurityPolicy evaluation
+
+#### Phase 4: ComponentActor Security Integration (Week 3)
+| Task | Description | Status | Deliverables |
+|------|-------------|--------|--------------|
+| 4.1 | ComponentActor Security Context | ⏳ Pending | Attach WasmSecurityContext to each actor |
+| 4.2 | Message Passing Security | ✅ **COMPLETE** | Already done (DEBT-WASM-004 Item #3) |
+| 4.3 | Resource Quota System | ⏳ Pending | Storage quotas, message rate limits |
+
+**Focus:** Per-component security isolation and resource quotas
+
+#### Phase 5: Testing & Documentation (Week 4)
+| Task | Description | Status | Deliverables |
+|------|-------------|--------|--------------|
+| 5.1 | Security Integration Testing | ⏳ Pending | 100+ tests, bypass attempts, penetration tests |
+| 5.2 | Security Documentation | ⏳ Pending | Component.toml guide, best practices, examples |
+| 5.3 | Production Readiness Checklist | ⏳ Pending | Security audit, performance verification, sign-off |
+
+**Focus:** Comprehensive testing and production-ready documentation
+
+### Key Changes from Original Plan
+
+| Original Plan | Revised Plan (airssys-osl Integration) |
+|---------------|----------------------------------------|
+| ~~Build ACL from scratch~~ | ✅ REUSE airssys-osl ACL |
+| ~~Build RBAC from scratch~~ | ✅ REUSE airssys-osl RBAC |
+| ~~Build glob pattern matching~~ | ✅ REUSE airssys-osl patterns |
+| ~~Build audit logging~~ | ✅ REUSE airssys-osl SecurityAuditLogger |
+| 5-6 weeks effort | ✅ 3-4 weeks (40% reduction) |
+| Phase 6: OSL Integration | ✅ START with OSL integration (Phase 1) |
+
+### Benefits of Revised Approach
+
+1. **Code Reuse:** Leverage 1000+ lines of battle-tested security code
+2. **Time Savings:** Reduce implementation from 5-6 weeks to 3-4 weeks
+3. **Quality:** Reuse 311+ passing tests, production-ready infrastructure
+4. **Consistency:** Maintain architectural alignment across AirsSys
+5. **Maintainability:** Avoid code duplication and maintenance burden
+
+### Next Actions
+
+**Immediate:** Start Phase 1, Task 1.1 - WASM Capability Types & OSL Mapping  
+**Dependencies:** ✅ All prerequisites complete  
+**Reference:** `task-005-block-4-security-and-isolation-layer.md` (REVISED 2025-12-17)
+

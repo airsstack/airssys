@@ -10,6 +10,7 @@ rust-version.workspace = true
 [dependencies]
 # AirsSys Foundation Crates (§5.1 - MUST be at top)
 airssys-rt = { workspace = true }
+airssys-osl = { workspace = true }
 
 # WIT bindings runtime support (required by generated code) - §5.1
 wit-bindgen = { workspace = true }
