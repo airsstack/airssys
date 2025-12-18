@@ -32,10 +32,8 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::core::{
-    Capability, ComponentId, ComponentMetadata, InstallationSource, WasmResult,
-};
 use crate::core::lifecycle::{LifecycleState, VersionInfo};
+use crate::core::{Capability, ComponentId, ComponentMetadata, InstallationSource, WasmResult};
 
 /// Component registry trait for component management.
 ///

@@ -368,10 +368,10 @@ impl From<ComponentId> for WitComponentId {
     /// ```
     fn from(rust: ComponentId) -> Self {
         let id_str = rust.as_str();
-        
+
         // Parse format: namespace:name@version
         let parts: Vec<&str> = id_str.split([':', '@']).collect();
-        
+
         if parts.len() >= 3 {
             WitComponentId {
                 namespace: parts[0].to_string(),
@@ -669,7 +669,7 @@ mod tests {
         let original = ComponentId::new("airssys:test-component@1.0.0");
         let wit: WitComponentId = original.clone().into();
         let back: ComponentId = wit.into();
-        
+
         // Note: ComponentId stores full string, so comparison should be on parsed fields
         assert_eq!(original.as_str(), back.as_str());
     }
@@ -682,7 +682,7 @@ mod tests {
         };
         let wit: WitNetworkEndpoint = original.clone().into();
         let back: NetworkEndpoint = wit.into();
-        
+
         assert_eq!(original, back);
     }
 
@@ -691,11 +691,11 @@ mod tests {
         let mut rust_fs = FilesystemPermissions::new();
         rust_fs.read.push("/data/**".to_string());
         rust_fs.list.push("/data".to_string());
-        
+
         let wit: WitFilesystemPermissions = rust_fs.clone().into();
         assert_eq!(wit.read.len(), 1);
         assert_eq!(wit.list_dir.len(), 1); // Field name mapping
-        
+
         let back: FilesystemPermissions = wit.into();
         assert_eq!(back.read.len(), 1);
         assert_eq!(back.list.len(), 1);
@@ -706,13 +706,16 @@ mod tests {
         let mut rust_manifest = PermissionManifest::new();
         rust_manifest.filesystem.read.push("/data/**".to_string());
         rust_manifest.network.inbound.push(8080);
-        rust_manifest.storage.namespaces.push("myapp:cache".to_string());
-        
+        rust_manifest
+            .storage
+            .namespaces
+            .push("myapp:cache".to_string());
+
         let wit: WitPermissionManifest = rust_manifest.clone().into();
         assert_eq!(wit.filesystem.read.len(), 1);
         assert_eq!(wit.network.inbound.len(), 1);
         assert_eq!(wit.storage.namespaces.len(), 1);
-        
+
         let back: PermissionManifest = wit.into();
         assert_eq!(back.filesystem.read.len(), 1);
         assert_eq!(back.network.inbound.len(), 1);

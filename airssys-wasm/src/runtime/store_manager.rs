@@ -90,10 +90,10 @@ use crate::core::error::{WasmError, WasmResult};
 pub struct StoreWrapper<T> {
     /// Wasmtime store with component state.
     store: Store<T>,
-    
+
     /// Component ID for logging (cleanup diagnostics).
     component_id: String,
-    
+
     /// Initial fuel allocated (for cleanup metrics).
     initial_fuel: u64,
 }
@@ -119,43 +119,42 @@ impl<T> StoreWrapper<T> {
     /// ```
     pub fn new(engine: &Engine, data: T, initial_fuel: u64) -> WasmResult<Self> {
         let mut store = Store::new(engine, data);
-        
+
         // Set initial fuel for CPU metering
         store
             .set_fuel(initial_fuel)
             .map_err(|e| WasmError::execution_failed(format!("Failed to set initial fuel: {e}")))?;
-        
+
         Ok(Self {
             store,
             component_id: String::from("unknown"), // Will be set by engine
             initial_fuel,
         })
     }
-    
+
     /// Set component ID for cleanup diagnostics.
     ///
     /// Called by engine after Store creation to enable proper logging.
     pub fn set_component_id(&mut self, component_id: String) {
         self.component_id = component_id;
     }
-    
+
     /// Get remaining fuel (for diagnostics and metrics).
     ///
     /// Returns `None` if fuel metering is not enabled.
     pub fn remaining_fuel(&mut self) -> Option<u64> {
         self.store.get_fuel().ok()
     }
-    
+
     /// Get fuel consumed since Store creation.
     ///
     /// Calculated as initial_fuel - remaining_fuel.
     /// Returns `None` if fuel metering is not enabled.
     pub fn fuel_consumed(&mut self) -> Option<u64> {
-        self.remaining_fuel().map(|remaining| {
-            self.initial_fuel.saturating_sub(remaining)
-        })
+        self.remaining_fuel()
+            .map(|remaining| self.initial_fuel.saturating_sub(remaining))
     }
-    
+
     /// Get metrics before cleanup.
     ///
     /// Used in Drop implementation to log resource usage.
@@ -202,7 +201,7 @@ impl<T> Drop for StoreWrapper<T> {
     fn drop(&mut self) {
         // Collect metrics before Store is dropped
         let _metrics = self.collect_metrics();
-        
+
         // TODO(Phase 6): Add structured logging
         // log::debug!(
         //     "Cleaning up Store for component '{}': fuel={}/{} ({}% used)",
@@ -211,14 +210,14 @@ impl<T> Drop for StoreWrapper<T> {
         //     metrics.initial_fuel,
         //     (metrics.fuel_consumed * 100) / metrics.initial_fuel.max(1)
         // );
-        
+
         // Store drop happens automatically here
         // Wasmtime guarantees:
         // - Linear memory is freed
         // - Tables are released
         // - Fuel state is reset
         // - All WASM resources cleaned up
-        
+
         // Store drop happens automatically (RAII pattern)
     }
 }
@@ -226,7 +225,7 @@ impl<T> Drop for StoreWrapper<T> {
 // Implement Deref to allow transparent Store access
 impl<T> Deref for StoreWrapper<T> {
     type Target = Store<T>;
-    
+
     fn deref(&self) -> &Self::Target {
         &self.store
     }
@@ -242,7 +241,7 @@ impl<T> DerefMut for StoreWrapper<T> {
 // Implement AsContext for Wasmtime API compatibility
 impl<T> AsContext for StoreWrapper<T> {
     type Data = T;
-    
+
     fn as_context(&self) -> StoreContext<'_, T> {
         self.store.as_context()
     }
@@ -259,85 +258,85 @@ impl<T> AsContextMut for StoreWrapper<T> {
 mod tests {
     #![allow(clippy::unwrap_used)]
     #![allow(clippy::expect_used)]
-    
+
     use super::*;
     use wasmtime::{Config, Engine};
-    
+
     fn create_test_engine() -> Engine {
         let mut config = Config::new();
         config.consume_fuel(true);
         Engine::new(&config).unwrap()
     }
-    
+
     #[test]
     fn test_store_wrapper_creation() {
         let engine = create_test_engine();
         let store = StoreWrapper::new(&engine, (), 1_000_000);
         assert!(store.is_ok(), "Store creation should succeed");
     }
-    
+
     #[test]
     fn test_store_wrapper_fuel_tracking() {
         let engine = create_test_engine();
         let mut store = StoreWrapper::new(&engine, (), 1_000_000).unwrap();
-        
+
         // Check initial fuel
         let remaining = store.remaining_fuel();
         assert_eq!(remaining, Some(1_000_000));
-        
+
         // Check fuel consumed (should be 0)
         let consumed = store.fuel_consumed();
         assert_eq!(consumed, Some(0));
     }
-    
+
     #[test]
     fn test_store_wrapper_component_id() {
         let engine = create_test_engine();
         let mut store = StoreWrapper::new(&engine, (), 1_000_000).unwrap();
-        
+
         // Set component ID
         store.set_component_id(String::from("test-component"));
-        
+
         // Verify metrics include component ID
         let metrics = store.collect_metrics();
         assert_eq!(metrics.component_id, "test-component");
     }
-    
+
     #[test]
     fn test_store_wrapper_metrics_collection() {
         let engine = create_test_engine();
         let mut store = StoreWrapper::new(&engine, (), 1_000_000).unwrap();
         store.set_component_id(String::from("metrics-test"));
-        
+
         let metrics = store.collect_metrics();
         assert_eq!(metrics.initial_fuel, 1_000_000);
         assert_eq!(metrics.fuel_consumed, 0);
         assert_eq!(metrics.component_id, "metrics-test");
     }
-    
+
     #[test]
     fn test_store_wrapper_drop_cleanup() {
         let engine = create_test_engine();
-        
+
         {
             let mut store = StoreWrapper::new(&engine, (), 1_000_000).unwrap();
             store.set_component_id(String::from("drop-test"));
-            
+
             // Verify store is valid
             assert!(store.remaining_fuel().is_some());
-            
+
             // Store will be dropped at end of scope
         }
-        
+
         // If we reach here, Drop ran successfully without panicking
         // Success - Store cleanup completed properly
     }
-    
+
     #[test]
     fn test_store_wrapper_deref() {
         let engine = create_test_engine();
         let store = StoreWrapper::new(&engine, (), 1_000_000).unwrap();
-        
+
         // Test transparent Store access via Deref
         let fuel_result = store.get_fuel();
         assert!(fuel_result.is_ok());

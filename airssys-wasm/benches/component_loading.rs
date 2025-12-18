@@ -39,17 +39,18 @@ fn create_minimal_component() -> Vec<u8> {
 
 /// Benchmark: Component loading from bytes.
 fn bench_load_component(c: &mut Criterion) {
-    let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("Failed to create runtime: {e}"));
+    let rt =
+        tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("Failed to create runtime: {e}"));
     let engine = WasmEngine::new().unwrap_or_else(|e| panic!("Failed to create engine: {e}"));
     let bytes = create_minimal_component();
-    
+
     c.bench_function("load_component", |b| {
         b.to_async(&rt).iter(|| async {
             let component_id = ComponentId::new("bench-component");
             let result = engine
                 .load_component(black_box(&component_id), black_box(&bytes))
                 .await;
-            
+
             black_box(result).unwrap_or_else(|e| panic!("Component loading failed: {e}"))
         });
     });

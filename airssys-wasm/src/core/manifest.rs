@@ -355,7 +355,10 @@ impl ComponentManifest {
             ));
         }
 
-        if !name.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-') {
+        if !name
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+        {
             return Err(WasmError::component_validation_failed(
                 "Package name must be lowercase alphanumeric with hyphens",
             ));
@@ -586,7 +589,11 @@ version = "invalid"
             runtime: Default::default(),
         };
 
-        manifest.permissions.storage.namespaces.push("invalid-namespace".to_string());
+        manifest
+            .permissions
+            .storage
+            .namespaces
+            .push("invalid-namespace".to_string());
         assert!(manifest.validate().is_err());
     }
 }

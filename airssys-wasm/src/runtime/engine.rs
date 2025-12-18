@@ -47,8 +47,8 @@ use std::sync::{Arc, RwLock};
 // Layer 2: External crate imports
 use async_trait::async_trait;
 use tokio::time::{timeout, Duration};
-use wasmtime::{Config, Engine};
 use wasmtime::component::{Component, Linker};
+use wasmtime::{Config, Engine};
 
 // Layer 3: Internal module imports
 use crate::core::{
@@ -107,7 +107,7 @@ pub struct WasmEngine {
 struct WasmEngineInner {
     /// Wasmtime engine with Component Model support.
     engine: Engine,
-    
+
     /// Component cache (future optimization - Phase 2).
     /// Maps ComponentId to compiled component instances.
     #[allow(dead_code)]
@@ -145,21 +145,21 @@ impl WasmEngine {
     pub fn new() -> WasmResult<Self> {
         // Configure Wasmtime engine (ADR-WASM-002 specifications)
         let mut config = Config::new();
-        
+
         // Enable Component Model support
         config.wasm_component_model(true);
-        
+
         // Enable async support for non-blocking execution
         config.async_support(true);
-        
+
         // Enable fuel metering for CPU limiting
         config.consume_fuel(true);
-        
+
         // Create Wasmtime engine
         let engine = Engine::new(&config).map_err(|e| {
             WasmError::engine_initialization(format!("Failed to create Wasmtime engine: {e}"))
         })?;
-        
+
         Ok(Self {
             inner: Arc::new(WasmEngineInner {
                 engine,
@@ -167,7 +167,7 @@ impl WasmEngine {
             }),
         })
     }
-    
+
     /// Get reference to underlying Wasmtime engine.
     ///
     /// Used internally for component loading and instantiation.
@@ -175,7 +175,7 @@ impl WasmEngine {
     pub(crate) fn engine(&self) -> &Engine {
         &self.inner.engine
     }
-    
+
     /// Internal execution helper (without timeout wrapper).
     ///
     /// Performs the actual component execution with fuel metering and crash isolation.
@@ -199,13 +199,13 @@ impl WasmEngine {
     ) -> WasmResult<ComponentOutput> {
         // Create Store with RAII cleanup wrapper (Phase 5 - Task 5.2)
         let mut store = StoreWrapper::new(&self.inner.engine, (), context.limits.max_fuel)?;
-        
+
         // Set component ID for cleanup diagnostics
         store.set_component_id(context.component_id.as_str().to_string());
-        
+
         // Create linker for component instantiation
         let linker = Linker::new(&self.inner.engine);
-        
+
         // Instantiate component with trap handling
         let instance = linker
             .instantiate_async(&mut store, handle.component())
@@ -214,7 +214,7 @@ impl WasmEngine {
                 // Categorize instantiation failures
                 Self::categorize_wasmtime_error(&e, &context.component_id, function)
             })?;
-        
+
         // Get typed function (Component Model: () -> s32)
         // Component Model requires typed function interfaces
         let func = instance
@@ -224,23 +224,25 @@ impl WasmEngine {
                     "Function '{function}' not found or type mismatch: {e}"
                 ))
             })?;
-        
+
         // Call function with trap detection (async because engine has async_support enabled)
-        let (result,) = func
-            .call_async(&mut store, ())
-            .await
-            .map_err(|e| {
-                // Get fuel consumed before crash (StoreWrapper provides this)
-                let fuel_consumed = store.fuel_consumed();
-                
-                // Categorize execution failures (traps, fuel exhaustion, etc.)
-                Self::categorize_wasmtime_error_with_fuel(&e, &context.component_id, function, fuel_consumed)
-            })?;
-        
+        let (result,) = func.call_async(&mut store, ()).await.map_err(|e| {
+            // Get fuel consumed before crash (StoreWrapper provides this)
+            let fuel_consumed = store.fuel_consumed();
+
+            // Categorize execution failures (traps, fuel exhaustion, etc.)
+            Self::categorize_wasmtime_error_with_fuel(
+                &e,
+                &context.component_id,
+                function,
+                fuel_consumed,
+            )
+        })?;
+
         // Convert result to ComponentOutput
         Ok(ComponentOutput::from_i32(result))
     }
-    
+
     /// Categorize Wasmtime errors into structured WasmError types.
     ///
     /// Maps Wasmtime-specific errors to our error taxonomy for proper handling
@@ -260,7 +262,7 @@ impl WasmEngine {
     ) -> WasmError {
         Self::categorize_wasmtime_error_with_fuel(error, component_id, function, None)
     }
-    
+
     /// Categorize Wasmtime errors with fuel consumption data.
     ///
     /// Extended version that includes fuel_consumed for resource accounting.
@@ -271,12 +273,12 @@ impl WasmEngine {
         fuel_consumed: Option<u64>,
     ) -> WasmError {
         let error_str = error.to_string();
-        
+
         // Check for trap-specific errors
         if let Some(trap) = error.downcast_ref::<wasmtime::Trap>() {
             return Self::categorize_trap(trap, component_id, function, fuel_consumed);
         }
-        
+
         // Check error message for common patterns
         if error_str.contains("out of fuel") || error_str.contains("fuel exhausted") {
             // Fuel exhaustion - CPU limit exceeded
@@ -288,7 +290,7 @@ impl WasmEngine {
                 fuel_consumed,
             );
         }
-        
+
         if error_str.contains("out of memory") || error_str.contains("memory allocation") {
             // Memory allocation failure
             return WasmError::execution_failed(format!(
@@ -296,7 +298,7 @@ impl WasmEngine {
                 component_id.as_str()
             ));
         }
-        
+
         if error_str.contains("stack overflow") || error_str.contains("call stack") {
             // Stack overflow
             return WasmError::component_trapped(
@@ -307,14 +309,14 @@ impl WasmEngine {
                 fuel_consumed,
             );
         }
-        
+
         // Generic execution failure
         WasmError::execution_failed(format!(
             "Component '{}' function '{function}' failed: {error_str}",
             component_id.as_str()
         ))
     }
-    
+
     /// Categorize specific WASM trap types.
     ///
     /// Wasmtime provides detailed trap information for different WASM violations.
@@ -332,7 +334,7 @@ impl WasmEngine {
     ) -> WasmError {
         let trap_str = trap.to_string();
         let trap_lower = trap_str.to_lowercase();
-        
+
         // Pattern match on trap message to categorize trap type
         let reason = if trap_lower.contains("unreachable") {
             format!(
@@ -396,7 +398,7 @@ impl WasmEngine {
                 component_id.as_str()
             )
         };
-        
+
         WasmError::component_trapped(reason, fuel_consumed)
     }
 }
@@ -416,14 +418,14 @@ impl RuntimeEngine for WasmEngine {
                 format!("Failed to parse WebAssembly component: {e}"),
             )
         })?;
-        
+
         // Wrap in Arc for cheap cloning (Option A - WASM-TASK-002)
         let component_arc = Arc::new(component);
-        
+
         // Return handle with component reference
         Ok(ComponentHandle::new(component_id.as_str(), component_arc))
     }
-    
+
     async fn execute(
         &self,
         handle: &ComponentHandle,
@@ -436,8 +438,13 @@ impl RuntimeEngine for WasmEngine {
         let panic_result = std::panic::AssertUnwindSafe(async {
             // Wrap execution with timeout (hybrid CPU limiting)
             let timeout_duration = Duration::from_millis(context.timeout_ms);
-            
-            match timeout(timeout_duration, self.execute_internal(handle, function, input, context.clone())).await {
+
+            match timeout(
+                timeout_duration,
+                self.execute_internal(handle, function, input, context.clone()),
+            )
+            .await
+            {
                 Ok(result) => result,
                 Err(_elapsed) => {
                     // Timeout exceeded - return ExecutionTimeout error
@@ -445,7 +452,7 @@ impl RuntimeEngine for WasmEngine {
                 }
             }
         });
-        
+
         // Await the future within panic boundary
         // Note: std::panic::catch_unwind doesn't work directly with async,
         // but Wasmtime's trap handling prevents panics from propagating.
@@ -453,7 +460,7 @@ impl RuntimeEngine for WasmEngine {
         // Real panic boundaries are enforced by Wasmtime's trap mechanism.
         panic_result.await
     }
-    
+
     fn resource_usage(&self, _handle: &ComponentHandle) -> ResourceUsage {
         // Stub implementation - real tracking requires persistent Store
         // TODO(Phase 4): Implement stateful resource tracking
@@ -478,37 +485,37 @@ impl std::fmt::Debug for WasmEngine {
 mod tests {
     #![allow(clippy::unwrap_used)]
     #![allow(clippy::expect_used)]
-    
+
     use super::*;
-    
+
     #[test]
     fn test_engine_creation() {
         let engine = WasmEngine::new();
         assert!(engine.is_ok(), "Engine creation should succeed");
     }
-    
+
     #[test]
     fn test_engine_clone() {
         let engine = WasmEngine::new().unwrap();
         let cloned = engine.clone();
-        
+
         // Verify Arc pointer equality (same underlying engine)
         assert!(Arc::ptr_eq(&engine.inner, &cloned.inner));
     }
-    
+
     #[test]
     fn test_engine_debug_format() {
         let engine = WasmEngine::new().unwrap();
         let debug_str = format!("{engine:?}");
         assert!(debug_str.contains("WasmEngine"));
     }
-    
+
     #[test]
     fn test_engine_send_sync() {
         // Compile-time verification that WasmEngine is Send + Sync
         fn assert_send<T: Send>() {}
         fn assert_sync<T: Sync>() {}
-        
+
         assert_send::<WasmEngine>();
         assert_sync::<WasmEngine>();
     }

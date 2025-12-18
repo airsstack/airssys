@@ -6,7 +6,10 @@
 //! - MessageRouter delivers messages via ActorAddress
 //! - ComponentActor receives messages
 
-#![expect(clippy::expect_used, reason = "expect is acceptable in test code for clear error messages")]
+#![expect(
+    clippy::expect_used,
+    reason = "expect is acceptable in test code for clear error messages"
+)]
 #![expect(clippy::unwrap_used, reason = "unwrap is acceptable in test code")]
 
 // Layer 1: Standard library imports
@@ -16,12 +19,10 @@ use std::path::PathBuf;
 // (none)
 
 // Layer 3: Internal module imports
-use airssys_wasm::actor::{
-    ComponentSpawner, ComponentRegistry, ComponentMessage,
-};
-use airssys_wasm::core::{ComponentId, ComponentMetadata, CapabilitySet, ResourceLimits};
-use airssys_rt::system::{ActorSystem, SystemConfig};
 use airssys_rt::broker::InMemoryMessageBroker;
+use airssys_rt::system::{ActorSystem, SystemConfig};
+use airssys_wasm::actor::{ComponentMessage, ComponentRegistry, ComponentSpawner};
+use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits};
 
 fn create_test_metadata() -> ComponentMetadata {
     ComponentMetadata {
@@ -64,13 +65,15 @@ async fn test_end_to_end_message_routing() {
 
     // Send message via router
     let message = ComponentMessage::HealthCheck;
-    router.send_message(&component_id, message).await
+    router
+        .send_message(&component_id, message)
+        .await
         .expect("Failed to route message");
 
     // Note: Full verification requires ComponentActor to handle message
     // and emit observable side effect (e.g., metric, log, response)
     // This is verified in ComponentActor integration tests (Task 1.3)
-    
+
     // Cleanup: Stop actor system
     drop(actor_address);
 }
@@ -87,7 +90,7 @@ async fn test_routing_to_nonexistent_component() {
     let message = ComponentMessage::HealthCheck;
 
     let result = router.send_message(&nonexistent, message).await;
-    
+
     assert!(result.is_err());
     let err = result.unwrap_err();
     assert!(err.to_string().contains("not found"));
@@ -119,7 +122,9 @@ async fn test_broadcast_to_multiple_components() {
 
     // Broadcast message
     let message = ComponentMessage::HealthCheck;
-    router.broadcast_message(&component_ids, message).await
+    router
+        .broadcast_message(&component_ids, message)
+        .await
         .expect("Broadcast failed");
 
     // All components should have received message
@@ -138,7 +143,12 @@ async fn test_try_broadcast_with_mixed_results() {
     let existing = ComponentId::new("existing");
     let wasm_path = PathBuf::from("./existing.wasm");
     spawner
-        .spawn_component(existing.clone(), wasm_path, create_test_metadata(), CapabilitySet::new())
+        .spawn_component(
+            existing.clone(),
+            wasm_path,
+            create_test_metadata(),
+            CapabilitySet::new(),
+        )
         .await
         .unwrap();
 
@@ -149,10 +159,9 @@ async fn test_try_broadcast_with_mixed_results() {
         ComponentId::new("nonexistent-2"),
     ];
 
-    let results = router.try_broadcast_message(
-        &targets,
-        ComponentMessage::HealthCheck
-    ).await;
+    let results = router
+        .try_broadcast_message(&targets, ComponentMessage::HealthCheck)
+        .await;
 
     assert_eq!(results.len(), 3);
     assert!(results[0].1.is_ok()); // existing
@@ -180,7 +189,7 @@ async fn test_router_registry_integration() {
             component_id1.clone(),
             PathBuf::from("./test1.wasm"),
             create_test_metadata(),
-            CapabilitySet::new()
+            CapabilitySet::new(),
         )
         .await
         .unwrap();
@@ -190,7 +199,7 @@ async fn test_router_registry_integration() {
             component_id2.clone(),
             PathBuf::from("./test2.wasm"),
             create_test_metadata(),
-            CapabilitySet::new()
+            CapabilitySet::new(),
         )
         .await
         .unwrap();
@@ -201,8 +210,14 @@ async fn test_router_registry_integration() {
     assert!(router.component_exists(&component_id2));
 
     // Verify can route to both
-    router.send_message(&component_id1, ComponentMessage::HealthCheck).await.unwrap();
-    router.send_message(&component_id2, ComponentMessage::HealthCheck).await.unwrap();
+    router
+        .send_message(&component_id1, ComponentMessage::HealthCheck)
+        .await
+        .unwrap();
+    router
+        .send_message(&component_id2, ComponentMessage::HealthCheck)
+        .await
+        .unwrap();
 
     // Unregister one component
     registry.unregister(&component_id1).unwrap();
@@ -213,7 +228,9 @@ async fn test_router_registry_integration() {
     assert!(router.component_exists(&component_id2));
 
     // Verify can't route to unregistered component
-    let result = router.send_message(&component_id1, ComponentMessage::HealthCheck).await;
+    let result = router
+        .send_message(&component_id1, ComponentMessage::HealthCheck)
+        .await;
     assert!(result.is_err());
 }
 
@@ -232,17 +249,17 @@ async fn test_concurrent_message_routing() {
     for i in 0..10 {
         let component_id = ComponentId::new(format!("concurrent-{}", i));
         let wasm_path = PathBuf::from(format!("./test{}.wasm", i));
-        
+
         spawner
             .spawn_component(
                 component_id.clone(),
                 wasm_path,
                 create_test_metadata(),
-                CapabilitySet::new()
+                CapabilitySet::new(),
             )
             .await
             .unwrap();
-        
+
         component_ids.push(component_id);
     }
 
@@ -250,7 +267,7 @@ async fn test_concurrent_message_routing() {
     let mut handles = vec![];
     for component_id in component_ids {
         let router_clone = router.clone();
-        
+
         let handle = task::spawn(async move {
             for _ in 0..10 {
                 router_clone
@@ -259,7 +276,7 @@ async fn test_concurrent_message_routing() {
                     .expect("Failed to route message");
             }
         });
-        
+
         handles.push(handle);
     }
 

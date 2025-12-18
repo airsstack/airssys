@@ -141,10 +141,7 @@ impl ExponentialBackoff {
     /// let backoff = ExponentialBackoff::new(config);
     /// ```
     pub fn new(config: ExponentialBackoffConfig) -> Self {
-        Self {
-            config,
-            attempt: 0,
-        }
+        Self { config, attempt: 0 }
     }
 
     /// Calculate the current delay based on attempt count.
@@ -429,6 +426,10 @@ mod tests {
 
         // 10000 calls should be well under 1ms if <100ns per call
         // Allow 1ms as a generous margin
-        assert!(elapsed.as_millis() <= 1000, "Performance regression: took {:?}", elapsed);
+        assert!(
+            elapsed.as_millis() <= 1000,
+            "Performance regression: took {:?}",
+            elapsed
+        );
     }
 }

@@ -58,7 +58,7 @@ fn build_wasm_from_wat(wat_filename: &str) -> Vec<u8> {
     let wat_path = fixtures_dir().join(wat_filename);
     let wat_source = std::fs::read_to_string(&wat_path)
         .unwrap_or_else(|e| panic!("Failed to read WAT fixture at {wat_path:?}: {e}"));
-    
+
     wat::parse_str(&wat_source)
         .unwrap_or_else(|e| panic!("Failed to compile WAT {wat_filename} to WASM: {e}"))
 }
@@ -67,7 +67,7 @@ fn build_wasm_from_wat(wat_filename: &str) -> Vec<u8> {
 async fn test_execute_hello_world_component() {
     // Create engine
     let engine = WasmEngine::new().expect("Failed to create engine");
-    
+
     // Load component
     let component_id = ComponentId::new("hello-world-test");
     let wasm_bytes = build_wasm_from_wat("hello_world.wat");
@@ -75,38 +75,38 @@ async fn test_execute_hello_world_component() {
         .load_component(&component_id, &wasm_bytes)
         .await
         .expect("Failed to load component");
-    
+
     // Create execution context
     let context = ExecutionContext {
         component_id: component_id.clone(),
         limits: ResourceLimits {
             max_memory_bytes: 1024 * 1024, // 1MB
-            max_fuel: 10_000,               // 10K fuel
-            max_execution_ms: 30_000,       // 30s (generous)
-            max_storage_bytes: 0,           // No storage
+            max_fuel: 10_000,              // 10K fuel
+            max_execution_ms: 30_000,      // 30s (generous)
+            max_storage_bytes: 0,          // No storage
         },
         capabilities: CapabilitySet::new(),
         timeout_ms: 30_000, // 30s timeout
     };
-    
+
     // Execute function
     let input = ComponentInput {
         data: Vec::new(),
         codec: 0,
         metadata: HashMap::new(),
     };
-    
+
     let result = engine.execute(&handle, "hello", input, context).await;
-    
+
     // Verify execution succeeded
     assert!(
         result.is_ok(),
         "Execution should succeed: {:?}",
         result.err()
     );
-    
+
     let output = result.unwrap();
-    
+
     // Verify output is i32 = 42
     let value = output.to_i32();
     assert_eq!(
@@ -120,7 +120,7 @@ async fn test_execute_hello_world_component() {
 async fn test_execution_within_timeout() {
     // Create engine
     let engine = WasmEngine::new().expect("Failed to create engine");
-    
+
     // Load component
     let component_id = ComponentId::new("hello-world-fast");
     let wasm_bytes = build_wasm_from_wat("hello_world.wat");
@@ -128,36 +128,36 @@ async fn test_execution_within_timeout() {
         .load_component(&component_id, &wasm_bytes)
         .await
         .expect("Failed to load component");
-    
+
     // Create execution context with reasonable limits
     let context = ExecutionContext {
         component_id: component_id.clone(),
         limits: ResourceLimits {
             max_memory_bytes: 1024 * 1024, // 1MB
-            max_fuel: 10_000,               // 10K fuel
-            max_execution_ms: 30_000,       // 30s (generous)
+            max_fuel: 10_000,              // 10K fuel
+            max_execution_ms: 30_000,      // 30s (generous)
             max_storage_bytes: 0,
         },
         capabilities: CapabilitySet::new(),
         timeout_ms: 30_000, // 30s timeout (should be plenty for simple function)
     };
-    
+
     // Execute function
     let input = ComponentInput {
         data: Vec::new(),
         codec: 0,
         metadata: HashMap::new(),
     };
-    
+
     let result = engine.execute(&handle, "hello", input, context).await;
-    
+
     // Verify execution succeeded within timeout
     assert!(
         result.is_ok(),
         "Fast execution should succeed within timeout: {:?}",
         result.err()
     );
-    
+
     let output = result.unwrap();
     assert_eq!(
         output.to_i32(),
@@ -170,7 +170,7 @@ async fn test_execution_within_timeout() {
 async fn test_fuel_limit_exceeded() {
     // Create engine
     let engine = WasmEngine::new().expect("Failed to create engine");
-    
+
     // Load component
     let component_id = ComponentId::new("hello-world-fuel-limit");
     let wasm_bytes = build_wasm_from_wat("hello_world.wat");
@@ -178,30 +178,30 @@ async fn test_fuel_limit_exceeded() {
         .load_component(&component_id, &wasm_bytes)
         .await
         .expect("Failed to load component");
-    
+
     // Create execution context with VERY low fuel (should exhaust)
     // Note: Even simple functions consume some fuel for instantiation and execution
     let context = ExecutionContext {
         component_id: component_id.clone(),
         limits: ResourceLimits {
             max_memory_bytes: 1024 * 1024, // 1MB
-            max_fuel: 1,                    // 1 fuel unit (extremely restrictive)
-            max_execution_ms: 30_000,       // 30s (generous)
+            max_fuel: 1,                   // 1 fuel unit (extremely restrictive)
+            max_execution_ms: 30_000,      // 30s (generous)
             max_storage_bytes: 0,
         },
         capabilities: CapabilitySet::new(),
         timeout_ms: 30_000, // 30s timeout (generous)
     };
-    
+
     // Execute function
     let input = ComponentInput {
         data: Vec::new(),
         codec: 0,
         metadata: HashMap::new(),
     };
-    
+
     let result = engine.execute(&handle, "hello", input, context).await;
-    
+
     // Verify execution failed due to fuel exhaustion
     // Note: With only 1 fuel unit, component cannot complete execution
     assert!(
@@ -214,7 +214,7 @@ async fn test_fuel_limit_exceeded() {
 async fn test_timeout_enforcement_via_tokio() {
     // Create engine
     let engine = WasmEngine::new().expect("Failed to create engine");
-    
+
     // Load component
     let component_id = ComponentId::new("hello-world-timeout");
     let wasm_bytes = build_wasm_from_wat("hello_world.wat");
@@ -222,7 +222,7 @@ async fn test_timeout_enforcement_via_tokio() {
         .load_component(&component_id, &wasm_bytes)
         .await
         .expect("Failed to load component");
-    
+
     // Create execution context with VERY tight timeout (1ms - should timeout)
     // Note: Even simple functions take more than 1ms when including
     // instantiation, linking, and execution overhead
@@ -230,23 +230,23 @@ async fn test_timeout_enforcement_via_tokio() {
         component_id: component_id.clone(),
         limits: ResourceLimits {
             max_memory_bytes: 1024 * 1024, // 1MB
-            max_fuel: 10_000_000,           // 10M fuel (generous)
-            max_execution_ms: 1,            // 1ms (unrealistic - forces timeout)
+            max_fuel: 10_000_000,          // 10M fuel (generous)
+            max_execution_ms: 1,           // 1ms (unrealistic - forces timeout)
             max_storage_bytes: 0,
         },
         capabilities: CapabilitySet::new(),
         timeout_ms: 1, // 1ms timeout (intentionally triggers timeout)
     };
-    
+
     // Execute function
     let input = ComponentInput {
         data: Vec::new(),
         codec: 0,
         metadata: HashMap::new(),
     };
-    
+
     let result = engine.execute(&handle, "hello", input, context).await;
-    
+
     // Verify execution timed out
     // Note: With 1ms timeout and generous fuel, if it fails it should be timeout
     // If hello_world is too fast, this test documents the timeout mechanism exists
@@ -267,7 +267,7 @@ async fn test_timeout_enforcement_via_tokio() {
 async fn test_within_all_limits_success() {
     // Create engine
     let engine = WasmEngine::new().expect("Failed to create engine");
-    
+
     // Load component
     let component_id = ComponentId::new("hello-world-within-limits");
     let wasm_bytes = build_wasm_from_wat("hello_world.wat");
@@ -275,38 +275,38 @@ async fn test_within_all_limits_success() {
         .load_component(&component_id, &wasm_bytes)
         .await
         .expect("Failed to load component");
-    
+
     // Create execution context with generous limits (should succeed)
     let context = ExecutionContext {
         component_id: component_id.clone(),
         limits: ResourceLimits {
             max_memory_bytes: 1024 * 1024, // 1MB
-            max_fuel: 10_000_000,           // 10M fuel (generous)
-            max_execution_ms: 30_000,       // 30s (generous)
+            max_fuel: 10_000_000,          // 10M fuel (generous)
+            max_execution_ms: 30_000,      // 30s (generous)
             max_storage_bytes: 0,
         },
         capabilities: CapabilitySet::new(),
         timeout_ms: 30_000, // 30s timeout (generous)
     };
-    
+
     // Execute function
     let input = ComponentInput {
         data: Vec::new(),
         codec: 0,
         metadata: HashMap::new(),
     };
-    
+
     let result = engine.execute(&handle, "hello", input, context).await;
-    
+
     // Verify execution succeeded within all limits
     assert!(
         result.is_ok(),
         "Execution with generous limits should succeed: {:?}",
         result.err()
     );
-    
+
     let output = result.unwrap();
-    
+
     // Verify output is correct
     assert_eq!(
         output.to_i32(),
@@ -319,7 +319,7 @@ async fn test_within_all_limits_success() {
 async fn test_fuel_triggers_before_timeout() {
     // Create engine
     let engine = WasmEngine::new().expect("Failed to create engine");
-    
+
     // Load component
     let component_id = ComponentId::new("hello-world-fuel-restrictive");
     let wasm_bytes = build_wasm_from_wat("hello_world.wat");
@@ -327,40 +327,40 @@ async fn test_fuel_triggers_before_timeout() {
         .load_component(&component_id, &wasm_bytes)
         .await
         .expect("Failed to load component");
-    
+
     // Create execution context with low fuel but high timeout
     // Fuel should exhaust before timeout triggers
     let context = ExecutionContext {
         component_id: component_id.clone(),
         limits: ResourceLimits {
             max_memory_bytes: 1024 * 1024, // 1MB
-            max_fuel: 1,                    // 1 fuel unit (very restrictive)
-            max_execution_ms: 30_000,       // 30s (generous)
+            max_fuel: 1,                   // 1 fuel unit (very restrictive)
+            max_execution_ms: 30_000,      // 30s (generous)
             max_storage_bytes: 0,
         },
         capabilities: CapabilitySet::new(),
         timeout_ms: 30_000, // 30s timeout (generous)
     };
-    
+
     // Execute function
     let input = ComponentInput {
         data: Vec::new(),
         codec: 0,
         metadata: HashMap::new(),
     };
-    
+
     let result = engine.execute(&handle, "hello", input, context).await;
-    
+
     // Verify execution failed due to fuel exhaustion
     // With 1 fuel unit and 30s timeout, fuel should be the limiting factor
     assert!(
         result.is_err(),
         "Execution should fail due to fuel exhaustion"
     );
-    
+
     let error = result.unwrap_err();
     let error_msg = error.to_string();
-    
+
     // Verify it's NOT a timeout error (fuel should trigger first)
     assert!(
         !error_msg.contains("timeout") && !error_msg.contains("Execution timeout"),
@@ -372,7 +372,7 @@ async fn test_fuel_triggers_before_timeout() {
 async fn test_timeout_triggers_before_fuel() {
     // Create engine
     let engine = WasmEngine::new().expect("Failed to create engine");
-    
+
     // Load component
     let component_id = ComponentId::new("hello-world-timeout-restrictive");
     let wasm_bytes = build_wasm_from_wat("hello_world.wat");
@@ -380,30 +380,30 @@ async fn test_timeout_triggers_before_fuel() {
         .load_component(&component_id, &wasm_bytes)
         .await
         .expect("Failed to load component");
-    
+
     // Create execution context with high fuel but tight timeout
     // Timeout should trigger before fuel exhausts
     let context = ExecutionContext {
         component_id: component_id.clone(),
         limits: ResourceLimits {
             max_memory_bytes: 1024 * 1024, // 1MB
-            max_fuel: 10_000_000,           // 10M fuel (generous)
-            max_execution_ms: 1,            // 1ms (very restrictive)
+            max_fuel: 10_000_000,          // 10M fuel (generous)
+            max_execution_ms: 1,           // 1ms (very restrictive)
             max_storage_bytes: 0,
         },
         capabilities: CapabilitySet::new(),
         timeout_ms: 1, // 1ms timeout (very restrictive)
     };
-    
+
     // Execute function
     let input = ComponentInput {
         data: Vec::new(),
         codec: 0,
         metadata: HashMap::new(),
     };
-    
+
     let result = engine.execute(&handle, "hello", input, context).await;
-    
+
     // Verify execution behavior with tight timeout and generous fuel
     // With 10M fuel and 1ms timeout, timeout should be the limiting factor
     if result.is_err() {

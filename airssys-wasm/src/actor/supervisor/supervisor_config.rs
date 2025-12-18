@@ -27,9 +27,9 @@
 //! assert_eq!(config.max_restarts, 5);
 //! ```
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
-use chrono::{DateTime, Utc};
 
 /// Restart policy for supervised components (Erlang OTP style).
 ///
@@ -212,9 +212,7 @@ impl BackoffStrategy {
         match self {
             BackoffStrategy::Immediate => Duration::from_millis(0),
 
-            BackoffStrategy::Linear { base_delay } => {
-                base_delay.saturating_mul(attempt.max(1))
-            }
+            BackoffStrategy::Linear { base_delay } => base_delay.saturating_mul(attempt.max(1)),
 
             BackoffStrategy::Exponential {
                 base_delay,
@@ -698,10 +696,10 @@ mod tests {
 
         let now = Utc::now();
         let mixed_restarts = vec![
-            (now - Duration::from_secs(90), true),  // Outside window
-            (now - Duration::from_secs(30), true),  // Inside window
-            (now - Duration::from_secs(20), true),  // Inside window
-            (now - Duration::from_secs(10), true),  // Inside window
+            (now - Duration::from_secs(90), true), // Outside window
+            (now - Duration::from_secs(30), true), // Inside window
+            (now - Duration::from_secs(20), true), // Inside window
+            (now - Duration::from_secs(10), true), // Inside window
         ];
 
         // 3 restarts in window = limit exceeded
@@ -715,8 +713,14 @@ mod tests {
             ..Default::default()
         };
 
-        assert_eq!(config.calculate_next_restart_delay(0), Duration::from_millis(0));
-        assert_eq!(config.calculate_next_restart_delay(5), Duration::from_millis(0));
+        assert_eq!(
+            config.calculate_next_restart_delay(0),
+            Duration::from_millis(0)
+        );
+        assert_eq!(
+            config.calculate_next_restart_delay(5),
+            Duration::from_millis(0)
+        );
     }
 
     #[test]
@@ -728,8 +732,14 @@ mod tests {
             ..Default::default()
         };
 
-        assert_eq!(config.calculate_next_restart_delay(1), Duration::from_millis(100));
-        assert_eq!(config.calculate_next_restart_delay(2), Duration::from_millis(200));
+        assert_eq!(
+            config.calculate_next_restart_delay(1),
+            Duration::from_millis(100)
+        );
+        assert_eq!(
+            config.calculate_next_restart_delay(2),
+            Duration::from_millis(200)
+        );
     }
 
     #[test]
@@ -743,7 +753,13 @@ mod tests {
             ..Default::default()
         };
 
-        assert_eq!(config.calculate_next_restart_delay(0), Duration::from_millis(100));
-        assert_eq!(config.calculate_next_restart_delay(1), Duration::from_millis(200));
+        assert_eq!(
+            config.calculate_next_restart_delay(0),
+            Duration::from_millis(100)
+        );
+        assert_eq!(
+            config.calculate_next_restart_delay(1),
+            Duration::from_millis(200)
+        );
     }
 }

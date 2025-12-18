@@ -13,7 +13,10 @@
 //! - **ADR-WASM-009**: Component Communication Model (Pattern 2: Request-Response)
 //! - **WASM-TASK-004 Phase 5 Task 5.1**: Message Correlation Implementation
 
-#![expect(clippy::expect_used, reason = "expect is acceptable in test code for clear error messages")]
+#![expect(
+    clippy::expect_used,
+    reason = "expect is acceptable in test code for clear error messages"
+)]
 #![expect(clippy::unwrap_used, reason = "unwrap is acceptable in test code")]
 
 // Layer 1: Standard library imports
@@ -25,13 +28,13 @@ use std::time::Duration;
 use uuid::Uuid;
 
 // Layer 3: Internal module imports
-use airssys_wasm::actor::{
-    ComponentSpawner, ComponentRegistry,
-    message::{CorrelationTracker, PendingRequest, RequestMessage, ResponseMessage, RequestError},
-};
-use airssys_wasm::core::{ComponentId, ComponentMetadata, CapabilitySet, ResourceLimits};
-use airssys_rt::system::{ActorSystem, SystemConfig};
 use airssys_rt::broker::InMemoryMessageBroker;
+use airssys_rt::system::{ActorSystem, SystemConfig};
+use airssys_wasm::actor::{
+    message::{CorrelationTracker, PendingRequest, RequestError, RequestMessage, ResponseMessage},
+    ComponentRegistry, ComponentSpawner,
+};
+use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits};
 
 /// Create test metadata for components.
 fn create_test_metadata(name: &str) -> ComponentMetadata {
@@ -327,7 +330,10 @@ async fn test_concurrent_requests_between_multiple_components() {
                 // Small delay to simulate processing
                 tokio::time::sleep(Duration::from_millis(10)).await;
 
-                tracker_clone.resolve(correlation_id, response).await.unwrap();
+                tracker_clone
+                    .resolve(correlation_id, response)
+                    .await
+                    .unwrap();
 
                 // Await response
                 response_rx.await.unwrap()

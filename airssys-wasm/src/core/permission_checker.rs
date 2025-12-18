@@ -192,7 +192,7 @@ impl PermissionChecker {
     pub fn with_cache_size(cache_size: usize) -> Self {
         // Ensure cache_size is valid (> 0)
         let cache_size = cache_size.max(1);
-        
+
         Self {
             permissions: HashMap::new(),
             cache: Arc::new(Mutex::new(LruCache::new(
@@ -254,7 +254,10 @@ impl PermissionChecker {
     }
 
     /// Compile permission patterns for efficient matching.
-    fn compile_permissions(&self, manifest: &PermissionManifest) -> WasmResult<CompiledPermissions> {
+    fn compile_permissions(
+        &self,
+        manifest: &PermissionManifest,
+    ) -> WasmResult<CompiledPermissions> {
         // Compile filesystem patterns
         let filesystem_read = self.compile_glob_patterns(&manifest.filesystem.read)?;
         let filesystem_write = self.compile_glob_patterns(&manifest.filesystem.write)?;
@@ -319,12 +322,7 @@ impl PermissionChecker {
     /// assert!(checker.can_read_file(&id, "/etc/passwd").is_err());
     /// ```
     pub fn can_read_file(&self, component_id: &ComponentId, path: &str) -> WasmResult<()> {
-        self.check_filesystem_permission(
-            component_id,
-            path,
-            PermissionAction::FileRead,
-            "read",
-        )
+        self.check_filesystem_permission(component_id, path, PermissionAction::FileRead, "read")
     }
 
     /// Check if component can write a file.
@@ -333,12 +331,7 @@ impl PermissionChecker {
     ///
     /// Returns `CapabilityDenied` if component lacks permission.
     pub fn can_write_file(&self, component_id: &ComponentId, path: &str) -> WasmResult<()> {
-        self.check_filesystem_permission(
-            component_id,
-            path,
-            PermissionAction::FileWrite,
-            "write",
-        )
+        self.check_filesystem_permission(component_id, path, PermissionAction::FileWrite, "write")
     }
 
     /// Check if component can delete a file.
@@ -347,12 +340,7 @@ impl PermissionChecker {
     ///
     /// Returns `CapabilityDenied` if component lacks permission.
     pub fn can_delete_file(&self, component_id: &ComponentId, path: &str) -> WasmResult<()> {
-        self.check_filesystem_permission(
-            component_id,
-            path,
-            PermissionAction::FileDelete,
-            "delete",
-        )
+        self.check_filesystem_permission(component_id, path, PermissionAction::FileDelete, "delete")
     }
 
     /// Check if component can list a directory.
@@ -361,12 +349,7 @@ impl PermissionChecker {
     ///
     /// Returns `CapabilityDenied` if component lacks permission.
     pub fn can_list_directory(&self, component_id: &ComponentId, path: &str) -> WasmResult<()> {
-        self.check_filesystem_permission(
-            component_id,
-            path,
-            PermissionAction::FileList,
-            "list",
-        )
+        self.check_filesystem_permission(component_id, path, PermissionAction::FileList, "list")
     }
 
     /// Check filesystem permission with caching.
@@ -578,11 +561,7 @@ impl PermissionChecker {
     /// assert!(checker.can_listen_inbound(&id, 8080).is_ok());
     /// assert!(checker.can_listen_inbound(&id, 80).is_err());
     /// ```
-    pub fn can_listen_inbound(
-        &self,
-        component_id: &ComponentId,
-        port: u16,
-    ) -> WasmResult<()> {
+    pub fn can_listen_inbound(&self, component_id: &ComponentId, port: u16) -> WasmResult<()> {
         let perms = self.permissions.get(component_id).ok_or_else(|| {
             WasmError::component_not_found(format!(
                 "Component '{component_id:?}' not found in permission checker"
@@ -678,9 +657,9 @@ impl PermissionChecker {
         reason: &str,
     ) -> WasmError {
         WasmError::capability_denied(
-            crate::core::capability::Capability::FileRead(crate::core::capability::PathPattern::new(
-                resource,
-            )),
+            crate::core::capability::Capability::FileRead(
+                crate::core::capability::PathPattern::new(resource),
+            ),
             format!(
                 "Component '{component_id:?}' denied {operation} access to '{resource}': {reason}"
             ),
@@ -736,7 +715,9 @@ mod tests {
         checker.load_permissions(id.clone(), &perms).unwrap();
 
         assert!(checker.can_write_file(&id, "/output/result.txt").is_ok());
-        assert!(checker.can_write_file(&id, "/output/subdir/data.json").is_ok());
+        assert!(checker
+            .can_write_file(&id, "/output/subdir/data.json")
+            .is_ok());
         assert!(checker.can_write_file(&id, "/etc/passwd").is_err());
     }
 
@@ -758,15 +739,23 @@ mod tests {
         checker.load_permissions(id.clone(), &perms).unwrap();
 
         // Exact match
-        assert!(checker.can_connect_outbound(&id, "api.example.com", 443).is_ok());
+        assert!(checker
+            .can_connect_outbound(&id, "api.example.com", 443)
+            .is_ok());
 
         // Wildcard match
-        assert!(checker.can_connect_outbound(&id, "a.cdn.example.com", 443).is_ok());
-        assert!(checker.can_connect_outbound(&id, "b.c.cdn.example.com", 443).is_ok());
+        assert!(checker
+            .can_connect_outbound(&id, "a.cdn.example.com", 443)
+            .is_ok());
+        assert!(checker
+            .can_connect_outbound(&id, "b.c.cdn.example.com", 443)
+            .is_ok());
 
         // Should deny
         assert!(checker.can_connect_outbound(&id, "evil.com", 80).is_err());
-        assert!(checker.can_connect_outbound(&id, "api.example.com", 80).is_err());
+        assert!(checker
+            .can_connect_outbound(&id, "api.example.com", 80)
+            .is_err());
     }
 
     #[test]

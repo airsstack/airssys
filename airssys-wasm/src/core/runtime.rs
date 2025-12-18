@@ -106,7 +106,7 @@ use super::{
 pub struct ComponentHandle {
     /// Component identifier for logging and debugging.
     id: String,
-    
+
     /// Compiled Wasmtime component (Arc for cheap cloning).
     component: Arc<Component>,
 }
@@ -128,7 +128,7 @@ impl ComponentHandle {
     pub fn id(&self) -> &str {
         &self.id
     }
-    
+
     /// Get reference to the underlying Wasmtime component.
     ///
     /// This is used internally by the runtime engine for instantiation.
@@ -260,7 +260,7 @@ pub trait RuntimeEngine: Send + Sync {
     ///     capabilities: CapabilitySet::new(),
     ///     timeout_ms: 5000,
     /// };
-    /// 
+    ///
     /// let output = engine.execute(&handle, "process", input, context).await?;
     /// println!("Result: {:?}", output.data());
     /// ```

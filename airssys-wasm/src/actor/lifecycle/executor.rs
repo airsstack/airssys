@@ -74,10 +74,7 @@ use crate::actor::lifecycle::HookResult;
 ///
 /// assert_eq!(result, HookResult::Ok);
 /// ```
-pub async fn call_hook_with_timeout<F>(
-    f: F,
-    timeout: Duration,
-) -> HookResult
+pub async fn call_hook_with_timeout<F>(f: F, timeout: Duration) -> HookResult
 where
     F: FnOnce() -> HookResult + Send + 'static,
 {
@@ -85,21 +82,21 @@ where
     let result = tokio::time::timeout(
         timeout,
         tokio::task::spawn_blocking(move || {
-            catch_unwind(AssertUnwindSafe(f))
-                .unwrap_or_else(|panic_info| {
-                    let panic_msg = if let Some(s) = panic_info.downcast_ref::<String>() {
-                        s.clone()
-                    } else if let Some(s) = panic_info.downcast_ref::<&str>() {
-                        (*s).to_string()
-                    } else {
-                        "unknown panic".to_string()
-                    };
-                    
-                    error!(panic_msg = %panic_msg, "Hook panicked");
-                    HookResult::Error(format!("hook panicked: {}", panic_msg))
-                })
-        })
-    ).await;
+            catch_unwind(AssertUnwindSafe(f)).unwrap_or_else(|panic_info| {
+                let panic_msg = if let Some(s) = panic_info.downcast_ref::<String>() {
+                    s.clone()
+                } else if let Some(s) = panic_info.downcast_ref::<&str>() {
+                    (*s).to_string()
+                } else {
+                    "unknown panic".to_string()
+                };
+
+                error!(panic_msg = %panic_msg, "Hook panicked");
+                HookResult::Error(format!("hook panicked: {}", panic_msg))
+            })
+        }),
+    )
+    .await;
 
     match result {
         Ok(Ok(hook_result)) => hook_result,
@@ -150,19 +147,18 @@ pub fn catch_unwind_hook<F>(f: F) -> HookResult
 where
     F: FnOnce() -> HookResult,
 {
-    catch_unwind(AssertUnwindSafe(f))
-        .unwrap_or_else(|panic_info| {
-            let panic_msg = if let Some(s) = panic_info.downcast_ref::<String>() {
-                s.clone()
-            } else if let Some(s) = panic_info.downcast_ref::<&str>() {
-                (*s).to_string()
-            } else {
-                "unknown panic".to_string()
-            };
-            
-            error!(panic_msg = %panic_msg, "Hook panicked");
-            HookResult::Error(format!("hook panicked: {}", panic_msg))
-        })
+    catch_unwind(AssertUnwindSafe(f)).unwrap_or_else(|panic_info| {
+        let panic_msg = if let Some(s) = panic_info.downcast_ref::<String>() {
+            s.clone()
+        } else if let Some(s) = panic_info.downcast_ref::<&str>() {
+            (*s).to_string()
+        } else {
+            "unknown panic".to_string()
+        };
+
+        error!(panic_msg = %panic_msg, "Hook panicked");
+        HookResult::Error(format!("hook panicked: {}", panic_msg))
+    })
 }
 
 #[cfg(test)]
@@ -173,11 +169,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_call_hook_with_timeout_success() {
-        let result = call_hook_with_timeout(
-            || HookResult::Ok,
-            Duration::from_millis(1000),
-        ).await;
-        
+        let result = call_hook_with_timeout(|| HookResult::Ok, Duration::from_millis(1000)).await;
+
         assert_eq!(result, HookResult::Ok);
     }
 
@@ -186,8 +179,9 @@ mod tests {
         let result = call_hook_with_timeout(
             || HookResult::Error("test error".to_string()),
             Duration::from_millis(1000),
-        ).await;
-        
+        )
+        .await;
+
         assert_eq!(result, HookResult::Error("test error".to_string()));
     }
 
@@ -198,8 +192,9 @@ mod tests {
                 panic!("test panic");
             },
             Duration::from_millis(1000),
-        ).await;
-        
+        )
+        .await;
+
         match result {
             HookResult::Error(msg) => assert!(msg.contains("panicked")),
             _ => panic!("Expected Error variant for panic"),
@@ -214,8 +209,9 @@ mod tests {
                 HookResult::Ok
             },
             Duration::from_millis(100),
-        ).await;
-        
+        )
+        .await;
+
         assert_eq!(result, HookResult::Timeout);
     }
 
@@ -236,7 +232,7 @@ mod tests {
         let result = catch_unwind_hook(|| {
             panic!("test panic");
         });
-        
+
         match result {
             HookResult::Error(msg) => assert!(msg.contains("panicked")),
             _ => panic!("Expected Error variant for panic"),
@@ -248,7 +244,7 @@ mod tests {
         let result = catch_unwind_hook(|| {
             panic!("static str panic");
         });
-        
+
         match result {
             HookResult::Error(msg) => assert!(msg.contains("panicked")),
             _ => panic!("Expected Error variant for panic"),
@@ -259,17 +255,14 @@ mod tests {
     async fn test_hook_with_timeout_performance() {
         // Verify minimal overhead (<50μs)
         let start = std::time::Instant::now();
-        
+
         for _ in 0..100 {
-            call_hook_with_timeout(
-                || HookResult::Ok,
-                Duration::from_millis(1000),
-            ).await;
+            call_hook_with_timeout(|| HookResult::Ok, Duration::from_millis(1000)).await;
         }
-        
+
         let elapsed = start.elapsed();
         let avg_per_call = elapsed / 100;
-        
+
         // Should be much less than 50μs per call (target overhead)
         // Allow 100μs for CI variability
         assert!(

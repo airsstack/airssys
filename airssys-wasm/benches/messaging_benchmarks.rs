@@ -30,8 +30,8 @@ use uuid::Uuid;
 use airssys_rt::broker::in_memory::InMemoryMessageBroker;
 use airssys_rt::util::ActorAddress;
 use airssys_wasm::actor::{
-    ComponentMessage, ComponentRegistry, CorrelationTracker, MessageRouter,
-    PendingRequest, RequestMessage, ResponseMessage,
+    ComponentMessage, ComponentRegistry, CorrelationTracker, MessageRouter, PendingRequest,
+    RequestMessage, ResponseMessage,
 };
 use airssys_wasm::core::ComponentId;
 
@@ -134,12 +134,7 @@ fn bench_correlation_tracking_overhead(c: &mut Criterion) {
             tracker.register_pending(pending).await.ok();
 
             // Resolve with response
-            let response = ResponseMessage::success(
-                corr_id,
-                to,
-                from,
-                vec![1, 2, 3],
-            );
+            let response = ResponseMessage::success(corr_id, to, from, vec![1, 2, 3]);
 
             let result = tracker.resolve(corr_id, response).await;
 

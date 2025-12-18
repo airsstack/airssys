@@ -662,7 +662,10 @@ impl ComponentManifestParser {
     }
 
     /// Build `WasmCapabilitySet` from parsed capability declarations.
-    fn build_capability_set(&self, caps: &CapabilityDeclarations) -> ParseResult<WasmCapabilitySet> {
+    fn build_capability_set(
+        &self,
+        caps: &CapabilityDeclarations,
+    ) -> ParseResult<WasmCapabilitySet> {
         let mut capability_set = WasmCapabilitySet::new();
 
         // Process filesystem capabilities
@@ -693,7 +696,8 @@ impl ComponentManifestParser {
         // Process network capabilities
         if let Some(ref net) = caps.network {
             if let Some(ref connect_endpoints) = net.connect {
-                let endpoints = self.validate_network_endpoints(connect_endpoints, "network.connect")?;
+                let endpoints =
+                    self.validate_network_endpoints(connect_endpoints, "network.connect")?;
                 capability_set = capability_set.grant(WasmCapability::Network {
                     endpoints,
                     permissions: vec!["connect".to_string()],
@@ -707,7 +711,8 @@ impl ComponentManifestParser {
                 });
             }
             if let Some(ref listen_endpoints) = net.listen {
-                let endpoints = self.validate_network_endpoints(listen_endpoints, "network.listen")?;
+                let endpoints =
+                    self.validate_network_endpoints(listen_endpoints, "network.listen")?;
                 capability_set = capability_set.grant(WasmCapability::Network {
                     endpoints,
                     permissions: vec!["listen".to_string()],
@@ -718,21 +723,24 @@ impl ComponentManifestParser {
         // Process storage capabilities
         if let Some(ref storage) = caps.storage {
             if let Some(ref read_namespaces) = storage.read {
-                let namespaces = self.validate_storage_namespaces(read_namespaces, "storage.read")?;
+                let namespaces =
+                    self.validate_storage_namespaces(read_namespaces, "storage.read")?;
                 capability_set = capability_set.grant(WasmCapability::Storage {
                     namespaces,
                     permissions: vec!["read".to_string()],
                 });
             }
             if let Some(ref write_namespaces) = storage.write {
-                let namespaces = self.validate_storage_namespaces(write_namespaces, "storage.write")?;
+                let namespaces =
+                    self.validate_storage_namespaces(write_namespaces, "storage.write")?;
                 capability_set = capability_set.grant(WasmCapability::Storage {
                     namespaces,
                     permissions: vec!["write".to_string()],
                 });
             }
             if let Some(ref delete_namespaces) = storage.delete {
-                let namespaces = self.validate_storage_namespaces(delete_namespaces, "storage.delete")?;
+                let namespaces =
+                    self.validate_storage_namespaces(delete_namespaces, "storage.delete")?;
                 capability_set = capability_set.grant(WasmCapability::Storage {
                     namespaces,
                     permissions: vec!["delete".to_string()],
@@ -750,7 +758,11 @@ impl ComponentManifestParser {
     /// - Absolute paths (start with `/`)
     /// - No parent directory escapes (`..`)
     /// - No duplicate patterns
-    fn validate_filesystem_paths(&self, paths: &[String], capability_name: &str) -> ParseResult<Vec<String>> {
+    fn validate_filesystem_paths(
+        &self,
+        paths: &[String],
+        capability_name: &str,
+    ) -> ParseResult<Vec<String>> {
         if paths.is_empty() {
             return Err(ParseError::EmptyPatternArray(capability_name.to_string()));
         }
@@ -793,7 +805,11 @@ impl ComponentManifestParser {
     /// - Format: `domain:port` or `ip:port`
     /// - Valid port range (1-65535)
     /// - No duplicate patterns
-    fn validate_network_endpoints(&self, endpoints: &[String], capability_name: &str) -> ParseResult<Vec<String>> {
+    fn validate_network_endpoints(
+        &self,
+        endpoints: &[String],
+        capability_name: &str,
+    ) -> ParseResult<Vec<String>> {
         if endpoints.is_empty() {
             return Err(ParseError::EmptyPatternArray(capability_name.to_string()));
         }
@@ -825,12 +841,13 @@ impl ComponentManifestParser {
             }
 
             let port_str = parts[0];
-            if port_str != "*" {  // Allow wildcard port for future support (currently reject in validation)
+            if port_str != "*" {
+                // Allow wildcard port for future support (currently reject in validation)
                 match port_str.parse::<u16>() {
                     Ok(0) => {
                         return Err(ParseError::InvalidNetworkPort(endpoint.to_string(), 0));
                     }
-                    Ok(_) => {}  // Valid port
+                    Ok(_) => {} // Valid port
                     Err(_) => {
                         return Err(ParseError::InvalidNetworkEndpoint(endpoint.to_string()));
                     }
@@ -849,7 +866,11 @@ impl ComponentManifestParser {
     /// - Non-empty array
     /// - Contains `:` hierarchy separator
     /// - No duplicate patterns
-    fn validate_storage_namespaces(&self, namespaces: &[String], capability_name: &str) -> ParseResult<Vec<String>> {
+    fn validate_storage_namespaces(
+        &self,
+        namespaces: &[String],
+        capability_name: &str,
+    ) -> ParseResult<Vec<String>> {
         if namespaces.is_empty() {
             return Err(ParseError::EmptyPatternArray(capability_name.to_string()));
         }
@@ -887,7 +908,7 @@ struct ComponentManifest {
     /// Component metadata
     #[serde(default)]
     component: ComponentMetadata,
-    
+
     /// Capability declarations
     #[serde(default)]
     capabilities: CapabilityDeclarations,
@@ -899,7 +920,7 @@ struct ComponentMetadata {
     /// Component name (required)
     #[serde(default)]
     name: String,
-    
+
     /// Component version (required)
     #[serde(default)]
     version: String,
@@ -911,11 +932,11 @@ struct CapabilityDeclarations {
     /// Filesystem capabilities
     #[serde(default)]
     filesystem: Option<FilesystemCapabilities>,
-    
+
     /// Network capabilities
     #[serde(default)]
     network: Option<NetworkCapabilities>,
-    
+
     /// Storage capabilities
     #[serde(default)]
     storage: Option<StorageCapabilities>,
@@ -927,11 +948,11 @@ struct FilesystemCapabilities {
     /// Read permission paths
     #[serde(default)]
     read: Option<Vec<String>>,
-    
+
     /// Write permission paths
     #[serde(default)]
     write: Option<Vec<String>>,
-    
+
     /// Execute permission paths
     #[serde(default)]
     execute: Option<Vec<String>>,
@@ -943,11 +964,11 @@ struct NetworkCapabilities {
     /// Connect permission endpoints
     #[serde(default)]
     connect: Option<Vec<String>>,
-    
+
     /// Bind permission endpoints
     #[serde(default)]
     bind: Option<Vec<String>>,
-    
+
     /// Listen permission endpoints
     #[serde(default)]
     listen: Option<Vec<String>>,
@@ -959,11 +980,11 @@ struct StorageCapabilities {
     /// Read permission namespaces
     #[serde(default)]
     read: Option<Vec<String>>,
-    
+
     /// Write permission namespaces
     #[serde(default)]
     write: Option<Vec<String>>,
-    
+
     /// Delete permission namespaces
     #[serde(default)]
     delete: Option<Vec<String>>,
@@ -988,8 +1009,9 @@ filesystem.read = ["/app/data/*"]
         let parser = ComponentManifestParser::new();
         let result = parser.parse(toml);
         assert!(result.is_ok());
-        
-        let capability_set = result.expect("Parser should succeed for valid TOML with single filesystem capability");
+
+        let capability_set =
+            result.expect("Parser should succeed for valid TOML with single filesystem capability");
         let entries = capability_set.to_acl_entries("test-component");
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].resource_pattern, "/app/data/*");
@@ -1012,8 +1034,9 @@ filesystem.write = ["/app/data/*"]
         let parser = ComponentManifestParser::new();
         let result = parser.parse(toml);
         assert!(result.is_ok());
-        
-        let capability_set = result.expect("Parser should succeed for valid TOML with multiple filesystem permissions");
+
+        let capability_set = result
+            .expect("Parser should succeed for valid TOML with multiple filesystem permissions");
         let entries = capability_set.to_acl_entries("test-component");
         assert_eq!(entries.len(), 2);
     }
@@ -1067,8 +1090,9 @@ network.connect = ["api.example.com:443"]
         let parser = ComponentManifestParser::new();
         let result = parser.parse(toml);
         assert!(result.is_ok());
-        
-        let capability_set = result.expect("Parser should succeed for valid TOML with network capability");
+
+        let capability_set =
+            result.expect("Parser should succeed for valid TOML with network capability");
         let entries = capability_set.to_acl_entries("test-component");
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].resource_pattern, "api.example.com:443");
@@ -1124,8 +1148,9 @@ storage.read = ["component:<id>:config:*"]
         let parser = ComponentManifestParser::new();
         let result = parser.parse(toml);
         assert!(result.is_ok());
-        
-        let capability_set = result.expect("Parser should succeed for valid TOML with storage capability");
+
+        let capability_set =
+            result.expect("Parser should succeed for valid TOML with storage capability");
         let entries = capability_set.to_acl_entries("test-component");
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].resource_pattern, "component:<id>:config:*");
@@ -1146,7 +1171,10 @@ storage.read = ["invalid-namespace"]
 
         let parser = ComponentManifestParser::new();
         let result = parser.parse(toml);
-        assert!(matches!(result, Err(ParseError::InvalidStorageNamespace(_))));
+        assert!(matches!(
+            result,
+            Err(ParseError::InvalidStorageNamespace(_))
+        ));
     }
 
     /// Test rejecting empty pattern array.
@@ -1203,8 +1231,9 @@ storage.write = ["component:<id>:data:*"]
         let parser = ComponentManifestParser::new();
         let result = parser.parse(toml);
         assert!(result.is_ok());
-        
-        let capability_set = result.expect("Parser should succeed for valid complex TOML with multiple capabilities");
+
+        let capability_set = result
+            .expect("Parser should succeed for valid complex TOML with multiple capabilities");
         let entries = capability_set.to_acl_entries("complex-component");
         // 2 filesystem read + 1 filesystem write + 2 network connect + 1 storage read + 1 storage write = 7
         assert_eq!(entries.len(), 7);
@@ -1235,9 +1264,10 @@ version = "1.0.0"
         let parser = ComponentManifestParser::new();
         let result = parser.parse(toml);
         assert!(result.is_ok());
-        
-        let capability_set = result.expect("Parser should succeed for valid TOML with empty capabilities");
+
+        let capability_set =
+            result.expect("Parser should succeed for valid TOML with empty capabilities");
         let entries = capability_set.to_acl_entries("minimal-component");
-        assert_eq!(entries.len(), 0);  // No capabilities = deny-all
+        assert_eq!(entries.len(), 0); // No capabilities = deny-all
     }
 }

@@ -48,7 +48,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Step 1: Create trust configuration with trusted sources
     info!("📝 Step 1: Creating trust configuration...");
-    
+
     let config_content = r#"
 [trust]
 dev_mode = false
@@ -73,40 +73,38 @@ type = "local"
 path_pattern = "/opt/verified-components/*"
 description = "Pre-verified components"
 "#;
-    
+
     tokio::fs::write(&config_path, config_content).await?;
     info!("✅ Trust configuration created");
     info!("");
 
     // Step 2: Initialize approval workflow
     info!("🔧 Step 2: Initializing approval workflow...");
-    
+
     let trust_registry = Arc::new(TrustRegistry::from_config(&config_path).await?);
     let approval_store = Arc::new(ApprovalStore::new(temp_dir.path().join("approvals"))?);
     let workflow = ApprovalWorkflow::new(trust_registry, approval_store);
-    
+
     info!("✅ Approval workflow initialized");
     info!("");
 
     // Step 3: Test auto-approval for trusted Git source
     info!("🧪 Step 3: Testing auto-approval for trusted Git source...");
-    
+
     let source = ComponentSource::Git {
         url: "https://github.com/mycompany/data-processor".to_string(),
         branch: "main".to_string(),
         commit: "abc123def456".to_string(),
     };
-    
+
     let capabilities = WasmCapabilitySet::new();
-    
+
     let start = std::time::Instant::now();
-    let decision = workflow.request_approval(
-        "data-processor",
-        &source,
-        &capabilities,
-    ).await?;
+    let decision = workflow
+        .request_approval("data-processor", &source, &capabilities)
+        .await?;
     let elapsed = start.elapsed();
-    
+
     match &decision {
         ApprovalDecision::Approved { approver, .. } => {
             info!("✅ Component auto-approved!");
@@ -122,17 +120,15 @@ description = "Pre-verified components"
 
     // Step 4: Test auto-approval for trusted local source
     info!("🧪 Step 4: Testing auto-approval for trusted local source...");
-    
+
     let source = ComponentSource::Local {
         path: PathBuf::from("/opt/verified-components/logger"),
     };
-    
-    let decision = workflow.request_approval(
-        "logger",
-        &source,
-        &capabilities,
-    ).await?;
-    
+
+    let decision = workflow
+        .request_approval("logger", &source, &capabilities)
+        .await?;
+
     match &decision {
         ApprovalDecision::Approved { approver, .. } => {
             info!("✅ Component auto-approved!");
@@ -147,18 +143,16 @@ description = "Pre-verified components"
 
     // Step 5: Test auto-approval for signed component
     info!("🧪 Step 5: Testing auto-approval for signed component...");
-    
+
     let source = ComponentSource::Signed {
         public_key: "ed25519:AAAAC3NzaC1lZDI1NTE5AAAAIJ...".to_string(),
         signature: "signature123...".to_string(),
     };
-    
-    let decision = workflow.request_approval(
-        "analytics",
-        &source,
-        &capabilities,
-    ).await?;
-    
+
+    let decision = workflow
+        .request_approval("analytics", &source, &capabilities)
+        .await?;
+
     match &decision {
         ApprovalDecision::Approved { approver, .. } => {
             info!("✅ Component auto-approved!");

@@ -69,7 +69,7 @@ use super::component_supervisor::ComponentSupervisor;
 use crate::actor::message::MessageRouter;
 use crate::actor::supervisor::SupervisorConfig;
 use crate::actor::supervisor::SupervisorNodeWrapper;
-use crate::core::{ComponentId, ComponentMetadata, CapabilitySet, WasmError};
+use crate::core::{CapabilitySet, ComponentId, ComponentMetadata, WasmError};
 use airssys_rt::broker::MessageBroker;
 use airssys_rt::system::ActorSystem;
 use airssys_rt::util::ActorAddress;
@@ -275,9 +275,9 @@ impl<B: MessageBroker<ComponentMessage> + Clone + Send + Sync + 'static> Compone
 
         // 2. Inject MessageBroker bridge
         // Create broker wrapper and inject into actor
-        let broker_wrapper = Arc::new(
-            crate::actor::message::MessageBrokerWrapper::new(self.broker.clone())
-        );
+        let broker_wrapper = Arc::new(crate::actor::message::MessageBrokerWrapper::new(
+            self.broker.clone(),
+        ));
         actor.set_broker(broker_wrapper as Arc<dyn crate::actor::message::MessageBrokerBridge>);
 
         // 3. Spawn via ActorSystem (NOT tokio::spawn)
@@ -291,7 +291,8 @@ impl<B: MessageBroker<ComponentMessage> + Clone + Send + Sync + 'static> Compone
             .map_err(|e| {
                 WasmError::actor_error(format!(
                     "Failed to spawn component {}: {}",
-                    component_id.as_str(), e
+                    component_id.as_str(),
+                    e
                 ))
             })?;
 
@@ -301,7 +302,8 @@ impl<B: MessageBroker<ComponentMessage> + Clone + Send + Sync + 'static> Compone
             .map_err(|e| {
                 WasmError::internal(format!(
                     "Failed to register component {} in registry: {}",
-                    component_id.as_str(), e
+                    component_id.as_str(),
+                    e
                 ))
             })?;
 
@@ -352,18 +354,17 @@ impl<B: MessageBroker<ComponentMessage> + Clone + Send + Sync + 'static> Compone
         supervision_config: SupervisorConfig,
     ) -> Result<ComponentId, WasmError> {
         // Verify supervision is enabled
-        let supervisor = self
-            .supervisor
-            .as_ref()
-            .ok_or_else(|| WasmError::internal("Supervision not enabled - use with_supervision()"))?;
+        let supervisor = self.supervisor.as_ref().ok_or_else(|| {
+            WasmError::internal("Supervision not enabled - use with_supervision()")
+        })?;
 
         // 1. Create ComponentActor instance
         let mut actor = ComponentActor::new(component_id.clone(), metadata, capabilities, ());
 
         // 2. Inject MessageBroker bridge
-        let broker_wrapper = Arc::new(
-            crate::actor::message::MessageBrokerWrapper::new(self.broker.clone())
-        );
+        let broker_wrapper = Arc::new(crate::actor::message::MessageBrokerWrapper::new(
+            self.broker.clone(),
+        ));
         actor.set_broker(broker_wrapper as Arc<dyn crate::actor::message::MessageBrokerBridge>);
 
         // 3. Register with ComponentSupervisor (which registers with SupervisorNode)
@@ -386,8 +387,14 @@ impl<B: MessageBroker<ComponentMessage> + Clone + Send + Sync + 'static> Compone
 }
 
 #[cfg(test)]
-#[expect(clippy::expect_used, reason = "expect is acceptable in test code for clear error messages")]
-#[expect(clippy::panic, reason = "panic is acceptable in test code for assertion failures")]
+#[expect(
+    clippy::expect_used,
+    reason = "expect is acceptable in test code for clear error messages"
+)]
+#[expect(
+    clippy::panic,
+    reason = "panic is acceptable in test code for assertion failures"
+)]
 #[expect(clippy::unwrap_used, reason = "unwrap is acceptable in test code")]
 mod tests {
     use super::*;
@@ -440,21 +447,28 @@ mod tests {
         let actor_ref = spawner
             .spawn_component(component_id.clone(), wasm_path, metadata, capabilities)
             .await;
-        
-        assert!(actor_ref.is_ok(), "Failed to spawn component: {:?}", actor_ref.err());
+
+        assert!(
+            actor_ref.is_ok(),
+            "Failed to spawn component: {:?}",
+            actor_ref.err()
+        );
         let actor_ref = actor_ref.expect("spawn_component returned Ok but unwrap failed");
 
-    // 4. Verify ActorAddress returned
-    match actor_ref {
-        ActorAddress::Named { name, .. } => {
-            assert_eq!(name, component_id.as_str());
+        // 4. Verify ActorAddress returned
+        match actor_ref {
+            ActorAddress::Named { name, .. } => {
+                assert_eq!(name, component_id.as_str());
+            }
+            other => panic!("Expected named ActorAddress, got: {:?}", other),
         }
-        other => panic!("Expected named ActorAddress, got: {:?}", other),
-    }
 
         // 5. Verify component registered in registry
         let lookup_result = registry.lookup(&component_id);
-        assert!(lookup_result.is_ok(), "Component should be registered in registry");
+        assert!(
+            lookup_result.is_ok(),
+            "Component should be registered in registry"
+        );
     }
 
     #[tokio::test]
@@ -475,12 +489,21 @@ mod tests {
                 .spawn_component(component_id.clone(), wasm_path, metadata, capabilities)
                 .await;
 
-            assert!(result.is_ok(), "Failed to spawn component {}: {:?}", i, result.err());
-            
+            assert!(
+                result.is_ok(),
+                "Failed to spawn component {}: {:?}",
+                i,
+                result.err()
+            );
+
             // Verify registration
-            assert!(registry.lookup(&component_id).is_ok(), "Component {} should be registered", i);
+            assert!(
+                registry.lookup(&component_id).is_ok(),
+                "Component {} should be registered",
+                i
+            );
         }
-        
+
         // Verify all components registered
         assert_eq!(registry.count().unwrap(), 3);
     }

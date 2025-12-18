@@ -200,10 +200,7 @@ impl CorrelationTracker {
     ///     to: comp_b,
     /// }).await?;
     /// ```
-    pub async fn register_pending(
-        &self,
-        request: PendingRequest,
-    ) -> Result<(), WasmError> {
+    pub async fn register_pending(&self, request: PendingRequest) -> Result<(), WasmError> {
         let correlation_id = request.correlation_id;
         let timeout = request.timeout;
 
@@ -219,11 +216,8 @@ impl CorrelationTracker {
         self.pending.insert(correlation_id, request);
 
         // Register timeout handler
-        self.timeout_handler.register_timeout(
-            correlation_id,
-            timeout,
-            self.clone(),
-        );
+        self.timeout_handler
+            .register_timeout(correlation_id, timeout, self.clone());
 
         Ok(())
     }
@@ -259,11 +253,12 @@ impl CorrelationTracker {
         mut response: ResponseMessage,
     ) -> Result<(), WasmError> {
         // Remove from pending map (atomic operation)
-        let pending = self.pending.remove(&correlation_id)
-            .ok_or_else(|| WasmError::internal(format!(
-                "Correlation ID not found: {}",
-                correlation_id
-            )))?
+        let pending = self
+            .pending
+            .remove(&correlation_id)
+            .ok_or_else(|| {
+                WasmError::internal(format!("Correlation ID not found: {}", correlation_id))
+            })?
             .1; // DashMap::remove returns (key, value)
 
         // Cancel timeout (response arrived before timeout)
@@ -292,10 +287,7 @@ impl CorrelationTracker {
     /// # Returns
     ///
     /// Some(PendingRequest) if found and removed, None if already resolved
-    pub(crate) fn remove_pending(
-        &self,
-        correlation_id: &CorrelationId,
-    ) -> Option<PendingRequest> {
+    pub(crate) fn remove_pending(&self, correlation_id: &CorrelationId) -> Option<PendingRequest> {
         self.pending.remove(correlation_id).map(|(_, v)| v)
     }
 

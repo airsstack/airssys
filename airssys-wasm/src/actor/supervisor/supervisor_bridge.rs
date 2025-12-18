@@ -208,8 +208,7 @@ pub trait SupervisorNodeBridge: Send + Sync {
     ///     }
     /// }
     /// ```
-    fn get_component_state(&self, component_id: &ComponentId)
-        -> Option<ComponentSupervisionState>;
+    fn get_component_state(&self, component_id: &ComponentId) -> Option<ComponentSupervisionState>;
 
     /// Start all supervised components.
     ///

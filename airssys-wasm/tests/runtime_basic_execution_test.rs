@@ -48,7 +48,7 @@ fn build_wasm_from_wat(wat_filename: &str) -> Vec<u8> {
     let wat_path = fixtures_dir().join(wat_filename);
     let wat_source = std::fs::read_to_string(&wat_path)
         .unwrap_or_else(|e| panic!("Failed to read WAT fixture at {wat_path:?}: {e}"));
-    
+
     wat::parse_str(&wat_source)
         .unwrap_or_else(|e| panic!("Failed to compile WAT {wat_filename} to WASM: {e}"))
 }
@@ -56,7 +56,7 @@ fn build_wasm_from_wat(wat_filename: &str) -> Vec<u8> {
 #[tokio::test]
 async fn test_engine_initialization() {
     let result = WasmEngine::new();
-    
+
     assert!(
         result.is_ok(),
         "Engine initialization should succeed: {:?}",
@@ -68,16 +68,16 @@ async fn test_engine_initialization() {
 async fn test_load_valid_component() {
     let engine = WasmEngine::new().expect("Failed to create engine");
     let loader = ComponentLoader::new(&engine);
-    
+
     let wasm_bytes = build_wasm_from_wat("hello_world.wat");
     let result = loader.load_from_bytes(&wasm_bytes).await;
-    
+
     assert!(
         result.is_ok(),
         "Should successfully load hello world component: {:?}",
         result.err()
     );
-    
+
     let bytes = result.unwrap();
     assert!(!bytes.is_empty(), "Component bytes should not be empty");
     assert!(
@@ -90,14 +90,14 @@ async fn test_load_valid_component() {
 async fn test_load_invalid_component() {
     let engine = WasmEngine::new().expect("Failed to create engine");
     let loader = ComponentLoader::new(&engine);
-    
+
     let result = loader.load_from_file("nonexistent.wasm").await;
-    
+
     assert!(
         result.is_err(),
         "Should fail to load non-existent component"
     );
-    
+
     // Verify error message contains path
     if let Err(e) = result {
         let error_msg = e.to_string();
@@ -112,11 +112,11 @@ async fn test_load_invalid_component() {
 async fn test_component_validation() {
     let engine = WasmEngine::new().expect("Failed to create engine");
     let loader = ComponentLoader::new(&engine);
-    
+
     let bytes = build_wasm_from_wat("hello_world.wat");
-    
+
     let result = loader.validate(&bytes);
-    
+
     assert!(
         result.is_ok(),
         "Should validate valid component bytes: {:?}",
@@ -128,17 +128,17 @@ async fn test_component_validation() {
 async fn test_load_component_from_bytes() {
     let engine = WasmEngine::new().expect("Failed to create engine");
     let loader = ComponentLoader::new(&engine);
-    
+
     let wasm_bytes = build_wasm_from_wat("hello_world.wat");
-    
+
     let result = loader.load_from_bytes(&wasm_bytes).await;
-    
+
     assert!(
         result.is_ok(),
         "Should successfully load component from bytes: {:?}",
         result.err()
     );
-    
+
     let bytes = result.unwrap();
     assert!(!bytes.is_empty(), "Component bytes should not be empty");
     assert!(
@@ -151,15 +151,12 @@ async fn test_load_component_from_bytes() {
 async fn test_validate_invalid_bytes() {
     let engine = WasmEngine::new().expect("Failed to create engine");
     let loader = ComponentLoader::new(&engine);
-    
+
     let invalid_bytes = b"INVALID_WASM_DATA";
     let result = loader.validate(invalid_bytes);
-    
-    assert!(
-        result.is_err(),
-        "Should fail to validate invalid bytes"
-    );
-    
+
+    assert!(result.is_err(), "Should fail to validate invalid bytes");
+
     // Verify error message is descriptive
     if let Err(e) = result {
         let error_msg = e.to_string();
@@ -174,17 +171,17 @@ async fn test_validate_invalid_bytes() {
 async fn test_load_from_bytes_with_validation() {
     let engine = WasmEngine::new().expect("Failed to create engine");
     let loader = ComponentLoader::new(&engine);
-    
+
     let bytes = build_wasm_from_wat("hello_world.wat");
-    
+
     let result = loader.load_from_bytes(&bytes).await;
-    
+
     assert!(
         result.is_ok(),
         "Should load valid component from bytes: {:?}",
         result.err()
     );
-    
+
     let loaded_bytes = result.unwrap();
     assert_eq!(
         bytes.len(),

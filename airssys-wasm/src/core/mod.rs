@@ -164,55 +164,70 @@ pub mod capability;
 pub mod component;
 pub mod config;
 pub mod error;
-pub mod multicodec;  // Phase 1 Task 1.3: Multicodec support for message serialization
-pub mod rate_limiter;  // DEBT-WASM-004 Item #3: Rate limiting for message security
+pub mod multicodec; // Phase 1 Task 1.3: Multicodec support for message serialization
+pub mod rate_limiter; // DEBT-WASM-004 Item #3: Rate limiting for message security
 
 // Permission System (WASM-TASK-003 Phase 3 Task 3.2: Complete)
-pub mod permission;
 pub mod manifest;
+pub mod permission;
 pub mod permission_checker;
-pub mod permission_wit;  // WIT Permission Integration Layer
+pub mod permission_wit; // WIT Permission Integration Layer
 
 // Domain-Specific Abstractions (Phase 6+: Complete through Phase 9)
+pub mod actor; // Phase 7.1: Complete
+pub mod bridge; // Phase 10.1: Complete
 pub mod interface;
+pub mod lifecycle; // Phase 9.1: Complete
+pub mod management; // Phase 9.2: Complete
+pub mod messaging; // Phase 8.1: Complete
+pub mod observability;
 pub mod runtime;
-pub mod actor;  // Phase 7.1: Complete
-pub mod security;  // Phase 7.2: Complete
-pub mod messaging;  // Phase 8.1: Complete
-pub mod storage;  // Phase 8.2: Complete
-pub mod lifecycle;  // Phase 9.1: Complete
-pub mod management;  // Phase 9.2: Complete
-pub mod bridge;  // Phase 10.1: Complete
-pub mod observability;  // Phase 10.2: Complete
+pub mod security; // Phase 7.2: Complete
+pub mod storage; // Phase 8.2: Complete // Phase 10.2: Complete
 
 // Re-exports for public API
-pub use capability::{Capability, CapabilitySet, DomainPattern, NamespacePattern, PathPattern, TopicPattern};
-pub use component::{Component, ComponentConfig, ComponentId, ComponentInput, ComponentMetadata, ComponentOutput, ComponentState, InstallationSource, ResourceLimits};
+pub use actor::{ActorMessage, ActorMetadata, ActorState, SupervisionStrategy};
+pub use bridge::{CapabilityMapping, HostCallContext, HostFunction, HostFunctionCategory};
+pub use capability::{
+    Capability, CapabilitySet, DomainPattern, NamespacePattern, PathPattern, TopicPattern,
+};
+pub use component::{
+    Component, ComponentConfig, ComponentId, ComponentInput, ComponentMetadata, ComponentOutput,
+    ComponentState, InstallationSource, ResourceLimits,
+};
 pub use config::{
     ComponentConfigToml, ComponentMetadataToml, ConfigError, CpuConfigToml, MemoryConfigToml,
     ResourcesConfigToml, RuntimeConfig, SecurityConfig, SecurityMode,
-    StorageBackend as StorageBackendType, StorageConfig,
-    DEFAULT_MAX_MESSAGE_SIZE,
+    StorageBackend as StorageBackendType, StorageConfig, DEFAULT_MAX_MESSAGE_SIZE,
 };
 pub use error::{WasmError, WasmResult};
-pub use multicodec::{Codec, decode_multicodec, encode_multicodec};
-pub use rate_limiter::{MessageRateLimiter, RateLimiterConfig, DEFAULT_RATE_LIMIT};
-pub use permission::{PermissionManifest, FilesystemPermissions, NetworkPermissions, NetworkEndpoint, StoragePermissions};
-pub use manifest::{ComponentManifest, PackageInfo, RuntimeConfig as ManifestRuntimeConfig};
-pub use permission_checker::PermissionChecker;
-pub use permission_wit::{
-    WitComponentId, WitPermissionManifest, WitFilesystemPermissions, WitNetworkPermissions,
-    WitNetworkEndpoint, WitStoragePermissions, WitPermissionResult,
-    check_file_read_wit, check_file_write_wit, check_file_delete_wit,
-    check_directory_list_wit, check_network_outbound_wit, check_storage_access_wit,
-};
 pub use interface::{FunctionSignature, WitInterface};
-pub use runtime::{ComponentHandle, ExecutionContext, ExecutionState, ResourceUsage, RuntimeEngine};
-pub use actor::{ActorMessage, ActorMetadata, ActorState, SupervisionStrategy};
-pub use security::{IsolationBoundary, PermissionRequest, PermissionResult, SecurityContext, SecurityPolicy, TrustLevel};
-pub use messaging::{DeliveryGuarantee, MessageEnvelope, MessageType};
-pub use storage::{StorageBackend, StorageOperation};
 pub use lifecycle::{LifecycleEvent, LifecycleState, UpdateStrategy, VersionInfo};
 pub use management::{ComponentQuery, ComponentRegistry, InstallationMetadata, RegistryOperation};
-pub use bridge::{CapabilityMapping, HostCallContext, HostFunction, HostFunctionCategory};
-pub use observability::{EventSeverity, HealthStatus, Metric, MetricType, MetricsCollector, MetricsSnapshot, ObservabilityEvent};
+pub use manifest::{ComponentManifest, PackageInfo, RuntimeConfig as ManifestRuntimeConfig};
+pub use messaging::{DeliveryGuarantee, MessageEnvelope, MessageType};
+pub use multicodec::{decode_multicodec, encode_multicodec, Codec};
+pub use observability::{
+    EventSeverity, HealthStatus, Metric, MetricType, MetricsCollector, MetricsSnapshot,
+    ObservabilityEvent,
+};
+pub use permission::{
+    FilesystemPermissions, NetworkEndpoint, NetworkPermissions, PermissionManifest,
+    StoragePermissions,
+};
+pub use permission_checker::PermissionChecker;
+pub use permission_wit::{
+    check_directory_list_wit, check_file_delete_wit, check_file_read_wit, check_file_write_wit,
+    check_network_outbound_wit, check_storage_access_wit, WitComponentId, WitFilesystemPermissions,
+    WitNetworkEndpoint, WitNetworkPermissions, WitPermissionManifest, WitPermissionResult,
+    WitStoragePermissions,
+};
+pub use rate_limiter::{MessageRateLimiter, RateLimiterConfig, DEFAULT_RATE_LIMIT};
+pub use runtime::{
+    ComponentHandle, ExecutionContext, ExecutionState, ResourceUsage, RuntimeEngine,
+};
+pub use security::{
+    IsolationBoundary, PermissionRequest, PermissionResult, SecurityContext, SecurityPolicy,
+    TrustLevel,
+};
+pub use storage::{StorageBackend, StorageOperation};

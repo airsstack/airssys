@@ -93,12 +93,12 @@ use std::fmt;
 
 // Layer 2: Third-party crate imports
 use async_trait::async_trait;
-use tracing::{warn, debug, trace};
+use tracing::{debug, trace, warn};
 
 // Layer 3: Internal module imports
 use super::component_actor::{ActorState, ComponentActor, ComponentMessage, HealthStatus};
-use super::type_conversion::{prepare_wasm_params, extract_wasm_results};
-use crate::core::{WasmError, decode_multicodec, encode_multicodec};
+use super::type_conversion::{extract_wasm_results, prepare_wasm_params};
+use crate::core::{decode_multicodec, encode_multicodec, WasmError};
 use airssys_rt::actor::{Actor, ActorContext};
 use airssys_rt::broker::MessageBroker;
 use airssys_rt::message::Message;
@@ -210,9 +210,9 @@ where
         _ctx: &mut ActorContext<Self::Message, B>,
     ) -> Result<(), Self::Error> {
         // PHASE 5 TASK 5.2: Lifecycle hooks and event callbacks integration
-        use std::time::Instant;
         use chrono::Utc;
-        
+        use std::time::Instant;
+
         let start_time = Instant::now();
         let component_id_clone = self.component_id().clone();
 
@@ -770,7 +770,7 @@ where
 
         // PHASE 5 TASK 5.2: Post-processing with event callbacks and error hooks
         let latency = start_time.elapsed();
-        
+
         match &process_result {
             Ok(()) => {
                 // Fire success event callback with latency
@@ -833,7 +833,7 @@ where
         let component_id_str = self.component_id().as_str().to_string();
         let state = self.state().clone();
         let wasm_loaded = self.is_wasm_loaded();
-        
+
         debug!(
             component_id = %component_id_str,
             state = ?state,
@@ -869,7 +869,7 @@ where
         // 2. Verify WASM runtime cleanup completed
 
         let component_id_str = self.component_id().as_str().to_string();
-        
+
         debug!(
             component_id = %component_id_str,
             "Actor post_stop called, transitioning to Terminated"
@@ -883,10 +883,15 @@ where
 
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "unwrap is acceptable in test code")]
-#[expect(clippy::panic, reason = "panic in match arms validates correct enum variant")]
+#[expect(
+    clippy::panic,
+    reason = "panic in match arms validates correct enum variant"
+)]
 mod tests {
     use super::*;
-    use crate::core::{ComponentId, ComponentMetadata, CapabilitySet, ResourceLimits, encode_multicodec, Codec};
+    use crate::core::{
+        encode_multicodec, CapabilitySet, Codec, ComponentId, ComponentMetadata, ResourceLimits,
+    };
     use airssys_rt::supervisor::Child;
 
     fn create_test_metadata() -> ComponentMetadata {

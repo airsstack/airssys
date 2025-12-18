@@ -16,9 +16,18 @@
 //!
 //! - **WASM-TASK-004 Phase 2 Task 2.1**: ComponentSpawner Implementation
 
-#![expect(clippy::expect_used, reason = "expect is acceptable in test code for clear error messages")]
-#![expect(clippy::panic, reason = "panic is acceptable in test code for assertion failures")]
-#![expect(clippy::expect_fun_call, reason = "format! in expect is acceptable in test code")]
+#![expect(
+    clippy::expect_used,
+    reason = "expect is acceptable in test code for clear error messages"
+)]
+#![expect(
+    clippy::panic,
+    reason = "panic is acceptable in test code for assertion failures"
+)]
+#![expect(
+    clippy::expect_fun_call,
+    reason = "format! in expect is acceptable in test code"
+)]
 
 // Layer 1: Standard library imports
 use std::path::PathBuf;
@@ -28,11 +37,11 @@ use std::time::Instant;
 // (none)
 
 // Layer 3: Internal module imports
-use airssys_wasm::actor::{ComponentSpawner, ComponentRegistry};
-use airssys_wasm::core::{ComponentId, ComponentMetadata, CapabilitySet, ResourceLimits};
 use airssys_rt::broker::InMemoryMessageBroker;
 use airssys_rt::system::{ActorSystem, SystemConfig};
 use airssys_rt::util::ActorAddress;
+use airssys_wasm::actor::{ComponentRegistry, ComponentSpawner};
+use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits};
 
 /// Create test component metadata with standard resource limits.
 fn create_test_metadata(name: &str) -> ComponentMetadata {
@@ -43,10 +52,10 @@ fn create_test_metadata(name: &str) -> ComponentMetadata {
         description: Some("Test component".to_string()),
         required_capabilities: vec![],
         resource_limits: ResourceLimits {
-            max_memory_bytes: 64 * 1024 * 1024,    // 64MB
-            max_fuel: 1_000_000,                    // 1M fuel
-            max_execution_ms: 5000,                 // 5s timeout
-            max_storage_bytes: 10 * 1024 * 1024,   // 10MB storage
+            max_memory_bytes: 64 * 1024 * 1024,  // 64MB
+            max_fuel: 1_000_000,                 // 1M fuel
+            max_execution_ms: 5000,              // 5s timeout
+            max_storage_bytes: 10 * 1024 * 1024, // 10MB storage
         },
     }
 }
@@ -67,12 +76,7 @@ async fn test_spawn_component_via_actor_system() {
     let capabilities = CapabilitySet::new();
 
     let actor_ref = spawner
-        .spawn_component(
-            component_id.clone(),
-            wasm_path,
-            metadata,
-            capabilities,
-        )
+        .spawn_component(component_id.clone(), wasm_path, metadata, capabilities)
         .await
         .expect("Failed to spawn component");
 
@@ -248,7 +252,9 @@ async fn test_spawn_component_naming() {
 
         // Verify name preserved
         match actor_ref {
-            ActorAddress::Named { name: addr_name, .. } => {
+            ActorAddress::Named {
+                name: addr_name, ..
+            } => {
                 assert_eq!(addr_name, name);
             }
             _ => panic!("Expected named ActorAddress for '{}'", name),
@@ -272,10 +278,10 @@ async fn test_spawn_with_different_resource_limits() {
         description: None,
         required_capabilities: vec![],
         resource_limits: ResourceLimits {
-            max_memory_bytes: 1024 * 1024,      // 1MB
-            max_fuel: 100_000,                   // 100K fuel
-            max_execution_ms: 1000,              // 1s timeout
-            max_storage_bytes: 1024 * 1024,     // 1MB storage
+            max_memory_bytes: 1024 * 1024,  // 1MB
+            max_fuel: 100_000,              // 100K fuel
+            max_execution_ms: 1000,         // 1s timeout
+            max_storage_bytes: 1024 * 1024, // 1MB storage
         },
     };
     let capabilities = CapabilitySet::new();
@@ -295,10 +301,10 @@ async fn test_spawn_with_different_resource_limits() {
         description: None,
         required_capabilities: vec![],
         resource_limits: ResourceLimits {
-            max_memory_bytes: 512 * 1024 * 1024,   // 512MB
-            max_fuel: 10_000_000,                   // 10M fuel
-            max_execution_ms: 60_000,               // 60s timeout
-            max_storage_bytes: 100 * 1024 * 1024,  // 100MB storage
+            max_memory_bytes: 512 * 1024 * 1024,  // 512MB
+            max_fuel: 10_000_000,                 // 10M fuel
+            max_execution_ms: 60_000,             // 60s timeout
+            max_storage_bytes: 100 * 1024 * 1024, // 100MB storage
         },
     };
     let capabilities = CapabilitySet::new();

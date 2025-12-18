@@ -38,12 +38,14 @@ use tokio::sync::Mutex;
 use tokio::time::sleep;
 
 // Layer 3: Internal module imports
-use airssys_wasm::actor::{ActorState, ComponentActor, ComponentMessage, HealthStatus};
+use airssys_rt::supervisor::Child;
 use airssys_wasm::actor::lifecycle::{
     EventCallback, HookResult, LifecycleContext, LifecycleHooks, RestartReason,
 };
-use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits, WasmError};
-use airssys_rt::supervisor::Child;
+use airssys_wasm::actor::{ActorState, ComponentActor, ComponentMessage, HealthStatus};
+use airssys_wasm::core::{
+    CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits, WasmError,
+};
 
 // ==============================================================================
 // Test Helpers
@@ -201,11 +203,18 @@ impl LifecycleHooks for OrderedTrackingHooks {
         HookResult::Ok
     }
 
-    fn on_message_received(&mut self, _ctx: &LifecycleContext, _msg: &ComponentMessage) -> HookResult {
+    fn on_message_received(
+        &mut self,
+        _ctx: &LifecycleContext,
+        _msg: &ComponentMessage,
+    ) -> HookResult {
         self.on_message_called.fetch_add(1, Ordering::SeqCst);
         let order_clone = Arc::clone(&self.execution_order);
         tokio::spawn(async move {
-            order_clone.lock().await.push("on_message_received".to_string());
+            order_clone
+                .lock()
+                .await
+                .push("on_message_received".to_string());
         });
         HookResult::Ok
     }
@@ -376,7 +385,11 @@ fn assert_hooks_called_in_order(execution_order: &[String], expected_order: &[&s
         execution_order
     );
 
-    for (i, (actual, expected)) in execution_order.iter().zip(expected_order.iter()).enumerate() {
+    for (i, (actual, expected)) in execution_order
+        .iter()
+        .zip(expected_order.iter())
+        .enumerate()
+    {
         assert_eq!(
             actual, expected,
             "Hook execution order mismatch at position {}. Expected '{}', got '{}'",
@@ -438,12 +451,8 @@ async fn test_complete_lifecycle_spawn_to_termination() {
     let metadata = create_test_metadata("lifecycle-complete-test");
     let caps = CapabilitySet::new();
 
-    let mut actor: ComponentActor<()> = ComponentActor::new(
-        component_id.clone(),
-        metadata,
-        caps,
-        (),
-    );
+    let mut actor: ComponentActor<()> =
+        ComponentActor::new(component_id.clone(), metadata, caps, ());
 
     let hooks = OrderedTrackingHooks::new();
     let pre_start_counter = Arc::clone(&hooks.pre_start_called);
@@ -452,7 +461,11 @@ async fn test_complete_lifecycle_spawn_to_termination() {
     actor.set_lifecycle_hooks(Box::new(hooks));
 
     // Verify initial state
-    assert_eq!(*actor.state(), ActorState::Creating, "Component should start in Creating state");
+    assert_eq!(
+        *actor.state(),
+        ActorState::Creating,
+        "Component should start in Creating state"
+    );
 
     // Act: Attempt start (will fail without WASM storage, but hooks execute)
     let _start_result = actor.start().await;
@@ -474,8 +487,10 @@ async fn test_complete_lifecycle_spawn_to_termination() {
 
     // Assert: Component should attempt cleanup even if not fully started
     // (stop() is idempotent and safe to call in any state)
-    assert!(stop_result.is_ok() || stop_result.is_err(), 
-        "stop() should complete without panic");
+    assert!(
+        stop_result.is_ok() || stop_result.is_err(),
+        "stop() should complete without panic"
+    );
 }
 
 /// Test lifecycle hooks execution order during complete flow.
@@ -491,12 +506,8 @@ async fn test_lifecycle_with_hooks_execution_order() {
     let metadata = create_test_metadata("hooks-order-test");
     let caps = CapabilitySet::new();
 
-    let mut actor: ComponentActor<()> = ComponentActor::new(
-        component_id.clone(),
-        metadata,
-        caps,
-        (),
-    );
+    let mut actor: ComponentActor<()> =
+        ComponentActor::new(component_id.clone(), metadata, caps, ());
 
     let hooks = OrderedTrackingHooks::new();
     let execution_order_ref = Arc::clone(&hooks.execution_order);
@@ -519,7 +530,7 @@ async fn test_lifecycle_with_hooks_execution_order() {
 
     // Assert: Verify hook execution order
     let order = execution_order_ref.lock().await.clone();
-    
+
     // Verify pre_start is first
     if !order.is_empty() {
         assert_eq!(order[0], "pre_start", "First hook should be pre_start");
@@ -557,28 +568,30 @@ async fn test_lifecycle_with_custom_state_persistence() {
         lifecycle_phase: "initialized".to_string(),
     };
 
-    let actor: ComponentActor<LifecycleTestState> = ComponentActor::new(
-        component_id.clone(),
-        metadata,
-        caps,
-        initial_state,
-    );
+    let actor: ComponentActor<LifecycleTestState> =
+        ComponentActor::new(component_id.clone(), metadata, caps, initial_state);
 
     // Act: Simulate lifecycle state changes with state mutations
-    actor.with_state_mut(|state| {
-        state.lifecycle_phase = "starting".to_string();
-    }).await;
+    actor
+        .with_state_mut(|state| {
+            state.lifecycle_phase = "starting".to_string();
+        })
+        .await;
 
     // Verify state persists
-    let phase = actor.with_state(|state| state.lifecycle_phase.clone()).await;
+    let phase = actor
+        .with_state(|state| state.lifecycle_phase.clone())
+        .await;
     assert_eq!(phase, "starting", "State should persist after mutation");
 
     // Act: Simulate 10 messages with state updates
     for i in 0..10 {
-        actor.with_state_mut(|state| {
-            state.message_count += 1;
-            state.last_message = format!("message_{}", i);
-        }).await;
+        actor
+            .with_state_mut(|state| {
+                state.message_count += 1;
+                state.last_message = format!("message_{}", i);
+            })
+            .await;
     }
 
     // Assert: Verify state accumulated correctly
@@ -589,16 +602,26 @@ async fn test_lifecycle_with_custom_state_persistence() {
     assert_eq!(last_msg, "message_9", "Last message should be message_9");
 
     // Act: Simulate shutdown
-    actor.with_state_mut(|state| {
-        state.lifecycle_phase = "stopped".to_string();
-    }).await;
+    actor
+        .with_state_mut(|state| {
+            state.lifecycle_phase = "stopped".to_string();
+        })
+        .await;
 
     // Assert: Verify final state
-    let final_phase = actor.with_state(|state| state.lifecycle_phase.clone()).await;
-    assert_eq!(final_phase, "stopped", "Final lifecycle phase should be stopped");
+    let final_phase = actor
+        .with_state(|state| state.lifecycle_phase.clone())
+        .await;
+    assert_eq!(
+        final_phase, "stopped",
+        "Final lifecycle phase should be stopped"
+    );
 
     let final_count_after = actor.with_state(|state| state.message_count).await;
-    assert_eq!(final_count_after, 10, "Message count should remain 10 after shutdown");
+    assert_eq!(
+        final_count_after, 10,
+        "Message count should remain 10 after shutdown"
+    );
 }
 
 // ==============================================================================
@@ -630,20 +653,27 @@ async fn test_lifecycle_with_component_error_handling() {
     // since we can't set hooks after actor creation without mut
 
     // Act: Simulate error during processing
-    actor.with_state_mut(|state| {
-        state.errors.push("Simulated WASM trap".to_string());
-    }).await;
+    actor
+        .with_state_mut(|state| {
+            state.errors.push("Simulated WASM trap".to_string());
+        })
+        .await;
 
     // Assert: Verify error was recorded in state
     let errors = actor.with_state(|state| state.errors.clone()).await;
     assert_eq!(errors.len(), 1, "Should have one error recorded");
-    assert_eq!(errors[0], "Simulated WASM trap", "Error message should match");
+    assert_eq!(
+        errors[0], "Simulated WASM trap",
+        "Error message should match"
+    );
 
     // Act: Continue operations after error (component still functional)
-    actor.with_state_mut(|state| {
-        state.message_count += 1;
-        state.last_message = "post_error_message".to_string();
-    }).await;
+    actor
+        .with_state_mut(|state| {
+            state.message_count += 1;
+            state.last_message = "post_error_message".to_string();
+        })
+        .await;
 
     // Assert: Component continues functioning
     let count = actor.with_state(|state| state.message_count).await;
@@ -675,30 +705,53 @@ async fn test_lifecycle_with_health_monitoring_callbacks() {
     actor.set_event_callback(Arc::new(callback));
 
     // Act: Simulate health degradation via state tracking
-    actor.with_state_mut(|state| {
-        state.lifecycle_phase = "degraded".to_string();
-        state.errors.push("Simulated health degradation".to_string());
-    }).await;
+    actor
+        .with_state_mut(|state| {
+            state.lifecycle_phase = "degraded".to_string();
+            state
+                .errors
+                .push("Simulated health degradation".to_string());
+        })
+        .await;
 
     // Assert: Health degradation tracked in state
-    let phase = actor.with_state(|state| state.lifecycle_phase.clone()).await;
-    assert_eq!(phase, "degraded", "Lifecycle phase should indicate degradation");
+    let phase = actor
+        .with_state(|state| state.lifecycle_phase.clone())
+        .await;
+    assert_eq!(
+        phase, "degraded",
+        "Lifecycle phase should indicate degradation"
+    );
 
     let errors = actor.with_state(|state| state.errors.clone()).await;
-    assert_eq!(errors.len(), 1, "Should have one error recorded for health degradation");
+    assert_eq!(
+        errors.len(),
+        1,
+        "Should have one error recorded for health degradation"
+    );
 
     // Act: Simulate recovery
-    actor.with_state_mut(|state| {
-        state.lifecycle_phase = "healthy".to_string();
-        state.errors.clear();
-    }).await;
+    actor
+        .with_state_mut(|state| {
+            state.lifecycle_phase = "healthy".to_string();
+            state.errors.clear();
+        })
+        .await;
 
     // Assert: Health recovered
-    let recovered_phase = actor.with_state(|state| state.lifecycle_phase.clone()).await;
-    assert_eq!(recovered_phase, "healthy", "Lifecycle phase should recover to healthy");
+    let recovered_phase = actor
+        .with_state(|state| state.lifecycle_phase.clone())
+        .await;
+    assert_eq!(
+        recovered_phase, "healthy",
+        "Lifecycle phase should recover to healthy"
+    );
 
     let recovered_errors = actor.with_state(|state| state.errors.len()).await;
-    assert_eq!(recovered_errors, 0, "Errors should be cleared after recovery");
+    assert_eq!(
+        recovered_errors, 0,
+        "Errors should be cleared after recovery"
+    );
 
     // Note: Actual health_changed callback triggering requires supervisor integration
     // This test validates the callback API and state-based health tracking
@@ -730,28 +783,37 @@ async fn test_lifecycle_with_restart_after_errors() {
 
     // Act: Simulate restart scenario (in real system, supervisor triggers restart)
     // Here we simulate by tracking restart state
-    actor.with_state_mut(|state| {
-        state.lifecycle_phase = "restarting".to_string();
-        state.message_count = 0; // Reset on restart
-        state.errors.clear();
-    }).await;
+    actor
+        .with_state_mut(|state| {
+            state.lifecycle_phase = "restarting".to_string();
+            state.message_count = 0; // Reset on restart
+            state.errors.clear();
+        })
+        .await;
 
     // Assert: State was reset
-    let phase = actor.with_state(|state| state.lifecycle_phase.clone()).await;
+    let phase = actor
+        .with_state(|state| state.lifecycle_phase.clone())
+        .await;
     assert_eq!(phase, "restarting", "Lifecycle phase should be restarting");
 
     let count = actor.with_state(|state| state.message_count).await;
     assert_eq!(count, 0, "Message count should be reset to 0 after restart");
 
     // Act: Resume operations after restart
-    actor.with_state_mut(|state| {
-        state.lifecycle_phase = "running".to_string();
-        state.message_count += 1;
-    }).await;
+    actor
+        .with_state_mut(|state| {
+            state.lifecycle_phase = "running".to_string();
+            state.message_count += 1;
+        })
+        .await;
 
     // Assert: Component operational after restart
     let final_count = actor.with_state(|state| state.message_count).await;
-    assert_eq!(final_count, 1, "Component should process messages after restart");
+    assert_eq!(
+        final_count, 1,
+        "Component should process messages after restart"
+    );
 }
 
 // ==============================================================================
@@ -778,12 +840,8 @@ async fn test_concurrent_component_spawns() {
             let metadata = create_test_metadata(&format!("concurrent-spawn-{}", i));
             let caps = CapabilitySet::new();
 
-            let actor: ComponentActor<()> = ComponentActor::new(
-                component_id.clone(),
-                metadata,
-                caps,
-                (),
-            );
+            let actor: ComponentActor<()> =
+                ComponentActor::new(component_id.clone(), metadata, caps, ());
 
             // Verify component created successfully
             assert_eq!(*actor.state(), ActorState::Creating);
@@ -799,7 +857,11 @@ async fn test_concurrent_component_spawns() {
     }
 
     // Assert: All components created successfully
-    assert_eq!(results.len(), component_count, "All components should be created");
+    assert_eq!(
+        results.len(),
+        component_count,
+        "All components should be created"
+    );
 
     let mut component_ids = std::collections::HashSet::new();
     for result in results.into_iter().flatten() {
@@ -826,13 +888,13 @@ async fn test_concurrent_lifecycle_operations() {
     // Arrange: Create 10 components for concurrent operations
     let component_count = 10;
     let operations_per_component = 10;
-    
+
     let actors: Vec<_> = (0..component_count)
         .map(|i| {
             let component_id = ComponentId::new(format!("concurrent-ops-{}", i));
             let metadata = create_test_metadata(&format!("concurrent-ops-{}", i));
             let caps = CapabilitySet::new();
-            
+
             Arc::new(ComponentActor::new(
                 component_id,
                 metadata,
@@ -850,10 +912,12 @@ async fn test_concurrent_lifecycle_operations() {
         for op_num in 0..operations_per_component {
             let actor_clone = Arc::clone(actor);
             let handle = tokio::spawn(async move {
-                actor_clone.with_state_mut(|state| {
-                    state.message_count += 1;
-                    state.last_message = format!("operation_{}", op_num);
-                }).await;
+                actor_clone
+                    .with_state_mut(|state| {
+                        state.message_count += 1;
+                        state.last_message = format!("operation_{}", op_num);
+                    })
+                    .await;
             });
             handles.push(handle);
         }
@@ -902,12 +966,8 @@ async fn test_lifecycle_rapid_spawn_stop_cycles() {
         let metadata = create_test_metadata(&format!("rapid-cycle-{}", i));
         let caps = CapabilitySet::new();
 
-        let mut actor: ComponentActor<()> = ComponentActor::new(
-            component_id.clone(),
-            metadata,
-            caps,
-            (),
-        );
+        let mut actor: ComponentActor<()> =
+            ComponentActor::new(component_id.clone(), metadata, caps, ());
 
         // Simulate lifecycle
         let _ = actor.start().await; // May fail, but we test stability

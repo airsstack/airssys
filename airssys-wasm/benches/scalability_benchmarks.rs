@@ -22,14 +22,12 @@ use std::sync::Arc;
 use std::time::Duration;
 
 // Layer 2: Third-party crate imports
-use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId, Throughput};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 
 // Layer 3: Internal module imports
 use airssys_rt::util::ActorAddress;
 use airssys_wasm::actor::{ComponentActor, ComponentRegistry};
-use airssys_wasm::core::{
-    CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits,
-};
+use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits};
 
 /// Helper: Create test metadata
 fn create_test_metadata(name: &str) -> ComponentMetadata {
@@ -40,10 +38,10 @@ fn create_test_metadata(name: &str) -> ComponentMetadata {
         description: Some("Benchmark test component".to_string()),
         required_capabilities: vec![],
         resource_limits: ResourceLimits {
-            max_memory_bytes: 64 * 1024 * 1024,  // 64MB
+            max_memory_bytes: 64 * 1024 * 1024, // 64MB
             max_fuel: 1_000_000,
             max_execution_ms: 5000,
-            max_storage_bytes: 10 * 1024 * 1024,  // 10MB
+            max_storage_bytes: 10 * 1024 * 1024, // 10MB
         },
     }
 }
@@ -73,9 +71,7 @@ fn bench_registry_lookup_scale(c: &mut Criterion) {
         let target = ComponentId::new(format!("component-{}", size / 2));
 
         group.bench_with_input(BenchmarkId::from_parameter(size), size, |b, _| {
-            b.iter(|| {
-                black_box(registry.lookup(black_box(&target)))
-            });
+            b.iter(|| black_box(registry.lookup(black_box(&target))));
         });
     }
 
@@ -136,9 +132,7 @@ fn bench_registry_concurrent_lookup(c: &mut Criterion) {
                 let registry_clone = registry.clone();
                 let target = ComponentId::new(format!("component-{}", i * 10));
 
-                let handle = tokio::spawn(async move {
-                    black_box(registry_clone.lookup(&target))
-                });
+                let handle = tokio::spawn(async move { black_box(registry_clone.lookup(&target)) });
 
                 handles.push(handle);
             }

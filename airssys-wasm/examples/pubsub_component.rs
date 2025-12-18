@@ -53,7 +53,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("  ✓ Registered and subscribed: subscriber-{}", i);
     }
 
-    println!("\n✓ All {} subscribers registered and subscribed\n", subscribers.len());
+    println!(
+        "\n✓ All {} subscribers registered and subscribed\n",
+        subscribers.len()
+    );
 
     // Step 3: Simulate publishing events
     println!("--- Publishing Events ---");
@@ -78,7 +81,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 );
             }
 
-            println!("  ✓ Published (fanout to {} subscribers)", topic_subscribers.len());
+            println!(
+                "  ✓ Published (fanout to {} subscribers)",
+                topic_subscribers.len()
+            );
         }
 
         // Simulate delivery delay
@@ -88,7 +94,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Step 4: Verify subscriber registration
     println!("\n--- Verifying Subscribers ---");
     println!("Registered components: {}", registry.count()?);
-    println!("Subscribers to '{}': {}", topic, topic_subscriptions.get(&topic).map(|v| v.len()).unwrap_or(0));
+    println!(
+        "Subscribers to '{}': {}",
+        topic,
+        topic_subscriptions
+            .get(&topic)
+            .map(|v| v.len())
+            .unwrap_or(0)
+    );
 
     for (subscriber_id, _) in &subscribers {
         println!("  ✓ {} is registered", subscriber_id.as_str());

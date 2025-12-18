@@ -12,8 +12,8 @@ use std::time::{Duration, Instant};
 // Layer 3: Internal module imports
 use airssys_wasm::actor::{
     ExponentialBackoff, ExponentialBackoffConfig, HealthDecision, HealthMonitor,
-    MonitorHealthStatus, RestartReason, RestartTracker, SlidingWindowConfig,
-    SlidingWindowLimiter, WindowLimitResult,
+    MonitorHealthStatus, RestartReason, RestartTracker, SlidingWindowConfig, SlidingWindowLimiter,
+    WindowLimitResult,
 };
 
 /// Test exponential backoff delay calculation with no jitter.
@@ -155,10 +155,7 @@ fn test_restart_tracker_history() {
     let mut tracker = RestartTracker::new();
 
     // Record some restarts
-    tracker.record_restart(
-        RestartReason::ComponentFailure,
-        Duration::from_millis(100),
-    );
+    tracker.record_restart(RestartReason::ComponentFailure, Duration::from_millis(100));
     std::thread::sleep(Duration::from_millis(10)); // Necessary: differentiate Instant timestamps
 
     tracker.record_restart(RestartReason::HealthCheckFailed, Duration::from_millis(200));
@@ -204,10 +201,7 @@ fn test_restart_tracker_circular_buffer_overflow() {
 
     // Record 150 restarts (exceeds 100 limit)
     for _ in 0..150 {
-        tracker.record_restart(
-            RestartReason::ComponentFailure,
-            Duration::from_millis(100),
-        );
+        tracker.record_restart(RestartReason::ComponentFailure, Duration::from_millis(100));
     }
 
     // Verify only last 100 are kept
@@ -234,10 +228,7 @@ fn test_restart_tracker_reset_on_recovery() {
     let mut tracker = RestartTracker::new();
 
     // Record some restarts
-    tracker.record_restart(
-        RestartReason::ComponentFailure,
-        Duration::from_millis(100),
-    );
+    tracker.record_restart(RestartReason::ComponentFailure, Duration::from_millis(100));
     tracker.record_restart(RestartReason::HealthCheckFailed, Duration::from_millis(200));
 
     assert_eq!(tracker.total_restarts(), 2, "Should have 2 restarts");

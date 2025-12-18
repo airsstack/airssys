@@ -31,8 +31,14 @@
 //! - **KNOWLEDGE-WASM-016**: Actor System Integration Implementation Guide
 //! - **WASM-TASK-004 Phase 6 Task 6.1 Checkpoint 3**: Edge Cases and Failures
 
-#![allow(clippy::unwrap_used, reason = "unwrap is acceptable in test code for clear error messages")]
-#![allow(clippy::expect_used, reason = "expect is acceptable in test code for clear error messages")]
+#![allow(
+    clippy::unwrap_used,
+    reason = "unwrap is acceptable in test code for clear error messages"
+)]
+#![allow(
+    clippy::expect_used,
+    reason = "expect is acceptable in test code for clear error messages"
+)]
 
 // Layer 1: Standard library imports
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -43,11 +49,9 @@ use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
 
 // Layer 3: Internal module imports
-use airssys_wasm::actor::{
-    ActorState, ComponentActor, ComponentRegistry,
-};
-use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits};
 use airssys_rt::supervisor::Child;
+use airssys_wasm::actor::{ActorState, ComponentActor, ComponentRegistry};
+use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits};
 
 // ==============================================================================
 // Test Helpers
@@ -181,15 +185,15 @@ async fn test_component_spawn_with_insufficient_memory() {
     );
 
     // Act: Create component with tight limits (will succeed, WASM load would fail)
-    let actor: ComponentActor<()> = ComponentActor::new(
-        component_id.clone(),
-        metadata.clone(),
-        caps,
-        (),
-    );
+    let actor: ComponentActor<()> =
+        ComponentActor::new(component_id.clone(), metadata.clone(), caps, ());
 
     // Assert: Component created with low limits
-    assert_eq!(*actor.state(), ActorState::Creating, "Component should be in Creating state");
+    assert_eq!(
+        *actor.state(),
+        ActorState::Creating,
+        "Component should be in Creating state"
+    );
 
     // Verify low limit was configured correctly (can't access metadata directly, but we know it was passed)
     // In production, Child::start() would fail with WasmError::ResourceLimitExceeded
@@ -220,28 +224,36 @@ async fn test_message_processing_with_fuel_exhaustion() {
 
     // Verify low fuel limit
     assert_eq!(
-        metadata.resource_limits.max_fuel,
-        1_000,
+        metadata.resource_limits.max_fuel, 1_000,
         "Fuel limit should be 1,000"
     );
 
     // Act: Simulate processing that would require >1000 fuel
-    actor.with_state_mut(|state| {
-        state.phase = "processing_expensive_operation".to_string();
-        // In production, this would trigger WASM trap (out of fuel)
-        // We simulate the error path
-        state.error_count += 1;
-        state.last_error = "Simulated fuel exhaustion".to_string();
-    }).await;
+    actor
+        .with_state_mut(|state| {
+            state.phase = "processing_expensive_operation".to_string();
+            // In production, this would trigger WASM trap (out of fuel)
+            // We simulate the error path
+            state.error_count += 1;
+            state.last_error = "Simulated fuel exhaustion".to_string();
+        })
+        .await;
 
     // Assert: Error recorded in state
     let state = actor.with_state(|s| s.clone()).await;
-    assert_eq!(state.error_count, 1, "Should have 1 error (fuel exhaustion)");
+    assert_eq!(
+        state.error_count, 1,
+        "Should have 1 error (fuel exhaustion)"
+    );
     assert_eq!(state.last_error, "Simulated fuel exhaustion");
 
     // In production, supervisor would detect failure and potentially restart
     // Verify component remains in valid state (not panicked)
-    assert_eq!(*actor.state(), ActorState::Creating, "Component should remain in valid state");
+    assert_eq!(
+        *actor.state(),
+        ActorState::Creating,
+        "Component should remain in valid state"
+    );
 }
 
 /// Test concurrent spawn limit enforcement (1000 components).
@@ -268,17 +280,13 @@ async fn test_concurrent_spawn_limit_enforcement() {
             let metadata = create_test_metadata(&format!("bulk-spawn-{}", i));
             let caps = CapabilitySet::new();
 
-            let actor: ComponentActor<()> = ComponentActor::new(
-                component_id.clone(),
-                metadata,
-                caps,
-                (),
-            );
+            let actor: ComponentActor<()> =
+                ComponentActor::new(component_id.clone(), metadata, caps, ());
 
             // Verify component created
             assert_eq!(*actor.state(), ActorState::Creating);
             counter_clone.fetch_add(1, Ordering::SeqCst);
-            
+
             component_id
         });
         handles.push(handle);
@@ -349,11 +357,13 @@ async fn test_component_panic_during_message_handling() {
     );
 
     // Act: Simulate panic scenario (in production, would be catch_unwind)
-    actor.with_state_mut(|state| {
-        state.error_count += 1;
-        state.last_error = "Simulated panic in message handler".to_string();
-        state.phase = "panic_handled".to_string();
-    }).await;
+    actor
+        .with_state_mut(|state| {
+            state.error_count += 1;
+            state.last_error = "Simulated panic in message handler".to_string();
+            state.phase = "panic_handled".to_string();
+        })
+        .await;
 
     // Assert: Error recorded, component still functional
     let state = actor.with_state(|s| s.clone()).await;
@@ -362,18 +372,27 @@ async fn test_component_panic_during_message_handling() {
     assert_eq!(state.phase, "panic_handled");
 
     // Act: Continue processing after panic
-    actor.with_state_mut(|state| {
-        state.success_count += 1;
-        state.phase = "operational_after_panic".to_string();
-    }).await;
+    actor
+        .with_state_mut(|state| {
+            state.success_count += 1;
+            state.phase = "operational_after_panic".to_string();
+        })
+        .await;
 
     // Assert: Component operational after panic
     let final_state = actor.with_state(|s| s.clone()).await;
-    assert_eq!(final_state.success_count, 1, "Component should process successfully after panic");
+    assert_eq!(
+        final_state.success_count, 1,
+        "Component should process successfully after panic"
+    );
     assert_eq!(final_state.phase, "operational_after_panic");
 
     // Verify component didn't crash
-    assert_eq!(*actor.state(), ActorState::Creating, "Component should remain in valid state");
+    assert_eq!(
+        *actor.state(),
+        ActorState::Creating,
+        "Component should remain in valid state"
+    );
 }
 
 /// Test supervisor handling rapid component crashes.
@@ -400,11 +419,13 @@ async fn test_supervisor_handles_rapid_component_crashes() {
     // Act: Simulate 5 rapid crashes
     let crash_count = 5;
     for i in 0..crash_count {
-        actor.with_state_mut(|state| {
-            state.error_count += 1;
-            state.last_error = format!("Crash #{}", i + 1);
-            state.phase = format!("crash_{}", i + 1);
-        }).await;
+        actor
+            .with_state_mut(|state| {
+                state.error_count += 1;
+                state.last_error = format!("Crash #{}", i + 1);
+                state.phase = format!("crash_{}", i + 1);
+            })
+            .await;
 
         // Brief delay between crashes (simulating restart backoff)
         tokio::time::sleep(Duration::from_millis(10)).await;
@@ -419,7 +440,11 @@ async fn test_supervisor_handles_rapid_component_crashes() {
     );
 
     // Verify component still exists (supervisor didn't give up)
-    assert_eq!(*actor.state(), ActorState::Creating, "Component should remain trackable");
+    assert_eq!(
+        *actor.state(),
+        ActorState::Creating,
+        "Component should remain trackable"
+    );
 
     // In production, RestartTracker would track:
     // - restart_count (5)
@@ -459,52 +484,79 @@ async fn test_cascading_failures_in_component_chain() {
     );
 
     // Set initial states
-    component_a.with_state_mut(|state| {
-        state.phase = "healthy".to_string();
-        state.success_count = 10;
-    }).await;
+    component_a
+        .with_state_mut(|state| {
+            state.phase = "healthy".to_string();
+            state.success_count = 10;
+        })
+        .await;
 
-    component_b.with_state_mut(|state| {
-        state.phase = "healthy".to_string();
-        state.success_count = 10;
-    }).await;
+    component_b
+        .with_state_mut(|state| {
+            state.phase = "healthy".to_string();
+            state.success_count = 10;
+        })
+        .await;
 
-    component_c.with_state_mut(|state| {
-        state.phase = "healthy".to_string();
-        state.success_count = 10;
-    }).await;
+    component_c
+        .with_state_mut(|state| {
+            state.phase = "healthy".to_string();
+            state.success_count = 10;
+        })
+        .await;
 
     // Act: Component C crashes
-    component_c.with_state_mut(|state| {
-        state.error_count += 1;
-        state.last_error = "Component C crashed".to_string();
-        state.phase = "crashed".to_string();
-    }).await;
+    component_c
+        .with_state_mut(|state| {
+            state.error_count += 1;
+            state.last_error = "Component C crashed".to_string();
+            state.phase = "crashed".to_string();
+        })
+        .await;
 
     // Assert: Only C affected, A and B unaffected (isolation)
     let state_a = component_a.with_state(|s| s.clone()).await;
     assert_eq!(state_a.error_count, 0, "Component A should have no errors");
-    assert_eq!(state_a.phase, "healthy", "Component A should remain healthy");
-    assert_eq!(state_a.success_count, 10, "Component A operations unaffected");
+    assert_eq!(
+        state_a.phase, "healthy",
+        "Component A should remain healthy"
+    );
+    assert_eq!(
+        state_a.success_count, 10,
+        "Component A operations unaffected"
+    );
 
     let state_b = component_b.with_state(|s| s.clone()).await;
     assert_eq!(state_b.error_count, 0, "Component B should have no errors");
-    assert_eq!(state_b.phase, "healthy", "Component B should remain healthy");
-    assert_eq!(state_b.success_count, 10, "Component B operations unaffected");
+    assert_eq!(
+        state_b.phase, "healthy",
+        "Component B should remain healthy"
+    );
+    assert_eq!(
+        state_b.success_count, 10,
+        "Component B operations unaffected"
+    );
 
     let state_c = component_c.with_state(|s| s.clone()).await;
     assert_eq!(state_c.error_count, 1, "Component C should have 1 error");
-    assert_eq!(state_c.phase, "crashed", "Component C should be in crashed state");
+    assert_eq!(
+        state_c.phase, "crashed",
+        "Component C should be in crashed state"
+    );
     assert_eq!(state_c.last_error, "Component C crashed");
 
     // Verify isolation: A and B can continue operating while C is crashed
-    component_a.with_state_mut(|state| {
-        state.success_count += 1;
-    }).await;
+    component_a
+        .with_state_mut(|state| {
+            state.success_count += 1;
+        })
+        .await;
 
-    component_b.with_state_mut(|state| {
-        state.success_count += 1;
-    }).await;
+    component_b
+        .with_state_mut(|state| {
+            state.success_count += 1;
+        })
+        .await;
 
     let final_a = component_a.with_state(|s| s.success_count).await;
     let final_b = component_b.with_state(|s| s.success_count).await;
@@ -531,28 +583,21 @@ async fn test_zero_components_system_behavior() {
 
     // Assert: Registry starts empty
     assert_eq!(
-        registry.count().unwrap(), 0,
+        registry.count().unwrap(),
+        0,
         "Registry should have 0 components initially"
     );
 
     // Act: System operations with zero components (should not crash)
     // Verify registry remains stable
-    assert_eq!(
-        registry.count().unwrap(), 0,
-        "Registry should remain empty"
-    );
+    assert_eq!(registry.count().unwrap(), 0, "Registry should remain empty");
 
     // Act: Spawn one component (transition 0 → 1)
     let component_id = ComponentId::new("first-component");
     let metadata = create_test_metadata("first-component");
     let caps = CapabilitySet::new();
 
-    let actor: ComponentActor<()> = ComponentActor::new(
-        component_id.clone(),
-        metadata,
-        caps,
-        (),
-    );
+    let actor: ComponentActor<()> = ComponentActor::new(component_id.clone(), metadata, caps, ());
 
     // Assert: Component created successfully
     assert_eq!(*actor.state(), ActorState::Creating);
@@ -586,12 +631,8 @@ async fn test_maximum_component_count_stress_test() {
             let metadata = create_test_metadata(&format!("stress-{}", i));
             let caps = CapabilitySet::new();
 
-            let _actor: ComponentActor<()> = ComponentActor::new(
-                component_id.clone(),
-                metadata,
-                caps,
-                (),
-            );
+            let _actor: ComponentActor<()> =
+                ComponentActor::new(component_id.clone(), metadata, caps, ());
 
             counter_clone.fetch_add(1, Ordering::SeqCst);
             component_id
@@ -658,12 +699,8 @@ async fn test_component_shutdown_cleans_all_resources() {
     let metadata = create_test_metadata("cleanup-test-component");
     let caps = CapabilitySet::new();
 
-    let mut actor: ComponentActor<()> = ComponentActor::new(
-        component_id.clone(),
-        metadata,
-        caps,
-        (),
-    );
+    let mut actor: ComponentActor<()> =
+        ComponentActor::new(component_id.clone(), metadata, caps, ());
 
     // Simulate resource allocation
     tracker.allocate("resource_1".to_string()).await;
@@ -671,7 +708,11 @@ async fn test_component_shutdown_cleans_all_resources() {
     tracker.allocate("resource_3".to_string()).await;
 
     // Verify resources allocated
-    assert_eq!(tracker.active_count().await, 3, "Should have 3 active resources");
+    assert_eq!(
+        tracker.active_count().await,
+        3,
+        "Should have 3 active resources"
+    );
     assert_eq!(tracker.leak_count(), 3, "Should have 3 unfreed resources");
 
     // Act: Shutdown component
@@ -687,12 +728,19 @@ async fn test_component_shutdown_cleans_all_resources() {
     tracker.deallocate("resource_3").await;
 
     // Assert: All resources cleaned up
-    assert_eq!(tracker.active_count().await, 0, "Should have 0 active resources after cleanup");
+    assert_eq!(
+        tracker.active_count().await,
+        0,
+        "Should have 0 active resources after cleanup"
+    );
     assert_eq!(tracker.leak_count(), 0, "Should have 0 resource leaks");
 
     // Verify component state
     assert!(
-        matches!(*actor.state(), ActorState::Stopping | ActorState::Terminated),
+        matches!(
+            *actor.state(),
+            ActorState::Stopping | ActorState::Terminated
+        ),
         "Component should be stopped"
     );
 }
@@ -724,24 +772,33 @@ async fn test_system_shutdown_with_active_components() {
         );
 
         // Simulate active processing
-        actor.with_state_mut(|state| {
-            state.success_count = 10;
-            state.phase = "processing".to_string();
-        }).await;
+        actor
+            .with_state_mut(|state| {
+                state.success_count = 10;
+                state.phase = "processing".to_string();
+            })
+            .await;
 
         components.push(actor);
     }
 
     // Verify all components active
-    assert_eq!(components.len(), component_count, "Should have {} components", component_count);
+    assert_eq!(
+        components.len(),
+        component_count,
+        "Should have {} components",
+        component_count
+    );
 
     // Act: Simulate system shutdown signal to all components
     let shutdown_start = Instant::now();
     for component in &mut components {
         // Signal shutdown (in production, ActorSystem would send shutdown message)
-        component.with_state_mut(|state| {
-            state.phase = "shutting_down".to_string();
-        }).await;
+        component
+            .with_state_mut(|state| {
+                state.phase = "shutting_down".to_string();
+            })
+            .await;
     }
     let shutdown_elapsed = shutdown_start.elapsed();
 

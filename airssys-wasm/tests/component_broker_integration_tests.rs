@@ -64,7 +64,11 @@ async fn test_component_publish_via_broker() {
         .await;
 
     // Verify: Component spawned successfully
-    assert!(actor_ref.is_ok(), "Component spawn should succeed: {:?}", actor_ref.err());
+    assert!(
+        actor_ref.is_ok(),
+        "Component spawn should succeed: {:?}",
+        actor_ref.err()
+    );
 
     // Note: Cannot test actual publish without access to actor instance
     // This test verifies broker injection happens without errors
@@ -89,7 +93,11 @@ async fn test_spawner_broker_injection() {
         .await;
 
     // Verify: Spawn succeeds (broker injected)
-    assert!(result.is_ok(), "Spawn with broker injection should succeed: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Spawn with broker injection should succeed: {:?}",
+        result.err()
+    );
 }
 
 #[tokio::test]
@@ -99,7 +107,7 @@ async fn test_component_subscribe_lifecycle() {
     let metadata = create_test_metadata();
     let capabilities = CapabilitySet::new();
 
-    let mut actor = ComponentActor::new(component_id.clone(), metadata, capabilities,());
+    let mut actor = ComponentActor::new(component_id.clone(), metadata, capabilities, ());
 
     // Inject broker
     let broker = InMemoryMessageBroker::new();
@@ -110,7 +118,11 @@ async fn test_component_subscribe_lifecycle() {
     let subscribe_result = actor.subscribe_topic("test-topic").await;
 
     // Verify: Subscribe succeeds
-    assert!(subscribe_result.is_ok(), "Subscribe should succeed: {:?}", subscribe_result.err());
+    assert!(
+        subscribe_result.is_ok(),
+        "Subscribe should succeed: {:?}",
+        subscribe_result.err()
+    );
 
     // Note: Cannot test receive/unsubscribe without message sending infrastructure
     // This test verifies subscribe works after broker injection
@@ -162,7 +174,7 @@ async fn test_broker_not_configured_error() {
     let metadata = create_test_metadata();
     let capabilities = CapabilitySet::new();
 
-    let actor = ComponentActor::new(component_id, metadata, capabilities,());
+    let actor = ComponentActor::new(component_id, metadata, capabilities, ());
 
     // Test: Try to publish without broker
     let message = ComponentMessage::HealthCheck;
@@ -173,7 +185,8 @@ async fn test_broker_not_configured_error() {
     if let Err(e) = result {
         let error_str = e.to_string();
         assert!(
-            error_str.contains("MessageBroker not configured") || error_str.contains("BrokerNotConfigured"),
+            error_str.contains("MessageBroker not configured")
+                || error_str.contains("BrokerNotConfigured"),
             "Error should indicate broker not configured: {}",
             error_str
         );

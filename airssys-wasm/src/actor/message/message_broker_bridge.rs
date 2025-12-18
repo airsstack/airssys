@@ -128,11 +128,7 @@ pub trait MessageBrokerBridge: Send + Sync {
     ///     Ok(())
     /// }
     /// ```
-    async fn publish(
-        &self,
-        topic: &str,
-        message: ComponentMessage,
-    ) -> Result<(), WasmError>;
+    async fn publish(&self, topic: &str, message: ComponentMessage) -> Result<(), WasmError>;
 
     /// Subscribe to topic.
     ///
@@ -191,10 +187,7 @@ pub trait MessageBrokerBridge: Send + Sync {
     ///     Ok(())
     /// }
     /// ```
-    async fn unsubscribe(
-        &self,
-        handle: SubscriptionHandle,
-    ) -> Result<(), WasmError>;
+    async fn unsubscribe(&self, handle: SubscriptionHandle) -> Result<(), WasmError>;
 
     /// Get current subscriptions for component.
     ///
@@ -220,10 +213,7 @@ pub trait MessageBrokerBridge: Send + Sync {
     ///     Ok(topics)
     /// }
     /// ```
-    async fn subscriptions(
-        &self,
-        component_id: &ComponentId,
-    ) -> Result<Vec<String>, WasmError>;
+    async fn subscriptions(&self, component_id: &ComponentId) -> Result<Vec<String>, WasmError>;
 }
 
 /// Concrete implementation wrapping airssys-rt MessageBroker.
@@ -291,23 +281,17 @@ impl<B: MessageBroker<ComponentMessage>> MessageBrokerWrapper<B> {
 }
 
 #[async_trait]
-impl<B: MessageBroker<ComponentMessage> + Send + Sync> MessageBrokerBridge for MessageBrokerWrapper<B> {
-    async fn publish(
-        &self,
-        _topic: &str,
-        message: ComponentMessage,
-    ) -> Result<(), WasmError> {
+impl<B: MessageBroker<ComponentMessage> + Send + Sync> MessageBrokerBridge
+    for MessageBrokerWrapper<B>
+{
+    async fn publish(&self, _topic: &str, message: ComponentMessage) -> Result<(), WasmError> {
         // Wrap in MessageEnvelope
         let envelope = MessageEnvelope::new(message);
 
         // Delegate to Layer 3 MessageBroker
-        self.broker
-            .publish(envelope)
-            .await
-            .map_err(|e| WasmError::message_broker_error(format!(
-                "Failed to publish message: {}",
-                e
-            )))
+        self.broker.publish(envelope).await.map_err(|e| {
+            WasmError::message_broker_error(format!("Failed to publish message: {}", e))
+        })
     }
 
     async fn subscribe(
@@ -316,13 +300,10 @@ impl<B: MessageBroker<ComponentMessage> + Send + Sync> MessageBrokerBridge for M
         component_id: &ComponentId,
     ) -> Result<SubscriptionHandle, WasmError> {
         // Subscribe to Layer 3 broker
-        let _stream = self.broker
-            .subscribe()
-            .await
-            .map_err(|e| WasmError::message_broker_error(format!(
-                "Failed to subscribe: {}",
-                e
-            )))?;
+        let _stream =
+            self.broker.subscribe().await.map_err(|e| {
+                WasmError::message_broker_error(format!("Failed to subscribe: {}", e))
+            })?;
 
         // Create subscription handle
         let handle = SubscriptionHandle::new(topic, component_id.clone());
@@ -334,20 +315,15 @@ impl<B: MessageBroker<ComponentMessage> + Send + Sync> MessageBrokerBridge for M
         Ok(handle)
     }
 
-    async fn unsubscribe(
-        &self,
-        handle: SubscriptionHandle,
-    ) -> Result<(), WasmError> {
+    async fn unsubscribe(&self, handle: SubscriptionHandle) -> Result<(), WasmError> {
         // Remove from tracking
         let mut tracker = self.subscription_tracker.write().await;
-        tracker.remove_subscription(&handle)
+        tracker
+            .remove_subscription(&handle)
             .map_err(WasmError::internal)
     }
 
-    async fn subscriptions(
-        &self,
-        component_id: &ComponentId,
-    ) -> Result<Vec<String>, WasmError> {
+    async fn subscriptions(&self, component_id: &ComponentId) -> Result<Vec<String>, WasmError> {
         let tracker = self.subscription_tracker.read().await;
         Ok(tracker.get_subscriptions(component_id))
     }
@@ -541,7 +517,7 @@ mod tests {
     fn test_subscription_tracker_multiple_topics() {
         let mut tracker = SubscriptionTracker::new();
         let component_id = ComponentId::new("test-component");
-        
+
         let handle1 = SubscriptionHandle::new("topic-1", component_id.clone());
         let handle2 = SubscriptionHandle::new("topic-2", component_id.clone());
 

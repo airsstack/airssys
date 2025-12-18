@@ -284,7 +284,7 @@ impl ActorMetadata {
 mod tests {
     use super::*;
     use serde_json;
-    use std::collections::HashMap;  // Local to tests for metadata
+    use std::collections::HashMap; // Local to tests for metadata
 
     #[test]
     fn test_actor_message_creation() {
@@ -392,7 +392,7 @@ mod tests {
     #[allow(clippy::expect_used)]
     fn test_actor_message_serialization() {
         use std::collections::HashMap;
-        
+
         let msg = ActorMessage::fire_and_forget(
             ComponentId::new("sender"),
             ComponentId::new("receiver"),
@@ -407,7 +407,8 @@ mod tests {
         assert_eq!(json["from"], "sender");
         assert_eq!(json["to"], "receiver");
 
-        let deserialized: ActorMessage = serde_json::from_value(json).expect("deserialization should succeed");
+        let deserialized: ActorMessage =
+            serde_json::from_value(json).expect("deserialization should succeed");
         assert_eq!(deserialized.from.as_str(), "sender");
     }
 
@@ -429,7 +430,8 @@ mod tests {
         assert_eq!(json["state"], "Ready");
         assert_eq!(json["restart_count"], 1);
 
-        let deserialized: ActorMetadata = serde_json::from_value(json).expect("deserialization should succeed");
+        let deserialized: ActorMetadata =
+            serde_json::from_value(json).expect("deserialization should succeed");
         assert_eq!(deserialized.actor_id, "actor-001");
         assert_eq!(deserialized.state, ActorState::Ready);
     }

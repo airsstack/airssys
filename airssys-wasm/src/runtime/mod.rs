@@ -80,8 +80,7 @@ pub use async_host::{
 };
 pub use engine::WasmEngine;
 pub use limits::{
-    ComponentResourceLimiter, MemoryConfig, MemoryMetrics, ResourceLimits,
-    ResourceLimitsBuilder,
+    ComponentResourceLimiter, MemoryConfig, MemoryMetrics, ResourceLimits, ResourceLimitsBuilder,
 };
 pub use loader::ComponentLoader;
 pub use store_manager::StoreWrapper;

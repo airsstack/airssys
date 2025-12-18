@@ -33,8 +33,16 @@ read = ["/data/**", "/config/*.json", "/etc/myapp/app.toml"]
 
     let manifest = ComponentManifest::from_toml_str(toml).unwrap();
     assert_eq!(manifest.permissions.filesystem.read.len(), 3);
-    assert!(manifest.permissions.filesystem.read.contains(&"/data/**".to_string()));
-    assert!(manifest.permissions.filesystem.read.contains(&"/config/*.json".to_string()));
+    assert!(manifest
+        .permissions
+        .filesystem
+        .read
+        .contains(&"/data/**".to_string()));
+    assert!(manifest
+        .permissions
+        .filesystem
+        .read
+        .contains(&"/config/*.json".to_string()));
 }
 
 #[test]
@@ -92,22 +100,34 @@ outbound = [
     assert_eq!(manifest.permissions.network.outbound.len(), 3);
 
     // Check exact match
-    assert!(manifest.permissions.network.outbound.contains(&NetworkEndpoint {
-        host: "api.example.com".to_string(),
-        port: 443,
-    }));
+    assert!(manifest
+        .permissions
+        .network
+        .outbound
+        .contains(&NetworkEndpoint {
+            host: "api.example.com".to_string(),
+            port: 443,
+        }));
 
     // Check wildcard
-    assert!(manifest.permissions.network.outbound.contains(&NetworkEndpoint {
-        host: "*.cdn.example.com".to_string(),
-        port: 443,
-    }));
+    assert!(manifest
+        .permissions
+        .network
+        .outbound
+        .contains(&NetworkEndpoint {
+            host: "*.cdn.example.com".to_string(),
+            port: 443,
+        }));
 
     // Check IP address
-    assert!(manifest.permissions.network.outbound.contains(&NetworkEndpoint {
-        host: "192.168.1.100".to_string(),
-        port: 8080,
-    }));
+    assert!(manifest
+        .permissions
+        .network
+        .outbound
+        .contains(&NetworkEndpoint {
+            host: "192.168.1.100".to_string(),
+            port: 8080,
+        }));
 }
 
 #[test]

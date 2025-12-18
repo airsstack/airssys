@@ -4,8 +4,7 @@
 //! SupervisorNode (Layer 3) for automatic component restart.
 
 use airssys_wasm::actor::{
-    ComponentSupervisor, HealthRestartConfig, SupervisorConfig,
-    SupervisorNodeWrapper,
+    ComponentSupervisor, HealthRestartConfig, SupervisorConfig, SupervisorNodeWrapper,
 };
 use airssys_wasm::core::ComponentId;
 use std::sync::Arc;
@@ -24,7 +23,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Example 2: Register components with different restart policies
     println!("Example 2: Restart Policies");
-    
+
     println!("  Permanent Policy (always restart):");
     let permanent_id = ComponentId::new("permanent-component");
     let config_permanent = SupervisorConfig::permanent()
@@ -50,13 +49,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Example 3: Health-based restart configuration
     println!("Example 3: Health-Based Restart Configuration");
     let health_config = HealthRestartConfig::new(
-        Duration::from_secs(30),  // Check every 30 seconds
-        3,                        // Restart after 3 consecutive failures
-        true,                     // Enable health-based restart
+        Duration::from_secs(30), // Check every 30 seconds
+        3,                       // Restart after 3 consecutive failures
+        true,                    // Enable health-based restart
     );
-    println!("  ✓ Health config: check_interval={:?}, failure_threshold={}", 
-             health_config.interval(), health_config.threshold());
-    println!("  ✓ Health-based restart enabled: {}\n", health_config.is_enabled());
+    println!(
+        "  ✓ Health config: check_interval={:?}, failure_threshold={}",
+        health_config.interval(),
+        health_config.threshold()
+    );
+    println!(
+        "  ✓ Health-based restart enabled: {}\n",
+        health_config.is_enabled()
+    );
 
     // Example 4: Supervision statistics
     println!("Example 4: Supervision Statistics");
@@ -64,7 +69,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  Total supervised: {}", stats.total_supervised);
     println!("  Currently running: {}", stats.currently_running);
     println!("  Failed components: {}", stats.failed_components);
-    println!("  Total restart attempts: {}\n", stats.total_restart_attempts);
+    println!(
+        "  Total restart attempts: {}\n",
+        stats.total_restart_attempts
+    );
 
     // Example 5: Layer separation demonstration
     println!("Example 5: Architecture - Three-Layer Separation");

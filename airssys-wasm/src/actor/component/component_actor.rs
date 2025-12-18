@@ -84,9 +84,7 @@ use tokio::sync::RwLock;
 use wasmtime::{Engine, Instance, Store};
 
 // Layer 3: Internal module imports
-use crate::core::{
-    CapabilitySet, ComponentId, ComponentMetadata, WasmError,
-};
+use crate::core::{CapabilitySet, ComponentId, ComponentMetadata, WasmError};
 
 /// WASM runtime managing Wasmtime engine, store, and component instance.
 ///
@@ -268,7 +266,7 @@ impl wasmtime::ResourceLimiter for ComponentResourceLimiter {
         _maximum: Option<usize>,
     ) -> anyhow::Result<bool> {
         let new_total = current.saturating_add(desired) as u64;
-        
+
         if new_total <= self.max_memory {
             self.current_memory.store(new_total, Ordering::Relaxed);
             Ok(true)
@@ -315,7 +313,10 @@ impl WasmExports {
     ///     // Component has _start export
     /// }
     /// ```
-    pub fn extract(instance: &Instance, store: &mut Store<ComponentResourceLimiter>) -> Result<Self, WasmError> {
+    pub fn extract(
+        instance: &Instance,
+        store: &mut Store<ComponentResourceLimiter>,
+    ) -> Result<Self, WasmError> {
         Ok(Self {
             start: instance.get_func(&mut *store, "_start"),
             cleanup: instance.get_func(&mut *store, "_cleanup"),
@@ -352,12 +353,9 @@ impl WasmExports {
         store: &mut Store<ComponentResourceLimiter>,
     ) -> Result<(), WasmError> {
         if let Some(func) = start_fn {
-            func
-                .call_async(store, &[], &mut [])
-                .await
-                .map_err(|e| WasmError::execution_failed(
-                    format!("Component _start function failed: {e}")
-                ))?;
+            func.call_async(store, &[], &mut []).await.map_err(|e| {
+                WasmError::execution_failed(format!("Component _start function failed: {e}"))
+            })?;
         }
         Ok(())
     }
@@ -393,17 +391,14 @@ impl WasmExports {
         timeout: Duration,
     ) -> Result<(), WasmError> {
         if let Some(func) = cleanup_fn {
-            match tokio::time::timeout(
-                timeout,
-                func.call_async(store, &[], &mut [])
-            ).await {
+            match tokio::time::timeout(timeout, func.call_async(store, &[], &mut [])).await {
                 Ok(Ok(())) => Ok(()),
-                Ok(Err(e)) => Err(WasmError::execution_failed(
-                    format!("Component _cleanup function failed: {e}")
-                )),
+                Ok(Err(e)) => Err(WasmError::execution_failed(format!(
+                    "Component _cleanup function failed: {e}"
+                ))),
                 Err(_) => Err(WasmError::execution_timeout(
                     timeout.as_millis() as u64,
-                    None
+                    None,
                 )),
             }
         } else {
@@ -443,7 +438,7 @@ impl WasmRuntime {
         instance: Instance,
     ) -> Result<Self, WasmError> {
         let exports = WasmExports::extract(&instance, &mut store)?;
-        
+
         Ok(Self {
             engine,
             store,
@@ -918,7 +913,7 @@ impl borsh::BorshDeserialize for HealthStatus {
             )),
         }
     }
-    
+
     fn deserialize_reader<R: std::io::Read>(reader: &mut R) -> std::io::Result<Self> {
         let mut buf = Vec::new();
         reader.read_to_end(&mut buf)?;
@@ -1180,8 +1175,7 @@ where
     /// assert_eq!(actor.uptime(), None);
     /// ```
     pub fn uptime(&self) -> Option<chrono::Duration> {
-        self.started_at
-            .map(|started| Utc::now() - started)
+        self.started_at.map(|started| Utc::now() - started)
     }
 
     /// Load WASM component bytes from storage.
@@ -1229,7 +1223,7 @@ where
                 0x01, 0x00, 0x00, 0x00, // Version: 1
             ])
         }
-        
+
         // Production mode: Return error until Block 6 is implemented
         #[cfg(not(test))]
         Err(WasmError::component_not_found(format!(
@@ -1340,10 +1334,11 @@ where
         topic: &str,
         message: ComponentMessage,
     ) -> Result<(), WasmError> {
-        let broker = self.broker.as_ref()
-            .ok_or_else(|| WasmError::broker_not_configured(
-                "MessageBroker not configured - call set_broker() first"
-            ))?;
+        let broker = self.broker.as_ref().ok_or_else(|| {
+            WasmError::broker_not_configured(
+                "MessageBroker not configured - call set_broker() first",
+            )
+        })?;
 
         broker.publish(topic, message).await
     }
@@ -1382,10 +1377,11 @@ where
         &mut self,
         topic: &str,
     ) -> Result<crate::actor::message::SubscriptionHandle, WasmError> {
-        let broker = self.broker.as_ref()
-            .ok_or_else(|| WasmError::broker_not_configured(
-                "MessageBroker not configured - call set_broker() first"
-            ))?;
+        let broker = self.broker.as_ref().ok_or_else(|| {
+            WasmError::broker_not_configured(
+                "MessageBroker not configured - call set_broker() first",
+            )
+        })?;
 
         broker.subscribe(topic, &self.component_id).await
     }
@@ -1471,17 +1467,18 @@ where
         target: &ComponentId,
         payload: Vec<u8>,
         timeout: std::time::Duration,
-    ) -> Result<tokio::sync::oneshot::Receiver<crate::actor::message::ResponseMessage>, WasmError> {
+    ) -> Result<tokio::sync::oneshot::Receiver<crate::actor::message::ResponseMessage>, WasmError>
+    {
         use crate::actor::message::{CorrelationId, RequestMessage};
         use tokio::sync::oneshot;
         use tokio::time::Instant;
 
         // Verify correlation tracker configured
-        let tracker = self.correlation_tracker
-            .as_ref()
-            .ok_or_else(|| WasmError::internal(
-                "CorrelationTracker not configured - call set_correlation_tracker() first"
-            ))?;
+        let tracker = self.correlation_tracker.as_ref().ok_or_else(|| {
+            WasmError::internal(
+                "CorrelationTracker not configured - call set_correlation_tracker() first",
+            )
+        })?;
 
         // Generate correlation ID
         let correlation_id = CorrelationId::new_v4();
@@ -1567,11 +1564,11 @@ where
         use chrono::Utc;
 
         // Verify correlation tracker configured
-        let tracker = self.correlation_tracker
-            .as_ref()
-            .ok_or_else(|| WasmError::internal(
-                "CorrelationTracker not configured - call set_correlation_tracker() first"
-            ))?;
+        let tracker = self.correlation_tracker.as_ref().ok_or_else(|| {
+            WasmError::internal(
+                "CorrelationTracker not configured - call set_correlation_tracker() first",
+            )
+        })?;
 
         // Create response message
         let response = ResponseMessage {
@@ -1809,7 +1806,10 @@ where
     /// let mut actor = ComponentActor::new(/* ... */);
     /// actor.set_event_callback(Arc::new(MyCallback));
     /// ```
-    pub fn set_event_callback(&mut self, callback: Arc<dyn crate::actor::lifecycle::EventCallback>) {
+    pub fn set_event_callback(
+        &mut self,
+        callback: Arc<dyn crate::actor::lifecycle::EventCallback>,
+    ) {
         self.event_callback = Some(callback);
     }
 
@@ -1935,12 +1935,17 @@ where
     /// }
     /// ```
     #[doc(hidden)]
-    pub fn check_message_security(&self, msg: &ComponentMessage) -> Result<(), crate::core::WasmError> {
+    pub fn check_message_security(
+        &self,
+        msg: &ComponentMessage,
+    ) -> Result<(), crate::core::WasmError> {
         use crate::core::WasmError;
 
         match msg {
-            ComponentMessage::InterComponent { sender, payload } |
-            ComponentMessage::InterComponentWithCorrelation { sender, payload, .. } => {
+            ComponentMessage::InterComponent { sender, payload }
+            | ComponentMessage::InterComponentWithCorrelation {
+                sender, payload, ..
+            } => {
                 let component_id_str = self.component_id().as_str();
                 let sender_str = sender.as_str();
 
@@ -1952,9 +1957,9 @@ where
                     );
                     return Err(WasmError::capability_denied(
                         crate::core::capability::Capability::Messaging(
-                            crate::core::capability::TopicPattern::new("*")
+                            crate::core::capability::TopicPattern::new("*"),
                         ),
-                        error_msg
+                        error_msg,
                     ));
                 }
 
@@ -1968,12 +1973,12 @@ where
                 if !self.rate_limiter().check_rate_limit(sender) {
                     return Err(WasmError::rate_limit_exceeded(
                         sender_str.to_string(),
-                        crate::core::rate_limiter::DEFAULT_RATE_LIMIT
+                        crate::core::rate_limiter::DEFAULT_RATE_LIMIT,
                     ));
                 }
 
                 Ok(())
-            },
+            }
             _ => {
                 // Other message types don't have security checks
                 Ok(())
@@ -2230,11 +2235,14 @@ mod tests {
 
         let json = serde_json::to_string(&health);
         assert!(json.is_ok(), "Failed to serialize HealthStatus: {json:?}");
-        
+
         if let Ok(json) = json {
             let deserialized: Result<HealthStatus, _> = serde_json::from_str(&json);
-            assert!(deserialized.is_ok(), "Failed to deserialize HealthStatus: {deserialized:?}");
-            
+            assert!(
+                deserialized.is_ok(),
+                "Failed to deserialize HealthStatus: {deserialized:?}"
+            );
+
             if let Ok(deserialized) = deserialized {
                 assert_eq!(health, deserialized);
             }
@@ -2286,10 +2294,12 @@ mod tests {
         );
 
         // Modify state using with_state_mut
-        actor.with_state_mut(|s| {
-            s.count += 1;
-            s.name = "modified".to_string();
-        }).await;
+        actor
+            .with_state_mut(|s| {
+                s.count += 1;
+                s.name = "modified".to_string();
+            })
+            .await;
 
         // Verify modification
         let count = actor.with_state(|s| s.count).await;
@@ -2395,9 +2405,7 @@ mod tests {
         let mut handles = vec![];
         for _ in 0..10 {
             let actor_clone = Arc::clone(&actor);
-            let handle = tokio::spawn(async move {
-                actor_clone.with_state(|s| s.count).await
-            });
+            let handle = tokio::spawn(async move { actor_clone.with_state(|s| s.count).await });
             handles.push(handle);
         }
 
@@ -2481,10 +2489,12 @@ mod tests {
         );
 
         // Modify complex state
-        actor.with_state_mut(|s| {
-            s.map.insert("key3".to_string(), 300);
-            s.vec.push("c".to_string());
-        }).await;
+        actor
+            .with_state_mut(|s| {
+                s.map.insert("key3".to_string(), 300);
+                s.vec.push("c".to_string());
+            })
+            .await;
 
         // Verify modifications
         let map_len = actor.with_state(|s| s.map.len()).await;
@@ -2512,10 +2522,12 @@ mod tests {
         assert_eq!(doubled, 100);
 
         // with_state_mut returns computed value
-        let incremented = actor.with_state_mut(|s| {
-            s.count += 1;
-            s.count
-        }).await;
+        let incremented = actor
+            .with_state_mut(|s| {
+                s.count += 1;
+                s.count
+            })
+            .await;
         assert_eq!(incremented, 51);
     }
 }

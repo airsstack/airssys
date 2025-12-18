@@ -26,12 +26,12 @@ use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
 
 // Layer 3: Internal module imports
-use airssys_wasm::actor::{ActorState, ComponentActor, ComponentMessage};
-use airssys_wasm::actor::lifecycle::{
-    EventCallback, HookResult, LifecycleContext, LifecycleHooks,
-};
-use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits, WasmError};
 use airssys_rt::supervisor::Child;
+use airssys_wasm::actor::lifecycle::{EventCallback, HookResult, LifecycleContext, LifecycleHooks};
+use airssys_wasm::actor::{ActorState, ComponentActor, ComponentMessage};
+use airssys_wasm::core::{
+    CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits, WasmError,
+};
 
 // ==============================================================================
 // Test Helpers
@@ -118,7 +118,11 @@ impl LifecycleHooks for TrackingHooks {
         HookResult::Ok
     }
 
-    fn on_message_received(&mut self, _ctx: &LifecycleContext, _msg: &ComponentMessage) -> HookResult {
+    fn on_message_received(
+        &mut self,
+        _ctx: &LifecycleContext,
+        _msg: &ComponentMessage,
+    ) -> HookResult {
         self.on_message_called.fetch_add(1, Ordering::SeqCst);
         HookResult::Ok
     }
@@ -188,17 +192,13 @@ impl EventCallback for TrackingCallback {
 async fn test_complete_lifecycle_with_hooks() {
     // Note: Full WASM lifecycle requires component storage (Block 6)
     // This test verifies hook integration points are in place
-    
+
     let component_id = ComponentId::new("lifecycle-test");
     let metadata = create_test_metadata("lifecycle-test");
     let caps = CapabilitySet::new();
 
-    let mut actor: ComponentActor<()> = ComponentActor::new(
-        component_id.clone(),
-        metadata,
-        caps,
-        (),
-    );
+    let mut actor: ComponentActor<()> =
+        ComponentActor::new(component_id.clone(), metadata, caps, ());
 
     // Set up tracking hooks
     let hooks = TrackingHooks::new();
@@ -211,14 +211,16 @@ async fn test_complete_lifecycle_with_hooks() {
 
     // Verify hooks are set (can't test start/stop without WASM storage)
     assert_eq!(*actor.state(), ActorState::Creating);
-    
+
     // Attempt start - will fail due to missing WASM storage, but hooks will execute
     let _ = actor.start().await;
-    
+
     // Verify pre_start was called even though start failed
-    assert!(pre_start_counter.load(Ordering::SeqCst) >= 1, 
-        "pre_start should be called during start attempt");
-    
+    assert!(
+        pre_start_counter.load(Ordering::SeqCst) >= 1,
+        "pre_start should be called during start attempt"
+    );
+
     // Note: post_start only called on success, so won't be incremented without WASM
 }
 
@@ -238,28 +240,28 @@ async fn test_custom_state_across_messages() {
         errors: vec![],
     };
 
-    let actor: ComponentActor<TestState> = ComponentActor::new(
-        component_id,
-        metadata,
-        caps,
-        initial_state,
-    );
+    let actor: ComponentActor<TestState> =
+        ComponentActor::new(component_id, metadata, caps, initial_state);
 
     // Simulate message 1
-    actor.with_state_mut(|state| {
-        state.message_count += 1;
-        state.last_message = "message_1".to_string();
-    }).await;
+    actor
+        .with_state_mut(|state| {
+            state.message_count += 1;
+            state.last_message = "message_1".to_string();
+        })
+        .await;
 
     // Verify state persists
     let count = actor.with_state(|state| state.message_count).await;
     assert_eq!(count, 1);
 
     // Simulate message 2
-    actor.with_state_mut(|state| {
-        state.message_count += 1;
-        state.last_message = "message_2".to_string();
-    }).await;
+    actor
+        .with_state_mut(|state| {
+            state.message_count += 1;
+            state.last_message = "message_2".to_string();
+        })
+        .await;
 
     // Verify state accumulated
     let count = actor.with_state(|state| state.message_count).await;
@@ -279,23 +281,23 @@ async fn test_state_mutation_during_handling() {
     let metadata = create_test_metadata("state-mutation-test");
     let caps = CapabilitySet::new();
 
-    let actor: ComponentActor<TestState> = ComponentActor::new(
-        component_id,
-        metadata,
-        caps,
-        TestState::default(),
-    );
+    let actor: ComponentActor<TestState> =
+        ComponentActor::new(component_id, metadata, caps, TestState::default());
 
     // Simulate multiple concurrent operations
-    let handles: Vec<_> = (0..10).map(|i| {
-        let actor_ref = &actor;
-        async move {
-            actor_ref.with_state_mut(|state| {
-                state.message_count += 1;
-                state.last_message = format!("message_{}", i);
-            }).await;
-        }
-    }).collect();
+    let handles: Vec<_> = (0..10)
+        .map(|i| {
+            let actor_ref = &actor;
+            async move {
+                actor_ref
+                    .with_state_mut(|state| {
+                        state.message_count += 1;
+                        state.last_message = format!("message_{}", i);
+                    })
+                    .await;
+            }
+        })
+        .collect();
 
     // Execute all mutations
     for handle in handles {
@@ -333,18 +335,13 @@ async fn test_hook_panic_in_pre_start_caught() {
     let metadata = create_test_metadata("panic-test");
     let caps = CapabilitySet::new();
 
-    let mut actor: ComponentActor<()> = ComponentActor::new(
-        component_id,
-        metadata,
-        caps,
-        (),
-    );
+    let mut actor: ComponentActor<()> = ComponentActor::new(component_id, metadata, caps, ());
 
     actor.set_lifecycle_hooks(Box::new(PanickingHooks { should_panic: true }));
 
     // Attempt start - hooks will execute with error handling
     let _ = actor.start().await;
-    
+
     // Actor should not crash from hook errors (verified by test completing)
     // Full lifecycle requires WASM storage, but panic safety is confirmed
 }
@@ -359,12 +356,8 @@ async fn test_event_callback_sequence() {
     let metadata = create_test_metadata("callback-sequence-test");
     let caps = CapabilitySet::new();
 
-    let mut actor: ComponentActor<()> = ComponentActor::new(
-        component_id.clone(),
-        metadata,
-        caps,
-        (),
-    );
+    let mut actor: ComponentActor<()> =
+        ComponentActor::new(component_id.clone(), metadata, caps, ());
 
     let callback = Arc::new(TrackingCallback::new());
     let received_counter = Arc::clone(&callback.message_received_count);
@@ -411,12 +404,7 @@ async fn test_hooks_and_callbacks_together() {
     let metadata = create_test_metadata("hooks-callbacks-test");
     let caps = CapabilitySet::new();
 
-    let mut actor: ComponentActor<()> = ComponentActor::new(
-        component_id,
-        metadata,
-        caps,
-        (),
-    );
+    let mut actor: ComponentActor<()> = ComponentActor::new(component_id, metadata, caps, ());
 
     // Set both hooks and callback
     let hooks = TrackingHooks::new();
@@ -433,7 +421,10 @@ async fn test_hooks_and_callbacks_together() {
     let _ = actor.start().await;
 
     // Verify hooks were called
-    assert!(hook_counters.0.load(Ordering::SeqCst) >= 1, "pre_start hook called");
+    assert!(
+        hook_counters.0.load(Ordering::SeqCst) >= 1,
+        "pre_start hook called"
+    );
 
     // Both systems coexist without conflict (test completes without panic)
 }
@@ -454,12 +445,8 @@ async fn test_hooks_callbacks_and_state_integration() {
         errors: vec![],
     };
 
-    let mut actor: ComponentActor<TestState> = ComponentActor::new(
-        component_id,
-        metadata,
-        caps,
-        initial_state,
-    );
+    let mut actor: ComponentActor<TestState> =
+        ComponentActor::new(component_id, metadata, caps, initial_state);
 
     // Set hooks
     let hooks = TrackingHooks::new();
@@ -477,10 +464,12 @@ async fn test_hooks_callbacks_and_state_integration() {
     assert!(hook_pre_start.load(Ordering::SeqCst) >= 1);
 
     // Modify state (works independently of start/stop)
-    actor.with_state_mut(|state| {
-        state.message_count = 42;
-        state.last_message = "integrated".to_string();
-    }).await;
+    actor
+        .with_state_mut(|state| {
+            state.message_count = 42;
+            state.last_message = "integrated".to_string();
+        })
+        .await;
 
     // Verify state persists
     let count = actor.with_state(|state| state.message_count).await;
@@ -511,10 +500,12 @@ async fn test_concurrent_messages_with_shared_state() {
     for i in 0..20 {
         let actor_clone = Arc::clone(&actor);
         let handle = tokio::spawn(async move {
-            actor_clone.with_state_mut(|state| {
-                state.message_count += 1;
-                state.last_message = format!("concurrent_{}", i);
-            }).await;
+            actor_clone
+                .with_state_mut(|state| {
+                    state.message_count += 1;
+                    state.last_message = format!("concurrent_{}", i);
+                })
+                .await;
         });
         handles.push(handle);
     }
@@ -526,7 +517,10 @@ async fn test_concurrent_messages_with_shared_state() {
 
     // Verify all mutations were applied
     let final_count = actor.with_state(|state| state.message_count).await;
-    assert_eq!(final_count, 20, "All concurrent modifications should be applied");
+    assert_eq!(
+        final_count, 20,
+        "All concurrent modifications should be applied"
+    );
 }
 
 // ==============================================================================
@@ -540,12 +534,8 @@ async fn test_type_safe_state_access() {
     let metadata = create_test_metadata("type-safety-test");
     let caps = CapabilitySet::new();
 
-    let actor: ComponentActor<TestState> = ComponentActor::new(
-        component_id,
-        metadata,
-        caps,
-        TestState::default(),
-    );
+    let actor: ComponentActor<TestState> =
+        ComponentActor::new(component_id, metadata, caps, TestState::default());
 
     // Type inference works
     let count = actor.with_state(|state| state.message_count).await;
@@ -556,9 +546,11 @@ async fn test_type_safe_state_access() {
     assert!(is_empty);
 
     // Mutable access compiles correctly
-    actor.with_state_mut(|state| {
-        state.message_count = 100;
-    }).await;
+    actor
+        .with_state_mut(|state| {
+            state.message_count = 100;
+        })
+        .await;
 
     let new_count = actor.with_state(|state| state.message_count).await;
     assert_eq!(new_count, 100);
@@ -573,7 +565,7 @@ async fn test_hook_overhead_minimal() {
     // Test hook execution overhead without full WASM lifecycle
     let hooks = TrackingHooks::new();
     let pre_start_counter = Arc::clone(&hooks.pre_start_called);
-    
+
     // Create context for hook call
     let ctx = LifecycleContext {
         component_id: ComponentId::new("perf-test"),
@@ -591,11 +583,14 @@ async fn test_hook_overhead_minimal() {
 
     // Average per hook call
     let avg_per_call = duration.as_micros() / 1000;
-    
+
     // Hook execution should be fast (<10μs per call)
-    assert!(avg_per_call < 10, 
-        "Hook overhead should be minimal: {}μs per call", avg_per_call);
-    
+    assert!(
+        avg_per_call < 10,
+        "Hook overhead should be minimal: {}μs per call",
+        avg_per_call
+    );
+
     assert_eq!(pre_start_counter.load(Ordering::SeqCst), 1000);
 }
 
@@ -607,7 +602,7 @@ async fn test_hook_overhead_minimal() {
 async fn test_noop_hooks_zero_overhead() {
     // Test NoOp hook performance
     use airssys_wasm::actor::lifecycle::NoOpHooks;
-    
+
     let ctx = LifecycleContext {
         component_id: ComponentId::new("noop-test"),
         actor_address: airssys_rt::ActorAddress::anonymous(),
@@ -625,9 +620,12 @@ async fn test_noop_hooks_zero_overhead() {
 
     // NoOp hooks should be extremely fast (< 1μs per call)
     let avg_per_call = duration.as_nanos() / 10000;
-    
-    assert!(avg_per_call < 1000, 
-        "NoOp hooks should have minimal impact: {}ns per call", avg_per_call);
+
+    assert!(
+        avg_per_call < 1000,
+        "NoOp hooks should have minimal impact: {}ns per call",
+        avg_per_call
+    );
 }
 
 // ==============================================================================
@@ -646,12 +644,8 @@ async fn test_state_cloning_when_clone_bound() {
         errors: vec!["error1".to_string()],
     };
 
-    let actor: ComponentActor<TestState> = ComponentActor::new(
-        component_id,
-        metadata,
-        caps,
-        initial_state.clone(),
-    );
+    let actor: ComponentActor<TestState> =
+        ComponentActor::new(component_id, metadata, caps, initial_state.clone());
 
     // get_state() returns a clone
     let cloned_state = actor.get_state().await;
@@ -660,12 +654,17 @@ async fn test_state_cloning_when_clone_bound() {
     assert_eq!(cloned_state.last_message, "clone_me");
 
     // Modify original
-    actor.with_state_mut(|state| {
-        state.message_count = 200;
-    }).await;
+    actor
+        .with_state_mut(|state| {
+            state.message_count = 200;
+        })
+        .await;
 
     // Cloned state unchanged
-    assert_eq!(cloned_state.message_count, 99, "Clone should be independent");
+    assert_eq!(
+        cloned_state.message_count, 99,
+        "Clone should be independent"
+    );
 }
 
 // ==============================================================================
@@ -678,20 +677,18 @@ async fn test_state_arc_reference_sharing() {
     let metadata = create_test_metadata("arc-test");
     let caps = CapabilitySet::new();
 
-    let actor: ComponentActor<TestState> = ComponentActor::new(
-        component_id,
-        metadata,
-        caps,
-        TestState::default(),
-    );
+    let actor: ComponentActor<TestState> =
+        ComponentActor::new(component_id, metadata, caps, TestState::default());
 
     // Get Arc reference
     let state_ref = actor.state_arc();
 
     // Modify via actor
-    actor.with_state_mut(|state| {
-        state.message_count = 777;
-    }).await;
+    actor
+        .with_state_mut(|state| {
+            state.message_count = 777;
+        })
+        .await;
 
     // Access via Arc reference
     let count = {
@@ -720,18 +717,13 @@ async fn test_hook_error_doesnt_fail_start() {
     let metadata = create_test_metadata("hook-error-test");
     let caps = CapabilitySet::new();
 
-    let mut actor: ComponentActor<()> = ComponentActor::new(
-        component_id,
-        metadata,
-        caps,
-        (),
-    );
+    let mut actor: ComponentActor<()> = ComponentActor::new(component_id, metadata, caps, ());
 
     actor.set_lifecycle_hooks(Box::new(ErrorReturningHooks));
 
     // Attempt start - hook error is logged but doesn't prevent start execution
     let _ = actor.start().await;
-    
+
     // Test completes without panic, demonstrating error handling works
     // (Full start requires WASM storage, but error handling is verified)
 }

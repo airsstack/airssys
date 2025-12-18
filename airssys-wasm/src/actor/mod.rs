@@ -135,44 +135,37 @@ pub mod supervisor;
 // Component subdomain re-exports
 #[doc(inline)]
 pub use component::{
-    ActorState, ComponentActor, ComponentMessage, ComponentRegistry,
-    ComponentSpawner, ComponentSupervisor, HealthStatus, RestartDecision,
-    SupervisionHandle, SupervisionState, SupervisionStatistics,
-    SupervisionTree, SupervisionTreeNode, WasmRuntime,
-    extract_wasm_results, prepare_wasm_params,
+    extract_wasm_results, prepare_wasm_params, ActorState, ComponentActor, ComponentMessage,
+    ComponentRegistry, ComponentSpawner, ComponentSupervisor, HealthStatus, RestartDecision,
+    SupervisionHandle, SupervisionState, SupervisionStatistics, SupervisionTree,
+    SupervisionTreeNode, WasmRuntime,
 };
 
 // Supervisor subdomain re-exports
 #[doc(inline)]
 pub use supervisor::{
-    BackoffStrategy, ComponentSupervisionState, ExponentialBackoff,
-    ExponentialBackoffConfig, RestartPolicy, RestartReason, RestartRecord,
-    RestartStats, RestartTracker, SlidingWindowConfig, SlidingWindowLimiter,
-    SupervisorConfig, SupervisorNodeBridge, SupervisorNodeWrapper,
+    BackoffStrategy, ComponentSupervisionState, ExponentialBackoff, ExponentialBackoffConfig,
+    RestartPolicy, RestartReason, RestartRecord, RestartStats, RestartTracker, SlidingWindowConfig,
+    SlidingWindowLimiter, SupervisorConfig, SupervisorNodeBridge, SupervisorNodeWrapper,
     WindowLimitResult,
 };
 
 // Health subdomain re-exports
 #[doc(inline)]
-pub use health::{
-    HealthDecision, HealthMonitor, HealthRestartConfig,
-    MonitorHealthStatus,
-};
+pub use health::{HealthDecision, HealthMonitor, HealthRestartConfig, MonitorHealthStatus};
 
 // Lifecycle subdomain re-exports
 #[doc(inline)]
 pub use lifecycle::{
-    EventCallback, HookResult, LifecycleContext, LifecycleHooks,
-    NoOpEventCallback, NoOpHooks, RestartReason as LifecycleRestartReason,
-    call_hook_with_timeout, catch_unwind_hook,
+    call_hook_with_timeout, catch_unwind_hook, EventCallback, HookResult, LifecycleContext,
+    LifecycleHooks, NoOpEventCallback, NoOpHooks, RestartReason as LifecycleRestartReason,
 };
 
 // Message subdomain re-exports
 #[doc(inline)]
 pub use message::{
-    ActorSystemSubscriber, CorrelationId, CorrelationTracker,
-    MessageBrokerBridge, MessageBrokerWrapper, MessagePublisher,
-    MessageRouter, PendingRequest, RequestError, RequestMessage,
-    ResponseMessage, RoutingStats, SubHandle, SubscriberManager,
+    ActorSystemSubscriber, CorrelationId, CorrelationTracker, MessageBrokerBridge,
+    MessageBrokerWrapper, MessagePublisher, MessageRouter, PendingRequest, RequestError,
+    RequestMessage, ResponseMessage, RoutingStats, SubHandle, SubscriberManager,
     SubscriptionHandle, TimeoutHandler, TopicFilter, UnifiedRouter,
 };

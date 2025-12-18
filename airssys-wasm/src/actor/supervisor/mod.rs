@@ -21,25 +21,23 @@
 //! - `sliding_window_limiter` - Rate limiting for restarts
 
 // Module declarations
-pub mod supervisor_config;
-pub mod supervisor_bridge;
-pub mod supervisor_wrapper;
-pub mod restart_tracker;
 pub mod exponential_backoff;
+pub mod restart_tracker;
 pub mod sliding_window_limiter;
+pub mod supervisor_bridge;
+pub mod supervisor_config;
+pub mod supervisor_wrapper;
 
 // Public re-exports
 #[doc(inline)]
-pub use supervisor_config::{
-    BackoffStrategy, RestartPolicy, SupervisorConfig,
-};
-#[doc(inline)]
-pub use supervisor_bridge::{ComponentSupervisionState, SupervisorNodeBridge};
-#[doc(inline)]
-pub use supervisor_wrapper::{SupervisorNodeWrapper, RestartStats};
+pub use exponential_backoff::{ExponentialBackoff, ExponentialBackoffConfig};
 #[doc(inline)]
 pub use restart_tracker::{RestartReason, RestartRecord, RestartTracker};
 #[doc(inline)]
-pub use exponential_backoff::{ExponentialBackoff, ExponentialBackoffConfig};
-#[doc(inline)]
 pub use sliding_window_limiter::{SlidingWindowConfig, SlidingWindowLimiter, WindowLimitResult};
+#[doc(inline)]
+pub use supervisor_bridge::{ComponentSupervisionState, SupervisorNodeBridge};
+#[doc(inline)]
+pub use supervisor_config::{BackoffStrategy, RestartPolicy, SupervisorConfig};
+#[doc(inline)]
+pub use supervisor_wrapper::{RestartStats, SupervisorNodeWrapper};

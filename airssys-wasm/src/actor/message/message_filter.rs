@@ -138,10 +138,7 @@ impl TopicFilter {
     /// ```
     pub fn from_patterns(patterns: Vec<&str>) -> Self {
         Self {
-            patterns: patterns
-                .into_iter()
-                .map(TopicPattern::parse)
-                .collect(),
+            patterns: patterns.into_iter().map(TopicPattern::parse).collect(),
         }
     }
 

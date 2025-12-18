@@ -9,13 +9,12 @@
 // Layer 1: Standard library imports
 
 // Layer 2: Third-party crate imports
-use tokio::sync::RwLock;
 use std::sync::Arc;
+use tokio::sync::RwLock;
 
 // Layer 3: Internal module imports
 use airssys_wasm::actor::{
-    ComponentSupervisor, RestartPolicy, SupervisorConfig,
-    SupervisorNodeWrapper,
+    ComponentSupervisor, RestartPolicy, SupervisorConfig, SupervisorNodeWrapper,
 };
 use airssys_wasm::core::ComponentId;
 
@@ -51,8 +50,10 @@ async fn test_supervisor_permanent_policy() {
     let component_id = ComponentId::new("permanent-component");
     let config = SupervisorConfig::permanent();
 
-    supervisor.supervise(&component_id, config).expect("Supervision should succeed");
-    
+    supervisor
+        .supervise(&component_id, config)
+        .expect("Supervision should succeed");
+
     let handle = supervisor.get_handle(&component_id);
     assert!(handle.is_some());
     if let Some(h) = handle {
@@ -66,8 +67,10 @@ async fn test_supervisor_transient_policy() {
     let component_id = ComponentId::new("transient-component");
     let config = SupervisorConfig::transient();
 
-    supervisor.supervise(&component_id, config).expect("Supervision should succeed");
-    
+    supervisor
+        .supervise(&component_id, config)
+        .expect("Supervision should succeed");
+
     let handle = supervisor.get_handle(&component_id);
     assert!(handle.is_some());
     if let Some(h) = handle {
@@ -81,8 +84,10 @@ async fn test_supervisor_temporary_policy() {
     let component_id = ComponentId::new("temporary-component");
     let config = SupervisorConfig::temporary();
 
-    supervisor.supervise(&component_id, config).expect("Supervision should succeed");
-    
+    supervisor
+        .supervise(&component_id, config)
+        .expect("Supervision should succeed");
+
     let handle = supervisor.get_handle(&component_id);
     assert!(handle.is_some());
     if let Some(h) = handle {
@@ -96,8 +101,10 @@ async fn test_start_component_updates_state() {
     let component_id = ComponentId::new("test-component");
     let config = SupervisorConfig::permanent();
 
-    supervisor.supervise(&component_id, config).expect("Supervision should succeed");
-    
+    supervisor
+        .supervise(&component_id, config)
+        .expect("Supervision should succeed");
+
     // Note: start_component requires bridge integration with actual ComponentActor
     // This test verifies local state update only
     let handle = supervisor.get_handle(&component_id);
@@ -110,8 +117,12 @@ async fn test_stop_component_updates_state() {
     let component_id = ComponentId::new("test-component");
     let config = SupervisorConfig::permanent();
 
-    supervisor.supervise(&component_id, config).expect("Supervision should succeed");
-    supervisor.mark_running(&component_id).expect("Supervision should succeed");
+    supervisor
+        .supervise(&component_id, config)
+        .expect("Supervision should succeed");
+    supervisor
+        .mark_running(&component_id)
+        .expect("Supervision should succeed");
 
     // Note: stop_component requires bridge integration with actual ComponentActor
     // This test verifies local state can be updated
@@ -129,7 +140,9 @@ async fn test_supervise_multiple_components() {
     for i in 0..5 {
         let component_id = ComponentId::new(format!("component-{}", i));
         let config = SupervisorConfig::permanent();
-        supervisor.supervise(&component_id, config).expect("Supervision should succeed");
+        supervisor
+            .supervise(&component_id, config)
+            .expect("Supervision should succeed");
     }
 
     let stats = supervisor.get_statistics();
@@ -143,7 +156,9 @@ async fn test_query_component_state_with_bridge() {
     let config = SupervisorConfig::permanent();
 
     // Register component first
-    supervisor.supervise(&component_id, config).expect("Supervision should succeed");
+    supervisor
+        .supervise(&component_id, config)
+        .expect("Supervision should succeed");
 
     // Component not registered with bridge yet, should return None
     // (Note: query_component_state uses blocking_read which can't be called from async)
@@ -194,7 +209,11 @@ async fn test_restart_policy_configuration() {
     for (name, config) in policies {
         let component_id = ComponentId::new(format!("component-{}", name));
         let result = supervisor.supervise(&component_id, config);
-        assert!(result.is_ok(), "Failed to supervise component with {} policy", name);
+        assert!(
+            result.is_ok(),
+            "Failed to supervise component with {} policy",
+            name
+        );
     }
 
     let stats = supervisor.get_statistics();
@@ -207,7 +226,9 @@ async fn test_supervision_handle_tracking() {
     let component_id = ComponentId::new("tracked-component");
     let config = SupervisorConfig::permanent();
 
-    let handle = supervisor.supervise(&component_id, config).expect("Supervision should succeed");
+    let handle = supervisor
+        .supervise(&component_id, config)
+        .expect("Supervision should succeed");
 
     assert_eq!(handle.component_id, component_id);
     assert_eq!(handle.restart_count, 0);
@@ -221,7 +242,9 @@ async fn test_component_failure_handling() {
     let component_id = ComponentId::new("failing-component");
     let config = SupervisorConfig::permanent();
 
-    supervisor.supervise(&component_id, config).expect("Supervision should succeed");
+    supervisor
+        .supervise(&component_id, config)
+        .expect("Supervision should succeed");
 
     // Simulate component failure
     let decision = supervisor
@@ -229,7 +252,7 @@ async fn test_component_failure_handling() {
         .await;
 
     assert!(decision.is_ok());
-    
+
     let handle = supervisor.get_handle(&component_id);
     assert!(handle.is_some());
     if let Some(h) = handle {
@@ -243,7 +266,9 @@ async fn test_component_exit_handling() {
     let component_id = ComponentId::new("exiting-component");
     let config = SupervisorConfig::permanent();
 
-    supervisor.supervise(&component_id, config).expect("Supervision should succeed");
+    supervisor
+        .supervise(&component_id, config)
+        .expect("Supervision should succeed");
 
     // Simulate component normal exit
     let decision = supervisor.handle_component_exit(&component_id).await;
@@ -257,11 +282,17 @@ async fn test_supervision_statistics() {
 
     // Add components in different states
     let running_id = ComponentId::new("running");
-    supervisor.supervise(&running_id, SupervisorConfig::permanent()).expect("Supervision should succeed");
-    supervisor.mark_running(&running_id).expect("Supervision should succeed");
+    supervisor
+        .supervise(&running_id, SupervisorConfig::permanent())
+        .expect("Supervision should succeed");
+    supervisor
+        .mark_running(&running_id)
+        .expect("Supervision should succeed");
 
     let initializing_id = ComponentId::new("initializing");
-    supervisor.supervise(&initializing_id, SupervisorConfig::permanent()).expect("Supervision should succeed");
+    supervisor
+        .supervise(&initializing_id, SupervisorConfig::permanent())
+        .expect("Supervision should succeed");
 
     let stats = supervisor.get_statistics();
     assert_eq!(stats.total_supervised, 2);

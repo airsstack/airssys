@@ -27,7 +27,10 @@
 //! - **ADR-WASM-005**: Capability-Based Security Model
 
 #![expect(clippy::unwrap_used, reason = "unwrap is acceptable in test code")]
-#![expect(clippy::panic, reason = "panic is acceptable in test code for assertion failures")]
+#![expect(
+    clippy::panic,
+    reason = "panic is acceptable in test code for assertion failures"
+)]
 
 // Layer 1: Standard library imports
 use std::time::{Duration, Instant};
@@ -37,11 +40,11 @@ use uuid::Uuid;
 
 // Layer 3: Internal module imports
 use airssys_wasm::actor::{ComponentActor, ComponentMessage};
-use airssys_wasm::core::{
-    Capability, CapabilitySet, ComponentId, ComponentMetadata,
-    ResourceLimits, SecurityConfig, SecurityMode, TopicPattern, WasmError,
-};
 use airssys_wasm::core::rate_limiter::{MessageRateLimiter, RateLimiterConfig, DEFAULT_RATE_LIMIT};
+use airssys_wasm::core::{
+    Capability, CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits, SecurityConfig,
+    SecurityMode, TopicPattern, WasmError,
+};
 
 // ============================================================================
 // TEST HELPER FUNCTIONS
@@ -56,10 +59,10 @@ fn create_test_metadata(name: &str) -> ComponentMetadata {
         description: Some("Security enforcement test component".to_string()),
         required_capabilities: vec![],
         resource_limits: ResourceLimits {
-            max_memory_bytes: 64 * 1024 * 1024,  // 64MB
+            max_memory_bytes: 64 * 1024 * 1024, // 64MB
             max_fuel: 1_000_000,
             max_execution_ms: 5000,
-            max_storage_bytes: 10 * 1024 * 1024,  // 10MB
+            max_storage_bytes: 10 * 1024 * 1024, // 10MB
         },
     }
 }
@@ -70,27 +73,21 @@ fn create_test_metadata(name: &str) -> ComponentMetadata {
 ///
 /// * `id` - Component identifier
 /// * `capabilities` - List of capabilities to grant
-fn create_component_with_caps(
-    id: &str,
-    capabilities: Vec<Capability>,
-) -> ComponentActor<()> {
+fn create_component_with_caps(id: &str, capabilities: Vec<Capability>) -> ComponentActor<()> {
     let component_id = ComponentId::new(id);
     let metadata = create_test_metadata(id);
-    
+
     let mut cap_set = CapabilitySet::new();
     for cap in capabilities {
         cap_set.grant(cap);
     }
-    
+
     ComponentActor::new(component_id, metadata, cap_set, ())
 }
 
 /// Create component with default configuration and Messaging capability.
 fn create_messaging_component(id: &str) -> ComponentActor<()> {
-    create_component_with_caps(
-        id,
-        vec![Capability::Messaging(TopicPattern::new("*"))],
-    )
+    create_component_with_caps(id, vec![Capability::Messaging(TopicPattern::new("*"))])
 }
 
 /// Create component without any capabilities (unauthorized).
@@ -117,20 +114,24 @@ fn create_component_with_security_config(
 async fn test_authorized_intercomponent_message() {
     // Recipient has Messaging capability (allows receiving)
     let recipient = create_messaging_component("recipient");
-    
+
     let sender = ComponentId::new("sender");
     let payload = b"test message from authorized sender".to_vec();
-    
+
     let msg = ComponentMessage::InterComponent {
         sender: sender.clone(),
         payload,
     };
-    
+
     // Security checks should pass
     let result = recipient.check_message_security(&msg);
-    
+
     // Should not return security-related errors
-    assert!(result.is_ok(), "Authorized message should pass security checks: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "Authorized message should pass security checks: {:?}",
+        result
+    );
 }
 
 // ============================================================================
@@ -141,32 +142,34 @@ async fn test_authorized_intercomponent_message() {
 async fn test_unauthorized_sender_denied() {
     // Recipient has NO Messaging capability (rejects all messages)
     let recipient = create_unauthorized_component("recipient");
-    
+
     let sender = ComponentId::new("unauthorized-sender");
     let payload = b"malicious message".to_vec();
-    
+
     let msg = ComponentMessage::InterComponent {
         sender: sender.clone(),
         payload,
     };
-    
+
     // Security check should deny this message
     let result = recipient.check_message_security(&msg);
-    
+
     assert!(result.is_err(), "Unauthorized sender should be denied");
-    
+
     let err = result.unwrap_err();
-    
+
     assert!(
         matches!(&err, WasmError::CapabilityDenied { .. }),
-        "Expected CapabilityDenied error, got: {:?}", &err
+        "Expected CapabilityDenied error, got: {:?}",
+        &err
     );
-    
+
     // Verify error message contains helpful context
     let err_str = err.to_string();
     assert!(
         err_str.contains("Messaging") || err_str.contains("capability"),
-        "Error should mention capability denial: {}", err_str
+        "Error should mention capability denial: {}",
+        err_str
     );
 }
 
@@ -177,32 +180,42 @@ async fn test_unauthorized_sender_denied() {
 #[tokio::test]
 async fn test_oversized_payload_rejected() {
     let recipient = create_messaging_component("recipient");
-    
+
     // Create oversized payload (2MB > default 1MB limit)
     let oversized_payload = vec![0u8; 2 * 1024 * 1024];
-    
+
     let sender = ComponentId::new("sender");
     let msg = ComponentMessage::InterComponent {
         sender: sender.clone(),
         payload: oversized_payload,
     };
-    
+
     // Security check should reject oversized payload
     let result = recipient.check_message_security(&msg);
-    
+
     assert!(result.is_err(), "Oversized payload should be rejected");
-    
+
     let err = result.unwrap_err();
-    
+
     assert!(
-        matches!(&err, WasmError::PayloadTooLarge { size: 2097152, max_size: 1048576 }),
-        "Expected PayloadTooLarge error, got: {:?}", &err
+        matches!(
+            &err,
+            WasmError::PayloadTooLarge {
+                size: 2097152,
+                max_size: 1048576
+            }
+        ),
+        "Expected PayloadTooLarge error, got: {:?}",
+        &err
     );
-    
+
     // Verify error message contains size information
     let err_str = err.to_string();
-    assert!(err_str.contains("2097152") && err_str.contains("1048576"),
-        "Error should contain size details: {}", err_str);
+    assert!(
+        err_str.contains("2097152") && err_str.contains("1048576"),
+        "Error should contain size details: {}",
+        err_str
+    );
 }
 
 // ============================================================================
@@ -218,13 +231,13 @@ async fn test_rate_limit_enforcement() {
         capability_check_timeout_us: 5,
         max_message_size: 1024,
     };
-    
+
     let mut recipient = create_component_with_security_config(
         "recipient",
         vec![Capability::Messaging(TopicPattern::new("*"))],
         security_config,
     );
-    
+
     // Override rate limiter with test configuration
     let rate_config = RateLimiterConfig {
         messages_per_second: 10,
@@ -232,36 +245,38 @@ async fn test_rate_limit_enforcement() {
     };
     let rate_limiter = MessageRateLimiter::new(rate_config);
     recipient.set_rate_limiter(rate_limiter);
-    
+
     let sender = ComponentId::new("rapid-sender");
-    
+
     // First 10 messages should succeed
     for i in 0..10 {
         let msg = ComponentMessage::InterComponent {
             sender: sender.clone(),
             payload: format!("message {}", i).into_bytes(),
         };
-        
+
         let result = recipient.check_message_security(&msg);
         assert!(
             !matches!(result, Err(ref e) if matches!(&e, WasmError::RateLimitExceeded { .. })),
-            "Message {} should not be rate limited", i
+            "Message {} should not be rate limited",
+            i
         );
     }
-    
+
     // 11th message should be denied by rate limiter
     let msg = ComponentMessage::InterComponent {
         sender: sender.clone(),
         payload: b"message 11".to_vec(),
     };
-    
+
     let result = recipient.check_message_security(&msg);
     assert!(result.is_err(), "11th message should be rate limited");
-    
+
     let err = result.unwrap_err();
     assert!(
         matches!(&err, WasmError::RateLimitExceeded { .. }),
-        "Expected RateLimitExceeded error, got: {:?}", err
+        "Expected RateLimitExceeded error, got: {:?}",
+        err
     );
 }
 
@@ -278,13 +293,13 @@ async fn test_rate_limit_per_sender_isolation() {
         capability_check_timeout_us: 5,
         max_message_size: 1024,
     };
-    
+
     let mut recipient = create_component_with_security_config(
         "recipient",
         vec![Capability::Messaging(TopicPattern::new("*"))],
         security_config,
     );
-    
+
     // Override rate limiter
     let rate_config = RateLimiterConfig {
         messages_per_second: 99,
@@ -292,12 +307,12 @@ async fn test_rate_limit_per_sender_isolation() {
     };
     let rate_limiter = MessageRateLimiter::new(rate_config);
     recipient.set_rate_limiter(rate_limiter);
-    
+
     // Create 3 different senders
     let sender1 = ComponentId::new("sender-1");
     let sender2 = ComponentId::new("sender-2");
     let sender3 = ComponentId::new("sender-3");
-    
+
     // Each sender sends 99 messages (at their individual limit)
     for sender in [&sender1, &sender2, &sender3] {
         for i in 0..99 {
@@ -305,26 +320,27 @@ async fn test_rate_limit_per_sender_isolation() {
                 sender: sender.clone(),
                 payload: format!("message {}", i).into_bytes(),
             };
-            
+
             let result = recipient.check_message_security(&msg);
             assert!(
                 !matches!(result, Err(ref e) if matches!(&e, WasmError::RateLimitExceeded { .. })),
                 "Sender {:?} message {} should not be rate limited (per-sender isolation)",
-                sender, i
+                sender,
+                i
             );
         }
     }
-    
+
     // Total: 3 * 99 = 297 messages accepted
     // Verify no cross-sender interference
-    
+
     // Each sender's 100th message should now be denied
     for sender in [&sender1, &sender2, &sender3] {
         let msg = ComponentMessage::InterComponent {
             sender: sender.clone(),
             payload: b"message 100".to_vec(),
         };
-        
+
         let result = recipient.check_message_security(&msg);
         assert!(
             matches!(result, Err(ref e) if matches!(&e, WasmError::RateLimitExceeded { .. })),
@@ -347,22 +363,22 @@ async fn test_security_audit_logging() {
         capability_check_timeout_us: 5,
         max_message_size: 1024 * 1024,
     };
-    
+
     let recipient = create_component_with_security_config(
         "recipient",
         vec![Capability::Messaging(TopicPattern::new("*"))],
         security_config,
     );
-    
+
     let sender = ComponentId::new("sender");
     let msg = ComponentMessage::InterComponent {
         sender: sender.clone(),
         payload: b"audited message".to_vec(),
     };
-    
+
     // Message should be processed with audit logging
     let _ = recipient.check_message_security(&msg);
-    
+
     // Note: In a real implementation, we would capture log output and verify:
     // - "Security: Message authorized and delivered" log entry
     // - sender = sender
@@ -381,33 +397,38 @@ async fn test_security_audit_logging() {
 #[tokio::test]
 async fn test_intercomponent_with_correlation_security() {
     // Test all security scenarios with InterComponentWithCorrelation variant
-    
+
     // 7.1: Authorized message with correlation
     let recipient = create_messaging_component("recipient");
     let sender = ComponentId::new("sender");
-    
+
     let msg = ComponentMessage::InterComponentWithCorrelation {
         sender: sender.clone(),
         payload: b"correlated message".to_vec(),
         correlation_id: Uuid::new_v4(),
     };
-    
+
     let result = recipient.check_message_security(&msg);
     // Should pass security checks (not a security error)
     match result {
-        Err(e) if matches!(
-            &e,
-            WasmError::CapabilityDenied { .. }
-            | WasmError::PayloadTooLarge { .. }
-            | WasmError::RateLimitExceeded { .. }
-        ) => {
-            panic!("Authorized correlated message should not fail security: {:?}", e);
-        },
+        Err(e)
+            if matches!(
+                &e,
+                WasmError::CapabilityDenied { .. }
+                    | WasmError::PayloadTooLarge { .. }
+                    | WasmError::RateLimitExceeded { .. }
+            ) =>
+        {
+            panic!(
+                "Authorized correlated message should not fail security: {:?}",
+                e
+            );
+        }
         _ => {
             // OK - either passed or failed for non-security reason
         }
     }
-    
+
     // 7.2: Unauthorized sender with correlation
     let unauthorized_recipient = create_unauthorized_component("recipient");
     let msg_unauth = ComponentMessage::InterComponentWithCorrelation {
@@ -415,20 +436,20 @@ async fn test_intercomponent_with_correlation_security() {
         payload: b"unauthorized correlated".to_vec(),
         correlation_id: Uuid::new_v4(),
     };
-    
+
     let result_unauth = unauthorized_recipient.check_message_security(&msg_unauth);
     assert!(
         matches!(result_unauth, Err(ref e) if matches!(&e, WasmError::CapabilityDenied { .. })),
         "Unauthorized correlated message should be denied"
     );
-    
+
     // 7.3: Oversized payload with correlation
     let msg_oversized = ComponentMessage::InterComponentWithCorrelation {
         sender: sender.clone(),
-        payload: vec![0u8; 2 * 1024 * 1024],  // 2MB
+        payload: vec![0u8; 2 * 1024 * 1024], // 2MB
         correlation_id: Uuid::new_v4(),
     };
-    
+
     let result_oversized = recipient.check_message_security(&msg_oversized);
     assert!(
         matches!(result_oversized, Err(ref e) if matches!(&e, WasmError::PayloadTooLarge { .. })),
@@ -443,36 +464,36 @@ async fn test_intercomponent_with_correlation_security() {
 #[tokio::test]
 async fn test_payload_at_exact_limit() {
     let recipient = create_messaging_component("recipient");
-    
+
     // Create payload at exactly 1MB (default limit)
     let exact_limit_payload = vec![0u8; 1024 * 1024];
-    
+
     let sender = ComponentId::new("sender");
     let msg = ComponentMessage::InterComponent {
         sender: sender.clone(),
         payload: exact_limit_payload,
     };
-    
+
     // Message at exact limit should be accepted
     let result = recipient.check_message_security(&msg);
-    
+
     // Should NOT be PayloadTooLarge error
     match result {
         Err(ref e) if matches!(&e, WasmError::PayloadTooLarge { .. }) => {
             panic!("Payload at exact limit should be accepted, got: {:?}", e);
-        },
+        }
         _ => {
             // OK - either passed or failed for non-size reason
         }
     }
-    
+
     // Test payload at limit + 1 byte (should fail)
     let over_limit_payload = vec![0u8; 1024 * 1024 + 1];
     let msg_over = ComponentMessage::InterComponent {
         sender: sender.clone(),
         payload: over_limit_payload,
     };
-    
+
     let result_over = recipient.check_message_security(&msg_over);
     assert!(
         matches!(result_over, Err(ref e) if matches!(&e, WasmError::PayloadTooLarge { .. })),
@@ -488,25 +509,29 @@ async fn test_payload_at_exact_limit() {
 async fn test_multiple_security_failures() {
     // Create component without Messaging capability
     let recipient = create_unauthorized_component("recipient");
-    
+
     // Send oversized payload from unauthorized sender
     let sender = ComponentId::new("malicious-sender");
     let msg = ComponentMessage::InterComponent {
         sender: sender.clone(),
-        payload: vec![0u8; 2 * 1024 * 1024],  // 2MB oversized
+        payload: vec![0u8; 2 * 1024 * 1024], // 2MB oversized
     };
-    
+
     // Should fail on first security check (capability denied)
     // Order: capability check → size check → rate limit
     let result = recipient.check_message_security(&msg);
-    
-    assert!(result.is_err(), "Multiple security failures should be caught");
-    
+
+    assert!(
+        result.is_err(),
+        "Multiple security failures should be caught"
+    );
+
     let err = result.unwrap_err();
     // First failure (capability check) should be reported
     assert!(
         matches!(&err, WasmError::CapabilityDenied { .. }),
-        "First security failure should be reported: {:?}", err
+        "First security failure should be reported: {:?}",
+        err
     );
 }
 
@@ -517,10 +542,10 @@ async fn test_multiple_security_failures() {
 #[tokio::test]
 async fn test_security_performance() {
     let recipient = create_messaging_component("recipient");
-    
+
     let sender = ComponentId::new("sender");
     let payload = b"test message for performance measurement".to_vec();
-    
+
     // Warm up (allow JIT, caches, etc.)
     for _ in 0..100 {
         let msg = ComponentMessage::InterComponent {
@@ -529,42 +554,43 @@ async fn test_security_performance() {
         };
         let _ = recipient.check_message_security(&msg);
     }
-    
+
     // Measure security check overhead
     let iterations = 1000;
     let start = Instant::now();
-    
+
     for _ in 0..iterations {
         let msg = ComponentMessage::InterComponent {
             sender: sender.clone(),
             payload: payload.clone(),
         };
-        
+
         // Run security checks (will fail at WASM invocation, but security passes)
         let _ = recipient.check_message_security(&msg);
     }
-    
+
     let elapsed = start.elapsed();
     let avg_per_check = elapsed / iterations;
-    
+
     // Performance target: <15μs per security check in debug builds
     // (includes test overhead, actual production performance is <5μs)
     // Action plan specified <5μs, but in test environment with debug builds
     // we allow 15μs to account for: debug assertions, test harness overhead,
     // timing measurement variability, and lack of optimizations
     let target = Duration::from_micros(15);
-    
+
     println!(
         "Security check performance: {:?} average per check (target: {:?})",
         avg_per_check, target
     );
-    
+
     assert!(
         avg_per_check < target,
         "Security check overhead too high: {:?} (target: <{:?} in debug mode)",
-        avg_per_check, target
+        avg_per_check,
+        target
     );
-    
+
     // Note: The measured 6.154μs in debug mode is excellent performance.
     // In release builds with optimizations, this will be well under 5μs.
 }
@@ -580,13 +606,13 @@ fn test_error_message_formatting() {
     let err = WasmError::capability_denied(cap, "Component lacks Messaging capability");
     assert!(err.to_string().contains("Capability denied"));
     assert!(err.to_string().contains("Messaging"));
-    
+
     // RateLimitExceeded error
     let err = WasmError::rate_limit_exceeded("malicious-component", 1000);
     assert!(err.to_string().contains("Rate limit exceeded"));
     assert!(err.to_string().contains("malicious-component"));
     assert!(err.to_string().contains("1000"));
-    
+
     // PayloadTooLarge error
     let err = WasmError::payload_too_large(2_000_000, 1_048_576);
     assert!(err.to_string().contains("Payload too large"));
@@ -603,21 +629,24 @@ fn test_capability_set_edge_cases() {
     // Empty capability set
     let caps = CapabilitySet::new();
     let sender = ComponentId::new("sender");
-    assert!(!caps.allows_receiving_from(&sender), "Empty capability set should deny all");
-    
+    assert!(
+        !caps.allows_receiving_from(&sender),
+        "Empty capability set should deny all"
+    );
+
     // Multiple Messaging capabilities
     let mut caps = CapabilitySet::new();
     caps.grant(Capability::Messaging(TopicPattern::new("events.*")));
     caps.grant(Capability::Messaging(TopicPattern::new("admin.*")));
-    
+
     assert!(caps.can_send_to(&sender, Some("events.user")));
     assert!(caps.can_send_to(&sender, Some("admin.command")));
     assert!(!caps.can_send_to(&sender, Some("other.topic")));
-    
+
     // Wildcard capability
     let mut caps = CapabilitySet::new();
     caps.grant(Capability::Messaging(TopicPattern::new("*")));
-    
+
     assert!(caps.can_send_to(&sender, Some("any.topic")));
     assert!(caps.can_send_to(&sender, None));
 }
@@ -630,15 +659,15 @@ fn test_capability_set_edge_cases() {
 fn test_rate_limiter_cleanup() {
     let limiter = MessageRateLimiter::default();
     let sender = ComponentId::new("test-sender");
-    
+
     // Send a message to create sender entry
     assert!(limiter.check_rate_limit(&sender));
     assert_eq!(limiter.get_sender_count(&sender), 1);
-    
+
     // Cleanup should not remove recent sender
     limiter.cleanup_inactive_senders();
     assert_eq!(limiter.get_sender_count(&sender), 1);
-    
+
     // Sender count should reflect messages in window
     for _ in 0..9 {
         assert!(limiter.check_rate_limit(&sender));
@@ -653,36 +682,36 @@ fn test_rate_limiter_cleanup() {
 #[tokio::test]
 async fn test_concurrent_security_checks() {
     use tokio::task::JoinSet;
-    
+
     let recipient = create_messaging_component("recipient");
     let recipient = std::sync::Arc::new(recipient);
-    
+
     let mut join_set = JoinSet::new();
-    
+
     // Spawn 10 concurrent tasks sending messages
     for task_id in 0..10 {
         let recipient_clone = std::sync::Arc::clone(&recipient);
-        
+
         join_set.spawn(async move {
             let sender = ComponentId::new(format!("sender-{}", task_id));
-            
+
             for msg_id in 0..50 {
                 let msg = ComponentMessage::InterComponent {
                     sender: sender.clone(),
                     payload: format!("message {}", msg_id).into_bytes(),
                 };
-                
+
                 // Security checks should be thread-safe
                 let _ = recipient_clone.check_message_security(&msg);
             }
         });
     }
-    
+
     // Wait for all tasks to complete
     while let Some(result) = join_set.join_next().await {
         assert!(result.is_ok(), "Concurrent security check task failed");
     }
-    
+
     // All 10 * 50 = 500 security checks should complete without panics
 }
 
@@ -699,26 +728,26 @@ async fn test_security_mode_variations() {
         capability_check_timeout_us: 5,
         max_message_size: 1024 * 1024,
     };
-    
+
     let strict_recipient = create_component_with_security_config(
         "strict-recipient",
-        vec![],  // No capabilities
+        vec![], // No capabilities
         strict_config,
     );
-    
+
     let sender = ComponentId::new("sender");
     let msg = ComponentMessage::InterComponent {
         sender: sender.clone(),
         payload: b"test".to_vec(),
     };
-    
+
     // Strict mode should deny unauthorized sender
     let result = strict_recipient.check_message_security(&msg);
     assert!(
         matches!(result, Err(ref e) if matches!(&e, WasmError::CapabilityDenied { .. })),
         "Strict mode should enforce capability checks"
     );
-    
+
     // Test Development mode (if implemented - bypasses checks)
     // TODO: Verify Development mode behavior when implemented
 }
@@ -729,8 +758,11 @@ async fn test_security_mode_variations() {
 
 #[test]
 fn test_default_rate_limit_constant() {
-    assert_eq!(DEFAULT_RATE_LIMIT, 1000, "Default rate limit should be 1000 msg/sec");
-    
+    assert_eq!(
+        DEFAULT_RATE_LIMIT, 1000,
+        "Default rate limit should be 1000 msg/sec"
+    );
+
     let config = RateLimiterConfig::default();
     assert_eq!(config.messages_per_second, DEFAULT_RATE_LIMIT);
     assert_eq!(config.window_duration, Duration::from_secs(1));

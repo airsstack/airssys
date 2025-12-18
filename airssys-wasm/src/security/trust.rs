@@ -555,10 +555,7 @@ impl TrustSource {
                 // Exact match for public keys
                 public_key == component_key
             }
-            (
-                TrustSource::LocalPath { path_pattern, .. },
-                ComponentSource::Local { path },
-            ) => {
+            (TrustSource::LocalPath { path_pattern, .. }, ComponentSource::Local { path }) => {
                 // Check path pattern match
                 let path_str = path.to_string_lossy();
                 Self::glob_match(path_pattern, &path_str)
@@ -925,7 +922,11 @@ impl TrustRegistry {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn determine_trust_level(&self, component_id: &str, source: &ComponentSource) -> TrustLevel {
+    pub fn determine_trust_level(
+        &self,
+        component_id: &str,
+        source: &ComponentSource,
+    ) -> TrustLevel {
         // DevMode short-circuit (atomic read, <1ns)
         if self.dev_mode_enabled.load(Ordering::Relaxed) {
             warn!(
@@ -1187,9 +1188,9 @@ struct TrustSection {
 #[allow(clippy::expect_used)]
 mod tests {
     use super::*;
+    use std::io::Write;
     use std::path::PathBuf;
     use tempfile::NamedTempFile;
-    use std::io::Write;
 
     // ========================================================================
     // Task 2.1.2 Tests: TrustLevel Enum
@@ -1212,7 +1213,10 @@ mod tests {
     #[test]
     fn test_trust_level_security_posture() {
         assert_eq!(TrustLevel::Trusted.security_posture(), "secure-trusted");
-        assert_eq!(TrustLevel::Unknown.security_posture(), "secure-review-required");
+        assert_eq!(
+            TrustLevel::Unknown.security_posture(),
+            "secure-review-required"
+        );
         assert_eq!(TrustLevel::DevMode.security_posture(), "insecure-dev-mode");
     }
 

@@ -376,8 +376,6 @@ impl StorageOperation {
     }
 }
 
-
-
 #[cfg(test)]
 #[allow(clippy::panic)]
 #[allow(clippy::unwrap_used)]
@@ -492,15 +490,12 @@ mod tests {
             value: b"value".to_vec(),
         };
 
-        let json = serde_json::to_value(&op).unwrap_or_else(|e| {
-            panic!("serialization should succeed: {e}")
-        });
+        let json = serde_json::to_value(&op)
+            .unwrap_or_else(|e| panic!("serialization should succeed: {e}"));
         assert_eq!(json["Set"]["namespace"], "component:test");
 
-        let deserialized: StorageOperation =
-            serde_json::from_value(json).unwrap_or_else(|e| {
-                panic!("deserialization should succeed: {e}")
-            });
+        let deserialized: StorageOperation = serde_json::from_value(json)
+            .unwrap_or_else(|e| panic!("deserialization should succeed: {e}"));
         assert_eq!(deserialized.namespace(), "component:test");
         assert_eq!(deserialized.operation_type(), "set");
     }
@@ -532,9 +527,10 @@ mod tests {
 
         let result = backend.get("component:test", b"key").await;
         assert!(result.is_ok());
-        assert_eq!(result.unwrap_or_else(|e| {
-            panic!("get should succeed: {e}")
-        }), None);
+        assert_eq!(
+            result.unwrap_or_else(|e| { panic!("get should succeed: {e}") }),
+            None
+        );
 
         let result = backend.set("component:test", b"key", b"value").await;
         assert!(result.is_ok());
@@ -544,9 +540,9 @@ mod tests {
 
         let result = backend.list_keys("component:test", b"prefix").await;
         assert!(result.is_ok());
-        assert!(result.unwrap_or_else(|e| {
-            panic!("list_keys should succeed: {e}")
-        }).is_empty());
+        assert!(result
+            .unwrap_or_else(|e| { panic!("list_keys should succeed: {e}") })
+            .is_empty());
     }
 
     #[tokio::test]
@@ -558,5 +554,4 @@ mod tests {
         assert!(backend.delete("ns", b"k").await.is_ok());
         assert!(backend.list_keys("ns", b"").await.is_ok());
     }
-
 }

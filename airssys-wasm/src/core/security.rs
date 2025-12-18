@@ -29,7 +29,9 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
-use crate::core::{Capability, CapabilitySet, ComponentId, PathPattern, DomainPattern, SecurityMode, WasmResult};
+use crate::core::{
+    Capability, CapabilitySet, ComponentId, DomainPattern, PathPattern, SecurityMode, WasmResult,
+};
 
 /// Security policy enforcement trait.
 ///
@@ -221,7 +223,10 @@ impl SecurityContext {
 
     /// Check if context allows permissive decisions (e.g., dev mode).
     pub fn is_permissive(&self) -> bool {
-        matches!(self.mode, SecurityMode::Permissive | SecurityMode::Development)
+        matches!(
+            self.mode,
+            SecurityMode::Permissive | SecurityMode::Development
+        )
     }
 
     /// Check if component is trusted (auto-approves some capabilities).
@@ -418,11 +423,17 @@ mod tests {
         let component = ComponentId::new("test");
         let cap = Capability::FileRead(PathPattern::new("/test"));
 
-        let result = policy.check_permission(&component, &cap).await.expect("check_permission should succeed");
+        let result = policy
+            .check_permission(&component, &cap)
+            .await
+            .expect("check_permission should succeed");
         assert!(result.is_allowed());
 
         let deny_policy = MockPolicy { allow_all: false };
-        let deny_result = deny_policy.check_permission(&component, &cap).await.expect("check_permission should succeed");
+        let deny_result = deny_policy
+            .check_permission(&component, &cap)
+            .await
+            .expect("check_permission should succeed");
         assert!(!deny_result.is_allowed());
     }
 

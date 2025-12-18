@@ -179,9 +179,7 @@ impl SubscriberManager {
         topics: Vec<String>,
     ) -> Result<SubHandle, WasmError> {
         // Compile topic filter
-        let filter = TopicFilter::from_patterns(
-            topics.iter().map(|s| s.as_str()).collect()
-        );
+        let filter = TopicFilter::from_patterns(topics.iter().map(|s| s.as_str()).collect());
 
         let subscription_id = Uuid::new_v4();
 
@@ -197,11 +195,7 @@ impl SubscriberManager {
             .or_default()
             .push(subscription);
 
-        Ok(SubHandle::new(
-            component_id,
-            topics,
-            subscription_id,
-        ))
+        Ok(SubHandle::new(component_id, topics, subscription_id))
     }
 
     /// Get all subscribers matching topic.
@@ -236,11 +230,11 @@ impl SubscriberManager {
     /// Acquires shared read lock on subscriptions HashMap.
     pub async fn subscribers_for_topic(&self, topic: &str) -> Vec<ComponentId> {
         let subs = self.subscriptions.read().await;
-        
+
         // Use HashSet to prevent duplicates if component has overlapping subscriptions
         let mut seen = HashSet::new();
         let mut subscribers = Vec::new();
-        
+
         for (component_id, component_subs) in subs.iter() {
             for sub in component_subs {
                 if sub.filter.matches(topic) && seen.insert(component_id.clone()) {
@@ -250,7 +244,7 @@ impl SubscriberManager {
                 }
             }
         }
-        
+
         subscribers
     }
 
@@ -279,17 +273,14 @@ impl SubscriberManager {
     /// # Thread Safety
     ///
     /// Acquires exclusive write lock on subscriptions HashMap.
-    pub async fn unsubscribe(
-        &self,
-        handle: &SubHandle,
-    ) -> Result<(), WasmError> {
+    pub async fn unsubscribe(&self, handle: &SubHandle) -> Result<(), WasmError> {
         let mut subs = self.subscriptions.write().await;
-        
+
         if let Some(component_subs) = subs.get_mut(&handle.component_id) {
             // Remove subscription matching the subscription_id
             let initial_len = component_subs.len();
             component_subs.retain(|sub| sub.subscription_id != handle.subscription_id);
-            
+
             if component_subs.len() < initial_len {
                 // Subscription was removed
                 if component_subs.is_empty() {
@@ -333,7 +324,7 @@ impl SubscriberManager {
     /// ```
     pub async fn get_subscriptions(&self, component_id: &ComponentId) -> Vec<String> {
         let subs = self.subscriptions.read().await;
-        
+
         subs.get(component_id)
             .map(|component_subs| {
                 component_subs
@@ -394,11 +385,7 @@ impl SubHandle {
     /// * `component_id` - Component subscribing
     /// * `topics` - Topic patterns
     /// * `subscription_id` - Unique identifier
-    pub fn new(
-        component_id: ComponentId,
-        topics: Vec<String>,
-        subscription_id: Uuid,
-    ) -> Self {
+    pub fn new(component_id: ComponentId, topics: Vec<String>, subscription_id: Uuid) -> Self {
         Self {
             component_id,
             topics,
@@ -432,10 +419,10 @@ mod tests {
         let manager = SubscriberManager::new();
         let component_id = ComponentId::new("test-component");
 
-        let handle = manager.subscribe(
-            component_id.clone(),
-            vec!["test-topic".into()],
-        ).await.unwrap();
+        let handle = manager
+            .subscribe(component_id.clone(), vec!["test-topic".into()])
+            .await
+            .unwrap();
 
         assert_eq!(handle.component_id(), &component_id);
         assert_eq!(handle.topics().len(), 1);
@@ -447,7 +434,10 @@ mod tests {
         let component_id = ComponentId::new("test-component");
 
         let topics = vec!["topic-1".into(), "topic-2".into(), "topic-3".into()];
-        let handle = manager.subscribe(component_id.clone(), topics).await.unwrap();
+        let handle = manager
+            .subscribe(component_id.clone(), topics)
+            .await
+            .unwrap();
 
         assert_eq!(handle.topics().len(), 3);
     }
@@ -457,10 +447,10 @@ mod tests {
         let manager = SubscriberManager::new();
         let component_id = ComponentId::new("test-component");
 
-        manager.subscribe(
-            component_id.clone(),
-            vec!["events.user.login".into()],
-        ).await.unwrap();
+        manager
+            .subscribe(component_id.clone(), vec!["events.user.login".into()])
+            .await
+            .unwrap();
 
         let subscribers = manager.subscribers_for_topic("events.user.login").await;
         assert_eq!(subscribers.len(), 1);
@@ -472,10 +462,10 @@ mod tests {
         let manager = SubscriberManager::new();
         let component_id = ComponentId::new("test-component");
 
-        manager.subscribe(
-            component_id.clone(),
-            vec!["events.user.*".into()],
-        ).await.unwrap();
+        manager
+            .subscribe(component_id.clone(), vec!["events.user.*".into()])
+            .await
+            .unwrap();
 
         let subscribers = manager.subscribers_for_topic("events.user.login").await;
         assert_eq!(subscribers.len(), 1);
@@ -487,12 +477,14 @@ mod tests {
         let manager = SubscriberManager::new();
         let component_id = ComponentId::new("test-component");
 
-        manager.subscribe(
-            component_id.clone(),
-            vec!["events.#".into()],
-        ).await.unwrap();
+        manager
+            .subscribe(component_id.clone(), vec!["events.#".into()])
+            .await
+            .unwrap();
 
-        let subscribers = manager.subscribers_for_topic("events.user.login.success").await;
+        let subscribers = manager
+            .subscribers_for_topic("events.user.login.success")
+            .await;
         assert_eq!(subscribers.len(), 1);
     }
 
@@ -502,8 +494,14 @@ mod tests {
         let component_a = ComponentId::new("component-a");
         let component_b = ComponentId::new("component-b");
 
-        manager.subscribe(component_a.clone(), vec!["events.#".into()]).await.unwrap();
-        manager.subscribe(component_b.clone(), vec!["events.user.*".into()]).await.unwrap();
+        manager
+            .subscribe(component_a.clone(), vec!["events.#".into()])
+            .await
+            .unwrap();
+        manager
+            .subscribe(component_b.clone(), vec!["events.user.*".into()])
+            .await
+            .unwrap();
 
         let subscribers = manager.subscribers_for_topic("events.user.login").await;
         assert_eq!(subscribers.len(), 2);
@@ -514,10 +512,10 @@ mod tests {
         let manager = SubscriberManager::new();
         let component_id = ComponentId::new("test-component");
 
-        manager.subscribe(
-            component_id,
-            vec!["events.user.*".into()],
-        ).await.unwrap();
+        manager
+            .subscribe(component_id, vec!["events.user.*".into()])
+            .await
+            .unwrap();
 
         let subscribers = manager.subscribers_for_topic("system.restart").await;
         assert_eq!(subscribers.len(), 0);
@@ -528,10 +526,10 @@ mod tests {
         let manager = SubscriberManager::new();
         let component_id = ComponentId::new("test-component");
 
-        let handle = manager.subscribe(
-            component_id.clone(),
-            vec!["test-topic".into()],
-        ).await.unwrap();
+        let handle = manager
+            .subscribe(component_id.clone(), vec!["test-topic".into()])
+            .await
+            .unwrap();
 
         let subscribers = manager.subscribers_for_topic("test-topic").await;
         assert_eq!(subscribers.len(), 1);
@@ -547,11 +545,7 @@ mod tests {
         let manager = SubscriberManager::new();
         let component_id = ComponentId::new("test-component");
 
-        let handle = SubHandle::new(
-            component_id,
-            vec!["test-topic".into()],
-            Uuid::new_v4(),
-        );
+        let handle = SubHandle::new(component_id, vec!["test-topic".into()], Uuid::new_v4());
 
         let result = manager.unsubscribe(&handle).await;
         assert!(result.is_err());
@@ -563,7 +557,10 @@ mod tests {
         let component_id = ComponentId::new("test-component");
 
         let topics = vec!["topic-1".into(), "topic-2".into()];
-        manager.subscribe(component_id.clone(), topics.clone()).await.unwrap();
+        manager
+            .subscribe(component_id.clone(), topics.clone())
+            .await
+            .unwrap();
 
         let retrieved = manager.get_subscriptions(&component_id).await;
         assert_eq!(retrieved.len(), 2);
@@ -586,8 +583,14 @@ mod tests {
         let component_a = ComponentId::new("component-a");
         let component_b = ComponentId::new("component-b");
 
-        manager.subscribe(component_a, vec!["topic-1".into()]).await.unwrap();
-        manager.subscribe(component_b, vec!["topic-2".into()]).await.unwrap();
+        manager
+            .subscribe(component_a, vec!["topic-1".into()])
+            .await
+            .unwrap();
+        manager
+            .subscribe(component_b, vec!["topic-2".into()])
+            .await
+            .unwrap();
 
         let count = manager.subscription_count().await;
         assert_eq!(count, 2);
@@ -598,8 +601,14 @@ mod tests {
         let manager = SubscriberManager::new();
         let component_id = ComponentId::new("test-component");
 
-        manager.subscribe(component_id.clone(), vec!["topic-1".into()]).await.unwrap();
-        manager.subscribe(component_id.clone(), vec!["topic-2".into()]).await.unwrap();
+        manager
+            .subscribe(component_id.clone(), vec!["topic-1".into()])
+            .await
+            .unwrap();
+        manager
+            .subscribe(component_id.clone(), vec!["topic-2".into()])
+            .await
+            .unwrap();
 
         let count = manager.subscription_count().await;
         assert_eq!(count, 2);

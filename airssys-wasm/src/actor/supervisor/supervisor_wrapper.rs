@@ -56,9 +56,9 @@ use airssys_rt::supervisor::{
 use crate::actor::component::ComponentActor;
 use crate::actor::health::HealthMonitor;
 use crate::actor::supervisor::{
-    ComponentSupervisionState, ExponentialBackoff, ExponentialBackoffConfig,
-    RestartPolicy, RestartRecord, RestartTracker, SlidingWindowConfig,
-    SlidingWindowLimiter, SupervisorConfig, SupervisorNodeBridge,
+    ComponentSupervisionState, ExponentialBackoff, ExponentialBackoffConfig, RestartPolicy,
+    RestartRecord, RestartTracker, SlidingWindowConfig, SlidingWindowLimiter, SupervisorConfig,
+    SupervisorNodeBridge,
 };
 use crate::core::{ComponentId, WasmError};
 
@@ -85,7 +85,8 @@ use crate::core::{ComponentId, WasmError};
 /// - Start/Stop: Direct SupervisorNode delegation
 pub struct SupervisorNodeWrapper {
     /// Underlying airssys-rt SupervisorNode (OneForOne strategy)
-    supervisor: Arc<RwLock<SupervisorNode<OneForOne, ComponentActor, NoopMonitor<SupervisionEvent>>>>,
+    supervisor:
+        Arc<RwLock<SupervisorNode<OneForOne, ComponentActor, NoopMonitor<SupervisionEvent>>>>,
 
     /// Mapping: ComponentId → ChildId (for SupervisorNode)
     component_to_child: Arc<RwLock<HashMap<ComponentId, String>>>,
@@ -247,8 +248,8 @@ impl SupervisorNodeBridge for SupervisorNodeWrapper {
                 crate::actor::BackoffStrategy::Linear { base_delay } => ExponentialBackoffConfig {
                     base_delay: *base_delay,
                     max_delay: *base_delay * 10, // Cap at 10x base for linear
-                    multiplier: 1.0, // Linear = multiplier of 1.0
-                    jitter_factor: 0.1, // 10% jitter
+                    multiplier: 1.0,             // Linear = multiplier of 1.0
+                    jitter_factor: 0.1,          // 10% jitter
                 },
                 crate::actor::BackoffStrategy::Exponential {
                     base_delay,
@@ -295,7 +296,9 @@ impl SupervisorNodeBridge for SupervisorNodeWrapper {
                 cell.take().unwrap_or_else(|| {
                     // This should never happen as SupervisorNode only calls factory once
                     // Using unreachable! as this is a logic error if it ever occurs
-                    unreachable!("Factory called multiple times - ComponentActor can only be created once")
+                    unreachable!(
+                        "Factory called multiple times - ComponentActor can only be created once"
+                    )
                 })
             },
             restart_policy: Self::convert_restart_policy(config.restart_policy),
@@ -358,10 +361,9 @@ impl SupervisorNodeBridge for SupervisorNodeWrapper {
         // Stop via SupervisorNode
         let mut supervisor = self.supervisor.write().await;
         supervisor
-            .stop_child(&RtChildId::from(
-                uuid::Uuid::parse_str(&child_id)
-                    .map_err(|e| WasmError::internal(format!("Invalid child ID: {}", e)))?,
-            ))
+            .stop_child(&RtChildId::from(uuid::Uuid::parse_str(&child_id).map_err(
+                |e| WasmError::internal(format!("Invalid child ID: {}", e)),
+            )?))
             .await
             .map_err(|e| WasmError::internal(format!("Stop failed: {}", e)))?;
 
@@ -376,10 +378,7 @@ impl SupervisorNodeBridge for SupervisorNodeWrapper {
         Ok(())
     }
 
-    fn get_component_state(
-        &self,
-        component_id: &ComponentId,
-    ) -> Option<ComponentSupervisionState> {
+    fn get_component_state(&self, component_id: &ComponentId) -> Option<ComponentSupervisionState> {
         // Non-async read for synchronous state query
         let mappings = self.component_to_child.blocking_read();
         let child_id = mappings.get(component_id)?;

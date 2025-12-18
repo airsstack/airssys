@@ -130,20 +130,19 @@ impl<B: MessageBroker<ComponentMessage>> MessageRouter<B> {
         message: ComponentMessage,
     ) -> Result<(), WasmError> {
         // Lookup ActorAddress in registry (O(1))
-        let actor_address = self.registry
-            .lookup(target)?;
+        let actor_address = self.registry.lookup(target)?;
 
         // Create message envelope with reply_to address
-        let envelope = MessageEnvelope::new(message)
-            .with_reply_to(actor_address);
+        let envelope = MessageEnvelope::new(message).with_reply_to(actor_address);
 
         // Publish message via broker
-        self.broker
-            .publish(envelope)
-            .await
-            .map_err(|e| WasmError::messaging_error(
-                format!("Failed to route message to {}: {}", target.as_str(), e)
-            ))?;
+        self.broker.publish(envelope).await.map_err(|e| {
+            WasmError::messaging_error(format!(
+                "Failed to route message to {}: {}",
+                target.as_str(),
+                e
+            ))
+        })?;
 
         Ok(())
     }
@@ -202,12 +201,12 @@ impl<B: MessageBroker<ComponentMessage>> MessageRouter<B> {
         message: ComponentMessage,
     ) -> Vec<(ComponentId, Result<(), WasmError>)> {
         let mut results = Vec::with_capacity(targets.len());
-        
+
         for target in targets {
             let result = self.send_message(target, message.clone()).await;
             results.push((target.clone(), result));
         }
-        
+
         results
     }
 
@@ -278,7 +277,7 @@ mod tests {
         let router = MessageRouter::new(registry, broker);
 
         assert!(router.component_exists(&component_id));
-        
+
         let nonexistent = ComponentId::new("nope");
         assert!(!router.component_exists(&nonexistent));
     }
@@ -291,33 +290,30 @@ mod tests {
 
         assert_eq!(router.component_count().unwrap(), 0);
 
-        registry.register(
-            ComponentId::new("comp1"),
-            ActorAddress::named("comp1")
-        ).unwrap();
+        registry
+            .register(ComponentId::new("comp1"), ActorAddress::named("comp1"))
+            .unwrap();
         assert_eq!(router.component_count().unwrap(), 1);
     }
 
     #[tokio::test]
     async fn test_try_broadcast_partial_failure() {
         let registry = ComponentRegistry::new();
-        
+
         // Register only one component
         let comp1 = ComponentId::new("exists");
-        registry.register(comp1.clone(), ActorAddress::named("exists")).unwrap();
+        registry
+            .register(comp1.clone(), ActorAddress::named("exists"))
+            .unwrap();
 
         let broker = Arc::new(InMemoryMessageBroker::new());
         let router = MessageRouter::new(registry, broker);
 
-        let targets = vec![
-            comp1.clone(),
-            ComponentId::new("nonexistent"),
-        ];
+        let targets = vec![comp1.clone(), ComponentId::new("nonexistent")];
 
-        let results = router.try_broadcast_message(
-            &targets,
-            ComponentMessage::HealthCheck
-        ).await;
+        let results = router
+            .try_broadcast_message(&targets, ComponentMessage::HealthCheck)
+            .await;
 
         assert_eq!(results.len(), 2);
         assert!(results[0].1.is_ok()); // First component exists

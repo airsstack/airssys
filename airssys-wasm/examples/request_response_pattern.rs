@@ -113,7 +113,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Ok(Ok(response)) => {
             println!("  ✓ Response received on channel");
             if let Ok(payload) = response.result {
-                println!("  ✓ Final payload: \"{}\"", String::from_utf8_lossy(&payload));
+                println!(
+                    "  ✓ Final payload: \"{}\"",
+                    String::from_utf8_lossy(&payload)
+                );
             }
         }
         Ok(Err(_)) => println!("  ✗ Response channel closed"),

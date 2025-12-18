@@ -101,7 +101,7 @@ impl<'a> ComponentLoader<'a> {
     pub fn new(engine: &'a WasmEngine) -> Self {
         Self { engine }
     }
-    
+
     /// Load component from file path.
     ///
     /// Reads component bytes from filesystem with validation.
@@ -129,7 +129,7 @@ impl<'a> ComponentLoader<'a> {
     /// ```
     pub async fn load_from_file<P: AsRef<Path>>(&self, path: P) -> WasmResult<Vec<u8>> {
         let path = path.as_ref();
-        
+
         // Read component bytes from filesystem
         let bytes = fs::read(path).await.map_err(|e| {
             WasmError::component_load_failed(
@@ -137,13 +137,13 @@ impl<'a> ComponentLoader<'a> {
                 format!("Failed to read file: {e}"),
             )
         })?;
-        
+
         // Validate component format
         self.validate(&bytes)?;
-        
+
         Ok(bytes)
     }
-    
+
     /// Load component from byte array.
     ///
     /// Validates and prepares component bytes for instantiation.
@@ -174,7 +174,7 @@ impl<'a> ComponentLoader<'a> {
         self.validate(bytes)?;
         Ok(bytes.to_vec())
     }
-    
+
     /// Validate component format and semantics.
     ///
     /// Performs comprehensive validation including:
@@ -210,21 +210,19 @@ impl<'a> ComponentLoader<'a> {
                 "Component too small (< 4 bytes)",
             ));
         }
-        
+
         // Check WASM magic number: 0x00 0x61 0x73 0x6D ("\0asm")
         if &bytes[0..4] != b"\0asm" {
             return Err(WasmError::component_parse_failed(
                 "Invalid WASM magic number (expected \\0asm)",
             ));
         }
-        
+
         // Validate with Wasmtime Component Model parser
         Component::from_binary(self.engine.engine(), bytes).map_err(|e| {
-            WasmError::component_validation_failed(format!(
-                "Component validation failed: {e}"
-            ))
+            WasmError::component_validation_failed(format!("Component validation failed: {e}"))
         })?;
-        
+
         Ok(())
     }
 }
@@ -241,70 +239,70 @@ impl std::fmt::Debug for ComponentLoader<'_> {
 mod tests {
     #![allow(clippy::unwrap_used)]
     #![allow(clippy::expect_used)]
-    
+
     use super::*;
-    
+
     fn create_test_engine() -> WasmEngine {
         WasmEngine::new().unwrap()
     }
-    
+
     #[test]
     fn test_loader_creation() {
         let engine = create_test_engine();
         let loader = ComponentLoader::new(&engine);
         assert!(format!("{loader:?}").contains("ComponentLoader"));
     }
-    
+
     #[test]
     fn test_validate_empty_bytes() {
         let engine = create_test_engine();
         let loader = ComponentLoader::new(&engine);
-        
+
         let result = loader.validate(&[]);
         assert!(result.is_err());
-        
+
         if let Err(e) = result {
             assert!(e.to_string().contains("too small"));
         }
     }
-    
+
     #[test]
     fn test_validate_invalid_magic() {
         let engine = create_test_engine();
         let loader = ComponentLoader::new(&engine);
-        
+
         let invalid_bytes = b"INVALID_WASM_FORMAT";
         let result = loader.validate(invalid_bytes);
         assert!(result.is_err());
-        
+
         if let Err(e) = result {
             assert!(e.to_string().contains("magic number"));
         }
     }
-    
+
     #[test]
     fn test_validate_valid_magic() {
         let engine = create_test_engine();
         let loader = ComponentLoader::new(&engine);
-        
+
         // Minimal valid WASM header: magic (4 bytes) + version (4 bytes)
         let valid_header = b"\0asm\x01\x00\x00\x00";
         let result = loader.validate(valid_header);
-        
+
         // This is not a valid Component Model component, so validation should fail
         // (magic number check passes, but Component Model validation fails)
         assert!(result.is_err());
-        
+
         if let Err(e) = result {
             assert!(e.to_string().contains("validation failed"));
         }
     }
-    
+
     #[tokio::test]
     async fn test_load_from_bytes_validation() {
         let engine = create_test_engine();
         let loader = ComponentLoader::new(&engine);
-        
+
         // Test with invalid bytes
         let invalid_bytes = b"INVALID";
         let result = loader.load_from_bytes(invalid_bytes).await;

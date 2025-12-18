@@ -31,7 +31,7 @@ use std::collections::HashMap;
 // Layer 2: External crate imports
 // (tokio attribute macros imported via #[tokio::test])
 
-// Layer 3: Internal module imports  
+// Layer 3: Internal module imports
 use airssys_wasm::core::{
     CapabilitySet, ComponentId, ComponentInput, ExecutionContext, ResourceLimits, RuntimeEngine,
     WasmError,
@@ -39,7 +39,11 @@ use airssys_wasm::core::{
 use airssys_wasm::runtime::WasmEngine;
 
 /// Test helper: Create default execution context with limits.
-fn create_execution_context(component_id: &str, max_fuel: u64, timeout_ms: u64) -> ExecutionContext {
+fn create_execution_context(
+    component_id: &str,
+    max_fuel: u64,
+    timeout_ms: u64,
+) -> ExecutionContext {
     ExecutionContext {
         component_id: ComponentId::new(component_id),
         limits: ResourceLimits {
@@ -77,7 +81,7 @@ fn create_input() -> ComponentInput {
 async fn test_crash_division_by_zero() {
     // Create engine
     let engine = WasmEngine::new().expect("Engine creation should succeed");
-    
+
     // Component Model WAT with division by zero
     let wat = r#"
         (component
@@ -94,42 +98,45 @@ async fn test_crash_division_by_zero() {
             )
         )
     "#;
-    
+
     // Compile WAT to WASM bytes
     let wasm_bytes = wat::parse_str(wat).expect("WAT compilation should succeed");
-    
+
     // Load component
     let component_id = ComponentId::new("crash-div-by-zero");
     let handle = engine
         .load_component(&component_id, &wasm_bytes)
         .await
         .expect("Component loading should succeed");
-    
+
     // Execute function (should trap on division by zero)
     let context = create_execution_context("crash-div-by-zero", 10_000_000, 5000);
     let result = engine
         .execute(&handle, "divide-by-zero", create_input(), context)
         .await;
-    
+
     // Verify trap was caught and categorized
     assert!(result.is_err(), "Execution should fail with trap");
-    
+
     match result.unwrap_err() {
-        WasmError::ComponentTrapped { reason, fuel_consumed } => {
+        WasmError::ComponentTrapped {
+            reason,
+            fuel_consumed,
+        } => {
             // Verify error mentions division by zero
             let reason_lower = reason.to_lowercase();
             assert!(
                 reason_lower.contains("division") || reason_lower.contains("divide"),
                 "Error should mention division by zero: {reason}"
             );
-            
+
             // Verify fuel tracking is available (may be 0 for immediate trap)
             assert!(fuel_consumed.is_some(), "Fuel should be tracked");
             // Note: Division by zero happens immediately, so fuel may be 0
         }
         other => panic!("Expected ComponentTrapped error, got: {other:?}"),
     }
-    
+
     // Verify host is still stable - execute another component
     let wat_success = r#"
         (component
@@ -144,19 +151,19 @@ async fn test_crash_division_by_zero() {
             )
         )
     "#;
-    
+
     let success_bytes = wat::parse_str(wat_success).expect("WAT compilation should succeed");
     let success_id = ComponentId::new("success-after-crash");
     let success_handle = engine
         .load_component(&success_id, &success_bytes)
         .await
         .expect("Loading after crash should succeed");
-    
+
     let success_context = create_execution_context("success-after-crash", 10_000_000, 5000);
     let success_result = engine
         .execute(&success_handle, "success", create_input(), success_context)
         .await;
-    
+
     assert!(
         success_result.is_ok(),
         "Host should remain stable after component crash"
@@ -172,7 +179,7 @@ async fn test_crash_division_by_zero() {
 #[tokio::test]
 async fn test_crash_unreachable_instruction() {
     let engine = WasmEngine::new().expect("Engine creation should succeed");
-    
+
     // Component with unreachable instruction
     let wat = r#"
         (component
@@ -187,23 +194,23 @@ async fn test_crash_unreachable_instruction() {
             )
         )
     "#;
-    
+
     let wasm_bytes = wat::parse_str(wat).expect("WAT compilation should succeed");
     let component_id = ComponentId::new("crash-unreachable");
     let handle = engine
         .load_component(&component_id, &wasm_bytes)
         .await
         .expect("Component loading should succeed");
-    
+
     // Execute (should trap on unreachable)
     let context = create_execution_context("crash-unreachable", 10_000_000, 5000);
     let result = engine
         .execute(&handle, "unreachable-trap", create_input(), context)
         .await;
-    
+
     // Verify trap categorization
     assert!(result.is_err(), "Execution should fail with trap");
-    
+
     match result.unwrap_err() {
         WasmError::ComponentTrapped { reason, .. } => {
             let reason_lower = reason.to_lowercase();
@@ -225,7 +232,7 @@ async fn test_crash_unreachable_instruction() {
 #[tokio::test]
 async fn test_crash_fuel_exhaustion() {
     let engine = WasmEngine::new().expect("Engine creation should succeed");
-    
+
     // Component with infinite loop (will exhaust fuel)
     let wat = r#"
         (component
@@ -246,33 +253,42 @@ async fn test_crash_fuel_exhaustion() {
             )
         )
     "#;
-    
+
     let wasm_bytes = wat::parse_str(wat).expect("WAT compilation should succeed");
     let component_id = ComponentId::new("crash-fuel-exhaustion");
     let handle = engine
         .load_component(&component_id, &wasm_bytes)
         .await
         .expect("Component loading should succeed");
-    
+
     // Execute with limited fuel (should exhaust)
     let context = create_execution_context("crash-fuel-exhaustion", 10_000, 30000); // Low fuel, high timeout
     let result = engine
         .execute(&handle, "infinite-loop", create_input(), context)
         .await;
-    
+
     // Verify fuel exhaustion
-    assert!(result.is_err(), "Execution should fail with fuel exhaustion");
-    
+    assert!(
+        result.is_err(),
+        "Execution should fail with fuel exhaustion"
+    );
+
     match result.unwrap_err() {
-        WasmError::ComponentTrapped { reason, fuel_consumed } => {
+        WasmError::ComponentTrapped {
+            reason,
+            fuel_consumed,
+        } => {
             let reason_lower = reason.to_lowercase();
             assert!(
                 reason_lower.contains("fuel") || reason_lower.contains("cpu"),
                 "Error should mention fuel/CPU limit: {reason}"
             );
-            
+
             // Verify fuel consumed is close to limit
-            assert!(fuel_consumed.is_some(), "Fuel consumption should be tracked");
+            assert!(
+                fuel_consumed.is_some(),
+                "Fuel consumption should be tracked"
+            );
             if let Some(fuel) = fuel_consumed {
                 assert!(
                     fuel > 9_000,
@@ -285,7 +301,7 @@ async fn test_crash_fuel_exhaustion() {
 }
 
 // ============================================================================
-// TASK 5.2: Resource Cleanup Tests  
+// TASK 5.2: Resource Cleanup Tests
 // ============================================================================
 
 /// Test resource cleanup after component crash.
@@ -297,7 +313,7 @@ async fn test_crash_fuel_exhaustion() {
 #[tokio::test]
 async fn test_resource_cleanup_after_crash() {
     let engine = WasmEngine::new().expect("Engine creation should succeed");
-    
+
     // Create crashing component
     let wat = r#"
         (component
@@ -312,9 +328,9 @@ async fn test_resource_cleanup_after_crash() {
             )
         )
     "#;
-    
+
     let wasm_bytes = wat::parse_str(wat).expect("WAT compilation should succeed");
-    
+
     // Execute crashing component 10 times
     for i in 0..10 {
         let component_id = ComponentId::new(format!("crash-cleanup-{i}"));
@@ -322,18 +338,18 @@ async fn test_resource_cleanup_after_crash() {
             .load_component(&component_id, &wasm_bytes)
             .await
             .expect("Component loading should succeed");
-        
+
         let context = create_execution_context(&format!("crash-cleanup-{i}"), 10_000_000, 5000);
         let result = engine
             .execute(&handle, "crash", create_input(), context)
             .await;
-        
+
         assert!(result.is_err(), "Execution {i} should fail");
-        
+
         // After each crash, resources should be cleaned up automatically
         // (verified by Drop implementations in StoreWrapper)
     }
-    
+
     // If we reach here without OOM, cleanup worked correctly
     // Success - all crashes were isolated successfully
 }
@@ -347,7 +363,7 @@ async fn test_resource_cleanup_after_crash() {
 #[tokio::test]
 async fn test_cleanup_metrics_on_crash() {
     let engine = WasmEngine::new().expect("Engine creation should succeed");
-    
+
     let wat = r#"
         (component
             (core module $m
@@ -371,33 +387,36 @@ async fn test_cleanup_metrics_on_crash() {
             )
         )
     "#;
-    
+
     let wasm_bytes = wat::parse_str(wat).expect("WAT compilation should succeed");
     let component_id = ComponentId::new("crash-metrics");
     let handle = engine
         .load_component(&component_id, &wasm_bytes)
         .await
         .expect("Component loading should succeed");
-    
+
     let context = create_execution_context("crash-metrics", 10_000_000, 5000);
     let result = engine
         .execute(&handle, "crash-with-work", create_input(), context)
         .await;
-    
+
     // Verify crash occurred and fuel was tracked
     assert!(result.is_err(), "Execution should fail");
-    
+
     match result.unwrap_err() {
         WasmError::ComponentTrapped { fuel_consumed, .. } => {
             // Fuel consumption should be non-zero (work was done before crash)
             assert!(fuel_consumed.is_some(), "Fuel should be tracked");
             if let Some(fuel) = fuel_consumed {
-                assert!(fuel > 0, "Some fuel should be consumed before crash: {fuel}");
+                assert!(
+                    fuel > 0,
+                    "Some fuel should be consumed before crash: {fuel}"
+                );
             }
         }
         other => panic!("Expected ComponentTrapped error, got: {other:?}"),
     }
-    
+
     // StoreWrapper Drop should have run and collected metrics
     // (verified by Drop implementation logging in store_manager.rs)
 }
@@ -415,7 +434,7 @@ async fn test_cleanup_metrics_on_crash() {
 #[tokio::test]
 async fn test_concurrent_crash_isolation() {
     let engine = WasmEngine::new().expect("Engine creation should succeed");
-    
+
     let wat = r#"
         (component
             (core module $m
@@ -429,44 +448,45 @@ async fn test_concurrent_crash_isolation() {
             )
         )
     "#;
-    
+
     let wasm_bytes = wat::parse_str(wat).expect("WAT compilation should succeed");
-    
+
     // Spawn 10 concurrent crash tasks
     let mut handles = vec![];
-    
+
     for i in 0..10 {
         let engine_clone = engine.clone();
         let bytes_clone = wasm_bytes.clone();
-        
+
         let handle = tokio::spawn(async move {
             let component_id = ComponentId::new(format!("concurrent-crash-{i}"));
             let handle = engine_clone
                 .load_component(&component_id, &bytes_clone)
                 .await
                 .expect("Component loading should succeed");
-            
-            let context = create_execution_context(&format!("concurrent-crash-{i}"), 10_000_000, 5000);
+
+            let context =
+                create_execution_context(&format!("concurrent-crash-{i}"), 10_000_000, 5000);
             engine_clone
                 .execute(&handle, "crash", create_input(), context)
                 .await
         });
-        
+
         handles.push(handle);
     }
-    
+
     // Wait for all tasks to complete
     let mut results = vec![];
     for handle in handles {
         results.push(handle.await);
     }
-    
+
     // Verify all crashed as expected
     for (i, result) in results.iter().enumerate() {
         let exec_result = result.as_ref().expect("Task should not panic");
         assert!(exec_result.is_err(), "Concurrent crash {i} should fail");
     }
-    
+
     // Host should still be operational after concurrent crashes
     // Success - host survived concurrent crash load
 }
@@ -480,7 +500,7 @@ async fn test_concurrent_crash_isolation() {
 #[tokio::test]
 async fn test_rapid_sequential_crashes() {
     let engine = WasmEngine::new().expect("Engine creation should succeed");
-    
+
     let wat = r#"
         (component
             (core module $m
@@ -494,9 +514,9 @@ async fn test_rapid_sequential_crashes() {
             )
         )
     "#;
-    
+
     let wasm_bytes = wat::parse_str(wat).expect("WAT compilation should succeed");
-    
+
     // Execute 100 rapid crashes
     for i in 0..100 {
         let component_id = ComponentId::new(format!("rapid-crash-{i}"));
@@ -504,15 +524,15 @@ async fn test_rapid_sequential_crashes() {
             .load_component(&component_id, &wasm_bytes)
             .await
             .expect("Component loading should succeed");
-        
+
         let context = create_execution_context(&format!("rapid-crash-{i}"), 10_000_000, 5000);
         let result = engine
             .execute(&handle, "crash", create_input(), context)
             .await;
-        
+
         assert!(result.is_err(), "Rapid crash {i} should fail");
     }
-    
+
     // If we complete without error accumulation, cleanup is working
     // Success - host handled 100 rapid crashes without issues
 }
@@ -526,7 +546,7 @@ async fn test_rapid_sequential_crashes() {
 #[tokio::test]
 async fn test_host_stability_after_crash() {
     let engine = WasmEngine::new().expect("Engine creation should succeed");
-    
+
     // First: Crash a component
     let crash_wat = r#"
         (component
@@ -541,21 +561,21 @@ async fn test_host_stability_after_crash() {
             )
         )
     "#;
-    
+
     let crash_bytes = wat::parse_str(crash_wat).expect("WAT compilation should succeed");
     let crash_id = ComponentId::new("crash-first");
     let crash_handle = engine
         .load_component(&crash_id, &crash_bytes)
         .await
         .expect("Component loading should succeed");
-    
+
     let crash_context = create_execution_context("crash-first", 10_000_000, 5000);
     let crash_result = engine
         .execute(&crash_handle, "crash", create_input(), crash_context)
         .await;
-    
+
     assert!(crash_result.is_err(), "First component should crash");
-    
+
     // Second: Execute normal component
     let success_wat = r#"
         (component
@@ -570,24 +590,24 @@ async fn test_host_stability_after_crash() {
             )
         )
     "#;
-    
+
     let success_bytes = wat::parse_str(success_wat).expect("WAT compilation should succeed");
     let success_id = ComponentId::new("success-after-crash");
     let success_handle = engine
         .load_component(&success_id, &success_bytes)
         .await
         .expect("Loading after crash should succeed");
-    
+
     let success_context = create_execution_context("success-after-crash", 10_000_000, 5000);
     let success_result = engine
         .execute(&success_handle, "success", create_input(), success_context)
         .await;
-    
+
     assert!(
         success_result.is_ok(),
         "Normal execution should work after crash"
     );
-    
+
     // Third: Verify result correctness
     let output = success_result.unwrap();
     assert_eq!(output.data.len(), 4, "Output should contain i32 value");

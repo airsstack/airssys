@@ -137,10 +137,7 @@ impl MessagePublisher {
     /// let wrapper = Arc::new(MessageBrokerWrapper::new(broker));
     /// let publisher = MessagePublisher::new(component_id, wrapper);
     /// ```
-    pub fn new(
-        component_id: ComponentId,
-        broker: Arc<dyn MessageBrokerBridge>,
-    ) -> Self {
+    pub fn new(component_id: ComponentId, broker: Arc<dyn MessageBrokerBridge>) -> Self {
         Self {
             component_id,
             broker,
@@ -175,11 +172,7 @@ impl MessagePublisher {
     /// # Performance
     ///
     /// Target: <100ns overhead per operation (excluding broker latency)
-    pub async fn publish(
-        &self,
-        topic: &str,
-        payload: Vec<u8>,
-    ) -> Result<(), WasmError> {
+    pub async fn publish(&self, topic: &str, payload: Vec<u8>) -> Result<(), WasmError> {
         let message = ComponentMessage::InterComponent {
             sender: self.component_id.clone(),
             payload,
@@ -223,11 +216,7 @@ impl MessagePublisher {
     /// # Performance
     ///
     /// Time complexity: O(n) where n = number of topics
-    pub async fn publish_multi(
-        &self,
-        topics: &[&str],
-        payload: Vec<u8>,
-    ) -> Result<(), WasmError> {
+    pub async fn publish_multi(&self, topics: &[&str], payload: Vec<u8>) -> Result<(), WasmError> {
         for topic in topics {
             self.publish(topic, payload.clone()).await?;
         }
@@ -365,11 +354,9 @@ mod tests {
         let publisher = MessagePublisher::new(component_id, wrapper);
 
         let correlation_id = Uuid::new_v4();
-        let result = publisher.publish_with_correlation(
-            "request-topic",
-            vec![1, 2, 3],
-            correlation_id,
-        ).await;
+        let result = publisher
+            .publish_with_correlation("request-topic", vec![1, 2, 3], correlation_id)
+            .await;
         assert!(result.is_ok());
     }
 

@@ -21,21 +21,19 @@
 //! - `component_supervisor` - Component-specific supervision
 
 // Module declarations
-pub mod component_actor;
 pub mod actor_impl;
 pub mod child_impl;
-pub mod type_conversion;
+pub mod component_actor;
 pub mod component_registry;
 pub mod component_spawner;
 pub mod component_supervisor;
+pub mod type_conversion;
 
 // Public re-exports
 #[doc(inline)]
 pub use component_actor::{
     ActorState, ComponentActor, ComponentMessage, HealthStatus, WasmRuntime,
 };
-#[doc(inline)]
-pub use type_conversion::{prepare_wasm_params, extract_wasm_results};
 #[doc(inline)]
 pub use component_registry::ComponentRegistry;
 #[doc(inline)]
@@ -45,3 +43,5 @@ pub use component_supervisor::{
     ComponentSupervisor, RestartDecision, SupervisionHandle, SupervisionState,
     SupervisionStatistics, SupervisionTree, SupervisionTreeNode,
 };
+#[doc(inline)]
+pub use type_conversion::{extract_wasm_results, prepare_wasm_params};

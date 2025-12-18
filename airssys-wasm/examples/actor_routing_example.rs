@@ -13,10 +13,10 @@ use std::sync::Arc;
 // (none)
 
 // Layer 3: Internal module imports
-use airssys_wasm::actor::{ComponentRegistry, MessageRouter, ComponentMessage};
-use airssys_wasm::core::ComponentId;
 use airssys_rt::broker::InMemoryMessageBroker;
 use airssys_rt::util::ActorAddress;
+use airssys_wasm::actor::{ComponentMessage, ComponentRegistry, MessageRouter};
+use airssys_wasm::core::ComponentId;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -48,14 +48,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Example 1: Send message to single component
     println!("📨 Example 1: Single Message Routing");
     println!("→ Routing HealthCheck to component-b...");
-    router.send_message(&component_b, ComponentMessage::HealthCheck).await?;
+    router
+        .send_message(&component_b, ComponentMessage::HealthCheck)
+        .await?;
     println!("✓ Message routed successfully\n");
 
     // Example 2: Error handling - nonexistent component
     println!("❌ Example 2: Error Handling");
     let nonexistent = ComponentId::new("nonexistent");
     println!("→ Attempting to route to nonexistent component...");
-    match router.send_message(&nonexistent, ComponentMessage::HealthCheck).await {
+    match router
+        .send_message(&nonexistent, ComponentMessage::HealthCheck)
+        .await
+    {
         Ok(_) => println!("✗ Unexpected success"),
         Err(e) => println!("✓ Expected error: {}", e),
     }
@@ -63,9 +68,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Example 3: Broadcast to multiple components
     println!("📡 Example 3: Broadcast Messaging");
-    let targets = vec![component_a.clone(), component_b.clone(), component_c.clone()];
-    println!("→ Broadcasting HealthCheck to {} components...", targets.len());
-    router.broadcast_message(&targets, ComponentMessage::HealthCheck).await?;
+    let targets = vec![
+        component_a.clone(),
+        component_b.clone(),
+        component_c.clone(),
+    ];
+    println!(
+        "→ Broadcasting HealthCheck to {} components...",
+        targets.len()
+    );
+    router
+        .broadcast_message(&targets, ComponentMessage::HealthCheck)
+        .await?;
     println!("✓ Broadcast completed\n");
 
     // Example 4: Try-broadcast with mixed results
@@ -77,9 +91,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ComponentId::new("nonexistent-2"),
         component_c.clone(),
     ];
-    println!("→ Try-broadcast to {} targets (including nonexistent)...", mixed_targets.len());
-    let results = router.try_broadcast_message(&mixed_targets, ComponentMessage::HealthCheck).await;
-    
+    println!(
+        "→ Try-broadcast to {} targets (including nonexistent)...",
+        mixed_targets.len()
+    );
+    let results = router
+        .try_broadcast_message(&mixed_targets, ComponentMessage::HealthCheck)
+        .await;
+
     for (comp_id, result) in results {
         match result {
             Ok(_) => println!("   ✓ {}: delivered", comp_id.as_str()),
@@ -91,10 +110,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Example 5: Registry statistics
     println!("📊 Example 5: Registry Statistics");
     println!("   Total components: {}", router.component_count()?);
-    println!("   Component A exists: {}", router.component_exists(&component_a));
-    println!("   Component B exists: {}", router.component_exists(&component_b));
-    println!("   Component C exists: {}", router.component_exists(&component_c));
-    println!("   Nonexistent exists: {}", router.component_exists(&nonexistent));
+    println!(
+        "   Component A exists: {}",
+        router.component_exists(&component_a)
+    );
+    println!(
+        "   Component B exists: {}",
+        router.component_exists(&component_b)
+    );
+    println!(
+        "   Component C exists: {}",
+        router.component_exists(&component_c)
+    );
+    println!(
+        "   Nonexistent exists: {}",
+        router.component_exists(&nonexistent)
+    );
     println!();
 
     // Example 6: Unregister component
@@ -102,7 +133,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("→ Unregistering component-b...");
     registry.unregister(&component_b)?;
     println!("✓ Component unregistered");
-    println!("   Component B exists: {}", router.component_exists(&component_b));
+    println!(
+        "   Component B exists: {}",
+        router.component_exists(&component_b)
+    );
     println!("   Total components: {}", router.component_count()?);
 
     println!("\n✅ All examples completed successfully!");
@@ -112,6 +146,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   • Graceful error handling for missing components");
     println!("   • Broadcast supports both fail-fast and best-effort modes");
     println!("   • Router automatically tracks registry changes");
-    
+
     Ok(())
 }

@@ -74,10 +74,10 @@ use crate::core::{ComponentId, WasmError};
 pub struct LifecycleContext {
     /// Component unique identifier
     pub component_id: ComponentId,
-    
+
     /// Actor system address
     pub actor_address: ActorAddress,
-    
+
     /// Event timestamp
     pub timestamp: DateTime<Utc>,
 }
@@ -133,10 +133,10 @@ impl LifecycleContext {
 pub enum HookResult {
     /// Hook executed successfully
     Ok,
-    
+
     /// Hook reported an error (non-fatal, logged)
     Error(String),
-    
+
     /// Hook execution exceeded timeout
     Timeout,
 }
@@ -168,13 +168,13 @@ pub enum HookResult {
 pub enum RestartReason {
     /// Component crashed (panic or fatal error)
     Crashed(String),
-    
+
     /// Failed health check
     HealthCheck(String),
-    
+
     /// Manual restart requested
     Manual,
-    
+
     /// Component exceeded timeout limit
     Timeout,
 }
@@ -252,7 +252,7 @@ pub trait LifecycleHooks: Send + Sync {
     fn pre_start(&mut self, _ctx: &LifecycleContext) -> HookResult {
         HookResult::Ok
     }
-    
+
     /// Called after component successfully starts.
     ///
     /// Use for: startup completion logging, dependency injection, initialization callbacks.
@@ -276,7 +276,7 @@ pub trait LifecycleHooks: Send + Sync {
     fn post_start(&mut self, _ctx: &LifecycleContext) -> HookResult {
         HookResult::Ok
     }
-    
+
     /// Called before component stops.
     ///
     /// Use for: cleanup logic, state saving, connection closing.
@@ -301,7 +301,7 @@ pub trait LifecycleHooks: Send + Sync {
     fn pre_stop(&mut self, _ctx: &LifecycleContext) -> HookResult {
         HookResult::Ok
     }
-    
+
     /// Called after component stops.
     ///
     /// Use for: final cleanup, resource release, stop confirmation.
@@ -325,7 +325,7 @@ pub trait LifecycleHooks: Send + Sync {
     fn post_stop(&mut self, _ctx: &LifecycleContext) -> HookResult {
         HookResult::Ok
     }
-    
+
     /// Called when message received (before routing to WASM).
     ///
     /// Use for: request logging, authentication, rate limiting pre-checks.
@@ -347,10 +347,14 @@ pub trait LifecycleHooks: Send + Sync {
     ///     HookResult::Ok
     /// }
     /// ```
-    fn on_message_received(&mut self, _ctx: &LifecycleContext, _msg: &ComponentMessage) -> HookResult {
+    fn on_message_received(
+        &mut self,
+        _ctx: &LifecycleContext,
+        _msg: &ComponentMessage,
+    ) -> HookResult {
         HookResult::Ok
     }
-    
+
     /// Called when error occurs anywhere in component.
     ///
     /// Use for: error logging, metrics collection, error recovery.
@@ -376,7 +380,7 @@ pub trait LifecycleHooks: Send + Sync {
     fn on_error(&mut self, _ctx: &LifecycleContext, _error: &WasmError) -> HookResult {
         HookResult::Ok
     }
-    
+
     /// Called when supervisor triggers component restart.
     ///
     /// Use for: restart logging, state reset, notification hooks.
@@ -432,9 +436,9 @@ mod tests {
     fn test_lifecycle_context_creation() {
         let component_id = ComponentId::new("test-component");
         let actor_address = ActorAddress::anonymous();
-        
+
         let ctx = LifecycleContext::new(component_id.clone(), actor_address.clone());
-        
+
         assert_eq!(ctx.component_id, component_id);
         assert_eq!(ctx.actor_address, actor_address);
     }
@@ -444,7 +448,7 @@ mod tests {
         let component_id = ComponentId::new("test-component");
         let actor_address = ActorAddress::anonymous();
         let ctx = LifecycleContext::new(component_id.clone(), actor_address.clone());
-        
+
         let cloned = ctx.clone();
         assert_eq!(cloned.component_id, component_id);
         assert_eq!(cloned.actor_address, actor_address);
@@ -479,7 +483,7 @@ mod tests {
             HookResult::Error("test".to_string())
         );
         assert_eq!(HookResult::Timeout, HookResult::Timeout);
-        
+
         assert_ne!(HookResult::Ok, HookResult::Timeout);
         assert_ne!(
             HookResult::Error("a".to_string()),
@@ -523,19 +527,19 @@ mod tests {
         let component_id = ComponentId::new("test");
         let actor_address = ActorAddress::anonymous();
         let ctx = LifecycleContext::new(component_id, actor_address);
-        
+
         // All hooks should return Ok
         assert_eq!(hooks.pre_start(&ctx), HookResult::Ok);
         assert_eq!(hooks.post_start(&ctx), HookResult::Ok);
         assert_eq!(hooks.pre_stop(&ctx), HookResult::Ok);
         assert_eq!(hooks.post_stop(&ctx), HookResult::Ok);
-        
+
         let msg = ComponentMessage::HealthCheck;
         assert_eq!(hooks.on_message_received(&ctx, &msg), HookResult::Ok);
-        
+
         let error = WasmError::internal("test error");
         assert_eq!(hooks.on_error(&ctx, &error), HookResult::Ok);
-        
+
         let reason = RestartReason::Manual;
         assert_eq!(hooks.on_restart(&ctx, reason), HookResult::Ok);
     }

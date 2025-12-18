@@ -201,13 +201,9 @@ impl<B: MessageBroker<ComponentMessage> + Send + Sync + 'static> ActorSystemSubs
     /// ```
     pub async fn start(&mut self) -> Result<(), WasmError> {
         // Subscribe to broker
-        let stream = self.broker
-            .subscribe()
-            .await
-            .map_err(|e| WasmError::message_broker_error(format!(
-                "Failed to subscribe to broker: {}",
-                e
-            )))?;
+        let stream = self.broker.subscribe().await.map_err(|e| {
+            WasmError::message_broker_error(format!("Failed to subscribe to broker: {}", e))
+        })?;
 
         // Wrap stream in Arc<Mutex<>> for sharing across task
         let stream = Arc::new(Mutex::new(stream));
@@ -231,7 +227,9 @@ impl<B: MessageBroker<ComponentMessage> + Send + Sync + 'static> ActorSystemSubs
                             &registry,
                             &subscriber_manager,
                             envelope,
-                        ).await {
+                        )
+                        .await
+                        {
                             tracing::error!("Failed to route message: {}", e);
                         }
                     }
@@ -278,16 +276,16 @@ impl<B: MessageBroker<ComponentMessage> + Send + Sync + 'static> ActorSystemSubs
     ) -> Result<(), WasmError> {
         // Validate message structure
         let _target = Self::extract_target(&envelope.payload)?;
-        
+
         // In full implementation with ActorContext:
         // 1. Extract topic from envelope metadata
         // 2. Query SubscriberManager for matching subscribers
         // 3. Lookup each subscriber's ActorAddress in registry
         // 4. Send message via ActorContext.send(message, address)
-        
+
         // For now, just log the routing decision
         tracing::debug!("Message routed through ActorSystemSubscriber");
-        
+
         Ok(())
     }
 
@@ -326,7 +324,7 @@ impl<B: MessageBroker<ComponentMessage> + Send + Sync + 'static> ActorSystemSubs
                 Ok(sender.clone())
             }
             _ => Err(WasmError::internal(
-                "Cannot extract target from message type".to_string()
+                "Cannot extract target from message type".to_string(),
             )),
         }
     }
@@ -396,11 +394,7 @@ mod tests {
         let registry = ComponentRegistry::new();
         let subscriber_manager = Arc::new(SubscriberManager::new());
 
-        let subscriber = ActorSystemSubscriber::new(
-            broker,
-            registry,
-            subscriber_manager,
-        );
+        let subscriber = ActorSystemSubscriber::new(broker, registry, subscriber_manager);
 
         assert!(!subscriber.is_running());
     }
@@ -411,11 +405,7 @@ mod tests {
         let registry = ComponentRegistry::new();
         let subscriber_manager = Arc::new(SubscriberManager::new());
 
-        let mut subscriber = ActorSystemSubscriber::new(
-            broker,
-            registry,
-            subscriber_manager,
-        );
+        let mut subscriber = ActorSystemSubscriber::new(broker, registry, subscriber_manager);
 
         let result = subscriber.start().await;
         assert!(result.is_ok());
@@ -431,11 +421,7 @@ mod tests {
         let registry = ComponentRegistry::new();
         let subscriber_manager = Arc::new(SubscriberManager::new());
 
-        let mut subscriber = ActorSystemSubscriber::new(
-            broker,
-            registry,
-            subscriber_manager,
-        );
+        let mut subscriber = ActorSystemSubscriber::new(broker, registry, subscriber_manager);
 
         subscriber.start().await.unwrap();
         assert!(subscriber.is_running());
@@ -453,7 +439,10 @@ mod tests {
             payload: vec![1, 2, 3],
         };
 
-        let result = ActorSystemSubscriber::<InMemoryMessageBroker<ComponentMessage>>::extract_target(&message);
+        let result =
+            ActorSystemSubscriber::<InMemoryMessageBroker<ComponentMessage>>::extract_target(
+                &message,
+            );
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), component_id);
     }
@@ -467,7 +456,10 @@ mod tests {
             correlation_id: uuid::Uuid::new_v4(),
         };
 
-        let result = ActorSystemSubscriber::<InMemoryMessageBroker<ComponentMessage>>::extract_target(&message);
+        let result =
+            ActorSystemSubscriber::<InMemoryMessageBroker<ComponentMessage>>::extract_target(
+                &message,
+            );
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), component_id);
     }
@@ -476,7 +468,10 @@ mod tests {
     async fn test_extract_target_invalid_message() {
         let message = ComponentMessage::Shutdown;
 
-        let result = ActorSystemSubscriber::<InMemoryMessageBroker<ComponentMessage>>::extract_target(&message);
+        let result =
+            ActorSystemSubscriber::<InMemoryMessageBroker<ComponentMessage>>::extract_target(
+                &message,
+            );
         assert!(result.is_err());
     }
 

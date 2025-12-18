@@ -71,28 +71,28 @@ use crate::core::ComponentId;
 pub enum LifecycleState {
     /// Component is not installed (initial state)
     Uninstalled,
-    
+
     /// Component installation is in progress
     Installing,
-    
+
     /// Component is installed but not running
     Installed,
-    
+
     /// Component is starting up
     Starting,
-    
+
     /// Component is running and can handle requests
     Running,
-    
+
     /// Component is being updated (hot deployment)
     Updating,
-    
+
     /// Component is shutting down
     Stopping,
-    
+
     /// Component has stopped cleanly
     Stopped,
-    
+
     /// Component is in a failed state (needs intervention)
     Failed,
 }
@@ -183,13 +183,13 @@ impl LifecycleState {
 pub struct VersionInfo {
     /// Semantic version string (e.g., "1.2.3")
     pub version: String,
-    
+
     /// Content hash (SHA-256) of component WASM binary
     pub hash: String,
-    
+
     /// Optional Ed25519 signature for verification
     pub signature: Option<Vec<u8>>,
-    
+
     /// Timestamp when this version was installed
     pub installed_at: DateTime<Utc>,
 }
@@ -286,14 +286,14 @@ pub enum UpdateStrategy {
     /// This is the simplest update strategy but involves downtime during
     /// the transition. Best for non-critical components.
     StopStart,
-    
+
     /// Start new version, switch traffic, stop old version (zero downtime).
     ///
     /// Also known as "blue-green deployment". The new version is started
     /// alongside the old, traffic is switched instantly, then the old version
     /// is stopped. Requires 2x resources temporarily but enables instant rollback.
     BlueGreen,
-    
+
     /// Gradual traffic shift from old to new version (zero downtime, controlled).
     ///
     /// Also known as "canary deployment". Traffic is gradually shifted from
@@ -361,16 +361,16 @@ impl UpdateStrategy {
 pub struct LifecycleEvent {
     /// Component that transitioned
     pub component_id: ComponentId,
-    
+
     /// Previous lifecycle state
     pub from_state: LifecycleState,
-    
+
     /// New lifecycle state
     pub to_state: LifecycleState,
-    
+
     /// When the transition occurred
     pub timestamp: DateTime<Utc>,
-    
+
     /// Optional reason for the transition
     pub reason: Option<String>,
 }
@@ -558,19 +558,12 @@ mod tests {
     #[test]
     fn test_lifecycle_event_failure_detection() {
         let id = ComponentId::new("test");
-        
-        let failure = LifecycleEvent::new(
-            id.clone(),
-            LifecycleState::Running,
-            LifecycleState::Failed,
-        );
+
+        let failure =
+            LifecycleEvent::new(id.clone(), LifecycleState::Running, LifecycleState::Failed);
         assert!(failure.is_failure());
 
-        let success = LifecycleEvent::new(
-            id,
-            LifecycleState::Starting,
-            LifecycleState::Running,
-        );
+        let success = LifecycleEvent::new(id, LifecycleState::Starting, LifecycleState::Running);
         assert!(!success.is_failure());
     }
 }

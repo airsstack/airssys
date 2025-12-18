@@ -273,11 +273,11 @@ pub enum WasmCapability {
     Filesystem {
         /// Resource glob patterns (e.g., `"/app/config/*"`, `"/data/**/*.log"`)
         paths: Vec<String>,
-        
+
         /// Allowed permissions: `"read"`, `"write"`, `"execute"`
         permissions: Vec<String>,
     },
-    
+
     /// Network access capability.
     ///
     /// Grants access to network endpoints (domain:port) with the specified permissions.
@@ -311,11 +311,11 @@ pub enum WasmCapability {
     Network {
         /// Endpoint patterns in `domain:port` format (supports `*` wildcard for subdomains)
         endpoints: Vec<String>,
-        
+
         /// Allowed permissions: `"connect"`, `"bind"`, `"listen"`
         permissions: Vec<String>,
     },
-    
+
     /// Storage access capability.
     ///
     /// Grants access to key-value storage namespaces with the specified permissions.
@@ -346,7 +346,7 @@ pub enum WasmCapability {
     Storage {
         /// Namespace patterns with `:` hierarchy (e.g., `"component:<id>:cache:*"`)
         namespaces: Vec<String>,
-        
+
         /// Allowed permissions: `"read"`, `"write"`, `"delete"`
         permissions: Vec<String>,
     },
@@ -446,36 +446,51 @@ impl WasmCapability {
         match self {
             WasmCapability::Filesystem { paths, permissions } => {
                 // Create one ACL entry per filesystem path pattern
-                paths.iter().map(|path| {
-                    AclEntry::new(
-                        component_id.to_string(),  // identity = component ID
-                        path.clone(),              // resource_pattern = filesystem path
-                        permissions.clone(),       // permissions = read/write/execute
-                        AclPolicy::Allow,          // policy = explicit allow
-                    )
-                }).collect()
+                paths
+                    .iter()
+                    .map(|path| {
+                        AclEntry::new(
+                            component_id.to_string(), // identity = component ID
+                            path.clone(),             // resource_pattern = filesystem path
+                            permissions.clone(),      // permissions = read/write/execute
+                            AclPolicy::Allow,         // policy = explicit allow
+                        )
+                    })
+                    .collect()
             }
-            WasmCapability::Network { endpoints, permissions } => {
+            WasmCapability::Network {
+                endpoints,
+                permissions,
+            } => {
                 // Create one ACL entry per network endpoint pattern
-                endpoints.iter().map(|endpoint| {
-                    AclEntry::new(
-                        component_id.to_string(),  // identity = component ID
-                        endpoint.clone(),          // resource_pattern = domain:port
-                        permissions.clone(),       // permissions = connect/bind/listen
-                        AclPolicy::Allow,          // policy = explicit allow
-                    )
-                }).collect()
+                endpoints
+                    .iter()
+                    .map(|endpoint| {
+                        AclEntry::new(
+                            component_id.to_string(), // identity = component ID
+                            endpoint.clone(),         // resource_pattern = domain:port
+                            permissions.clone(),      // permissions = connect/bind/listen
+                            AclPolicy::Allow,         // policy = explicit allow
+                        )
+                    })
+                    .collect()
             }
-            WasmCapability::Storage { namespaces, permissions } => {
+            WasmCapability::Storage {
+                namespaces,
+                permissions,
+            } => {
                 // Create one ACL entry per storage namespace pattern
-                namespaces.iter().map(|ns| {
-                    AclEntry::new(
-                        component_id.to_string(),  // identity = component ID
-                        ns.clone(),                // resource_pattern = namespace path
-                        permissions.clone(),       // permissions = read/write/delete
-                        AclPolicy::Allow,          // policy = explicit allow
-                    )
-                }).collect()
+                namespaces
+                    .iter()
+                    .map(|ns| {
+                        AclEntry::new(
+                            component_id.to_string(), // identity = component ID
+                            ns.clone(),               // resource_pattern = namespace path
+                            permissions.clone(),      // permissions = read/write/delete
+                            AclPolicy::Allow,         // policy = explicit allow
+                        )
+                    })
+                    .collect()
             }
         }
     }
@@ -776,7 +791,7 @@ impl WasmCapabilitySet {
 pub struct WasmSecurityContext {
     /// Unique identifier for the component (maps to ACL identity)
     pub component_id: String,
-    
+
     /// Set of capabilities granted to the component
     pub capabilities: WasmCapabilitySet,
 }
@@ -986,11 +1001,11 @@ impl WasmSecurityContext {
     /// ```
     pub fn to_acl(&self) -> airssys_osl::middleware::security::AccessControlList {
         let mut acl = airssys_osl::middleware::security::AccessControlList::new();
-        
+
         for entry in self.capabilities.to_acl_entries(&self.component_id) {
             acl = acl.add_entry(entry);
         }
-        
+
         acl
     }
 }
@@ -1012,7 +1027,7 @@ mod tests {
         };
 
         let entries = cap.to_acl_entry("component-123");
-        
+
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].identity, "component-123");
         assert_eq!(entries[0].resource_pattern, "/app/data/*");
@@ -1038,7 +1053,7 @@ mod tests {
             });
 
         let entries = set.to_acl_entries("comp-1");
-        
+
         // 1 filesystem path + 1 network endpoint = 2 ACL entries
         assert_eq!(entries.len(), 2);
     }
@@ -1051,11 +1066,10 @@ mod tests {
     /// 3. WASM component ID included as attribute
     #[test]
     fn test_security_context_conversion() {
-        let capabilities = WasmCapabilitySet::new()
-            .grant(WasmCapability::Filesystem {
-                paths: vec!["/app/data/*".to_string()],
-                permissions: vec!["read".to_string()],
-            });
+        let capabilities = WasmCapabilitySet::new().grant(WasmCapability::Filesystem {
+            paths: vec!["/app/data/*".to_string()],
+            permissions: vec!["read".to_string()],
+        });
 
         let wasm_ctx = WasmSecurityContext::new("test-component".to_string(), capabilities);
         let osl_ctx = wasm_ctx.to_osl_context("/app/data/file.json", "read");
@@ -1064,9 +1078,15 @@ mod tests {
         assert_eq!(osl_ctx.principal, "test-component");
 
         // Verify attributes
-        assert_eq!(osl_ctx.get_attribute("acl.resource"), Some("/app/data/file.json"));
+        assert_eq!(
+            osl_ctx.get_attribute("acl.resource"),
+            Some("/app/data/file.json")
+        );
         assert_eq!(osl_ctx.get_attribute("acl.permission"), Some("read"));
-        assert_eq!(osl_ctx.get_attribute("wasm.component_id"), Some("test-component"));
+        assert_eq!(
+            osl_ctx.get_attribute("wasm.component_id"),
+            Some("test-component")
+        );
     }
 
     /// Test WasmSecurityContext to ACL conversion.
@@ -1089,7 +1109,7 @@ mod tests {
 
         // ACL should be constructed successfully (no panics)
         // Detailed ACL evaluation testing happens in Phase 3 Task 3.1
-        drop(acl);  // Ensure ACL can be used and dropped
+        drop(acl); // Ensure ACL can be used and dropped
     }
 
     /// Test multiple security context conversions with different resources.
@@ -1098,22 +1118,27 @@ mod tests {
     /// airssys-osl SecurityContexts for different resource access checks.
     #[test]
     fn test_multiple_context_conversions() {
-        let capabilities = WasmCapabilitySet::new()
-            .grant(WasmCapability::Filesystem {
-                paths: vec!["/app/data/*".to_string()],
-                permissions: vec!["read".to_string(), "write".to_string()],
-            });
+        let capabilities = WasmCapabilitySet::new().grant(WasmCapability::Filesystem {
+            paths: vec!["/app/data/*".to_string()],
+            permissions: vec!["read".to_string(), "write".to_string()],
+        });
 
         let wasm_ctx = WasmSecurityContext::new("multi-ctx".to_string(), capabilities);
 
         // First conversion: read access
         let osl_ctx1 = wasm_ctx.to_osl_context("/app/data/file1.json", "read");
-        assert_eq!(osl_ctx1.get_attribute("acl.resource"), Some("/app/data/file1.json"));
+        assert_eq!(
+            osl_ctx1.get_attribute("acl.resource"),
+            Some("/app/data/file1.json")
+        );
         assert_eq!(osl_ctx1.get_attribute("acl.permission"), Some("read"));
 
         // Second conversion: write access (different permission)
         let osl_ctx2 = wasm_ctx.to_osl_context("/app/data/file2.json", "write");
-        assert_eq!(osl_ctx2.get_attribute("acl.resource"), Some("/app/data/file2.json"));
+        assert_eq!(
+            osl_ctx2.get_attribute("acl.resource"),
+            Some("/app/data/file2.json")
+        );
         assert_eq!(osl_ctx2.get_attribute("acl.permission"), Some("write"));
 
         // Session IDs should be different (fresh context per call)
@@ -1126,17 +1151,19 @@ mod tests {
     /// airssys-osl SecurityContext with proper attributes.
     #[test]
     fn test_network_context_conversion() {
-        let capabilities = WasmCapabilitySet::new()
-            .grant(WasmCapability::Network {
-                endpoints: vec!["api.example.com:443".to_string()],
-                permissions: vec!["connect".to_string()],
-            });
+        let capabilities = WasmCapabilitySet::new().grant(WasmCapability::Network {
+            endpoints: vec!["api.example.com:443".to_string()],
+            permissions: vec!["connect".to_string()],
+        });
 
         let wasm_ctx = WasmSecurityContext::new("network-component".to_string(), capabilities);
         let osl_ctx = wasm_ctx.to_osl_context("api.example.com:443", "connect");
 
         assert_eq!(osl_ctx.principal, "network-component");
-        assert_eq!(osl_ctx.get_attribute("acl.resource"), Some("api.example.com:443"));
+        assert_eq!(
+            osl_ctx.get_attribute("acl.resource"),
+            Some("api.example.com:443")
+        );
         assert_eq!(osl_ctx.get_attribute("acl.permission"), Some("connect"));
     }
 
@@ -1146,17 +1173,19 @@ mod tests {
     /// airssys-osl SecurityContext.
     #[test]
     fn test_storage_context_conversion() {
-        let capabilities = WasmCapabilitySet::new()
-            .grant(WasmCapability::Storage {
-                namespaces: vec!["component:<id>:data:*".to_string()],
-                permissions: vec!["read".to_string(), "write".to_string()],
-            });
+        let capabilities = WasmCapabilitySet::new().grant(WasmCapability::Storage {
+            namespaces: vec!["component:<id>:data:*".to_string()],
+            permissions: vec!["read".to_string(), "write".to_string()],
+        });
 
         let wasm_ctx = WasmSecurityContext::new("storage-component".to_string(), capabilities);
         let osl_ctx = wasm_ctx.to_osl_context("component:<id>:data:config", "read");
 
         assert_eq!(osl_ctx.principal, "storage-component");
-        assert_eq!(osl_ctx.get_attribute("acl.resource"), Some("component:<id>:data:config"));
+        assert_eq!(
+            osl_ctx.get_attribute("acl.resource"),
+            Some("component:<id>:data:config")
+        );
         assert_eq!(osl_ctx.get_attribute("acl.permission"), Some("read"));
     }
 }

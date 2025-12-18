@@ -18,7 +18,7 @@
 //! - No heap allocations for primitive types
 
 // Layer 2: Third-party crate imports
-use wasmtime::{Val, ValType, FuncType};
+use wasmtime::{FuncType, Val, ValType};
 
 // Layer 3: Internal module imports
 use crate::core::WasmError;
@@ -29,21 +29,17 @@ pub fn prepare_wasm_params(
     func_type: &FuncType,
 ) -> Result<Vec<Val>, WasmError> {
     let param_types: Vec<ValType> = func_type.params().collect();
-    
+
     match param_types.len() {
         0 => Ok(vec![]),
         1 => {
             let val = bytes_to_val(decoded_bytes, &param_types[0])?;
             Ok(vec![val])
         }
-        _ => {
-            Err(WasmError::invalid_configuration(
-                format!(
-                    "Multi-parameter functions ({} params) require schema definition (not yet implemented)",
-                    param_types.len()
-                )
-            ))
-        }
+        _ => Err(WasmError::invalid_configuration(format!(
+            "Multi-parameter functions ({} params) require schema definition (not yet implemented)",
+            param_types.len()
+        ))),
     }
 }
 
@@ -52,14 +48,10 @@ pub fn extract_wasm_results(results: &[Val]) -> Result<Vec<u8>, WasmError> {
     match results.len() {
         0 => Ok(vec![]),
         1 => val_to_bytes(&results[0]),
-        _ => {
-            Err(WasmError::invalid_configuration(
-                format!(
-                    "Multi-value returns ({} values) require schema definition (not yet implemented)",
-                    results.len()
-                )
-            ))
-        }
+        _ => Err(WasmError::invalid_configuration(format!(
+            "Multi-value returns ({} values) require schema definition (not yet implemented)",
+            results.len()
+        ))),
     }
 }
 
@@ -73,7 +65,8 @@ fn bytes_to_val(bytes: &[u8], val_type: &ValType) -> Result<Val, WasmError> {
                     bytes.len()
                 )));
             }
-            let array: [u8; 4] = bytes.try_into()
+            let array: [u8; 4] = bytes
+                .try_into()
                 .map_err(|_| WasmError::internal("slice conversion failed"))?;
             Ok(Val::I32(i32::from_le_bytes(array)))
         }
@@ -84,7 +77,8 @@ fn bytes_to_val(bytes: &[u8], val_type: &ValType) -> Result<Val, WasmError> {
                     bytes.len()
                 )));
             }
-            let array: [u8; 8] = bytes.try_into()
+            let array: [u8; 8] = bytes
+                .try_into()
                 .map_err(|_| WasmError::internal("slice conversion failed"))?;
             Ok(Val::I64(i64::from_le_bytes(array)))
         }
@@ -95,7 +89,8 @@ fn bytes_to_val(bytes: &[u8], val_type: &ValType) -> Result<Val, WasmError> {
                     bytes.len()
                 )));
             }
-            let array: [u8; 4] = bytes.try_into()
+            let array: [u8; 4] = bytes
+                .try_into()
                 .map_err(|_| WasmError::internal("slice conversion failed"))?;
             let value = f32::from_le_bytes(array);
             Ok(Val::F32(value.to_bits()))
@@ -107,21 +102,18 @@ fn bytes_to_val(bytes: &[u8], val_type: &ValType) -> Result<Val, WasmError> {
                     bytes.len()
                 )));
             }
-            let array: [u8; 8] = bytes.try_into()
+            let array: [u8; 8] = bytes
+                .try_into()
                 .map_err(|_| WasmError::internal("slice conversion failed"))?;
             let value = f64::from_le_bytes(array);
             Ok(Val::F64(value.to_bits()))
         }
-        ValType::V128 => {
-            Err(WasmError::invalid_configuration(
-                "Unsupported type: V128 SIMD types not yet implemented"
-            ))
-        }
-        ValType::Ref(_) => {
-            Err(WasmError::invalid_configuration(
-                "Unsupported type: Reference types require reference management"
-            ))
-        }
+        ValType::V128 => Err(WasmError::invalid_configuration(
+            "Unsupported type: V128 SIMD types not yet implemented",
+        )),
+        ValType::Ref(_) => Err(WasmError::invalid_configuration(
+            "Unsupported type: Reference types require reference management",
+        )),
     }
 }
 
@@ -132,16 +124,12 @@ fn val_to_bytes(val: &Val) -> Result<Vec<u8>, WasmError> {
         Val::I64(v) => Ok(v.to_le_bytes().to_vec()),
         Val::F32(bits) => Ok(f32::from_bits(*bits).to_le_bytes().to_vec()),
         Val::F64(bits) => Ok(f64::from_bits(*bits).to_le_bytes().to_vec()),
-        Val::V128(_) => {
-            Err(WasmError::invalid_configuration(
-                "Unsupported type: V128 SIMD types not yet implemented"
-            ))
-        }
-        Val::FuncRef(_) | Val::ExternRef(_) | Val::AnyRef(_) => {
-            Err(WasmError::invalid_configuration(
-                "Unsupported type: Cannot serialize reference types"
-            ))
-        }
+        Val::V128(_) => Err(WasmError::invalid_configuration(
+            "Unsupported type: V128 SIMD types not yet implemented",
+        )),
+        Val::FuncRef(_) | Val::ExternRef(_) | Val::AnyRef(_) => Err(
+            WasmError::invalid_configuration("Unsupported type: Cannot serialize reference types"),
+        ),
     }
 }
 
@@ -176,7 +164,7 @@ mod tests {
         let bytes = i32::MAX.to_le_bytes();
         let val = bytes_to_val(&bytes, &ValType::I32).unwrap();
         assert_eq!(val.unwrap_i32(), i32::MAX);
-        
+
         let bytes = i32::MIN.to_le_bytes();
         let val = bytes_to_val(&bytes, &ValType::I32).unwrap();
         assert_eq!(val.unwrap_i32(), i32::MIN);
@@ -202,13 +190,13 @@ mod tests {
         let bytes = i64::MAX.to_le_bytes();
         let val = bytes_to_val(&bytes, &ValType::I64).unwrap();
         assert_eq!(val.unwrap_i64(), i64::MAX);
-        
+
         let bytes = i64::MIN.to_le_bytes();
         let val = bytes_to_val(&bytes, &ValType::I64).unwrap();
         assert_eq!(val.unwrap_i64(), i64::MIN);
     }
 
-    // Float tests  
+    // Float tests
     #[test]
     fn test_f32_positive() {
         let bytes = std::f32::consts::PI.to_le_bytes();

@@ -135,12 +135,7 @@ impl RequestMessage {
     ///     5000,
     /// );
     /// ```
-    pub fn new(
-        from: ComponentId,
-        to: ComponentId,
-        payload: Vec<u8>,
-        timeout_ms: u32,
-    ) -> Self {
+    pub fn new(from: ComponentId, to: ComponentId, payload: Vec<u8>, timeout_ms: u32) -> Self {
         Self {
             correlation_id: Uuid::new_v4(),
             from,
@@ -322,12 +317,7 @@ mod tests {
         let to = ComponentId::new("comp-b");
         let payload = vec![1, 2, 3, 4];
 
-        let request = RequestMessage::new(
-            from.clone(),
-            to.clone(),
-            payload.clone(),
-            5000,
-        );
+        let request = RequestMessage::new(from.clone(), to.clone(), payload.clone(), 5000);
 
         assert_eq!(request.from, from);
         assert_eq!(request.to, to);
@@ -344,12 +334,7 @@ mod tests {
         let to = ComponentId::new("comp-a");
         let payload = vec![5, 6, 7, 8];
 
-        let response = ResponseMessage::success(
-            corr_id,
-            from.clone(),
-            to.clone(),
-            payload.clone(),
-        );
+        let response = ResponseMessage::success(corr_id, from.clone(), to.clone(), payload.clone());
 
         assert_eq!(response.correlation_id, corr_id);
         assert_eq!(response.from, from);
@@ -365,12 +350,7 @@ mod tests {
         let to = ComponentId::new("comp-a");
         let error = RequestError::Timeout;
 
-        let response = ResponseMessage::error(
-            corr_id,
-            from.clone(),
-            to.clone(),
-            error.clone(),
-        );
+        let response = ResponseMessage::error(corr_id, from.clone(), to.clone(), error.clone());
 
         assert_eq!(response.correlation_id, corr_id);
         assert_eq!(response.from, from);
@@ -381,10 +361,7 @@ mod tests {
 
     #[test]
     fn test_request_error_display() {
-        assert_eq!(
-            RequestError::Timeout.to_string(),
-            "Request timed out"
-        );
+        assert_eq!(RequestError::Timeout.to_string(), "Request timed out");
         assert_eq!(
             RequestError::ComponentNotFound(ComponentId::new("test")).to_string(),
             "Component not found: test"

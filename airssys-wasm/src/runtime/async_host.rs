@@ -94,7 +94,7 @@ pub struct AsyncHostRegistry {
 struct AsyncHostRegistryInner {
     /// Registered host functions by name.
     functions: HashMap<String, Box<dyn HostFunction>>,
-    
+
     /// Capability mappings for validation (future use).
     #[allow(dead_code)]
     mappings: HashMap<String, CapabilityMapping>,
@@ -123,7 +123,7 @@ impl AsyncHostRegistry {
             }),
         }
     }
-    
+
     /// Get the number of registered functions.
     ///
     /// # Returns
@@ -141,7 +141,7 @@ impl AsyncHostRegistry {
     pub fn function_count(&self) -> usize {
         self.inner.functions.len()
     }
-    
+
     /// Check if a function is registered.
     ///
     /// # Arguments
@@ -163,7 +163,7 @@ impl AsyncHostRegistry {
     pub fn has_function(&self, name: &str) -> bool {
         self.inner.functions.contains_key(name)
     }
-    
+
     /// List all registered function names.
     ///
     /// # Returns
@@ -217,35 +217,34 @@ impl HostFunction for AsyncFileReadFunction {
     fn name(&self) -> &str {
         "filesystem::read"
     }
-    
+
     fn required_capability(&self) -> Capability {
         // Require FileRead capability (pattern validated at call time)
         Capability::FileRead(PathPattern::new("/*"))
     }
-    
-    async fn execute(
-        &self,
-        context: &HostCallContext,
-        args: Vec<u8>,
-    ) -> WasmResult<Vec<u8>> {
+
+    async fn execute(&self, context: &HostCallContext, args: Vec<u8>) -> WasmResult<Vec<u8>> {
         // Parse path from arguments (simplified - real impl would use proper serialization)
         let path = String::from_utf8(args)
             .map_err(|e| WasmError::execution_failed(format!("Invalid path UTF-8: {e}")))?;
-        
+
         // Validate capability for this specific path
         let required_cap = Capability::FileRead(PathPattern::new(&path));
         if !context.capabilities.has(&required_cap) {
             return Err(WasmError::capability_denied(
                 required_cap,
-                format!("Component '{}' lacks FileRead capability", context.component_id.as_str()),
+                format!(
+                    "Component '{}' lacks FileRead capability",
+                    context.component_id.as_str()
+                ),
             ));
         }
-        
+
         // Async file read using Tokio
         let contents = tokio::fs::read(&path)
             .await
             .map_err(|e| WasmError::io_error(format!("Read file '{path}'"), e))?;
-        
+
         Ok(contents)
     }
 }
@@ -277,32 +276,32 @@ impl HostFunction for AsyncHttpFetchFunction {
     fn name(&self) -> &str {
         "network::http_fetch"
     }
-    
+
     fn required_capability(&self) -> Capability {
         // Require NetworkOutbound capability (domain validated at call time)
         Capability::NetworkOutbound(DomainPattern::new("*"))
     }
-    
-    async fn execute(
-        &self,
-        context: &HostCallContext,
-        args: Vec<u8>,
-    ) -> WasmResult<Vec<u8>> {
+
+    async fn execute(&self, context: &HostCallContext, args: Vec<u8>) -> WasmResult<Vec<u8>> {
         // Parse URL from arguments (simplified)
         let url = String::from_utf8(args)
             .map_err(|e| WasmError::execution_failed(format!("Invalid URL UTF-8: {e}")))?;
-        
+
         // Extract domain for capability check
         let domain = url.split('/').nth(2).unwrap_or(&url);
         let required_cap = Capability::NetworkOutbound(DomainPattern::new(domain));
-        
+
         if !context.capabilities.has(&required_cap) {
             return Err(WasmError::capability_denied(
                 required_cap,
-                format!("Component '{}' lacks NetworkOutbound capability for domain '{}'", context.component_id.as_str(), domain),
+                format!(
+                    "Component '{}' lacks NetworkOutbound capability for domain '{}'",
+                    context.component_id.as_str(),
+                    domain
+                ),
             ));
         }
-        
+
         // Simulate HTTP fetch (real impl would use reqwest or similar)
         // For testing purposes, we just return a mock response
         let response = format!("Mock response from {url}");
@@ -336,7 +335,7 @@ impl HostFunction for AsyncSleepFunction {
     fn name(&self) -> &str {
         "time::sleep"
     }
-    
+
     fn required_capability(&self) -> Capability {
         // No capability required for time operations
         // Use Custom capability as placeholder
@@ -345,34 +344,31 @@ impl HostFunction for AsyncSleepFunction {
             parameters: serde_json::Value::Null,
         }
     }
-    
-    async fn execute(
-        &self,
-        _context: &HostCallContext,
-        args: Vec<u8>,
-    ) -> WasmResult<Vec<u8>> {
+
+    async fn execute(&self, _context: &HostCallContext, args: Vec<u8>) -> WasmResult<Vec<u8>> {
         // Parse duration in milliseconds (u64)
         if args.len() != 8 {
             return Err(WasmError::execution_failed(
                 "Sleep duration must be 8 bytes (u64)",
             ));
         }
-        
-        let duration_array: [u8; 8] = args.as_slice().try_into().map_err(|_| {
-            WasmError::execution_failed("Failed to convert args to u64 array")
-        })?;
+
+        let duration_array: [u8; 8] = args
+            .as_slice()
+            .try_into()
+            .map_err(|_| WasmError::execution_failed("Failed to convert args to u64 array"))?;
         let duration_ms = u64::from_le_bytes(duration_array);
-        
+
         // Limit to 60 seconds to prevent abuse
         if duration_ms > 60_000 {
             return Err(WasmError::execution_failed(
                 "Sleep duration cannot exceed 60 seconds",
             ));
         }
-        
+
         // Async sleep using Tokio
         tokio::time::sleep(tokio::time::Duration::from_millis(duration_ms)).await;
-        
+
         // Return empty response
         Ok(Vec::new())
     }
@@ -412,7 +408,10 @@ pub type AsyncHostFn = Box<
 ///     CapabilitySet::new(),
 /// );
 /// ```
-pub fn create_host_context(component_id: ComponentId, capabilities: CapabilitySet) -> HostCallContext {
+pub fn create_host_context(
+    component_id: ComponentId,
+    capabilities: CapabilitySet,
+) -> HostCallContext {
     HostCallContext {
         component_id,
         capabilities,
@@ -424,184 +423,171 @@ pub fn create_host_context(component_id: ComponentId, capabilities: CapabilitySe
 mod tests {
     #![allow(clippy::unwrap_used)]
     #![allow(clippy::expect_used)]
-    
+
     use super::*;
-    
+
     #[test]
     fn test_registry_creation() {
         let registry = AsyncHostRegistry::new();
         assert_eq!(registry.function_count(), 0);
     }
-    
+
     #[test]
     fn test_registry_default() {
         let registry = AsyncHostRegistry::default();
         assert_eq!(registry.function_count(), 0);
     }
-    
+
     #[test]
     fn test_registry_clone() {
         let registry = AsyncHostRegistry::new();
         let cloned = registry.clone();
-        
+
         // Clones share same inner state
         assert_eq!(registry.function_count(), cloned.function_count());
     }
-    
+
     #[test]
     fn test_has_function() {
         let registry = AsyncHostRegistry::new();
         assert!(!registry.has_function("filesystem::read"));
         assert!(!registry.has_function("network::http_fetch"));
     }
-    
+
     #[test]
     fn test_list_functions() {
         let registry = AsyncHostRegistry::new();
         let functions = registry.list_functions();
         assert_eq!(functions.len(), 0);
     }
-    
+
     #[tokio::test]
     async fn test_async_file_read_function_name() {
         let func = AsyncFileReadFunction;
         assert_eq!(func.name(), "filesystem::read");
     }
-    
+
     #[tokio::test]
     async fn test_async_file_read_capability() {
         let func = AsyncFileReadFunction;
         let cap = func.required_capability();
-        
+
         assert!(matches!(cap, Capability::FileRead(_)));
     }
-    
+
     #[tokio::test]
     async fn test_async_http_fetch_function_name() {
         let func = AsyncHttpFetchFunction;
         assert_eq!(func.name(), "network::http_fetch");
     }
-    
+
     #[tokio::test]
     async fn test_async_http_fetch_capability() {
         let func = AsyncHttpFetchFunction;
         let cap = func.required_capability();
-        
+
         assert!(matches!(cap, Capability::NetworkOutbound(_)));
     }
-    
+
     #[tokio::test]
     async fn test_async_sleep_function_name() {
         let func = AsyncSleepFunction;
         assert_eq!(func.name(), "time::sleep");
     }
-    
+
     #[tokio::test]
     async fn test_async_sleep_execution() {
         let func = AsyncSleepFunction;
-        let context = create_host_context(
-            ComponentId::new("test"),
-            CapabilitySet::new(),
-        );
-        
+        let context = create_host_context(ComponentId::new("test"), CapabilitySet::new());
+
         // Test with 10ms sleep
         let duration_ms: u64 = 10;
         let args = duration_ms.to_le_bytes().to_vec();
-        
+
         let start = std::time::Instant::now();
         let result = func.execute(&context, args).await;
         let elapsed = start.elapsed();
-        
+
         assert!(result.is_ok());
         assert!(elapsed.as_millis() >= 10, "Sleep should wait at least 10ms");
     }
-    
+
     #[tokio::test]
     async fn test_async_sleep_exceeds_limit() {
         let func = AsyncSleepFunction;
-        let context = create_host_context(
-            ComponentId::new("test"),
-            CapabilitySet::new(),
-        );
-        
+        let context = create_host_context(ComponentId::new("test"), CapabilitySet::new());
+
         // Test with 70 seconds (exceeds 60 second limit)
         let duration_ms: u64 = 70_000;
         let args = duration_ms.to_le_bytes().to_vec();
-        
+
         let result = func.execute(&context, args).await;
-        
+
         assert!(result.is_err());
         let error = result.unwrap_err();
         assert!(error.to_string().contains("60 seconds"));
     }
-    
+
     #[tokio::test]
     async fn test_async_sleep_invalid_args() {
         let func = AsyncSleepFunction;
-        let context = create_host_context(
-            ComponentId::new("test"),
-            CapabilitySet::new(),
-        );
-        
+        let context = create_host_context(ComponentId::new("test"), CapabilitySet::new());
+
         // Invalid argument length
         let args = vec![1, 2, 3];
         let result = func.execute(&context, args).await;
-        
+
         assert!(result.is_err());
         let error = result.unwrap_err();
         assert!(error.to_string().contains("8 bytes"));
     }
-    
+
     #[tokio::test]
     async fn test_create_host_context() {
         let component_id = ComponentId::new("test-component");
         let capabilities = CapabilitySet::new();
-        
+
         let context = create_host_context(component_id.clone(), capabilities.clone());
-        
+
         assert_eq!(context.component_id.as_str(), "test-component");
         assert_eq!(context.capabilities.len(), 0);
         assert_eq!(context.security_mode, SecurityMode::Strict);
     }
-    
+
     #[tokio::test]
     async fn test_async_http_fetch_execution() {
         let func = AsyncHttpFetchFunction;
-        
+
         let mut capabilities = CapabilitySet::new();
-        capabilities.grant(Capability::NetworkOutbound(DomainPattern::new("example.com")));
-        
-        let context = create_host_context(
-            ComponentId::new("test"),
-            capabilities,
-        );
-        
+        capabilities.grant(Capability::NetworkOutbound(DomainPattern::new(
+            "example.com",
+        )));
+
+        let context = create_host_context(ComponentId::new("test"), capabilities);
+
         let url = "https://example.com/api";
         let args = url.as_bytes().to_vec();
-        
+
         let result = func.execute(&context, args).await;
-        
+
         assert!(result.is_ok());
         let response = result.unwrap();
         assert!(!response.is_empty());
         assert!(String::from_utf8_lossy(&response).contains("example.com"));
     }
-    
+
     #[tokio::test]
     async fn test_async_http_fetch_denied() {
         let func = AsyncHttpFetchFunction;
-        
+
         // No capabilities granted
-        let context = create_host_context(
-            ComponentId::new("test"),
-            CapabilitySet::new(),
-        );
-        
+        let context = create_host_context(ComponentId::new("test"), CapabilitySet::new());
+
         let url = "https://example.com/api";
         let args = url.as_bytes().to_vec();
-        
+
         let result = func.execute(&context, args).await;
-        
+
         assert!(result.is_err());
         let error = result.unwrap_err();
         // Check for capability denied error

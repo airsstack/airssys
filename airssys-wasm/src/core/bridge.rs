@@ -118,11 +118,7 @@ pub trait HostFunction: Send + Sync {
     /// - `WasmError::PermissionDenied`: Insufficient capabilities
     /// - `WasmError::InvalidInput`: Invalid argument format
     /// - `WasmError::ExecutionFailed`: Host operation failed
-    async fn execute(
-        &self,
-        context: &HostCallContext,
-        args: Vec<u8>,
-    ) -> WasmResult<Vec<u8>>;
+    async fn execute(&self, context: &HostCallContext, args: Vec<u8>) -> WasmResult<Vec<u8>>;
 }
 
 /// Capability to OSL permission mapping.
@@ -152,10 +148,10 @@ pub trait HostFunction: Send + Sync {
 pub struct CapabilityMapping {
     /// WASM capability that grants access.
     pub capability: Capability,
-    
+
     /// OSL operation identifier (e.g., "filesystem::read").
     pub osl_operation: String,
-    
+
     /// OSL permissions required for this operation.
     pub osl_permissions: Vec<String>,
 }
@@ -231,10 +227,10 @@ impl CapabilityMapping {
 pub struct HostCallContext {
     /// Identity of the calling component.
     pub component_id: ComponentId,
-    
+
     /// Capabilities granted to the component.
     pub capabilities: CapabilitySet,
-    
+
     /// Active security mode for validation.
     pub security_mode: SecurityMode,
 }
@@ -319,7 +315,10 @@ impl HostCallContext {
         } else {
             Err(WasmError::capability_denied(
                 capability.clone(),
-                format!("Component {:?} lacks required capability", self.component_id)
+                format!(
+                    "Component {:?} lacks required capability",
+                    self.component_id
+                ),
             ))
         }
     }
@@ -342,19 +341,19 @@ impl HostCallContext {
 pub enum HostFunctionCategory {
     /// Filesystem operations (read, write, delete).
     Filesystem,
-    
+
     /// Network operations (connect, listen, send, receive).
     Network,
-    
+
     /// Process operations (spawn, kill, signal).
     Process,
-    
+
     /// Storage operations (get, set, delete, list).
     Storage,
-    
+
     /// Messaging operations (publish, subscribe, send).
     Messaging,
-    
+
     /// Logging operations (log, trace, audit).
     Logging,
 }
@@ -406,7 +405,7 @@ impl HostFunctionCategory {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::{PathPattern, DomainPattern};
+    use crate::core::{DomainPattern, PathPattern};
 
     #[test]
     fn test_capability_mapping_new() {
@@ -441,11 +440,7 @@ mod tests {
         let caps = CapabilitySet::new();
         let security_mode = SecurityMode::Strict;
 
-        let context = HostCallContext::new(
-            component_id.clone(),
-            caps.clone(),
-            security_mode,
-        );
+        let context = HostCallContext::new(component_id.clone(), caps.clone(), security_mode);
 
         assert_eq!(context.component_id, component_id);
         assert_eq!(context.security_mode, SecurityMode::Strict);
@@ -477,8 +472,12 @@ mod tests {
             SecurityMode::Strict,
         );
 
-        assert!(context.validate_capability(&Capability::FileRead(PathPattern::new("/data"))).is_ok());
-        assert!(context.validate_capability(&Capability::NetworkOutbound(DomainPattern::new("*"))).is_err());
+        assert!(context
+            .validate_capability(&Capability::FileRead(PathPattern::new("/data")))
+            .is_ok());
+        assert!(context
+            .validate_capability(&Capability::NetworkOutbound(DomainPattern::new("*")))
+            .is_err());
     }
 
     #[test]

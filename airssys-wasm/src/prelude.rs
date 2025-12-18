@@ -75,98 +75,97 @@
 
 // Core abstractions
 pub use crate::core::{
-    // Universal Abstractions
-    
-    // Component types and trait
-    Component,
-    ComponentConfig,
-    ComponentId,
-    ComponentInput,
-    ComponentMetadata,
-    ComponentOutput,
-    ComponentState,
-    InstallationSource,
-    ResourceLimits,
-    
-    // Capability-based security
-    Capability,
-    CapabilitySet,
-    DomainPattern,
-    NamespacePattern,
-    PathPattern,
-    TopicPattern,
-    
-    // Error handling
-    WasmError,
-    WasmResult,
-    
-    // Configuration types
-    RuntimeConfig,
-    SecurityConfig,
-    SecurityMode,
-    StorageBackendType,
-    StorageConfig,
-    
-    // Domain-Specific Abstractions
-    
-    // Runtime & Interface
-    ComponentHandle,
-    ExecutionContext,
-    ExecutionState,
-    FunctionSignature,
-    ResourceUsage,
-    RuntimeEngine,
-    WitInterface,
-    
     // Actor integration
     ActorMessage,
     ActorMetadata,
     ActorState,
-    SupervisionStrategy,
-    
-    // Security
-    IsolationBoundary,
-    PermissionRequest,
-    PermissionResult,
-    SecurityContext,
-    SecurityPolicy,
-    TrustLevel,
-    
-    // Messaging
-    DeliveryGuarantee,
-    MessageEnvelope,
-    MessageType,
-    
-    // Storage
-    StorageBackend,
-    StorageOperation,
-    
-    // Lifecycle
-    LifecycleEvent,
-    LifecycleState,
-    UpdateStrategy,
-    VersionInfo,
-    
+    // Capability-based security
+    Capability,
+    // Bridge
+    CapabilityMapping,
+    CapabilitySet,
+    // Universal Abstractions
+
+    // Component types and trait
+    Component,
+    ComponentConfig,
+    // Domain-Specific Abstractions
+
+    // Runtime & Interface
+    ComponentHandle,
+    ComponentId,
+    ComponentInput,
+    ComponentMetadata,
+    ComponentOutput,
     // Management
     ComponentQuery,
     ComponentRegistry,
-    InstallationMetadata,
-    RegistryOperation,
-    
-    // Bridge
-    CapabilityMapping,
+    ComponentState,
+    // Messaging
+    DeliveryGuarantee,
+    DomainPattern,
+    // Observability
+    EventSeverity,
+    ExecutionContext,
+    ExecutionState,
+    FunctionSignature,
+    HealthStatus,
     HostCallContext,
     HostFunction,
     HostFunctionCategory,
-    
-    // Observability
-    EventSeverity,
-    HealthStatus,
+
+    InstallationMetadata,
+    InstallationSource,
+    // Security
+    IsolationBoundary,
+    // Lifecycle
+    LifecycleEvent,
+    LifecycleState,
+    MessageEnvelope,
+    MessageType,
+
     Metric,
     MetricType,
     MetricsCollector,
     MetricsSnapshot,
+    NamespacePattern,
     ObservabilityEvent,
+    PathPattern,
+    PermissionRequest,
+    PermissionResult,
+    RegistryOperation,
+
+    ResourceLimits,
+
+    ResourceUsage,
+    // Configuration types
+    RuntimeConfig,
+    RuntimeEngine,
+    SecurityConfig,
+    SecurityContext,
+    SecurityMode,
+    SecurityPolicy,
+    // Storage
+    StorageBackend,
+    StorageBackendType,
+    StorageConfig,
+
+    StorageOperation,
+
+    SupervisionStrategy,
+
+    TopicPattern,
+
+    TrustLevel,
+
+    UpdateStrategy,
+    VersionInfo,
+
+    // Error handling
+    WasmError,
+    WasmResult,
+
+    WitInterface,
 };
 
 // Runtime implementation (Block 1 - WASM-TASK-002)

@@ -436,10 +436,7 @@ mod tests {
             let (decoded_codec, decoded_data) = decode_multicodec(&encoded).unwrap();
 
             assert_eq!(decoded_codec, codec, "Codec mismatch for {codec}");
-            assert_eq!(
-                decoded_data, test_data,
-                "Data mismatch for {codec}"
-            );
+            assert_eq!(decoded_data, test_data, "Data mismatch for {codec}");
         }
     }
 

@@ -34,9 +34,18 @@
 //! - **KNOWLEDGE-WASM-005**: Inter-Component Messaging Architecture
 //! - **WASM-TASK-004 Phase 6 Task 6.1 Checkpoint 2**: Multi-Component Communication
 
-#![allow(clippy::unwrap_used, reason = "unwrap is acceptable in test code for clear error messages")]
-#![allow(clippy::expect_used, reason = "expect is acceptable in test code for clear error messages")]
-#![allow(clippy::useless_vec, reason = "vec! is clearer than array syntax in test data")]
+#![allow(
+    clippy::unwrap_used,
+    reason = "unwrap is acceptable in test code for clear error messages"
+)]
+#![allow(
+    clippy::expect_used,
+    reason = "expect is acceptable in test code for clear error messages"
+)]
+#![allow(
+    clippy::useless_vec,
+    reason = "vec! is clearer than array syntax in test data"
+)]
 
 // Layer 1: Standard library imports
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -49,14 +58,13 @@ use tokio::time::sleep;
 use uuid::Uuid;
 
 // Layer 3: Internal module imports
-use airssys_wasm::actor::{
-    ActorState, ComponentActor, ComponentRegistry, CorrelationTracker,
-    MessageBrokerWrapper, MessagePublisher, PendingRequest,
-    ResponseMessage, SubscriberManager,
-};
-use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits};
 use airssys_rt::broker::InMemoryMessageBroker;
 use airssys_rt::supervisor::Child;
+use airssys_wasm::actor::{
+    ActorState, ComponentActor, ComponentRegistry, CorrelationTracker, MessageBrokerWrapper,
+    MessagePublisher, PendingRequest, ResponseMessage, SubscriberManager,
+};
+use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits};
 
 // ==============================================================================
 // Test Helpers
@@ -124,7 +132,12 @@ fn create_communication_component(name: &str) -> ComponentActor<CommunicationTes
     let metadata = create_test_metadata(name);
     let caps = CapabilitySet::new();
 
-    ComponentActor::new(component_id, metadata, caps, CommunicationTestState::default())
+    ComponentActor::new(
+        component_id,
+        metadata,
+        caps,
+        CommunicationTestState::default(),
+    )
 }
 
 /// Message delivery tracker for pub-sub testing.
@@ -165,14 +178,17 @@ impl MessageDeliveryTracker {
     /// * `message_index` - Index of the message in the sequence
     async fn record_delivery(&self, subscriber_id: ComponentId, message_index: u64) {
         self.delivered_count.fetch_add(1, Ordering::SeqCst);
-        
+
         // Update per-subscriber count
         let mut counts = self.subscriber_counts.write().await;
         *counts.entry(subscriber_id.clone()).or_insert(0) += 1;
         drop(counts);
 
         // Record delivery order
-        self.delivery_order.lock().await.push((message_index, subscriber_id));
+        self.delivery_order
+            .lock()
+            .await
+            .push((message_index, subscriber_id));
     }
 
     /// Get total published messages.
@@ -196,7 +212,12 @@ impl MessageDeliveryTracker {
     ///
     /// Number of messages delivered to this subscriber.
     async fn get_subscriber_count(&self, subscriber_id: &ComponentId) -> u64 {
-        self.subscriber_counts.read().await.get(subscriber_id).copied().unwrap_or(0)
+        self.subscriber_counts
+            .read()
+            .await
+            .get(subscriber_id)
+            .copied()
+            .unwrap_or(0)
     }
 
     /// Get delivery order log.
@@ -271,8 +292,15 @@ async fn test_request_response_with_correlation_tracking() {
     let request_payload = vec![1, 2, 3, 4, 5];
 
     // Verify initial tracker state
-    assert_eq!(tracker.pending_count(), 0, "Tracker should start with zero pending");
-    assert!(!tracker.contains(&correlation_id), "Correlation ID should not exist yet");
+    assert_eq!(
+        tracker.pending_count(),
+        0,
+        "Tracker should start with zero pending"
+    );
+    assert!(
+        !tracker.contains(&correlation_id),
+        "Correlation ID should not exist yet"
+    );
 
     // Act: Register pending request with 5s timeout
     let pending = PendingRequest {
@@ -285,11 +313,21 @@ async fn test_request_response_with_correlation_tracking() {
     };
 
     let register_result = tracker.register_pending(pending).await;
-    assert!(register_result.is_ok(), "Request registration should succeed");
+    assert!(
+        register_result.is_ok(),
+        "Request registration should succeed"
+    );
 
     // Verify request registered
-    assert_eq!(tracker.pending_count(), 1, "Tracker should have 1 pending request");
-    assert!(tracker.contains(&correlation_id), "Correlation ID should exist in tracker");
+    assert_eq!(
+        tracker.pending_count(),
+        1,
+        "Tracker should have 1 pending request"
+    );
+    assert!(
+        tracker.contains(&correlation_id),
+        "Correlation ID should exist in tracker"
+    );
 
     // Simulate component B processing request and generating response
     let response_payload = vec![10, 20, 30, 40, 50];
@@ -308,20 +346,39 @@ async fn test_request_response_with_correlation_tracking() {
     assert!(resolve_result.is_ok(), "Request resolution should succeed");
 
     // Assert: Verify request removed from pending
-    assert_eq!(tracker.pending_count(), 0, "Tracker should have 0 pending after resolution");
-    assert!(!tracker.contains(&correlation_id), "Correlation ID should be removed after resolution");
+    assert_eq!(
+        tracker.pending_count(),
+        0,
+        "Tracker should have 0 pending after resolution"
+    );
+    assert!(
+        !tracker.contains(&correlation_id),
+        "Correlation ID should be removed after resolution"
+    );
 
     // Receive response via channel
     let received_response = response_rx.await;
-    assert!(received_response.is_ok(), "Response channel should receive response");
+    assert!(
+        received_response.is_ok(),
+        "Response channel should receive response"
+    );
 
     let response = received_response.unwrap();
     let latency = latency_start.elapsed();
 
     // Assert: Verify response correctness
-    assert_eq!(response.correlation_id, correlation_id, "Correlation ID should match");
-    assert_eq!(response.from, component_b_id, "Response 'from' should be component B");
-    assert_eq!(response.to, component_a_id, "Response 'to' should be component A");
+    assert_eq!(
+        response.correlation_id, correlation_id,
+        "Correlation ID should match"
+    );
+    assert_eq!(
+        response.from, component_b_id,
+        "Response 'from' should be component B"
+    );
+    assert_eq!(
+        response.to, component_a_id,
+        "Response 'to' should be component A"
+    );
     assert!(response.result.is_ok(), "Response result should be success");
     assert_eq!(
         response.result.unwrap(),
@@ -337,27 +394,44 @@ async fn test_request_response_with_correlation_tracking() {
     );
 
     // Update component states to reflect communication
-    component_a.with_state_mut(|state| {
-        state.messages_sent += 1;
-        state.correlation_ids.push(correlation_id);
-        state.phase = "request_sent".to_string();
-    }).await;
+    component_a
+        .with_state_mut(|state| {
+            state.messages_sent += 1;
+            state.correlation_ids.push(correlation_id);
+            state.phase = "request_sent".to_string();
+        })
+        .await;
 
-    component_b.with_state_mut(|state| {
-        state.messages_received += 1;
-        state.last_payload = request_payload;
-        state.messages_sent += 1;
-        state.phase = "response_sent".to_string();
-    }).await;
+    component_b
+        .with_state_mut(|state| {
+            state.messages_received += 1;
+            state.last_payload = request_payload;
+            state.messages_sent += 1;
+            state.phase = "response_sent".to_string();
+        })
+        .await;
 
     // Verify component states updated correctly
     let a_state = component_a.with_state(|s| s.clone()).await;
-    assert_eq!(a_state.messages_sent, 1, "Component A should have sent 1 message");
-    assert_eq!(a_state.correlation_ids.len(), 1, "Component A should track 1 correlation ID");
+    assert_eq!(
+        a_state.messages_sent, 1,
+        "Component A should have sent 1 message"
+    );
+    assert_eq!(
+        a_state.correlation_ids.len(),
+        1,
+        "Component A should track 1 correlation ID"
+    );
 
     let b_state = component_b.with_state(|s| s.clone()).await;
-    assert_eq!(b_state.messages_received, 1, "Component B should have received 1 message");
-    assert_eq!(b_state.messages_sent, 1, "Component B should have sent 1 response");
+    assert_eq!(
+        b_state.messages_received, 1,
+        "Component B should have received 1 message"
+    );
+    assert_eq!(
+        b_state.messages_sent, 1,
+        "Component B should have sent 1 response"
+    );
 }
 
 /// Test request timeout when responder doesn't send response.
@@ -397,13 +471,19 @@ async fn test_request_timeout_with_no_response() {
     tracker.register_pending(pending).await.unwrap();
 
     // Verify request registered
-    assert_eq!(tracker.pending_count(), 1, "Tracker should have 1 pending request");
+    assert_eq!(
+        tracker.pending_count(),
+        1,
+        "Tracker should have 1 pending request"
+    );
 
     // Component B receives request but intentionally does NOT respond
-    component_b.with_state_mut(|state| {
-        state.messages_received += 1;
-        state.phase = "silent".to_string();
-    }).await;
+    component_b
+        .with_state_mut(|state| {
+            state.messages_received += 1;
+            state.phase = "silent".to_string();
+        })
+        .await;
 
     // Wait for timeout to expire (100ms + 50ms buffer for processing)
     let timeout_start = Instant::now();
@@ -422,12 +502,12 @@ async fn test_request_timeout_with_no_response() {
 
     // Note: In production, TimeoutHandler would automatically clean up the pending request
     // after timeout fires. For this test, we manually verify the timeout scenario works.
-    
+
     // The correlation ID would normally be removed by TimeoutHandler sending
     // a timeout error through the response channel. Since we're testing at a lower level,
     // we verify the timeout duration was correct. In a full integration test with
     // TimeoutHandler, the tracker would automatically be cleaned up.
-    
+
     // For this test's purposes, verify the request was registered and timeout elapsed
     // The pending count would be 0 if TimeoutHandler had fired (in production)
     let pending_after_timeout = tracker.pending_count();
@@ -438,9 +518,18 @@ async fn test_request_timeout_with_no_response() {
 
     // Verify component states
     let b_state = component_b.with_state(|s| s.clone()).await;
-    assert_eq!(b_state.messages_received, 1, "Component B should have received request");
-    assert_eq!(b_state.messages_sent, 0, "Component B should NOT have sent response");
-    assert_eq!(b_state.phase, "silent", "Component B should be in silent phase");
+    assert_eq!(
+        b_state.messages_received, 1,
+        "Component B should have received request"
+    );
+    assert_eq!(
+        b_state.messages_sent, 0,
+        "Component B should NOT have sent response"
+    );
+    assert_eq!(
+        b_state.phase, "silent",
+        "Component B should be in silent phase"
+    );
 }
 
 /// Test chained request-response across three components (A→B→C).
@@ -482,18 +571,22 @@ async fn test_chained_request_response_three_components() {
     tracker.register_pending(pending_ab).await.unwrap();
 
     // Simulate A sending request to B
-    component_a.with_state_mut(|state| {
-        state.messages_sent += 1;
-        state.correlation_ids.push(correlation_id_ab);
-        state.phase = "awaiting_b".to_string();
-    }).await;
+    component_a
+        .with_state_mut(|state| {
+            state.messages_sent += 1;
+            state.correlation_ids.push(correlation_id_ab);
+            state.phase = "awaiting_b".to_string();
+        })
+        .await;
 
     // Step 2: B receives from A, forwards to C
-    component_b.with_state_mut(|state| {
-        state.messages_received += 1;
-        state.last_payload = request_a_to_b.clone();
-        state.phase = "forwarding_to_c".to_string();
-    }).await;
+    component_b
+        .with_state_mut(|state| {
+            state.messages_received += 1;
+            state.last_payload = request_a_to_b.clone();
+            state.phase = "forwarding_to_c".to_string();
+        })
+        .await;
 
     let (response_bc_tx, response_bc_rx) = tokio::sync::oneshot::channel();
     let correlation_id_bc = Uuid::new_v4();
@@ -511,21 +604,35 @@ async fn test_chained_request_response_three_components() {
     tracker.register_pending(pending_bc).await.unwrap();
 
     // Verify two pending requests
-    assert_eq!(tracker.pending_count(), 2, "Should have 2 pending requests in chain");
-    assert!(tracker.contains(&correlation_id_ab), "AB correlation should exist");
-    assert!(tracker.contains(&correlation_id_bc), "BC correlation should exist");
+    assert_eq!(
+        tracker.pending_count(),
+        2,
+        "Should have 2 pending requests in chain"
+    );
+    assert!(
+        tracker.contains(&correlation_id_ab),
+        "AB correlation should exist"
+    );
+    assert!(
+        tracker.contains(&correlation_id_bc),
+        "BC correlation should exist"
+    );
 
-    component_b.with_state_mut(|state| {
-        state.messages_sent += 1;
-        state.correlation_ids.push(correlation_id_bc);
-    }).await;
+    component_b
+        .with_state_mut(|state| {
+            state.messages_sent += 1;
+            state.correlation_ids.push(correlation_id_bc);
+        })
+        .await;
 
     // Step 3: C processes and responds to B
-    component_c.with_state_mut(|state| {
-        state.messages_received += 1;
-        state.last_payload = request_b_to_c.clone();
-        state.phase = "responding_to_b".to_string();
-    }).await;
+    component_c
+        .with_state_mut(|state| {
+            state.messages_received += 1;
+            state.last_payload = request_b_to_c.clone();
+            state.phase = "responding_to_b".to_string();
+        })
+        .await;
 
     let response_c_to_b = vec![100, 200, 255];
     let response_bc = ResponseMessage::success(
@@ -535,25 +642,39 @@ async fn test_chained_request_response_three_components() {
         response_c_to_b.clone(),
     );
 
-    tracker.resolve(correlation_id_bc, response_bc).await.unwrap();
+    tracker
+        .resolve(correlation_id_bc, response_bc)
+        .await
+        .unwrap();
 
-    component_c.with_state_mut(|state| {
-        state.messages_sent += 1;
-    }).await;
+    component_c
+        .with_state_mut(|state| {
+            state.messages_sent += 1;
+        })
+        .await;
 
     // Verify BC request resolved
-    assert_eq!(tracker.pending_count(), 1, "Should have 1 pending after BC resolution");
-    assert!(!tracker.contains(&correlation_id_bc), "BC correlation should be resolved");
+    assert_eq!(
+        tracker.pending_count(),
+        1,
+        "Should have 1 pending after BC resolution"
+    );
+    assert!(
+        !tracker.contains(&correlation_id_bc),
+        "BC correlation should be resolved"
+    );
 
     // Step 4: B receives C's response, aggregates, responds to A
     let c_response = response_bc_rx.await.unwrap();
     assert_eq!(c_response.correlation_id, correlation_id_bc);
     assert_eq!(c_response.result.as_ref().unwrap(), &response_c_to_b);
 
-    component_b.with_state_mut(|state| {
-        state.messages_received += 1;
-        state.phase = "aggregating_response".to_string();
-    }).await;
+    component_b
+        .with_state_mut(|state| {
+            state.messages_received += 1;
+            state.phase = "aggregating_response".to_string();
+        })
+        .await;
 
     // B aggregates and responds to A
     let aggregated_response = vec![1, 2, 3, 100, 200, 255]; // Combine original + C's response
@@ -564,15 +685,27 @@ async fn test_chained_request_response_three_components() {
         aggregated_response.clone(),
     );
 
-    tracker.resolve(correlation_id_ab, response_ba).await.unwrap();
+    tracker
+        .resolve(correlation_id_ab, response_ba)
+        .await
+        .unwrap();
 
-    component_b.with_state_mut(|state| {
-        state.messages_sent += 1;
-    }).await;
+    component_b
+        .with_state_mut(|state| {
+            state.messages_sent += 1;
+        })
+        .await;
 
     // Assert: All requests resolved
-    assert_eq!(tracker.pending_count(), 0, "All requests should be resolved");
-    assert!(!tracker.contains(&correlation_id_ab), "AB correlation should be resolved");
+    assert_eq!(
+        tracker.pending_count(),
+        0,
+        "All requests should be resolved"
+    );
+    assert!(
+        !tracker.contains(&correlation_id_ab),
+        "AB correlation should be resolved"
+    );
 
     // Step 5: A receives final aggregated response
     let final_response = response_ab_rx.await.unwrap();
@@ -581,23 +714,37 @@ async fn test_chained_request_response_three_components() {
     assert_eq!(final_response.to, component_a_id);
     assert_eq!(final_response.result.unwrap(), aggregated_response);
 
-    component_a.with_state_mut(|state| {
-        state.messages_received += 1;
-        state.phase = "chain_complete".to_string();
-    }).await;
+    component_a
+        .with_state_mut(|state| {
+            state.messages_received += 1;
+            state.phase = "chain_complete".to_string();
+        })
+        .await;
 
     // Assert: Verify complete chain state
     let a_state = component_a.with_state(|s| s.clone()).await;
     assert_eq!(a_state.messages_sent, 1, "A should have sent 1 request");
-    assert_eq!(a_state.messages_received, 1, "A should have received 1 response");
+    assert_eq!(
+        a_state.messages_received, 1,
+        "A should have received 1 response"
+    );
     assert_eq!(a_state.phase, "chain_complete");
 
     let b_state = component_b.with_state(|s| s.clone()).await;
-    assert_eq!(b_state.messages_received, 2, "B should have received 2 messages (from A and C)");
-    assert_eq!(b_state.messages_sent, 2, "B should have sent 2 messages (to C and A)");
+    assert_eq!(
+        b_state.messages_received, 2,
+        "B should have received 2 messages (from A and C)"
+    );
+    assert_eq!(
+        b_state.messages_sent, 2,
+        "B should have sent 2 messages (to C and A)"
+    );
 
     let c_state = component_c.with_state(|s| s.clone()).await;
-    assert_eq!(c_state.messages_received, 1, "C should have received 1 request");
+    assert_eq!(
+        c_state.messages_received, 1,
+        "C should have received 1 request"
+    );
     assert_eq!(c_state.messages_sent, 1, "C should have sent 1 response");
 }
 
@@ -628,10 +775,9 @@ async fn test_broadcast_to_multiple_subscribers() {
 
     // Subscribe all 5 to topic "events.test"
     for subscriber_id in &subscriber_ids {
-        let subscribe_result = manager.subscribe(
-            subscriber_id.clone(),
-            vec!["events.test".to_string()],
-        ).await;
+        let subscribe_result = manager
+            .subscribe(subscriber_id.clone(), vec!["events.test".to_string()])
+            .await;
         assert!(subscribe_result.is_ok(), "Subscription should succeed");
     }
 
@@ -648,7 +794,9 @@ async fn test_broadcast_to_multiple_subscribers() {
 
     // Act: Publish message to topic
     let message_payload = vec![42, 43, 44];
-    let publish_result = publisher.publish("events.test", message_payload.clone()).await;
+    let publish_result = publisher
+        .publish("events.test", message_payload.clone())
+        .await;
     assert!(publish_result.is_ok(), "Publish should succeed");
 
     // Allow message delivery (async broker processing)
@@ -658,7 +806,11 @@ async fn test_broadcast_to_multiple_subscribers() {
     // Note: In production, we'd check message delivery via actor mailboxes
     // Here we verify subscription registration correctness
     let final_subscribers = manager.subscribers_for_topic("events.test").await;
-    assert_eq!(final_subscribers.len(), 5, "All 5 subscribers should remain active");
+    assert_eq!(
+        final_subscribers.len(),
+        5,
+        "All 5 subscribers should remain active"
+    );
 }
 
 /// Test topic filtering with wildcard patterns.
@@ -679,27 +831,31 @@ async fn test_topic_filtering_with_wildcards() {
     let subscriber_exact = ComponentId::new("subscriber-exact");
 
     // Sub1: "events.user.*" (single-level wildcard)
-    manager.subscribe(
-        subscriber_single.clone(),
-        vec!["events.user.*".to_string()],
-    ).await.unwrap();
+    manager
+        .subscribe(subscriber_single.clone(), vec!["events.user.*".to_string()])
+        .await
+        .unwrap();
 
     // Sub2: "events.user.login" (exact match)
-    manager.subscribe(
-        subscriber_exact.clone(),
-        vec!["events.user.login".to_string()],
-    ).await.unwrap();
+    manager
+        .subscribe(
+            subscriber_exact.clone(),
+            vec!["events.user.login".to_string()],
+        )
+        .await
+        .unwrap();
 
     // Sub3: "events.#" (multi-level wildcard)
-    manager.subscribe(
-        subscriber_multi.clone(),
-        vec!["events.#".to_string()],
-    ).await.unwrap();
+    manager
+        .subscribe(subscriber_multi.clone(), vec!["events.#".to_string()])
+        .await
+        .unwrap();
 
     // Test Case 1: "events.user.login" should match all three
     let subscribers_login = manager.subscribers_for_topic("events.user.login").await;
     assert_eq!(
-        subscribers_login.len(), 3,
+        subscribers_login.len(),
+        3,
         "events.user.login should match all 3 subscribers"
     );
     assert!(subscribers_login.contains(&subscriber_single));
@@ -709,25 +865,40 @@ async fn test_topic_filtering_with_wildcards() {
     // Test Case 2: "events.user.logout" should match single and multi wildcards
     let subscribers_logout = manager.subscribers_for_topic("events.user.logout").await;
     assert_eq!(
-        subscribers_logout.len(), 2,
+        subscribers_logout.len(),
+        2,
         "events.user.logout should match 2 subscribers"
     );
-    assert!(subscribers_logout.contains(&subscriber_single), "Single wildcard should match");
-    assert!(subscribers_logout.contains(&subscriber_multi), "Multi wildcard should match");
-    assert!(!subscribers_logout.contains(&subscriber_exact), "Exact match should NOT match");
+    assert!(
+        subscribers_logout.contains(&subscriber_single),
+        "Single wildcard should match"
+    );
+    assert!(
+        subscribers_logout.contains(&subscriber_multi),
+        "Multi wildcard should match"
+    );
+    assert!(
+        !subscribers_logout.contains(&subscriber_exact),
+        "Exact match should NOT match"
+    );
 
     // Test Case 3: "events.system.restart" should match only multi wildcard
     let subscribers_system = manager.subscribers_for_topic("events.system.restart").await;
     assert_eq!(
-        subscribers_system.len(), 1,
+        subscribers_system.len(),
+        1,
         "events.system.restart should match 1 subscriber"
     );
-    assert!(subscribers_system.contains(&subscriber_multi), "Only multi wildcard should match");
+    assert!(
+        subscribers_system.contains(&subscriber_multi),
+        "Only multi wildcard should match"
+    );
 
     // Test Case 4: "system.restart" should match none
     let subscribers_none = manager.subscribers_for_topic("system.restart").await;
     assert_eq!(
-        subscribers_none.len(), 0,
+        subscribers_none.len(),
+        0,
         "system.restart should match no subscribers"
     );
 }
@@ -752,10 +923,10 @@ async fn test_pub_sub_with_message_ordering() {
     let publisher = MessagePublisher::new(publisher_id, wrapper);
 
     // Subscribe to topic
-    manager.subscribe(
-        subscriber_id.clone(),
-        vec!["ordered.messages".to_string()],
-    ).await.unwrap();
+    manager
+        .subscribe(subscriber_id.clone(), vec!["ordered.messages".to_string()])
+        .await
+        .unwrap();
 
     // Create delivery tracker
     let tracker = MessageDeliveryTracker::new();
@@ -764,9 +935,12 @@ async fn test_pub_sub_with_message_ordering() {
     let message_count = 10;
     for i in 0..message_count {
         let payload = vec![i as u8];
-        publisher.publish("ordered.messages", payload).await.unwrap();
+        publisher
+            .publish("ordered.messages", payload)
+            .await
+            .unwrap();
         tracker.record_publish();
-        
+
         // Simulate delivery recording (in production, subscriber actor would do this)
         tracker.record_delivery(subscriber_id.clone(), i).await;
     }
@@ -776,7 +950,8 @@ async fn test_pub_sub_with_message_ordering() {
 
     // Assert: Verify all messages published
     assert_eq!(
-        tracker.get_published_count(), message_count,
+        tracker.get_published_count(),
+        message_count,
         "Should have published {} messages",
         message_count
     );
@@ -784,7 +959,8 @@ async fn test_pub_sub_with_message_ordering() {
     // Assert: Verify delivery order
     let delivery_order = tracker.get_delivery_order().await;
     assert_eq!(
-        delivery_order.len(), message_count as usize,
+        delivery_order.len(),
+        message_count as usize,
         "Should have {} deliveries",
         message_count
     );
@@ -834,27 +1010,30 @@ async fn test_pub_sub_with_subscriber_crash_during_delivery() {
     let publisher = MessagePublisher::new(publisher_id, wrapper);
 
     // Subscribe all 3 and keep handles
-    let _handle_1 = manager.subscribe(
-        subscriber_1.clone(),
-        vec!["crash.test".to_string()],
-    ).await.unwrap();
-    
-    let handle_2 = manager.subscribe(
-        subscriber_2.clone(),
-        vec!["crash.test".to_string()],
-    ).await.unwrap();
-    
-    let _handle_3 = manager.subscribe(
-        subscriber_3.clone(),
-        vec!["crash.test".to_string()],
-    ).await.unwrap();
+    let _handle_1 = manager
+        .subscribe(subscriber_1.clone(), vec!["crash.test".to_string()])
+        .await
+        .unwrap();
+
+    let handle_2 = manager
+        .subscribe(subscriber_2.clone(), vec!["crash.test".to_string()])
+        .await
+        .unwrap();
+
+    let _handle_3 = manager
+        .subscribe(subscriber_3.clone(), vec!["crash.test".to_string()])
+        .await
+        .unwrap();
 
     // Verify all registered
     let subscribers = manager.subscribers_for_topic("crash.test").await;
     assert_eq!(subscribers.len(), 3, "Should have 3 subscribers");
 
     // Act: Publish first message (all receive)
-    publisher.publish("crash.test", vec![1, 2, 3]).await.unwrap();
+    publisher
+        .publish("crash.test", vec![1, 2, 3])
+        .await
+        .unwrap();
     sleep(Duration::from_millis(50)).await;
 
     // Simulate subscriber_2 crash by unsubscribing
@@ -864,39 +1043,69 @@ async fn test_pub_sub_with_subscriber_crash_during_delivery() {
     // Verify subscriber_2 removed
     let subscribers_after_crash = manager.subscribers_for_topic("crash.test").await;
     assert_eq!(
-        subscribers_after_crash.len(), 2,
+        subscribers_after_crash.len(),
+        2,
         "Should have 2 subscribers after crash"
     );
-    assert!(!subscribers_after_crash.contains(&subscriber_2), "Crashed subscriber should be removed");
+    assert!(
+        !subscribers_after_crash.contains(&subscriber_2),
+        "Crashed subscriber should be removed"
+    );
 
     // Act: Publish second message (only Sub1 and Sub3 receive)
-    publisher.publish("crash.test", vec![4, 5, 6]).await.unwrap();
+    publisher
+        .publish("crash.test", vec![4, 5, 6])
+        .await
+        .unwrap();
     sleep(Duration::from_millis(50)).await;
 
     // Assert: Verify stable subscribers still active
     let final_subscribers = manager.subscribers_for_topic("crash.test").await;
-    assert_eq!(final_subscribers.len(), 2, "Should have 2 active subscribers");
-    assert!(final_subscribers.contains(&subscriber_1), "Sub1 should remain active");
-    assert!(final_subscribers.contains(&subscriber_3), "Sub3 should remain active");
+    assert_eq!(
+        final_subscribers.len(),
+        2,
+        "Should have 2 active subscribers"
+    );
+    assert!(
+        final_subscribers.contains(&subscriber_1),
+        "Sub1 should remain active"
+    );
+    assert!(
+        final_subscribers.contains(&subscriber_3),
+        "Sub3 should remain active"
+    );
 
     // Act: Subscriber_2 restarts and re-subscribes
-    manager.subscribe(
-        subscriber_2.clone(),
-        vec!["crash.test".to_string()],
-    ).await.unwrap();
+    manager
+        .subscribe(subscriber_2.clone(), vec!["crash.test".to_string()])
+        .await
+        .unwrap();
 
     // Verify restarted subscriber can receive new messages
     let subscribers_after_restart = manager.subscribers_for_topic("crash.test").await;
-    assert_eq!(subscribers_after_restart.len(), 3, "Should have 3 subscribers after restart");
-    assert!(subscribers_after_restart.contains(&subscriber_2), "Restarted subscriber should be active");
+    assert_eq!(
+        subscribers_after_restart.len(),
+        3,
+        "Should have 3 subscribers after restart"
+    );
+    assert!(
+        subscribers_after_restart.contains(&subscriber_2),
+        "Restarted subscriber should be active"
+    );
 
     // Publish third message (all 3 receive again)
-    publisher.publish("crash.test", vec![7, 8, 9]).await.unwrap();
+    publisher
+        .publish("crash.test", vec![7, 8, 9])
+        .await
+        .unwrap();
     sleep(Duration::from_millis(50)).await;
 
     // Assert: System stable after crash and recovery
     let final_count = manager.subscribers_for_topic("crash.test").await.len();
-    assert_eq!(final_count, 3, "All subscribers should be active after recovery");
+    assert_eq!(
+        final_count, 3,
+        "All subscribers should be active after recovery"
+    );
 }
 
 // ==============================================================================
@@ -924,30 +1133,44 @@ async fn test_message_to_nonexistent_component() {
 
     // Verify nonexistent component not in registry
     let lookup_result = registry.lookup(&nonexistent_id);
-    assert!(lookup_result.is_err(), "Nonexistent component should not be in registry");
+    assert!(
+        lookup_result.is_err(),
+        "Nonexistent component should not be in registry"
+    );
 
     // Act: Attempt to send message to nonexistent component
     // In production, MessageRouter would handle this
     // Here we simulate the error path
 
-    sender.with_state_mut(|state| {
-        state.phase = "attempting_send_to_nonexistent".to_string();
-    }).await;
+    sender
+        .with_state_mut(|state| {
+            state.phase = "attempting_send_to_nonexistent".to_string();
+        })
+        .await;
 
     // Simulate registry lookup failure
     let lookup_failed = registry.lookup(&nonexistent_id).is_err();
-    assert!(lookup_failed, "Lookup should fail for nonexistent component");
+    assert!(
+        lookup_failed,
+        "Lookup should fail for nonexistent component"
+    );
 
     // Assert: Sender should remain stable (no panic)
-    sender.with_state_mut(|state| {
-        state.phase = "send_failed_gracefully".to_string();
-    }).await;
+    sender
+        .with_state_mut(|state| {
+            state.phase = "send_failed_gracefully".to_string();
+        })
+        .await;
 
     let sender_state = sender.with_state(|s| s.clone()).await;
     assert_eq!(sender_state.phase, "send_failed_gracefully");
 
     // Verify sender component state is stable
-    assert_eq!(*sender.state(), ActorState::Creating, "Sender actor should remain in valid state");
+    assert_eq!(
+        *sender.state(),
+        ActorState::Creating,
+        "Sender actor should remain in valid state"
+    );
 }
 
 /// Test sending message during component shutdown.
@@ -968,13 +1191,13 @@ async fn test_message_during_component_shutdown() {
 
     // Register receiver in registry
     let _registry = ComponentRegistry::new();
-    
+
     // Note: ComponentRegistry::register requires ActorHandle which we don't have in this test
     // We simulate the scenario by testing state transitions
 
     // Act: Initiate receiver shutdown
     let stop_result = receiver.stop(Duration::from_secs(5)).await;
-    
+
     // Shutdown may succeed or fail (no WASM loaded), but should not panic
     assert!(
         stop_result.is_ok() || stop_result.is_err(),
@@ -983,29 +1206,43 @@ async fn test_message_during_component_shutdown() {
 
     // Verify receiver state transitioned
     assert!(
-        matches!(*receiver.state(), ActorState::Creating | ActorState::Stopping | ActorState::Terminated),
+        matches!(
+            *receiver.state(),
+            ActorState::Creating | ActorState::Stopping | ActorState::Terminated
+        ),
         "Receiver should be in shutdown-related state"
     );
 
     // Act: Attempt to send message to stopping/stopped component
-    sender.with_state_mut(|state| {
-        state.phase = "attempting_send_during_shutdown".to_string();
-    }).await;
+    sender
+        .with_state_mut(|state| {
+            state.phase = "attempting_send_during_shutdown".to_string();
+        })
+        .await;
 
     // Simulate send attempt (would fail in production due to actor stopped)
-    let target_stopped = matches!(*receiver.state(), ActorState::Stopping | ActorState::Terminated);
+    let target_stopped = matches!(
+        *receiver.state(),
+        ActorState::Stopping | ActorState::Terminated
+    );
     assert!(target_stopped, "Target should be stopping or terminated");
 
     // Assert: Sender handles error gracefully
-    sender.with_state_mut(|state| {
-        state.phase = "send_blocked_target_stopping".to_string();
-    }).await;
+    sender
+        .with_state_mut(|state| {
+            state.phase = "send_blocked_target_stopping".to_string();
+        })
+        .await;
 
     let sender_state = sender.with_state(|s| s.clone()).await;
     assert_eq!(sender_state.phase, "send_blocked_target_stopping");
 
     // Verify sender remains stable
-    assert_eq!(*sender.state(), ActorState::Creating, "Sender should remain in stable state");
+    assert_eq!(
+        *sender.state(),
+        ActorState::Creating,
+        "Sender should remain in stable state"
+    );
 }
 
 /// Test message routing with registry lookup failure simulation.
@@ -1028,7 +1265,7 @@ async fn test_message_routing_with_registry_lookup_failure() {
     // Act: Attempt lookups on empty registry
     for component_id in &component_ids {
         let lookup_result = registry.lookup(component_id);
-        
+
         // Assert: All lookups should fail
         assert!(
             lookup_result.is_err(),
@@ -1038,7 +1275,11 @@ async fn test_message_routing_with_registry_lookup_failure() {
     }
 
     // Verify registry remains empty
-    assert_eq!(registry.count().unwrap(), 0, "Registry should have 0 components");
+    assert_eq!(
+        registry.count().unwrap(),
+        0,
+        "Registry should have 0 components"
+    );
 
     // Act: Register one component and verify selective lookup failure
     // Note: We can't register without ActorHandle, so we verify the concept
@@ -1054,7 +1295,11 @@ async fn test_message_routing_with_registry_lookup_failure() {
     }
 
     // Assert: No hanging resources (registry is still valid)
-    assert_eq!(registry.count().unwrap(), 0, "Registry should remain consistent");
+    assert_eq!(
+        registry.count().unwrap(),
+        0,
+        "Registry should remain consistent"
+    );
 }
 
 // ==============================================================================
@@ -1117,7 +1362,10 @@ async fn test_concurrent_requests_from_multiple_components() {
                 response_payload.clone(),
             );
 
-            tracker_clone.resolve(correlation_id, response_msg).await.unwrap();
+            tracker_clone
+                .resolve(correlation_id, response_msg)
+                .await
+                .unwrap();
 
             // Receive response
             let response = response_rx.await.unwrap();
@@ -1135,7 +1383,12 @@ async fn test_concurrent_requests_from_multiple_components() {
     }
 
     // Assert: All 10 requests completed
-    assert_eq!(results.len(), requester_count, "All {} requests should complete", requester_count);
+    assert_eq!(
+        results.len(),
+        requester_count,
+        "All {} requests should complete",
+        requester_count
+    );
 
     // Assert: All correlation IDs are unique
     let mut seen_ids = std::collections::HashSet::new();
@@ -1150,11 +1403,19 @@ async fn test_concurrent_requests_from_multiple_components() {
     // Assert: All responses have correct payloads
     for (i, (_correlation_id, payload)) in results.iter().enumerate() {
         let expected = vec![(i * 10) as u8];
-        assert_eq!(*payload, expected, "Response {} should have correct payload", i);
+        assert_eq!(
+            *payload, expected,
+            "Response {} should have correct payload",
+            i
+        );
     }
 
     // Assert: Tracker cleanup (all requests resolved)
-    assert_eq!(tracker.pending_count(), 0, "All requests should be resolved");
+    assert_eq!(
+        tracker.pending_count(),
+        0,
+        "All requests should be resolved"
+    );
 }
 
 /// Test high-throughput messaging stress test.
@@ -1173,7 +1434,12 @@ async fn test_high_throughput_messaging_stress_test() {
     let total_messages = component_count * messages_per_component;
 
     let components: Vec<Arc<ComponentActor<CommunicationTestState>>> = (0..component_count)
-        .map(|i| Arc::new(create_communication_component(&format!("stress-component-{}", i))))
+        .map(|i| {
+            Arc::new(create_communication_component(&format!(
+                "stress-component-{}",
+                i
+            )))
+        })
         .collect();
 
     // Create message counters
@@ -1192,10 +1458,12 @@ async fn test_high_throughput_messaging_stress_test() {
 
             let handle = tokio::spawn(async move {
                 // Simulate message send
-                sender_clone.with_state_mut(|state| {
-                    state.messages_sent += 1;
-                    state.last_payload = vec![msg_num as u8];
-                }).await;
+                sender_clone
+                    .with_state_mut(|state| {
+                        state.messages_sent += 1;
+                        state.last_payload = vec![msg_num as u8];
+                    })
+                    .await;
 
                 sent_counter_clone.fetch_add(1, Ordering::SeqCst);
 

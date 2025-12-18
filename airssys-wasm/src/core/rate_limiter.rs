@@ -62,7 +62,7 @@ type SenderMap = HashMap<ComponentId, SenderEntry>;
 pub struct RateLimiterConfig {
     /// Maximum messages per second per sender.
     pub messages_per_second: u32,
-    
+
     /// Time window for rate calculation.
     pub window_duration: Duration,
 }
@@ -112,12 +112,12 @@ impl MessageRateLimiter {
             senders: Arc::new(Mutex::new(HashMap::new())),
         }
     }
-    
+
     /// Get rate limiter configuration.
     pub fn config(&self) -> &RateLimiterConfig {
         &self.config
     }
-    
+
     /// Check if sender is within rate limit.
     ///
     /// Returns `true` if message is allowed, `false` if rate limit exceeded.
@@ -141,31 +141,34 @@ impl MessageRateLimiter {
     pub fn check_rate_limit(&self, sender: &ComponentId) -> bool {
         let now = Instant::now();
         let window_start = now - self.config.window_duration;
-        
+
         let mut senders = self.senders.lock().expect("rate limiter lock poisoned");
-        
+
         // Get or create sender entry
-        let (timestamps, last_access) = senders
-            .entry(sender.clone())
-            .or_insert_with(|| (Vec::with_capacity(self.config.messages_per_second as usize), now));
-        
+        let (timestamps, last_access) = senders.entry(sender.clone()).or_insert_with(|| {
+            (
+                Vec::with_capacity(self.config.messages_per_second as usize),
+                now,
+            )
+        });
+
         // Update last access time
         *last_access = now;
-        
+
         // Remove timestamps outside sliding window
         timestamps.retain(|&ts| ts >= window_start);
-        
+
         // Check rate limit
         if timestamps.len() >= self.config.messages_per_second as usize {
             return false; // Rate limit exceeded
         }
-        
+
         // Record this message timestamp
         timestamps.push(now);
-        
+
         true
     }
-    
+
     /// Clean up inactive senders (internal maintenance).
     ///
     /// Removes senders with no activity in last 5 minutes to prevent memory leaks.
@@ -173,11 +176,11 @@ impl MessageRateLimiter {
     pub fn cleanup_inactive_senders(&self) {
         let now = Instant::now();
         let timeout = now - SENDER_TIMEOUT;
-        
+
         let mut senders = self.senders.lock().expect("rate limiter lock poisoned");
         senders.retain(|_, (_, last_access)| *last_access >= timeout);
     }
-    
+
     /// Get current message count for sender (testing/monitoring).
     pub fn get_sender_count(&self, sender: &ComponentId) -> usize {
         let senders = self.senders.lock().expect("rate limiter lock poisoned");
@@ -195,7 +198,7 @@ impl Default for MessageRateLimiter {
 mod tests {
     use super::*;
     use std::thread;
-    
+
     #[test]
     fn test_rate_limiter_allows_messages_within_limit() {
         let config = RateLimiterConfig {
@@ -204,15 +207,15 @@ mod tests {
         };
         let limiter = MessageRateLimiter::new(config);
         let sender = ComponentId::new("test-sender");
-        
+
         // First 10 messages should be allowed
         for i in 0..10 {
             assert!(limiter.check_rate_limit(&sender), "Message {} blocked", i);
         }
-        
+
         assert_eq!(limiter.get_sender_count(&sender), 10);
     }
-    
+
     #[test]
     fn test_rate_limiter_blocks_messages_over_limit() {
         let config = RateLimiterConfig {
@@ -221,16 +224,16 @@ mod tests {
         };
         let limiter = MessageRateLimiter::new(config);
         let sender = ComponentId::new("test-sender");
-        
+
         // First 5 allowed
         for _ in 0..5 {
             assert!(limiter.check_rate_limit(&sender));
         }
-        
+
         // 6th blocked
         assert!(!limiter.check_rate_limit(&sender));
     }
-    
+
     #[test]
     fn test_rate_limiter_sliding_window() {
         let config = RateLimiterConfig {
@@ -239,41 +242,41 @@ mod tests {
         };
         let limiter = MessageRateLimiter::new(config);
         let sender = ComponentId::new("test-sender");
-        
+
         // Send 2 messages (at limit)
         assert!(limiter.check_rate_limit(&sender));
         assert!(limiter.check_rate_limit(&sender));
         assert!(!limiter.check_rate_limit(&sender)); // Blocked
-        
+
         // Wait for window to slide
         thread::sleep(Duration::from_millis(110));
-        
+
         // Should be allowed again
         assert!(limiter.check_rate_limit(&sender));
     }
-    
+
     #[test]
     fn test_rate_limiter_multiple_senders() {
         let limiter = MessageRateLimiter::default();
         let sender1 = ComponentId::new("sender-1");
         let sender2 = ComponentId::new("sender-2");
-        
+
         // Each sender tracked independently
         assert!(limiter.check_rate_limit(&sender1));
         assert!(limiter.check_rate_limit(&sender2));
-        
+
         assert_eq!(limiter.get_sender_count(&sender1), 1);
         assert_eq!(limiter.get_sender_count(&sender2), 1);
     }
-    
+
     #[test]
     fn test_cleanup_inactive_senders() {
         let limiter = MessageRateLimiter::default();
         let sender = ComponentId::new("test-sender");
-        
+
         assert!(limiter.check_rate_limit(&sender));
         assert_eq!(limiter.get_sender_count(&sender), 1);
-        
+
         // Cleanup should not remove recent sender
         limiter.cleanup_inactive_senders();
         assert_eq!(limiter.get_sender_count(&sender), 1);
@@ -290,7 +293,7 @@ mod tests {
     fn test_message_rate_limiter_default() {
         let limiter = MessageRateLimiter::default();
         let sender = ComponentId::new("test-sender");
-        
+
         // Should allow messages up to default limit (1000)
         assert!(limiter.check_rate_limit(&sender));
         assert_eq!(limiter.get_sender_count(&sender), 1);
@@ -300,7 +303,7 @@ mod tests {
     fn test_rate_limiter_zero_count_for_unknown_sender() {
         let limiter = MessageRateLimiter::default();
         let sender = ComponentId::new("unknown-sender");
-        
+
         assert_eq!(limiter.get_sender_count(&sender), 0);
     }
 
@@ -312,20 +315,20 @@ mod tests {
         };
         let limiter = MessageRateLimiter::new(config);
         let sender = ComponentId::new("test-sender");
-        
+
         // Send 3 messages
         for _ in 0..3 {
             assert!(limiter.check_rate_limit(&sender));
         }
-        
+
         // Verify count
         assert_eq!(limiter.get_sender_count(&sender), 3);
-        
+
         // Send 2 more (total 5, at limit)
         for _ in 0..2 {
             assert!(limiter.check_rate_limit(&sender));
         }
-        
+
         assert_eq!(limiter.get_sender_count(&sender), 5);
     }
 }

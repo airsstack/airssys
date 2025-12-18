@@ -16,10 +16,22 @@
 //!
 //! - **WASM-TASK-004 Phase 2 Task 2.2**: ComponentRegistry Implementation
 
-#![expect(clippy::expect_used, reason = "expect is acceptable in test code for clear error messages")]
-#![expect(clippy::unwrap_used, reason = "unwrap is acceptable in test code for convenience")]
-#![expect(clippy::expect_fun_call, reason = "format! in expect is acceptable in test code")]
-#![expect(clippy::panic, reason = "panic is acceptable in test code for assertion failures")]
+#![expect(
+    clippy::expect_used,
+    reason = "expect is acceptable in test code for clear error messages"
+)]
+#![expect(
+    clippy::unwrap_used,
+    reason = "unwrap is acceptable in test code for convenience"
+)]
+#![expect(
+    clippy::expect_fun_call,
+    reason = "format! in expect is acceptable in test code"
+)]
+#![expect(
+    clippy::panic,
+    reason = "panic is acceptable in test code for assertion failures"
+)]
 
 // Layer 1: Standard library imports
 use std::sync::Arc;
@@ -29,9 +41,9 @@ use std::time::Instant;
 use tokio::task;
 
 // Layer 3: Internal module imports
+use airssys_rt::util::ActorAddress;
 use airssys_wasm::actor::ComponentRegistry;
 use airssys_wasm::core::{ComponentId, WasmError};
-use airssys_rt::util::ActorAddress;
 
 #[test]
 fn test_registry_creation() {
@@ -104,8 +116,16 @@ fn test_lookup_component_o1_performance() {
 
     // Both lookups should be O(1) - similar time regardless of position
     // Target: <100ns, but allow up to 10µs for test variability/CI/debuginfo builds
-    assert!(elapsed_first.as_nanos() < 10_000, "First lookup too slow: {:?}", elapsed_first);
-    assert!(elapsed_last.as_nanos() < 10_000, "Last lookup too slow: {:?}", elapsed_last);
+    assert!(
+        elapsed_first.as_nanos() < 10_000,
+        "First lookup too slow: {:?}",
+        elapsed_first
+    );
+    assert!(
+        elapsed_last.as_nanos() < 10_000,
+        "Last lookup too slow: {:?}",
+        elapsed_last
+    );
 
     // Verify similar performance (within 50x factor for O(1) guarantee - generous for test variability)
     let ratio = elapsed_last.as_nanos() as f64 / elapsed_first.as_nanos().max(1) as f64;
@@ -137,9 +157,7 @@ fn test_unregister_component() {
     let actor_addr = ActorAddress::named("test-component");
 
     // Register
-    registry
-        .register(component_id.clone(), actor_addr)
-        .unwrap();
+    registry.register(component_id.clone(), actor_addr).unwrap();
     assert_eq!(registry.count().expect("Failed to get count"), 1);
 
     // Unregister
@@ -174,7 +192,9 @@ fn test_register_overwrites_existing() {
     assert_eq!(registry.count().expect("Failed to get count"), 1);
 
     // Register again with different address
-    registry.register(component_id.clone(), addr2.clone()).unwrap();
+    registry
+        .register(component_id.clone(), addr2.clone())
+        .unwrap();
     assert_eq!(registry.count().expect("Failed to get count"), 1);
 
     // Verify new address
@@ -205,10 +225,8 @@ async fn test_concurrent_reads() {
 
             // Perform 100 lookups
             for _ in 0..100 {
-                let found = registry_clone
-                    .lookup(&component_id)
-                    .expect("Lookup failed");
-                
+                let found = registry_clone.lookup(&component_id).expect("Lookup failed");
+
                 // Compare names only (ActorAddress IDs will differ)
                 assert_eq!(found.name().unwrap(), expected_name);
             }
@@ -304,7 +322,9 @@ fn test_registry_clone_shares_data() {
     // Register in registry2, visible in registry1
     let component_id2 = ComponentId::new("test2");
     let actor_addr2 = ActorAddress::named("test2");
-    registry2.register(component_id2.clone(), actor_addr2.clone()).unwrap();
+    registry2
+        .register(component_id2.clone(), actor_addr2.clone())
+        .unwrap();
 
     assert_eq!(registry1.count().expect("Failed to get count"), 2);
     assert_eq!(registry2.count().expect("Failed to get count"), 2);
@@ -372,7 +392,9 @@ fn test_registry_with_complex_component_ids() {
         let component_id = ComponentId::new(id_str);
         let actor_addr = ActorAddress::named(id_str);
 
-        registry.register(component_id.clone(), actor_addr.clone()).unwrap();
+        registry
+            .register(component_id.clone(), actor_addr.clone())
+            .unwrap();
 
         let found = registry.lookup(&component_id).unwrap();
         assert_eq!(found, actor_addr);

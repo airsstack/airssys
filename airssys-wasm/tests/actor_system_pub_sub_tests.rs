@@ -31,9 +31,7 @@ use std::time::Duration;
 
 // Layer 3: Internal module imports
 use airssys_rt::broker::{InMemoryMessageBroker, MessageBroker};
-use airssys_wasm::actor::{
-    ComponentMessage, ComponentRegistry, UnifiedRouter,
-};
+use airssys_wasm::actor::{ComponentMessage, ComponentRegistry, UnifiedRouter};
 use airssys_wasm::core::ComponentId;
 
 /// Test 1: Full pub-sub flow with ActorSystem
@@ -79,7 +77,10 @@ async fn test_full_pub_sub_flow_with_actor_system() {
     let _stats = router.stats().await;
 
     // Unsubscribe
-    manager.unsubscribe(&handle).await.expect("Failed to unsubscribe");
+    manager
+        .unsubscribe(&handle)
+        .await
+        .expect("Failed to unsubscribe");
     let topics = manager.get_subscriptions(&subscriber_id).await;
     assert_eq!(topics.len(), 0);
 
@@ -104,15 +105,18 @@ async fn test_multiple_subscribers_same_topic() {
 
     let topic = "events.user.login";
 
-    manager.subscribe(component_a.clone(), vec![topic.into()])
+    manager
+        .subscribe(component_a.clone(), vec![topic.into()])
         .await
         .expect("Failed to subscribe A");
-    
-    manager.subscribe(component_b.clone(), vec![topic.into()])
+
+    manager
+        .subscribe(component_b.clone(), vec![topic.into()])
         .await
         .expect("Failed to subscribe B");
-    
-    manager.subscribe(component_c.clone(), vec![topic.into()])
+
+    manager
+        .subscribe(component_c.clone(), vec![topic.into()])
         .await
         .expect("Failed to subscribe C");
 
@@ -153,30 +157,46 @@ async fn test_wildcard_subscription_routing() {
 
     // Subscribe with wildcards
     let component_id = ComponentId::new("subscriber");
-    
+
     // Single-level wildcard
-    manager.subscribe(component_id.clone(), vec!["events.user.*".into()])
+    manager
+        .subscribe(component_id.clone(), vec!["events.user.*".into()])
         .await
         .expect("Failed to subscribe");
 
     // Test topic matching
     let subscribers_login = manager.subscribers_for_topic("events.user.login").await;
     assert_eq!(subscribers_login.len(), 1, "Should match events.user.login");
-    
+
     let subscribers_logout = manager.subscribers_for_topic("events.user.logout").await;
-    assert_eq!(subscribers_logout.len(), 1, "Should match events.user.logout");
-    
+    assert_eq!(
+        subscribers_logout.len(),
+        1,
+        "Should match events.user.logout"
+    );
+
     let subscribers_system = manager.subscribers_for_topic("events.system.restart").await;
-    assert_eq!(subscribers_system.len(), 0, "Should not match events.system.*");
+    assert_eq!(
+        subscribers_system.len(),
+        0,
+        "Should not match events.system.*"
+    );
 
     // Subscribe with multi-level wildcard
     let component_all = ComponentId::new("subscriber-all");
-    manager.subscribe(component_all.clone(), vec!["events.#".into()])
+    manager
+        .subscribe(component_all.clone(), vec!["events.#".into()])
         .await
         .expect("Failed to subscribe with #");
 
-    let subscribers_deep = manager.subscribers_for_topic("events.user.profile.update").await;
-    assert_eq!(subscribers_deep.len(), 1, "events.# should match deep topics");
+    let subscribers_deep = manager
+        .subscribers_for_topic("events.user.profile.update")
+        .await;
+    assert_eq!(
+        subscribers_deep.len(),
+        1,
+        "events.# should match deep topics"
+    );
 
     router.stop().await.expect("Failed to stop router");
 }
@@ -194,27 +214,33 @@ async fn test_component_unsubscribe_behavior() {
     let component_id = ComponentId::new("subscriber");
 
     // Subscribe to multiple topics
-    let handle1 = manager.subscribe(
-        component_id.clone(),
-        vec!["topic-1".into(), "topic-2".into()],
-    ).await.expect("Failed to subscribe");
+    let handle1 = manager
+        .subscribe(
+            component_id.clone(),
+            vec!["topic-1".into(), "topic-2".into()],
+        )
+        .await
+        .expect("Failed to subscribe");
 
     // Verify subscriptions
     let topics = manager.get_subscriptions(&component_id).await;
     assert_eq!(topics.len(), 2);
 
     // Unsubscribe
-    manager.unsubscribe(&handle1).await.expect("Failed to unsubscribe");
+    manager
+        .unsubscribe(&handle1)
+        .await
+        .expect("Failed to unsubscribe");
 
     // Verify removed
     let topics = manager.get_subscriptions(&component_id).await;
     assert_eq!(topics.len(), 0);
 
     // Subscribe again to different topics
-    let _handle2 = manager.subscribe(
-        component_id.clone(),
-        vec!["topic-3".into()],
-    ).await.expect("Failed to resubscribe");
+    let _handle2 = manager
+        .subscribe(component_id.clone(), vec!["topic-3".into()])
+        .await
+        .expect("Failed to resubscribe");
 
     let topics = manager.get_subscriptions(&component_id).await;
     assert_eq!(topics.len(), 1);
@@ -247,7 +273,8 @@ async fn test_routing_statistics_accuracy() {
             payload: vec![i as u8],
         };
 
-        router.route(source, target, message)
+        router
+            .route(source, target, message)
             .await
             .expect("Failed to route");
     }
@@ -284,8 +311,9 @@ async fn test_router_lifecycle_with_subscriptions() {
     // Add subscriptions
     let manager = router.subscriber_manager();
     let component_id = ComponentId::new("test-component");
-    
-    manager.subscribe(component_id.clone(), vec!["test.topic".into()])
+
+    manager
+        .subscribe(component_id.clone(), vec!["test.topic".into()])
         .await
         .expect("Failed to subscribe");
 
@@ -324,10 +352,9 @@ async fn test_concurrent_subscription_operations() {
         let manager_clone = manager.clone();
         let handle = tokio::spawn(async move {
             let component_id = ComponentId::new(format!("component-{}", i));
-            manager_clone.subscribe(
-                component_id,
-                vec![format!("topic-{}", i)],
-            ).await
+            manager_clone
+                .subscribe(component_id, vec![format!("topic-{}", i)])
+                .await
         });
         handles.push(handle);
     }

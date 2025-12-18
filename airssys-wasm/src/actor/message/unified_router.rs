@@ -142,19 +142,14 @@ impl<B: MessageBroker<ComponentMessage> + Send + Sync + 'static> UnifiedRouter<B
     /// ```rust,ignore
     /// let router = UnifiedRouter::new(broker, registry);
     /// ```
-    pub fn new(
-        broker: Arc<B>,
-        registry: ComponentRegistry,
-    ) -> Self {
+    pub fn new(broker: Arc<B>, registry: ComponentRegistry) -> Self {
         let subscriber_manager = Arc::new(SubscriberManager::new());
-        
-        let actor_subscriber = Arc::new(Mutex::new(
-            ActorSystemSubscriber::new(
-                broker,
-                registry,
-                Arc::clone(&subscriber_manager),
-            )
-        ));
+
+        let actor_subscriber = Arc::new(Mutex::new(ActorSystemSubscriber::new(
+            broker,
+            registry,
+            Arc::clone(&subscriber_manager),
+        )));
 
         Self {
             actor_subscriber,
@@ -236,11 +231,11 @@ impl<B: MessageBroker<ComponentMessage> + Send + Sync + 'static> UnifiedRouter<B
 
         // Routing logic (simplified - actual routing via ActorSystemSubscriber)
         // This method provides a unified interface with stats tracking
-        
+
         // Record routing attempt
         let mut stats = self.routing_stats.write().await;
         stats.record_route_attempt();
-        
+
         // In full implementation, would delegate to ActorSystemSubscriber
         // For now, record success
         let latency_ns = start.elapsed().as_nanos() as u64;
@@ -281,7 +276,7 @@ impl<B: MessageBroker<ComponentMessage> + Send + Sync + 'static> UnifiedRouter<B
 
         // In full implementation, would use ComponentRegistry to lookup address
         // and send message to mailbox
-        
+
         let latency_ns = start.elapsed().as_nanos() as u64;
         stats.record_success(latency_ns);
 
@@ -418,7 +413,7 @@ impl RoutingStats {
     pub fn record_success(&mut self, latency_ns: u64) {
         self.successful_routes += 1;
         self.latency_sum_ns += latency_ns;
-        
+
         // Update average
         if self.successful_routes > 0 {
             self.average_latency_ns = self.latency_sum_ns / self.successful_routes;
@@ -499,10 +494,10 @@ mod tests {
     #[test]
     fn test_routing_stats_record_success() {
         let mut stats = RoutingStats::new();
-        
+
         stats.record_route_attempt();
         stats.record_success(100);
-        
+
         assert_eq!(stats.total_messages, 1);
         assert_eq!(stats.successful_routes, 1);
         assert_eq!(stats.average_latency_ns, 100);
@@ -512,13 +507,13 @@ mod tests {
     #[test]
     fn test_routing_stats_average_latency() {
         let mut stats = RoutingStats::new();
-        
+
         stats.record_route_attempt();
         stats.record_success(100);
-        
+
         stats.record_route_attempt();
         stats.record_success(200);
-        
+
         assert_eq!(stats.total_messages, 2);
         assert_eq!(stats.successful_routes, 2);
         assert_eq!(stats.average_latency_ns, 150); // (100 + 200) / 2
@@ -527,13 +522,13 @@ mod tests {
     #[test]
     fn test_routing_stats_success_rate() {
         let mut stats = RoutingStats::new();
-        
+
         stats.record_route_attempt();
         stats.record_success(100);
-        
+
         stats.record_route_attempt();
         stats.record_failure();
-        
+
         assert_eq!(stats.total_messages, 2);
         assert_eq!(stats.successful_routes, 1);
         assert_eq!(stats.failed_routes, 1);
@@ -545,9 +540,9 @@ mod tests {
     async fn test_unified_router_creation() {
         let broker = Arc::new(InMemoryMessageBroker::new());
         let registry = ComponentRegistry::new();
-        
+
         let router = UnifiedRouter::new(broker, registry);
-        
+
         assert!(!router.is_running().await);
     }
 
@@ -555,14 +550,14 @@ mod tests {
     async fn test_unified_router_start_stop() {
         let broker = Arc::new(InMemoryMessageBroker::new());
         let registry = ComponentRegistry::new();
-        
+
         let router = UnifiedRouter::new(broker, registry);
-        
+
         // Start
         let result = router.start().await;
         assert!(result.is_ok());
         assert!(router.is_running().await);
-        
+
         // Stop
         let result = router.stop().await;
         assert!(result.is_ok());
@@ -573,9 +568,9 @@ mod tests {
     async fn test_unified_router_stats() {
         let broker = Arc::new(InMemoryMessageBroker::new());
         let registry = ComponentRegistry::new();
-        
+
         let router = UnifiedRouter::new(broker, registry);
-        
+
         let stats = router.stats().await;
         assert_eq!(stats.total_messages, 0);
         assert_eq!(stats.successful_routes, 0);
@@ -586,19 +581,19 @@ mod tests {
     async fn test_unified_router_route() {
         let broker = Arc::new(InMemoryMessageBroker::new());
         let registry = ComponentRegistry::new();
-        
+
         let router = UnifiedRouter::new(broker, registry);
-        
+
         let source = ComponentId::new("source");
         let target = ComponentId::new("target");
         let message = ComponentMessage::InterComponent {
             sender: source.clone(),
             payload: vec![1, 2, 3],
         };
-        
+
         let result = router.route(source, target, message).await;
         assert!(result.is_ok());
-        
+
         let stats = router.stats().await;
         assert_eq!(stats.total_messages, 1);
         assert_eq!(stats.successful_routes, 1);
@@ -608,9 +603,9 @@ mod tests {
     async fn test_unified_router_subscriber_manager() {
         let broker = Arc::new(InMemoryMessageBroker::new());
         let registry = ComponentRegistry::new();
-        
+
         let router = UnifiedRouter::new(broker, registry);
-        
+
         let manager = router.subscriber_manager();
         assert_eq!(manager.subscription_count().await, 0);
     }

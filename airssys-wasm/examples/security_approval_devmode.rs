@@ -58,7 +58,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Step 1: Create trust configuration with DevMode ENABLED
     info!("📝 Step 1: Creating trust configuration with DevMode...");
-    
+
     let config_content = r#"
 [trust]
 # ⚠️  WARNING: DevMode enabled! ⚠️
@@ -66,7 +66,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 # ONLY for local development!
 dev_mode = true
 "#;
-    
+
     tokio::fs::write(&config_path, config_content).await?;
     warn!("⚠️  DevMode configuration created");
     warn!("   Security checks: DISABLED");
@@ -75,31 +75,29 @@ dev_mode = true
 
     // Step 2: Initialize approval workflow
     info!("🔧 Step 2: Initializing approval workflow with DevMode...");
-    
+
     let trust_registry = Arc::new(TrustRegistry::from_config(&config_path).await?);
     let approval_store = Arc::new(ApprovalStore::new(temp_dir.path().join("approvals"))?);
     let workflow = ApprovalWorkflow::new(trust_registry, approval_store);
-    
+
     info!("✅ Approval workflow initialized (DevMode active)");
     info!("");
 
     // Step 3: Test DevMode bypass for local component
     info!("🧪 Step 3: Testing DevMode bypass for local component...");
-    
+
     let source = ComponentSource::Local {
         path: PathBuf::from("/home/dev/my-local-component"),
     };
-    
+
     let capabilities = WasmCapabilitySet::new();
-    
+
     let start = std::time::Instant::now();
-    let decision = workflow.request_approval(
-        "my-local-component",
-        &source,
-        &capabilities,
-    ).await?;
+    let decision = workflow
+        .request_approval("my-local-component", &source, &capabilities)
+        .await?;
     let elapsed = start.elapsed();
-    
+
     match &decision {
         ApprovalDecision::Bypassed { devmode } => {
             warn!("⚠️  Security bypassed (DevMode)!");
@@ -116,19 +114,17 @@ dev_mode = true
 
     // Step 4: Test DevMode bypass for unknown remote component
     info!("🧪 Step 4: Testing DevMode bypass for unknown remote component...");
-    
+
     let source = ComponentSource::Git {
         url: "https://github.com/untrusted/unknown-tool".to_string(),
         branch: "main".to_string(),
         commit: "abc123".to_string(),
     };
-    
-    let decision = workflow.request_approval(
-        "unknown-tool",
-        &source,
-        &capabilities,
-    ).await?;
-    
+
+    let decision = workflow
+        .request_approval("unknown-tool", &source, &capabilities)
+        .await?;
+
     match &decision {
         ApprovalDecision::Bypassed { devmode } => {
             warn!("⚠️  Security bypassed for unknown component!");
@@ -145,19 +141,17 @@ dev_mode = true
 
     // Step 5: Test DevMode bypass for potentially malicious component
     info!("🧪 Step 5: Testing DevMode bypass for potentially malicious component...");
-    
+
     let source = ComponentSource::Git {
         url: "https://github.com/sketchy/ransomware".to_string(),
         branch: "main".to_string(),
         commit: "bad123".to_string(),
     };
-    
-    let decision = workflow.request_approval(
-        "ransomware",
-        &source,
-        &capabilities,
-    ).await?;
-    
+
+    let decision = workflow
+        .request_approval("ransomware", &source, &capabilities)
+        .await?;
+
     match &decision {
         ApprovalDecision::Bypassed { .. } => {
             warn!("⚠️  ⚠️  ⚠️  CRITICAL SECURITY RISK ⚠️  ⚠️  ⚠️");
@@ -175,24 +169,22 @@ dev_mode = true
 
     // Step 6: Performance comparison
     info!("📊 Step 6: Performance comparison (DevMode vs Production)...");
-    
+
     let iterations = 100;
     let mut total_elapsed = std::time::Duration::ZERO;
-    
+
     for i in 0..iterations {
         let source = ComponentSource::Local {
             path: PathBuf::from(format!("/dev/component-{}", i)),
         };
-        
+
         let start = std::time::Instant::now();
-        workflow.request_approval(
-            &format!("component-{}", i),
-            &source,
-            &capabilities,
-        ).await?;
+        workflow
+            .request_approval(&format!("component-{}", i), &source, &capabilities)
+            .await?;
         total_elapsed += start.elapsed();
     }
-    
+
     let avg_latency = total_elapsed / iterations;
     info!("✅ Performance test complete:");
     info!("   Iterations: {}", iterations);

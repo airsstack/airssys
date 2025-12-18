@@ -29,9 +29,7 @@ use tokio::sync::RwLock;
 use airssys_rt::supervisor::Child;
 use airssys_rt::util::ActorAddress;
 use airssys_wasm::actor::{ComponentActor, ComponentRegistry};
-use airssys_wasm::core::{
-    CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits,
-};
+use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits};
 
 /// Helper: Create test metadata
 fn create_test_metadata(name: &str) -> ComponentMetadata {
@@ -42,10 +40,10 @@ fn create_test_metadata(name: &str) -> ComponentMetadata {
         description: Some("Benchmark test component".to_string()),
         required_capabilities: vec![],
         resource_limits: ResourceLimits {
-            max_memory_bytes: 64 * 1024 * 1024,  // 64MB
+            max_memory_bytes: 64 * 1024 * 1024, // 64MB
             max_fuel: 1_000_000,
             max_execution_ms: 5000,
-            max_storage_bytes: 10 * 1024 * 1024,  // 10MB
+            max_storage_bytes: 10 * 1024 * 1024, // 10MB
         },
     }
 }
@@ -93,8 +91,7 @@ fn bench_component_lifecycle_complete(c: &mut Criterion) {
             let metadata = black_box(create_test_metadata("lifecycle"));
             let capabilities = black_box(create_test_capabilities());
 
-            let mut actor =
-                ComponentActor::new(component_id, metadata, capabilities, ());
+            let mut actor = ComponentActor::new(component_id, metadata, capabilities, ());
 
             // Lifecycle: start (no-op without WASM)
             let _ = black_box(actor.start().await);
@@ -139,10 +136,7 @@ fn bench_registry_registration(c: &mut Criterion) {
             let component_id = ComponentId::new(format!("component-{}", counter));
             let actor_addr = ActorAddress::named(format!("actor-{}", counter));
 
-            let result = registry.register(
-                black_box(component_id),
-                black_box(actor_addr),
-            );
+            let result = registry.register(black_box(component_id), black_box(actor_addr));
 
             counter += 1;
             black_box(result)

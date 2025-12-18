@@ -461,12 +461,12 @@ impl TopicPattern {
         if self.0 == "*" || self.0 == "**" {
             return true;
         }
-        
+
         // Exact match
         if self.0 == topic {
             return true;
         }
-        
+
         // Simple wildcard matching: "events.*" matches "events.user"
         if self.0.ends_with(".*") {
             let prefix = &self.0[..self.0.len() - 2]; // Remove ".*"
@@ -476,7 +476,7 @@ impl TopicPattern {
                 return remaining.starts_with('.') && !remaining[1..].contains('.');
             }
         }
-        
+
         // TODO(Phase 7): Implement proper topic matching in security/ module
         false
     }
@@ -710,10 +710,14 @@ impl CapabilitySet {
     /// # Performance
     ///
     /// Target: <1μs per check (O(n) where n = number of Messaging capabilities)
-    pub fn can_send_to(&self, _recipient: &crate::core::component::ComponentId, topic: Option<&str>) -> bool {
+    pub fn can_send_to(
+        &self,
+        _recipient: &crate::core::component::ComponentId,
+        topic: Option<&str>,
+    ) -> bool {
         // Extract topic pattern from recipient or use wildcard
         let target_pattern = topic.unwrap_or("*");
-        
+
         // Check if any Messaging capability matches
         for cap in &self.capabilities {
             if let Capability::Messaging(pattern) = cap {
@@ -722,10 +726,10 @@ impl CapabilitySet {
                 }
             }
         }
-        
+
         false
     }
-    
+
     /// Check if component allows receiving messages from a specific sender.
     ///
     /// This validates that the recipient component trusts the sender based on
@@ -755,13 +759,13 @@ impl CapabilitySet {
     pub fn allows_receiving_from(&self, _sender: &crate::core::component::ComponentId) -> bool {
         // For Phase 1: If component has ANY Messaging capability, allow receiving
         // Phase 2+: Implement sender-specific filtering via topic patterns
-        
+
         for cap in &self.capabilities {
             if matches!(cap, Capability::Messaging(_)) {
                 return true;
             }
         }
-        
+
         // No Messaging capability = reject all incoming messages
         false
     }
@@ -960,79 +964,79 @@ mod tests {
     #[test]
     fn test_can_send_to_with_matching_topic() {
         use crate::core::component::ComponentId;
-        
+
         let mut caps = CapabilitySet::new();
         caps.grant(Capability::Messaging(TopicPattern::new("events.*")));
-        
+
         let recipient = ComponentId::new("event-handler");
         assert!(caps.can_send_to(&recipient, Some("events.user")));
         assert!(caps.can_send_to(&recipient, Some("events.order")));
         assert!(!caps.can_send_to(&recipient, Some("admin.command")));
     }
-    
+
     #[test]
     fn test_can_send_to_wildcard() {
         use crate::core::component::ComponentId;
-        
+
         let mut caps = CapabilitySet::new();
         caps.grant(Capability::Messaging(TopicPattern::new("*")));
-        
+
         let recipient = ComponentId::new("any-component");
         assert!(caps.can_send_to(&recipient, Some("any.topic")));
         assert!(caps.can_send_to(&recipient, None));
     }
-    
+
     #[test]
     fn test_can_send_to_no_capability() {
         use crate::core::component::ComponentId;
-        
+
         let caps = CapabilitySet::new(); // No capabilities
-        
+
         let recipient = ComponentId::new("any-component");
         assert!(!caps.can_send_to(&recipient, Some("any.topic")));
         assert!(!caps.can_send_to(&recipient, None));
     }
-    
+
     #[test]
     fn test_allows_receiving_from_with_messaging_cap() {
         use crate::core::component::ComponentId;
-        
+
         let mut caps = CapabilitySet::new();
         caps.grant(Capability::Messaging(TopicPattern::new("*")));
-        
+
         let sender = ComponentId::new("sender-component");
         assert!(caps.allows_receiving_from(&sender));
     }
-    
+
     #[test]
     fn test_allows_receiving_from_without_messaging_cap() {
         use crate::core::component::ComponentId;
-        
+
         let caps = CapabilitySet::new(); // No capabilities
-        
+
         let sender = ComponentId::new("sender-component");
         assert!(!caps.allows_receiving_from(&sender));
     }
-    
+
     #[test]
     fn test_allows_receiving_from_with_different_capability() {
         use crate::core::component::ComponentId;
-        
+
         let mut caps = CapabilitySet::new();
         caps.grant(Capability::ProcessSpawn); // Different capability
-        
+
         let sender = ComponentId::new("sender-component");
         assert!(!caps.allows_receiving_from(&sender));
     }
-    
+
     #[test]
     fn test_messaging_capabilities_multiple_patterns() {
         use crate::core::component::ComponentId;
-        
+
         let mut caps = CapabilitySet::new();
         caps.grant(Capability::Messaging(TopicPattern::new("events.*")));
         caps.grant(Capability::Messaging(TopicPattern::new("logs.*")));
-        
+
         let recipient = ComponentId::new("processor");
         assert!(caps.can_send_to(&recipient, Some("events.user")));
         assert!(caps.can_send_to(&recipient, Some("logs.error")));

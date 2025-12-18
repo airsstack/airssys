@@ -43,7 +43,10 @@ fn run_build() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo:warning=Generating Rust bindings from WIT...");
     generate_bindings(&wit_dir, &out_dir)?;
 
-    println!("cargo:warning=WIT bindings generated successfully in {}", out_dir.display());
+    println!(
+        "cargo:warning=WIT bindings generated successfully in {}",
+        out_dir.display()
+    );
     Ok(())
 }
 
@@ -65,10 +68,12 @@ fn validate_wit(wit_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
 
     // Validate core package first (all WIT files are in single package now)
     let core_dir = wit_dir.join("core");
-    
+
     println!("cargo:warning=Validating core package...");
-    let core_dir_str = core_dir.to_str().ok_or("Invalid UTF-8 in core directory path")?;
-    
+    let core_dir_str = core_dir
+        .to_str()
+        .ok_or("Invalid UTF-8 in core directory path")?;
+
     let output = Command::new(&wasm_tools)
         .args([
             "component",
@@ -82,26 +87,28 @@ fn validate_wit(wit_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
         eprintln!("\n==================== WIT VALIDATION FAILED (core) ====================");
         eprintln!("{}", String::from_utf8_lossy(&output.stderr));
         eprintln!("=======================================================================\n");
-        return Err("WIT validation failed for core package. Fix WIT syntax errors and rebuild.".into());
+        return Err(
+            "WIT validation failed for core package. Fix WIT syntax errors and rebuild.".into(),
+        );
     }
 
     // Validate extension packages (they depend on core)
     for ext_name in &["filesystem", "network", "process"] {
         let ext_dir = wit_dir.join("ext").join(ext_name);
-        
+
         println!("cargo:warning=Validating {ext_name} extension package...");
-        let ext_dir_str = ext_dir.to_str().ok_or_else(|| format!("Invalid UTF-8 in {ext_name} extension directory path"))?;
-        
+        let ext_dir_str = ext_dir
+            .to_str()
+            .ok_or_else(|| format!("Invalid UTF-8 in {ext_name} extension directory path"))?;
+
         let output = Command::new(&wasm_tools)
-            .args([
-                "component",
-                "wit",
-                ext_dir_str,
-            ])
+            .args(["component", "wit", ext_dir_str])
             .output()?;
 
         if !output.status.success() {
-            eprintln!("\n==================== WIT VALIDATION FAILED ({ext_name}) ====================");
+            eprintln!(
+                "\n==================== WIT VALIDATION FAILED ({ext_name}) ===================="
+            );
             eprintln!("{}", String::from_utf8_lossy(&output.stderr));
             eprintln!("=====================================================================\n");
             return Err(format!("WIT validation failed for {ext_name} extension. Fix WIT syntax errors and rebuild.").into());
@@ -112,7 +119,7 @@ fn validate_wit(wit_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
     if env::var("AIRSSYS_BUILD_VERBOSE").is_ok() {
         println!("cargo:warning=All WIT packages validated successfully");
     }
-    
+
     Ok(())
 }
 
@@ -132,12 +139,16 @@ fn generate_bindings(wit_dir: &Path, out_dir: &Path) -> Result<(), Box<dyn std::
 
     // World name from wit/core/world.wit
     let world = "airssys-component";
-    
+
     // Point to core package directory where world is defined
     let core_dir = wit_dir.join("core");
-    
-    let out_dir_str = out_dir.to_str().ok_or("Invalid UTF-8 in output directory path")?;
-    let core_dir_str = core_dir.to_str().ok_or("Invalid UTF-8 in core directory path")?;
+
+    let out_dir_str = out_dir
+        .to_str()
+        .ok_or("Invalid UTF-8 in output directory path")?;
+    let core_dir_str = core_dir
+        .to_str()
+        .ok_or("Invalid UTF-8 in core directory path")?;
 
     let output = Command::new(&wit_bindgen)
         .args([
@@ -170,6 +181,6 @@ fn generate_bindings(wit_dir: &Path, out_dir: &Path) -> Result<(), Box<dyn std::
         println!("cargo:warning=Binding generation output:");
         println!("cargo:warning={}", String::from_utf8_lossy(&output.stdout));
     }
-    
+
     Ok(())
 }

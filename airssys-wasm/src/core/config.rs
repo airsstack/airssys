@@ -419,13 +419,14 @@ impl ComponentConfigToml {
                     .to_string(),
             })?;
 
-        let timeout_seconds = cpu_config
-            .timeout_seconds
-            .ok_or_else(|| ConfigError::InvalidConfiguration {
-                message:
-                    "timeout_seconds is MANDATORY and must be explicitly set (ADR-WASM-002)"
-                        .to_string(),
-            })?;
+        let timeout_seconds =
+            cpu_config
+                .timeout_seconds
+                .ok_or_else(|| ConfigError::InvalidConfiguration {
+                    message:
+                        "timeout_seconds is MANDATORY and must be explicitly set (ADR-WASM-002)"
+                            .to_string(),
+                })?;
 
         let cpu = CpuConfig {
             max_fuel,
@@ -491,19 +492,22 @@ impl ComponentConfigToml {
             .as_ref()
             .ok_or(ConfigError::MissingCpuConfig)?;
 
-        let max_fuel = cpu_config_toml.max_fuel.ok_or_else(|| {
-            ConfigError::InvalidConfiguration {
-                message: "max_fuel is MANDATORY and must be explicitly set (ADR-WASM-002)"
-                    .to_string(),
-            }
-        })?;
+        let max_fuel =
+            cpu_config_toml
+                .max_fuel
+                .ok_or_else(|| ConfigError::InvalidConfiguration {
+                    message: "max_fuel is MANDATORY and must be explicitly set (ADR-WASM-002)"
+                        .to_string(),
+                })?;
 
-        let timeout_seconds = cpu_config_toml.timeout_seconds.ok_or_else(|| {
-            ConfigError::InvalidConfiguration {
-                message: "timeout_seconds is MANDATORY and must be explicitly set (ADR-WASM-002)"
-                    .to_string(),
-            }
-        })?;
+        let timeout_seconds =
+            cpu_config_toml
+                .timeout_seconds
+                .ok_or_else(|| ConfigError::InvalidConfiguration {
+                    message:
+                        "timeout_seconds is MANDATORY and must be explicitly set (ADR-WASM-002)"
+                            .to_string(),
+                })?;
 
         let cpu = CpuConfig {
             max_fuel,
@@ -1169,7 +1173,14 @@ timeout_seconds = 30
         assert_eq!(config.component.name, "test-component");
         assert_eq!(config.component.version, "1.0.0");
         assert_eq!(
-            config.resources.as_ref().unwrap().memory.as_ref().unwrap().max_bytes,
+            config
+                .resources
+                .as_ref()
+                .unwrap()
+                .memory
+                .as_ref()
+                .unwrap()
+                .max_bytes,
             1048576
         );
     }
@@ -1244,7 +1255,14 @@ timeout_seconds = 30
 
         let config = ComponentConfigToml::from_str(toml_content).unwrap();
         assert_eq!(
-            config.resources.as_ref().unwrap().memory.as_ref().unwrap().max_bytes,
+            config
+                .resources
+                .as_ref()
+                .unwrap()
+                .memory
+                .as_ref()
+                .unwrap()
+                .max_bytes,
             524288
         );
     }
@@ -1266,7 +1284,14 @@ timeout_seconds = 30
 
         let config = ComponentConfigToml::from_str(toml_content).unwrap();
         assert_eq!(
-            config.resources.as_ref().unwrap().memory.as_ref().unwrap().max_bytes,
+            config
+                .resources
+                .as_ref()
+                .unwrap()
+                .memory
+                .as_ref()
+                .unwrap()
+                .max_bytes,
             4194304
         );
     }
@@ -1311,15 +1336,36 @@ timeout_seconds = 60
         let config = ComponentConfigToml::from_str(toml_content).unwrap();
         assert_eq!(config.component.name, "test-component");
         assert_eq!(
-            config.resources.as_ref().unwrap().memory.as_ref().unwrap().max_bytes,
+            config
+                .resources
+                .as_ref()
+                .unwrap()
+                .memory
+                .as_ref()
+                .unwrap()
+                .max_bytes,
             1048576
         );
         assert_eq!(
-            config.resources.as_ref().unwrap().cpu.as_ref().unwrap().max_fuel,
+            config
+                .resources
+                .as_ref()
+                .unwrap()
+                .cpu
+                .as_ref()
+                .unwrap()
+                .max_fuel,
             Some(50000)
         );
         assert_eq!(
-            config.resources.as_ref().unwrap().cpu.as_ref().unwrap().timeout_seconds,
+            config
+                .resources
+                .as_ref()
+                .unwrap()
+                .cpu
+                .as_ref()
+                .unwrap()
+                .timeout_seconds,
             Some(60)
         );
     }

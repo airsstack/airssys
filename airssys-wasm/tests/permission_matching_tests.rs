@@ -100,7 +100,10 @@ fn test_multiple_patterns() {
     let mut perms = PermissionManifest::new();
     perms.filesystem.read.push("/data/**".to_string());
     perms.filesystem.read.push("/config/*.json".to_string());
-    perms.filesystem.read.push("/etc/myapp/app.toml".to_string());
+    perms
+        .filesystem
+        .read
+        .push("/etc/myapp/app.toml".to_string());
 
     checker.load_permissions(id.clone(), &perms).unwrap();
 
@@ -131,7 +134,9 @@ fn test_filesystem_write_permission() {
 
     // Write permissions
     assert!(checker.can_write_file(&id, "/output/result.txt").is_ok());
-    assert!(checker.can_write_file(&id, "/output/subdir/result.txt").is_ok());
+    assert!(checker
+        .can_write_file(&id, "/output/subdir/result.txt")
+        .is_ok());
     assert!(checker.can_write_file(&id, "/tmp/cache/temp.dat").is_ok());
 
     // Should not allow write elsewhere
@@ -182,13 +187,19 @@ fn test_network_exact_domain_match() {
     checker.load_permissions(id.clone(), &perms).unwrap();
 
     // Exact match should work
-    assert!(checker.can_connect_outbound(&id, "api.example.com", 443).is_ok());
+    assert!(checker
+        .can_connect_outbound(&id, "api.example.com", 443)
+        .is_ok());
 
     // Different host should fail
-    assert!(checker.can_connect_outbound(&id, "other.example.com", 443).is_err());
+    assert!(checker
+        .can_connect_outbound(&id, "other.example.com", 443)
+        .is_err());
 
     // Different port should fail
-    assert!(checker.can_connect_outbound(&id, "api.example.com", 80).is_err());
+    assert!(checker
+        .can_connect_outbound(&id, "api.example.com", 80)
+        .is_err());
 }
 
 #[test]
@@ -205,11 +216,17 @@ fn test_network_wildcard_subdomain() {
     checker.load_permissions(id.clone(), &perms).unwrap();
 
     // Should match single-level subdomain
-    assert!(checker.can_connect_outbound(&id, "a.example.com", 443).is_ok());
-    assert!(checker.can_connect_outbound(&id, "api.example.com", 443).is_ok());
+    assert!(checker
+        .can_connect_outbound(&id, "a.example.com", 443)
+        .is_ok());
+    assert!(checker
+        .can_connect_outbound(&id, "api.example.com", 443)
+        .is_ok());
 
-    // Should match multi-level subdomain  
-    assert!(checker.can_connect_outbound(&id, "a.b.example.com", 443).is_ok());
+    // Should match multi-level subdomain
+    assert!(checker
+        .can_connect_outbound(&id, "a.b.example.com", 443)
+        .is_ok());
 
     // Note: Our implementation matches any host ending with `.example.com`
     // This means `*.example.com` does NOT match bare `example.com` (correct)
@@ -231,8 +248,12 @@ fn test_network_ip_address() {
 
     checker.load_permissions(id.clone(), &perms).unwrap();
 
-    assert!(checker.can_connect_outbound(&id, "192.168.1.100", 8080).is_ok());
-    assert!(checker.can_connect_outbound(&id, "192.168.1.101", 8080).is_err());
+    assert!(checker
+        .can_connect_outbound(&id, "192.168.1.100", 8080)
+        .is_ok());
+    assert!(checker
+        .can_connect_outbound(&id, "192.168.1.101", 8080)
+        .is_err());
 }
 
 #[test]
@@ -257,9 +278,15 @@ fn test_network_multiple_endpoints() {
     checker.load_permissions(id.clone(), &perms).unwrap();
 
     // All should work
-    assert!(checker.can_connect_outbound(&id, "api.example.com", 443).is_ok());
-    assert!(checker.can_connect_outbound(&id, "assets.cdn.example.com", 443).is_ok());
-    assert!(checker.can_connect_outbound(&id, "192.168.1.100", 8080).is_ok());
+    assert!(checker
+        .can_connect_outbound(&id, "api.example.com", 443)
+        .is_ok());
+    assert!(checker
+        .can_connect_outbound(&id, "assets.cdn.example.com", 443)
+        .is_ok());
+    assert!(checker
+        .can_connect_outbound(&id, "192.168.1.100", 8080)
+        .is_ok());
 
     // None of these should work
     assert!(checker.can_connect_outbound(&id, "evil.com", 80).is_err());
@@ -310,7 +337,9 @@ fn test_deny_by_default() {
     assert!(checker.can_write_file(&id, "/output/file.txt").is_err());
     assert!(checker.can_delete_file(&id, "/tmp/file.txt").is_err());
     assert!(checker.can_list_directory(&id, "/data").is_err());
-    assert!(checker.can_connect_outbound(&id, "example.com", 443).is_err());
+    assert!(checker
+        .can_connect_outbound(&id, "example.com", 443)
+        .is_err());
     assert!(checker.can_access_storage(&id, "myapp:cache").is_err());
 }
 
@@ -359,7 +388,9 @@ fn test_component_not_found() {
 
     // Component not loaded - all checks should fail
     assert!(checker.can_read_file(&id, "/data/file.txt").is_err());
-    assert!(checker.can_connect_outbound(&id, "example.com", 443).is_err());
+    assert!(checker
+        .can_connect_outbound(&id, "example.com", 443)
+        .is_err());
     assert!(checker.can_access_storage(&id, "myapp:cache").is_err());
 }
 

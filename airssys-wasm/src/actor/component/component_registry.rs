@@ -159,10 +159,9 @@ impl ComponentRegistry {
         component_id: ComponentId,
         actor_addr: ActorAddress,
     ) -> Result<(), WasmError> {
-        let mut instances = self
-            .instances
-            .write()
-            .map_err(|e| WasmError::internal(format!("Registry lock poisoned during register: {}", e)))?;
+        let mut instances = self.instances.write().map_err(|e| {
+            WasmError::internal(format!("Registry lock poisoned during register: {}", e))
+        })?;
 
         instances.insert(component_id, actor_addr);
         Ok(())
@@ -207,17 +206,13 @@ impl ComponentRegistry {
     /// assert_eq!(found, actor_addr);
     /// ```
     pub fn lookup(&self, component_id: &ComponentId) -> Result<ActorAddress, WasmError> {
-        let instances = self
-            .instances
-            .read()
-            .map_err(|e| WasmError::internal(format!("Registry lock poisoned during lookup: {}", e)))?;
+        let instances = self.instances.read().map_err(|e| {
+            WasmError::internal(format!("Registry lock poisoned during lookup: {}", e))
+        })?;
 
-        instances
-            .get(component_id)
-            .cloned()
-            .ok_or_else(|| {
-                WasmError::component_not_found(format!("Component {} not found", component_id.as_str()))
-            })
+        instances.get(component_id).cloned().ok_or_else(|| {
+            WasmError::component_not_found(format!("Component {} not found", component_id.as_str()))
+        })
     }
 
     /// Remove a component from the registry.
@@ -251,10 +246,9 @@ impl ComponentRegistry {
     /// assert_eq!(registry.count().unwrap(), 0);
     /// ```
     pub fn unregister(&self, component_id: &ComponentId) -> Result<(), WasmError> {
-        let mut instances = self
-            .instances
-            .write()
-            .map_err(|e| WasmError::internal(format!("Registry lock poisoned during unregister: {}", e)))?;
+        let mut instances = self.instances.write().map_err(|e| {
+            WasmError::internal(format!("Registry lock poisoned during unregister: {}", e))
+        })?;
 
         instances.remove(component_id);
         Ok(())
@@ -289,11 +283,10 @@ impl ComponentRegistry {
     /// assert_eq!(registry.count().unwrap(), 1);
     /// ```
     pub fn count(&self) -> Result<usize, WasmError> {
-        let instances = self
-            .instances
-            .read()
-            .map_err(|e| WasmError::internal(format!("Registry lock poisoned during count: {}", e)))?;
-        
+        let instances = self.instances.read().map_err(|e| {
+            WasmError::internal(format!("Registry lock poisoned during count: {}", e))
+        })?;
+
         Ok(instances.len())
     }
 }
@@ -305,8 +298,14 @@ impl Default for ComponentRegistry {
 }
 
 #[cfg(test)]
-#[expect(clippy::expect_used, reason = "expect is acceptable in test code for clear error messages")]
-#[expect(clippy::panic, reason = "panic is acceptable in test code for assertion failures")]
+#[expect(
+    clippy::expect_used,
+    reason = "expect is acceptable in test code for clear error messages"
+)]
+#[expect(
+    clippy::panic,
+    reason = "panic is acceptable in test code for assertion failures"
+)]
 mod tests {
     use super::*;
 
@@ -323,7 +322,11 @@ mod tests {
         let actor_addr = ActorAddress::named("test-component");
 
         let result = registry.register(component_id.clone(), actor_addr.clone());
-        assert!(result.is_ok(), "Failed to register component: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Failed to register component: {:?}",
+            result.err()
+        );
         assert_eq!(registry.count().expect("Failed to get count"), 1);
     }
 
@@ -334,11 +337,22 @@ mod tests {
         let actor_addr = ActorAddress::named("test-component");
 
         let result = registry.register(component_id.clone(), actor_addr.clone());
-        assert!(result.is_ok(), "Failed to register component: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Failed to register component: {:?}",
+            result.err()
+        );
 
         let found = registry.lookup(&component_id);
-        assert!(found.is_ok(), "Failed to lookup component: {:?}", found.err());
-        assert_eq!(found.expect("lookup returned Ok but unwrap failed"), actor_addr);
+        assert!(
+            found.is_ok(),
+            "Failed to lookup component: {:?}",
+            found.err()
+        );
+        assert_eq!(
+            found.expect("lookup returned Ok but unwrap failed"),
+            actor_addr
+        );
     }
 
     #[test]
@@ -362,11 +376,19 @@ mod tests {
         let actor_addr = ActorAddress::named("test-component");
 
         let result = registry.register(component_id.clone(), actor_addr);
-        assert!(result.is_ok(), "Failed to register component: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Failed to register component: {:?}",
+            result.err()
+        );
         assert_eq!(registry.count().expect("Failed to get count"), 1);
 
         let result = registry.unregister(&component_id);
-        assert!(result.is_ok(), "Failed to unregister component: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Failed to unregister component: {:?}",
+            result.err()
+        );
         assert_eq!(registry.count().expect("Failed to get count"), 0);
 
         // Verify component is gone
@@ -392,7 +414,12 @@ mod tests {
             let component_id = ComponentId::new(format!("component-{}", i));
             let actor_addr = ActorAddress::named(format!("component-{}", i));
             let result = registry.register(component_id, actor_addr);
-            assert!(result.is_ok(), "Failed to register component {}: {:?}", i, result.err());
+            assert!(
+                result.is_ok(),
+                "Failed to register component {}: {:?}",
+                i,
+                result.err()
+            );
         }
 
         assert_eq!(registry.count().expect("Failed to get count"), 10);
@@ -407,17 +434,29 @@ mod tests {
 
         // Register first time
         let result = registry.register(component_id.clone(), addr1);
-        assert!(result.is_ok(), "Failed to register component first time: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Failed to register component first time: {:?}",
+            result.err()
+        );
         assert_eq!(registry.count().expect("Failed to get count"), 1);
 
         // Register again with different address
         let result = registry.register(component_id.clone(), addr2.clone());
-        assert!(result.is_ok(), "Failed to register component second time: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Failed to register component second time: {:?}",
+            result.err()
+        );
         assert_eq!(registry.count().expect("Failed to get count"), 1);
 
         // Verify new address
         let found = registry.lookup(&component_id);
-        assert!(found.is_ok(), "Failed to lookup component: {:?}", found.err());
+        assert!(
+            found.is_ok(),
+            "Failed to lookup component: {:?}",
+            found.err()
+        );
         assert_eq!(found.expect("lookup returned Ok but unwrap failed"), addr2);
     }
 
@@ -428,18 +467,39 @@ mod tests {
         let actor_addr = ActorAddress::named("test");
 
         let result = registry1.register(component_id.clone(), actor_addr.clone());
-        assert!(result.is_ok(), "Failed to register component: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Failed to register component: {:?}",
+            result.err()
+        );
 
         // Clone registry (Arc clone, shares data)
         let registry2 = registry1.clone();
 
         // Both registries see the same data
-        assert_eq!(registry1.count().expect("Failed to get count from registry1"), 1);
-        assert_eq!(registry2.count().expect("Failed to get count from registry2"), 1);
+        assert_eq!(
+            registry1
+                .count()
+                .expect("Failed to get count from registry1"),
+            1
+        );
+        assert_eq!(
+            registry2
+                .count()
+                .expect("Failed to get count from registry2"),
+            1
+        );
 
         let found = registry2.lookup(&component_id);
-        assert!(found.is_ok(), "Failed to lookup component: {:?}", found.err());
-        assert_eq!(found.expect("lookup returned Ok but unwrap failed"), actor_addr);
+        assert!(
+            found.is_ok(),
+            "Failed to lookup component: {:?}",
+            found.err()
+        );
+        assert_eq!(
+            found.expect("lookup returned Ok but unwrap failed"),
+            actor_addr
+        );
     }
 
     #[tokio::test]
@@ -451,7 +511,11 @@ mod tests {
         let actor_addr = ActorAddress::named("test");
 
         let result = registry.register(component_id.clone(), actor_addr.clone());
-        assert!(result.is_ok(), "Failed to register component: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Failed to register component: {:?}",
+            result.err()
+        );
 
         // Spawn multiple concurrent readers
         let mut handles = vec![];
@@ -462,8 +526,15 @@ mod tests {
 
             let handle = task::spawn(async move {
                 let found = registry_clone.lookup(&id_clone);
-                assert!(found.is_ok(), "Failed to lookup component: {:?}", found.err());
-                assert_eq!(found.expect("lookup returned Ok but unwrap failed"), addr_clone);
+                assert!(
+                    found.is_ok(),
+                    "Failed to lookup component: {:?}",
+                    found.err()
+                );
+                assert_eq!(
+                    found.expect("lookup returned Ok but unwrap failed"),
+                    addr_clone
+                );
             });
 
             handles.push(handle);

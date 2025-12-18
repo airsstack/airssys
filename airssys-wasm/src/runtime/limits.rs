@@ -566,7 +566,7 @@ impl ResourceLimitsBuilder {
         // Validate memory limits
         let max_memory_bytes = self.max_memory_bytes.ok_or_else(|| {
             WasmError::invalid_configuration(
-                "max_memory_bytes is MANDATORY and must be explicitly set"
+                "max_memory_bytes is MANDATORY and must be explicitly set",
             )
         })?;
 
@@ -589,7 +589,7 @@ impl ResourceLimitsBuilder {
         // Validate fuel limits
         let max_fuel = self.max_fuel.ok_or_else(|| {
             WasmError::invalid_configuration(
-                "max_fuel is MANDATORY and must be explicitly set (ADR-WASM-002)"
+                "max_fuel is MANDATORY and must be explicitly set (ADR-WASM-002)",
             )
         })?;
 
@@ -612,7 +612,7 @@ impl ResourceLimitsBuilder {
         // Validate timeout
         let timeout_seconds = self.timeout_seconds.ok_or_else(|| {
             WasmError::invalid_configuration(
-                "timeout_seconds is MANDATORY and must be explicitly set (ADR-WASM-002)"
+                "timeout_seconds is MANDATORY and must be explicitly set (ADR-WASM-002)",
             )
         })?;
 
@@ -1021,7 +1021,8 @@ impl ResourceLimiter for ComponentResourceLimiter {
             return Ok(false);
         }
 
-        self.current_memory_bytes.store(desired_u64, Ordering::Relaxed);
+        self.current_memory_bytes
+            .store(desired_u64, Ordering::Relaxed);
         self.allocation_count.fetch_add(1, Ordering::Relaxed);
 
         let mut current_peak = self.peak_memory_bytes.load(Ordering::Relaxed);
@@ -1394,8 +1395,7 @@ mod tests {
         };
 
         let json = serde_json::to_string(&original).expect("Should serialize");
-        let deserialized: MemoryConfig =
-            serde_json::from_str(&json).expect("Should deserialize");
+        let deserialized: MemoryConfig = serde_json::from_str(&json).expect("Should deserialize");
 
         assert_eq!(original, deserialized);
     }
@@ -1649,9 +1649,7 @@ mod tests {
 
         let mut limiter = ComponentResourceLimiter::new(limits);
 
-        assert!(limiter
-            .memory_growing(0, 512 * 1024, None)
-            .unwrap());
+        assert!(limiter.memory_growing(0, 512 * 1024, None).unwrap());
         assert_eq!(limiter.current_memory_bytes(), 512 * 1024);
 
         assert!(limiter

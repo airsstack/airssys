@@ -480,8 +480,6 @@ impl MessageType {
     }
 }
 
-
-
 /// Delivery guarantee semantics for message passing.
 ///
 /// Defines three levels of delivery guarantees with different trade-offs between
@@ -757,17 +755,14 @@ mod tests {
             "msg-001".to_string(),
         );
 
-        let json = serde_json::to_value(&envelope).unwrap_or_else(|e| {
-            panic!("serialization should succeed: {e}")
-        });
+        let json = serde_json::to_value(&envelope)
+            .unwrap_or_else(|e| panic!("serialization should succeed: {e}"));
         assert_eq!(json["from"], "sender");
         assert_eq!(json["to"], "receiver");
         assert_eq!(json["message_id"], "msg-001");
 
-        let deserialized: MessageEnvelope =
-            serde_json::from_value(json).unwrap_or_else(|e| {
-                panic!("deserialization should succeed: {e}")
-            });
+        let deserialized: MessageEnvelope = serde_json::from_value(json)
+            .unwrap_or_else(|e| panic!("deserialization should succeed: {e}"));
         assert_eq!(deserialized.from.as_str(), "sender");
         assert_eq!(deserialized.message_id, "msg-001");
     }
@@ -817,6 +812,4 @@ mod tests {
         assert_eq!(DeliveryGuarantee::AtMostOnce.expected_latency_ns(), 280);
         assert_eq!(DeliveryGuarantee::AtLeastOnce.expected_latency_ns(), 560);
     }
-
-
 }

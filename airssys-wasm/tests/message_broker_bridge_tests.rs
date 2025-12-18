@@ -58,7 +58,11 @@ async fn test_broker_bridge_subscribe() {
     let result = wrapper.subscribe("test-topic", &component_id).await;
 
     // Verify: Subscribe returns handle
-    assert!(result.is_ok(), "Subscribe should succeed: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Subscribe should succeed: {:?}",
+        result.err()
+    );
     let handle = result.unwrap();
     assert_eq!(handle.topic(), "test-topic");
     assert_eq!(handle.component_id(), &component_id);
@@ -95,7 +99,11 @@ async fn test_broker_bridge_unsubscribe() {
     let result = wrapper.unsubscribe(handle).await;
 
     // Verify: Unsubscribe succeeds
-    assert!(result.is_ok(), "Unsubscribe should succeed: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Unsubscribe should succeed: {:?}",
+        result.err()
+    );
 
     // Verify: Subscription removed
     let subscriptions = wrapper.subscriptions(&component_id).await.unwrap();

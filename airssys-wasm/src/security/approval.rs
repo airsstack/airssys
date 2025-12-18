@@ -94,7 +94,7 @@
 //! ```text
 //! Pending → Reviewing → Approved
 //!                    → Denied
-//! 
+//!
 //! (Direct transitions for auto-approve/bypass)
 //! START → AutoApproved (Trusted source)
 //! START → Bypassed (DevMode)
@@ -263,10 +263,10 @@
 //! - **ADR-WASM-010**: Trust-Level System Architecture ✅
 
 // Layer 1: Standard library imports (§2.1)
+use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use chrono::{DateTime, Utc};
 
 // Layer 2: Third-party crate imports (§2.1)
 use serde::{Deserialize, Serialize};
@@ -344,7 +344,7 @@ pub type ApprovalResult<T> = Result<T, ApprovalError>;
 /// ```text
 /// START → Pending → Reviewing → Approved (terminal)
 ///                            → Denied (terminal)
-/// 
+///
 /// START → AutoApproved (terminal, trusted sources)
 /// START → Bypassed (terminal, DevMode)
 /// ```
@@ -739,12 +739,7 @@ impl ApprovalRequest {
         reason: Option<String>,
     ) -> ApprovalResult<()> {
         // Create transition record
-        let transition = StateTransition::new(
-            self.state.clone(),
-            new_state.clone(),
-            actor,
-            reason,
-        );
+        let transition = StateTransition::new(self.state.clone(), new_state.clone(), actor, reason);
 
         // Validate transition
         if !transition.is_valid() {
@@ -883,11 +878,14 @@ impl ApprovalStore {
     /// # Errors
     ///
     /// Returns `ApprovalError::PersistenceError` if file read fails.
-    pub async fn load_decision(&self, component_id: &str) -> ApprovalResult<Option<ApprovalRequest>> {
+    pub async fn load_decision(
+        &self,
+        component_id: &str,
+    ) -> ApprovalResult<Option<ApprovalRequest>> {
         // We need to search all component hashes since we only have component_id
         // In a real implementation, we'd maintain an index for O(1) lookup
         let mut entries = tokio::fs::read_dir(&self.storage_path).await?;
-        
+
         while let Some(entry) = entries.next_entry().await? {
             if !entry.file_type().await?.is_dir() {
                 continue;
@@ -897,7 +895,11 @@ impl ApprovalStore {
             let mut approval_files = tokio::fs::read_dir(&component_dir).await?;
 
             while let Some(approval_file) = approval_files.next_entry().await? {
-                if !approval_file.file_name().to_string_lossy().ends_with(".approval.json") {
+                if !approval_file
+                    .file_name()
+                    .to_string_lossy()
+                    .ends_with(".approval.json")
+                {
                     continue;
                 }
 
@@ -927,7 +929,11 @@ impl ApprovalStore {
             let mut approval_files = tokio::fs::read_dir(&component_dir).await?;
 
             while let Some(approval_file) = approval_files.next_entry().await? {
-                if !approval_file.file_name().to_string_lossy().ends_with(".approval.json") {
+                if !approval_file
+                    .file_name()
+                    .to_string_lossy()
+                    .ends_with(".approval.json")
+                {
                     continue;
                 }
 
@@ -946,7 +952,9 @@ impl ApprovalStore {
     ///
     /// Returns `ApprovalError::ComponentNotFound` if component not found.
     pub async fn delete_decision(&self, component_id: &str) -> ApprovalResult<()> {
-        let request = self.load_decision(component_id).await?
+        let request = self
+            .load_decision(component_id)
+            .await?
             .ok_or_else(|| ApprovalError::ComponentNotFound(component_id.to_string()))?;
 
         let hash = Self::compute_component_hash(
@@ -955,7 +963,8 @@ impl ApprovalStore {
             &request.capabilities,
         );
 
-        let file_path = self.storage_path
+        let file_path = self
+            .storage_path
             .join(&hash)
             .join(format!("{}.approval.json", request.request_id));
 
@@ -971,7 +980,8 @@ impl ApprovalStore {
 
     /// Checks if component has prior approval.
     pub async fn has_approval(&self, component_id: &str) -> bool {
-        self.load_decision(component_id).await
+        self.load_decision(component_id)
+            .await
             .ok()
             .flatten()
             .map(|req| req.state.can_install())
@@ -986,7 +996,7 @@ impl ApprovalStore {
         source: &ComponentSource,
         capabilities: &WasmCapabilitySet,
     ) -> String {
-        use sha2::{Sha256, Digest};
+        use sha2::{Digest, Sha256};
 
         let mut hasher = Sha256::new();
         hasher.update(component_id.as_bytes());
@@ -1069,7 +1079,9 @@ impl ReviewQueue {
     /// - `ApprovalError::AlreadyInQueue` if component already in queue
     /// - `ApprovalError::QueueCapacityExceeded` if queue is full
     pub fn enqueue(&self, request: ApprovalRequest) -> ApprovalResult<()> {
-        let mut pending = self.pending.lock()
+        let mut pending = self
+            .pending
+            .lock()
             .map_err(|e| ApprovalError::TrustRegistryError(format!("Lock poisoned: {}", e)))?;
 
         // Check capacity
@@ -1098,7 +1110,9 @@ impl ReviewQueue {
 
     /// Retrieves request by component_id without removing it.
     pub fn get_request(&self, component_id: &str) -> ApprovalResult<Option<ApprovalRequest>> {
-        let pending = self.pending.lock()
+        let pending = self
+            .pending
+            .lock()
             .map_err(|e| ApprovalError::TrustRegistryError(format!("Lock poisoned: {}", e)))?;
 
         Ok(pending.get(component_id).cloned())
@@ -1106,7 +1120,9 @@ impl ReviewQueue {
 
     /// Lists all pending requests.
     pub fn list_pending(&self) -> ApprovalResult<Vec<ApprovalRequest>> {
-        let pending = self.pending.lock()
+        let pending = self
+            .pending
+            .lock()
             .map_err(|e| ApprovalError::TrustRegistryError(format!("Lock poisoned: {}", e)))?;
 
         Ok(pending.values().cloned().collect())
@@ -1118,10 +1134,13 @@ impl ReviewQueue {
     ///
     /// Returns `ApprovalError::ComponentNotFound` if component not in queue.
     pub fn dequeue(&self, component_id: &str) -> ApprovalResult<ApprovalRequest> {
-        let mut pending = self.pending.lock()
+        let mut pending = self
+            .pending
+            .lock()
             .map_err(|e| ApprovalError::TrustRegistryError(format!("Lock poisoned: {}", e)))?;
 
-        pending.remove(component_id)
+        pending
+            .remove(component_id)
             .ok_or_else(|| ApprovalError::ComponentNotFound(component_id.to_string()))
     }
 
@@ -1140,10 +1159,13 @@ impl ReviewQueue {
         component_id: &str,
         reviewer: &str,
     ) -> ApprovalResult<ApprovalRequest> {
-        let mut pending = self.pending.lock()
+        let mut pending = self
+            .pending
+            .lock()
             .map_err(|e| ApprovalError::TrustRegistryError(format!("Lock poisoned: {}", e)))?;
 
-        let request = pending.get_mut(component_id)
+        let request = pending
+            .get_mut(component_id)
             .ok_or_else(|| ApprovalError::ComponentNotFound(component_id.to_string()))?;
 
         // Transition to Reviewing state
@@ -1152,7 +1174,11 @@ impl ReviewQueue {
             started_at: Utc::now(),
         };
 
-        request.transition_to(new_state, reviewer.to_string(), Some("Starting review".to_string()))?;
+        request.transition_to(
+            new_state,
+            reviewer.to_string(),
+            Some("Starting review".to_string()),
+        )?;
 
         info!(
             component_id = %component_id,
@@ -1181,10 +1207,13 @@ impl ReviewQueue {
         reason: Option<String>,
     ) -> ApprovalResult<()> {
         let request = {
-            let mut pending = self.pending.lock()
+            let mut pending = self
+                .pending
+                .lock()
                 .map_err(|e| ApprovalError::TrustRegistryError(format!("Lock poisoned: {}", e)))?;
 
-            let req = pending.get_mut(component_id)
+            let req = pending
+                .get_mut(component_id)
                 .ok_or_else(|| ApprovalError::ComponentNotFound(component_id.to_string()))?;
 
             // Transition to Approved state
@@ -1222,17 +1251,15 @@ impl ReviewQueue {
     /// Denies request.
     ///
     /// Transitions request to Denied state, persists decision, and removes from queue.
-    pub async fn deny(
-        &self,
-        component_id: &str,
-        denier: &str,
-        reason: &str,
-    ) -> ApprovalResult<()> {
+    pub async fn deny(&self, component_id: &str, denier: &str, reason: &str) -> ApprovalResult<()> {
         let request = {
-            let mut pending = self.pending.lock()
+            let mut pending = self
+                .pending
+                .lock()
                 .map_err(|e| ApprovalError::TrustRegistryError(format!("Lock poisoned: {}", e)))?;
 
-            let req = pending.get_mut(component_id)
+            let req = pending
+                .get_mut(component_id)
                 .ok_or_else(|| ApprovalError::ComponentNotFound(component_id.to_string()))?;
 
             // Transition to Denied state
@@ -1371,10 +1398,7 @@ impl ApprovalWorkflow {
     ///
     /// * `trust_registry` - Trust registry from Task 2.1
     /// * `approval_store` - Persistent approval store
-    pub fn new(
-        trust_registry: Arc<TrustRegistry>,
-        approval_store: Arc<ApprovalStore>,
-    ) -> Self {
+    pub fn new(trust_registry: Arc<TrustRegistry>, approval_store: Arc<ApprovalStore>) -> Self {
         let review_queue = Arc::new(ReviewQueue::new(Arc::clone(&approval_store), 1000));
 
         Self {
@@ -1414,7 +1438,9 @@ impl ApprovalWorkflow {
         }
 
         // Step 1: Determine trust level using Task 2.1
-        let trust_level = self.trust_registry.determine_trust_level(component_id, source);
+        let trust_level = self
+            .trust_registry
+            .determine_trust_level(component_id, source);
 
         info!(
             component_id = %component_id,
@@ -1425,13 +1451,16 @@ impl ApprovalWorkflow {
         // Step 2: Route to appropriate workflow
         match trust_level {
             TrustLevel::Trusted => {
-                self.workflow_trusted(component_id, source, capabilities).await
+                self.workflow_trusted(component_id, source, capabilities)
+                    .await
             }
             TrustLevel::Unknown => {
-                self.workflow_unknown(component_id, source, capabilities).await
+                self.workflow_unknown(component_id, source, capabilities)
+                    .await
             }
             TrustLevel::DevMode => {
-                self.workflow_devmode(component_id, source, capabilities).await
+                self.workflow_devmode(component_id, source, capabilities)
+                    .await
             }
         }
     }
@@ -1491,16 +1520,16 @@ impl ApprovalWorkflow {
 
             // Prior denial found
             if matches!(prior_request.state, ApprovalState::Denied { .. }) {
-                if let ApprovalState::Denied { denied_at, reason, .. } = prior_request.state {
+                if let ApprovalState::Denied {
+                    denied_at, reason, ..
+                } = prior_request.state
+                {
                     warn!(
                         component_id = %component_id,
                         "Denied (prior denial found)"
                     );
 
-                    return Ok(ApprovalDecision::Denied {
-                        reason,
-                        denied_at,
-                    });
+                    return Ok(ApprovalDecision::Denied { reason, denied_at });
                 }
             }
         }
@@ -1520,7 +1549,8 @@ impl ApprovalWorkflow {
 
         // Get queue position
         let pending = self.review_queue.list_pending()?;
-        let queue_position = pending.iter()
+        let queue_position = pending
+            .iter()
             .position(|r| r.request_id == request_id)
             .map(|pos| pos + 1) // 1-indexed
             .unwrap_or(pending.len());
@@ -1636,7 +1666,7 @@ mod tests {
     #[test]
     fn test_approval_state_name() {
         assert_eq!(ApprovalState::Pending.state_name(), "Pending");
-        
+
         let reviewing = ApprovalState::Reviewing {
             reviewer: "admin".to_string(),
             started_at: Utc::now(),
@@ -1782,7 +1812,7 @@ mod tests {
     #[allow(clippy::unwrap_used)]
     fn test_approval_request_transition_to_reviewing() {
         let mut request = create_test_request();
-        
+
         let result = request.transition_to(
             ApprovalState::Reviewing {
                 reviewer: "admin".to_string(),
@@ -1791,7 +1821,7 @@ mod tests {
             "admin".to_string(),
             None,
         );
-        
+
         assert!(result.is_ok());
         assert!(matches!(request.state, ApprovalState::Reviewing { .. }));
         assert_eq!(request.history.len(), 1);
@@ -1801,7 +1831,7 @@ mod tests {
     #[allow(clippy::unwrap_used)]
     fn test_approval_request_invalid_transition() {
         let mut request = create_test_request();
-        
+
         let result = request.transition_to(
             ApprovalState::Approved {
                 approver: "admin".to_string(),
@@ -1811,9 +1841,12 @@ mod tests {
             "admin".to_string(),
             None,
         );
-        
+
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), ApprovalError::InvalidStateTransition { .. }));
+        assert!(matches!(
+            result.unwrap_err(),
+            ApprovalError::InvalidStateTransition { .. }
+        ));
     }
 
     #[test]
@@ -1822,25 +1855,29 @@ mod tests {
         let mut request = create_test_request();
         assert!(!request.is_terminal());
 
-        request.transition_to(
-            ApprovalState::Reviewing {
-                reviewer: "admin".to_string(),
-                started_at: Utc::now(),
-            },
-            "admin".to_string(),
-            None,
-        ).unwrap();
+        request
+            .transition_to(
+                ApprovalState::Reviewing {
+                    reviewer: "admin".to_string(),
+                    started_at: Utc::now(),
+                },
+                "admin".to_string(),
+                None,
+            )
+            .unwrap();
         assert!(!request.is_terminal());
 
-        request.transition_to(
-            ApprovalState::Approved {
-                approver: "admin".to_string(),
-                approved_at: Utc::now(),
-                reason: None,
-            },
-            "admin".to_string(),
-            None,
-        ).unwrap();
+        request
+            .transition_to(
+                ApprovalState::Approved {
+                    approver: "admin".to_string(),
+                    approved_at: Utc::now(),
+                    reason: None,
+                },
+                "admin".to_string(),
+                None,
+            )
+            .unwrap();
         assert!(request.is_terminal());
     }
 
@@ -1858,7 +1895,7 @@ mod tests {
 
         let loaded = store.load_decision("test-component").await.unwrap();
         assert!(loaded.is_some());
-        
+
         let loaded_request = loaded.unwrap();
         assert_eq!(loaded_request.component_id, request.component_id);
         assert_eq!(loaded_request.request_id, request.request_id);
@@ -1868,7 +1905,7 @@ mod tests {
     #[allow(clippy::unwrap_used)]
     async fn test_approval_store_load_nonexistent() {
         let (_temp_dir, store) = create_test_store();
-        
+
         let loaded = store.load_decision("nonexistent").await.unwrap();
         assert!(loaded.is_none());
     }
@@ -1880,10 +1917,18 @@ mod tests {
         let request = create_test_request();
 
         store.save_decision(&request).await.unwrap();
-        assert!(store.load_decision("test-component").await.unwrap().is_some());
+        assert!(store
+            .load_decision("test-component")
+            .await
+            .unwrap()
+            .is_some());
 
         store.delete_decision("test-component").await.unwrap();
-        assert!(store.load_decision("test-component").await.unwrap().is_none());
+        assert!(store
+            .load_decision("test-component")
+            .await
+            .unwrap()
+            .is_none());
     }
 
     #[tokio::test]
@@ -1893,25 +1938,29 @@ mod tests {
         let mut request = create_test_request();
 
         // Transition to Reviewing first
-        request.transition_to(
-            ApprovalState::Reviewing {
-                reviewer: "admin".to_string(),
-                started_at: Utc::now(),
-            },
-            "admin".to_string(),
-            None,
-        ).unwrap();
+        request
+            .transition_to(
+                ApprovalState::Reviewing {
+                    reviewer: "admin".to_string(),
+                    started_at: Utc::now(),
+                },
+                "admin".to_string(),
+                None,
+            )
+            .unwrap();
 
         // Then transition to Approved
-        request.transition_to(
-            ApprovalState::Approved {
-                approver: "admin".to_string(),
-                approved_at: Utc::now(),
-                reason: None,
-            },
-            "admin".to_string(),
-            None,
-        ).unwrap();
+        request
+            .transition_to(
+                ApprovalState::Approved {
+                    approver: "admin".to_string(),
+                    approved_at: Utc::now(),
+                    reason: None,
+                },
+                "admin".to_string(),
+                None,
+            )
+            .unwrap();
 
         store.save_decision(&request).await.unwrap();
         assert!(store.has_approval("test-component").await);
@@ -1921,17 +1970,21 @@ mod tests {
     #[allow(clippy::unwrap_used)]
     async fn test_approval_store_list_all() {
         let (_temp_dir, store) = create_test_store();
-        
+
         let request1 = ApprovalRequest::new(
             "component-1".to_string(),
-            ComponentSource::Local { path: PathBuf::from("/test/1") },
+            ComponentSource::Local {
+                path: PathBuf::from("/test/1"),
+            },
             WasmCapabilitySet::new(),
             TrustLevel::Unknown,
         );
-        
+
         let request2 = ApprovalRequest::new(
             "component-2".to_string(),
-            ComponentSource::Local { path: PathBuf::from("/test/2") },
+            ComponentSource::Local {
+                path: PathBuf::from("/test/2"),
+            },
             WasmCapabilitySet::new(),
             TrustLevel::Unknown,
         );
@@ -1977,7 +2030,10 @@ mod tests {
         let result = queue.enqueue(request);
 
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), ApprovalError::AlreadyInQueue(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            ApprovalError::AlreadyInQueue(_)
+        ));
     }
 
     #[test]
@@ -1985,20 +2041,25 @@ mod tests {
     fn test_review_queue_capacity_exceeded() {
         let (_temp_dir, store) = create_test_store();
         let queue = ReviewQueue::new(Arc::new(store), 1);
-        
+
         let request1 = create_test_request();
         queue.enqueue(request1).unwrap();
 
         let request2 = ApprovalRequest::new(
             "component-2".to_string(),
-            ComponentSource::Local { path: PathBuf::from("/test/2") },
+            ComponentSource::Local {
+                path: PathBuf::from("/test/2"),
+            },
             WasmCapabilitySet::new(),
             TrustLevel::Unknown,
         );
 
         let result = queue.enqueue(request2);
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), ApprovalError::QueueCapacityExceeded { .. }));
+        assert!(matches!(
+            result.unwrap_err(),
+            ApprovalError::QueueCapacityExceeded { .. }
+        ));
     }
 
     #[test]
@@ -2022,17 +2083,27 @@ mod tests {
         let mut request = create_test_request();
 
         // Transition to reviewing first
-        request.transition_to(
-            ApprovalState::Reviewing {
-                reviewer: "admin".to_string(),
-                started_at: Utc::now(),
-            },
-            "admin".to_string(),
-            None,
-        ).unwrap();
+        request
+            .transition_to(
+                ApprovalState::Reviewing {
+                    reviewer: "admin".to_string(),
+                    started_at: Utc::now(),
+                },
+                "admin".to_string(),
+                None,
+            )
+            .unwrap();
 
         queue.enqueue(request).unwrap();
-        queue.approve("test-component", "admin", None, Some("Looks good".to_string())).await.unwrap();
+        queue
+            .approve(
+                "test-component",
+                "admin",
+                None,
+                Some("Looks good".to_string()),
+            )
+            .await
+            .unwrap();
 
         // Should be removed from queue
         let pending = queue.list_pending().unwrap();
@@ -2047,17 +2118,22 @@ mod tests {
         let mut request = create_test_request();
 
         // Transition to reviewing first
-        request.transition_to(
-            ApprovalState::Reviewing {
-                reviewer: "admin".to_string(),
-                started_at: Utc::now(),
-            },
-            "admin".to_string(),
-            None,
-        ).unwrap();
+        request
+            .transition_to(
+                ApprovalState::Reviewing {
+                    reviewer: "admin".to_string(),
+                    started_at: Utc::now(),
+                },
+                "admin".to_string(),
+                None,
+            )
+            .unwrap();
 
         queue.enqueue(request).unwrap();
-        queue.deny("test-component", "admin", "Security risk").await.unwrap();
+        queue
+            .deny("test-component", "admin", "Security risk")
+            .await
+            .unwrap();
 
         // Should be removed from queue
         let pending = queue.list_pending().unwrap();
@@ -2102,7 +2178,7 @@ mod tests {
     async fn test_workflow_trusted_auto_approve() {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("trust-config.toml");
-        
+
         // Create trust config with trusted source
         let config_content = r#"
 [trust]
@@ -2124,8 +2200,11 @@ description = "Test components"
         };
         let capabilities = WasmCapabilitySet::new();
 
-        let decision = workflow.request_approval("test-component", &source, &capabilities).await.unwrap();
-        
+        let decision = workflow
+            .request_approval("test-component", &source, &capabilities)
+            .await
+            .unwrap();
+
         assert!(matches!(decision, ApprovalDecision::Approved { .. }));
         assert!(decision.can_proceed());
     }
@@ -2135,7 +2214,7 @@ description = "Test components"
     async fn test_workflow_unknown_enters_queue() {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("trust-config.toml");
-        
+
         // Create trust config with no trusted sources
         let config_content = r#"
 [trust]
@@ -2152,8 +2231,11 @@ dev_mode = false
         };
         let capabilities = WasmCapabilitySet::new();
 
-        let decision = workflow.request_approval("unknown-component", &source, &capabilities).await.unwrap();
-        
+        let decision = workflow
+            .request_approval("unknown-component", &source, &capabilities)
+            .await
+            .unwrap();
+
         assert!(matches!(decision, ApprovalDecision::PendingReview { .. }));
         assert!(!decision.can_proceed());
     }
@@ -2163,7 +2245,7 @@ dev_mode = false
     async fn test_workflow_devmode_bypass() {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("trust-config.toml");
-        
+
         // Create trust config with DevMode enabled
         let config_content = r#"
 [trust]
@@ -2180,9 +2262,15 @@ dev_mode = true
         };
         let capabilities = WasmCapabilitySet::new();
 
-        let decision = workflow.request_approval("any-component", &source, &capabilities).await.unwrap();
-        
-        assert!(matches!(decision, ApprovalDecision::Bypassed { devmode: true }));
+        let decision = workflow
+            .request_approval("any-component", &source, &capabilities)
+            .await
+            .unwrap();
+
+        assert!(matches!(
+            decision,
+            ApprovalDecision::Bypassed { devmode: true }
+        ));
         assert!(decision.can_proceed());
     }
 
@@ -2191,7 +2279,7 @@ dev_mode = true
     async fn test_workflow_prior_approval_found() {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("trust-config.toml");
-        
+
         let config_content = r#"
 [trust]
 dev_mode = false
@@ -2208,16 +2296,30 @@ dev_mode = false
         let capabilities = WasmCapabilitySet::new();
 
         // First request - should enter queue
-        let decision1 = workflow.request_approval("test-component", &source, &capabilities).await.unwrap();
+        let decision1 = workflow
+            .request_approval("test-component", &source, &capabilities)
+            .await
+            .unwrap();
         assert!(matches!(decision1, ApprovalDecision::PendingReview { .. }));
 
         // Approve the component manually
         let queue = workflow.review_queue();
         queue.start_review("test-component", "admin").unwrap();
-        queue.approve("test-component", "admin", None, Some("Approved".to_string())).await.unwrap();
+        queue
+            .approve(
+                "test-component",
+                "admin",
+                None,
+                Some("Approved".to_string()),
+            )
+            .await
+            .unwrap();
 
         // Second request - should use cached approval
-        let decision2 = workflow.request_approval("test-component", &source, &capabilities).await.unwrap();
+        let decision2 = workflow
+            .request_approval("test-component", &source, &capabilities)
+            .await
+            .unwrap();
         assert!(matches!(decision2, ApprovalDecision::Approved { .. }));
     }
 
@@ -2226,7 +2328,7 @@ dev_mode = false
     async fn test_workflow_empty_component_id() {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("trust-config.toml");
-        
+
         let config_content = r#"
 [trust]
 dev_mode = false
@@ -2244,6 +2346,9 @@ dev_mode = false
 
         let result = workflow.request_approval("", &source, &capabilities).await;
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), ApprovalError::InvalidComponentId(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            ApprovalError::InvalidComponentId(_)
+        ));
     }
 }

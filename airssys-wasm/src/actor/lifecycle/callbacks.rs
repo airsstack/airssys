@@ -102,7 +102,7 @@ pub trait EventCallback: Send + Sync {
     /// }
     /// ```
     fn on_message_received(&self, _component_id: ComponentId) {}
-    
+
     /// Called when component finishes processing message (with latency).
     ///
     /// Fired after WASM invocation completes successfully. Includes latency
@@ -125,7 +125,7 @@ pub trait EventCallback: Send + Sync {
     /// }
     /// ```
     fn on_message_processed(&self, _component_id: ComponentId, _latency: Duration) {}
-    
+
     /// Called when error occurs in component.
     ///
     /// Fired whenever a WasmError occurs (execution error, timeout, etc).
@@ -149,7 +149,7 @@ pub trait EventCallback: Send + Sync {
     /// }
     /// ```
     fn on_error_occurred(&self, _component_id: ComponentId, _error: &WasmError) {}
-    
+
     /// Called when supervisor restarts component.
     ///
     /// Fired when supervisor triggers component restart (crash, health check,
@@ -173,7 +173,7 @@ pub trait EventCallback: Send + Sync {
     /// }
     /// ```
     fn on_restart_triggered(&self, _component_id: ComponentId, _reason: RestartReason) {}
-    
+
     /// Called when component health status changes.
     ///
     /// Fired when health check reports Healthy → Degraded, Degraded → Unhealthy,
@@ -254,19 +254,19 @@ mod tests {
         fn on_message_received(&self, _component_id: ComponentId) {
             self.message_received_count.fetch_add(1, Ordering::Relaxed);
         }
-        
+
         fn on_message_processed(&self, _component_id: ComponentId, _latency: Duration) {
             self.message_processed_count.fetch_add(1, Ordering::Relaxed);
         }
-        
+
         fn on_error_occurred(&self, _component_id: ComponentId, _error: &WasmError) {
             self.error_count.fetch_add(1, Ordering::Relaxed);
         }
-        
+
         fn on_restart_triggered(&self, _component_id: ComponentId, _reason: RestartReason) {
             self.restart_count.fetch_add(1, Ordering::Relaxed);
         }
-        
+
         fn on_health_changed(&self, _component_id: ComponentId, _new_health: HealthStatus) {
             self.health_change_count.fetch_add(1, Ordering::Relaxed);
         }
@@ -276,7 +276,7 @@ mod tests {
     fn test_noop_callback() {
         let callback = NoOpEventCallback;
         let component_id = ComponentId::new("test");
-        
+
         // All callbacks should be no-ops
         callback.on_message_received(component_id.clone());
         callback.on_message_processed(component_id.clone(), Duration::from_millis(10));
@@ -289,7 +289,7 @@ mod tests {
     fn test_noop_callback_as_trait_object() {
         let callback: Arc<dyn EventCallback> = Arc::new(NoOpEventCallback);
         let component_id = ComponentId::new("test");
-        
+
         callback.on_message_received(component_id);
     }
 
@@ -297,24 +297,27 @@ mod tests {
     fn test_custom_callback() {
         let callback = TestCallback::new();
         let component_id = ComponentId::new("test");
-        
+
         // Test on_message_received
         callback.on_message_received(component_id.clone());
         callback.on_message_received(component_id.clone());
         assert_eq!(callback.message_received_count.load(Ordering::Relaxed), 2);
-        
+
         // Test on_message_processed
         callback.on_message_processed(component_id.clone(), Duration::from_millis(10));
         assert_eq!(callback.message_processed_count.load(Ordering::Relaxed), 1);
-        
+
         // Test on_error_occurred
         callback.on_error_occurred(component_id.clone(), &WasmError::internal("test"));
         assert_eq!(callback.error_count.load(Ordering::Relaxed), 1);
-        
+
         // Test on_restart_triggered
-        callback.on_restart_triggered(component_id.clone(), RestartReason::Crashed("panic".to_string()));
+        callback.on_restart_triggered(
+            component_id.clone(),
+            RestartReason::Crashed("panic".to_string()),
+        );
         assert_eq!(callback.restart_count.load(Ordering::Relaxed), 1);
-        
+
         // Test on_health_changed
         callback.on_health_changed(component_id, HealthStatus::Healthy);
         assert_eq!(callback.health_change_count.load(Ordering::Relaxed), 1);
@@ -324,7 +327,7 @@ mod tests {
     fn test_custom_callback_as_trait_object() {
         let callback: Arc<dyn EventCallback> = Arc::new(TestCallback::new());
         let component_id = ComponentId::new("test");
-        
+
         callback.on_message_received(component_id);
     }
 
@@ -332,22 +335,23 @@ mod tests {
     fn test_callback_thread_safety() {
         let callback = Arc::new(TestCallback::new());
         let component_id = ComponentId::new("test");
-        
+
         // Simulate concurrent callback invocations
-        let handles: Vec<_> = (0..10).map(|_| {
-            let callback = Arc::clone(&callback);
-            let component_id = component_id.clone();
-            std::thread::spawn(move || {
-                callback.on_message_received(component_id);
+        let handles: Vec<_> = (0..10)
+            .map(|_| {
+                let callback = Arc::clone(&callback);
+                let component_id = component_id.clone();
+                std::thread::spawn(move || {
+                    callback.on_message_received(component_id);
+                })
             })
-        }).collect();
-        
-        
+            .collect();
+
         #[allow(clippy::unwrap_used, reason = "test thread should not panic")]
         for handle in handles {
             handle.join().unwrap();
         }
-        
+
         assert_eq!(callback.message_received_count.load(Ordering::Relaxed), 10);
     }
 }

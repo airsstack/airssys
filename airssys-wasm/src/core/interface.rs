@@ -354,10 +354,7 @@ impl FunctionSignature {
     /// assert_eq!(func.name, "read_config");
     /// assert_eq!(func.required_capabilities.len(), 1);
     /// ```
-    pub fn with_capabilities(
-        name: impl Into<String>,
-        capabilities: Vec<Capability>,
-    ) -> Self {
+    pub fn with_capabilities(name: impl Into<String>, capabilities: Vec<Capability>) -> Self {
         Self {
             name: name.into(),
             required_capabilities: capabilities,
@@ -404,7 +401,7 @@ impl FunctionSignature {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::capability::{Capability, PathPattern, NamespacePattern, TopicPattern};
+    use crate::core::capability::{Capability, NamespacePattern, PathPattern, TopicPattern};
 
     #[test]
     fn test_wit_interface_creation() {
@@ -481,7 +478,8 @@ mod tests {
         ));
 
         let json = serde_json::to_string(&interface).expect("serialization should succeed");
-        let deserialized: WitInterface = serde_json::from_str(&json).expect("deserialization should succeed");
+        let deserialized: WitInterface =
+            serde_json::from_str(&json).expect("deserialization should succeed");
         assert_eq!(deserialized, interface);
         assert_eq!(deserialized.name, "wasi:http/incoming-handler");
         assert_eq!(deserialized.functions.len(), 1);
@@ -518,10 +516,14 @@ mod tests {
 
         assert_eq!(interface.functions.len(), 3);
 
-        let read_fn = interface.find_function("read").expect("read function should exist");
+        let read_fn = interface
+            .find_function("read")
+            .expect("read function should exist");
         assert_eq!(read_fn.required_capabilities.len(), 1);
 
-        let compute_fn = interface.find_function("compute").expect("compute function should exist");
+        let compute_fn = interface
+            .find_function("compute")
+            .expect("compute function should exist");
         assert!(compute_fn.requires_no_capabilities());
     }
 }

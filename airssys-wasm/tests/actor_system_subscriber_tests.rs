@@ -38,8 +38,8 @@ use std::time::Duration;
 // Layer 3: Internal module imports
 use airssys_rt::broker::{InMemoryMessageBroker, MessageBroker};
 use airssys_wasm::actor::{
-    ActorSystemSubscriber, ComponentMessage, ComponentRegistry, RoutingStats,
-    SubscriberManager, UnifiedRouter,
+    ActorSystemSubscriber, ComponentMessage, ComponentRegistry, RoutingStats, SubscriberManager,
+    UnifiedRouter,
 };
 use airssys_wasm::core::ComponentId;
 
@@ -50,23 +50,27 @@ async fn test_actor_system_subscribes_to_broker() {
     let registry = ComponentRegistry::new();
     let subscriber_manager = Arc::new(SubscriberManager::new());
 
-    let mut subscriber = ActorSystemSubscriber::new(
-        broker.clone(),
-        registry,
-        subscriber_manager,
-    );
+    let mut subscriber = ActorSystemSubscriber::new(broker.clone(), registry, subscriber_manager);
 
     // Start subscription
     let result = subscriber.start().await;
-    assert!(result.is_ok(), "Failed to start subscriber: {:?}", result.err());
-    
+    assert!(
+        result.is_ok(),
+        "Failed to start subscriber: {:?}",
+        result.err()
+    );
+
     // Verify subscription active
     assert!(subscriber.is_running(), "Subscriber should be running");
 
     // Stop subscription
     let result = subscriber.stop().await;
-    assert!(result.is_ok(), "Failed to stop subscriber: {:?}", result.err());
-    
+    assert!(
+        result.is_ok(),
+        "Failed to stop subscriber: {:?}",
+        result.err()
+    );
+
     // Verify stopped
     assert!(!subscriber.is_running(), "Subscriber should be stopped");
 }
@@ -78,14 +82,14 @@ async fn test_message_routes_to_mailbox() {
     let registry = ComponentRegistry::new();
     let subscriber_manager = Arc::new(SubscriberManager::new());
 
-    let mut subscriber = ActorSystemSubscriber::new(
-        broker.clone(),
-        registry.clone(),
-        subscriber_manager.clone(),
-    );
+    let mut subscriber =
+        ActorSystemSubscriber::new(broker.clone(), registry.clone(), subscriber_manager.clone());
 
     // Start subscriber
-    subscriber.start().await.expect("Failed to start subscriber");
+    subscriber
+        .start()
+        .await
+        .expect("Failed to start subscriber");
 
     // Create test message
     let component_id = ComponentId::new("test-component");
@@ -119,7 +123,7 @@ async fn test_unified_router_centralizes_routing() {
     // Start router
     let result = router.start().await;
     assert!(result.is_ok(), "Failed to start router: {:?}", result.err());
-    
+
     // Verify running
     assert!(router.is_running().await, "Router should be running");
 
@@ -132,7 +136,11 @@ async fn test_unified_router_centralizes_routing() {
     };
 
     let result = router.route(source, target, message).await;
-    assert!(result.is_ok(), "Failed to route message: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Failed to route message: {:?}",
+        result.err()
+    );
 
     // Check stats
     let stats = router.stats().await;
@@ -179,11 +187,7 @@ async fn test_error_handling_unreachable_component() {
     let registry = ComponentRegistry::new();
     let subscriber_manager = Arc::new(SubscriberManager::new());
 
-    let mut subscriber = ActorSystemSubscriber::new(
-        broker.clone(),
-        registry,
-        subscriber_manager,
-    );
+    let mut subscriber = ActorSystemSubscriber::new(broker.clone(), registry, subscriber_manager);
 
     // Start subscriber
     subscriber.start().await.expect("Failed to start");
@@ -200,7 +204,10 @@ async fn test_error_handling_unreachable_component() {
     tokio::time::sleep(Duration::from_millis(50)).await;
 
     // Subscriber should still be running despite error
-    assert!(subscriber.is_running(), "Subscriber should still be running");
+    assert!(
+        subscriber.is_running(),
+        "Subscriber should still be running"
+    );
 
     subscriber.stop().await.expect("Failed to stop");
 }
@@ -251,11 +258,7 @@ async fn test_subscriber_start_stop_lifecycle() {
     let registry = ComponentRegistry::new();
     let subscriber_manager = Arc::new(SubscriberManager::new());
 
-    let mut subscriber = ActorSystemSubscriber::new(
-        broker,
-        registry,
-        subscriber_manager,
-    );
+    let mut subscriber = ActorSystemSubscriber::new(broker, registry, subscriber_manager);
 
     // Initially not running
     assert!(!subscriber.is_running());
@@ -285,9 +288,13 @@ async fn test_target_extraction_from_message() {
         sender: component_id.clone(),
         payload: vec![1, 2, 3],
     };
-    let result = ActorSystemSubscriber::<InMemoryMessageBroker<ComponentMessage>>::extract_target(&message);
+    let result =
+        ActorSystemSubscriber::<InMemoryMessageBroker<ComponentMessage>>::extract_target(&message);
     assert!(result.is_ok());
-    assert_eq!(result.expect("target extraction should succeed"), component_id);
+    assert_eq!(
+        result.expect("target extraction should succeed"),
+        component_id
+    );
 
     // InterComponentWithCorrelation message
     let message = ComponentMessage::InterComponentWithCorrelation {
@@ -295,13 +302,18 @@ async fn test_target_extraction_from_message() {
         payload: vec![1, 2, 3],
         correlation_id: uuid::Uuid::new_v4(),
     };
-    let result = ActorSystemSubscriber::<InMemoryMessageBroker<ComponentMessage>>::extract_target(&message);
+    let result =
+        ActorSystemSubscriber::<InMemoryMessageBroker<ComponentMessage>>::extract_target(&message);
     assert!(result.is_ok());
-    assert_eq!(result.expect("target extraction should succeed"), component_id);
+    assert_eq!(
+        result.expect("target extraction should succeed"),
+        component_id
+    );
 
     // Invalid message type
     let message = ComponentMessage::Shutdown;
-    let result = ActorSystemSubscriber::<InMemoryMessageBroker<ComponentMessage>>::extract_target(&message);
+    let result =
+        ActorSystemSubscriber::<InMemoryMessageBroker<ComponentMessage>>::extract_target(&message);
     assert!(result.is_err());
 }
 
@@ -312,11 +324,7 @@ async fn test_multiple_messages_sequential() {
     let registry = ComponentRegistry::new();
     let subscriber_manager = Arc::new(SubscriberManager::new());
 
-    let mut subscriber = ActorSystemSubscriber::new(
-        broker.clone(),
-        registry,
-        subscriber_manager,
-    );
+    let mut subscriber = ActorSystemSubscriber::new(broker.clone(), registry, subscriber_manager);
 
     subscriber.start().await.expect("Failed to start");
 
@@ -347,11 +355,7 @@ async fn test_routing_task_cleanup() {
     let subscriber_manager = Arc::new(SubscriberManager::new());
 
     {
-        let mut subscriber = ActorSystemSubscriber::new(
-            broker,
-            registry,
-            subscriber_manager,
-        );
+        let mut subscriber = ActorSystemSubscriber::new(broker, registry, subscriber_manager);
 
         subscriber.start().await.expect("Failed to start");
         assert!(subscriber.is_running());

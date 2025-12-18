@@ -55,7 +55,10 @@ description = "Pre-verified local components"
 
     println!("1️⃣  Loading trust configuration...");
     let registry = TrustRegistry::from_config(temp_file.path()).await?;
-    println!("   ✅ Loaded {} trusted sources\n", registry.list_trusted_sources().len());
+    println!(
+        "   ✅ Loaded {} trusted sources\n",
+        registry.list_trusted_sources().len()
+    );
 
     // Test Case 1: Trusted Git repository (matches pattern)
     println!("2️⃣  Testing trusted Git repository:");

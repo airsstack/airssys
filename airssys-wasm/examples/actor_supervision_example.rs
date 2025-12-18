@@ -20,14 +20,17 @@ fn main() {
         .with_max_restarts(5)
         .with_time_window(Duration::from_secs(60));
     println!("Policy: {}", permanent_config.restart_policy);
-    println!("Max restarts: {} in {:?}", permanent_config.max_restarts, permanent_config.time_window);
+    println!(
+        "Max restarts: {} in {:?}",
+        permanent_config.max_restarts, permanent_config.time_window
+    );
     println!("Use case: Critical components (databases, API servers, core services)\n");
 
     // Example 2: Transient policy (restart on error only)
     println!("Example 2: Transient Policy");
     println!("===========================");
-    let transient_config = SupervisorConfig::transient()
-        .with_backoff(BackoffStrategy::Exponential {
+    let transient_config =
+        SupervisorConfig::transient().with_backoff(BackoffStrategy::Exponential {
             base_delay: Duration::from_millis(100),
             multiplier: 1.5,
             max_delay: Duration::from_secs(30),
@@ -52,14 +55,32 @@ fn main() {
     let temporary = RestartPolicy::Temporary;
 
     println!("\nError exit (abnormal termination):");
-    println!("  Permanent:  should_restart(true) = {}", permanent.should_restart(true));
-    println!("  Transient:  should_restart(true) = {}", transient.should_restart(true));
-    println!("  Temporary:  should_restart(true) = {}", temporary.should_restart(true));
+    println!(
+        "  Permanent:  should_restart(true) = {}",
+        permanent.should_restart(true)
+    );
+    println!(
+        "  Transient:  should_restart(true) = {}",
+        transient.should_restart(true)
+    );
+    println!(
+        "  Temporary:  should_restart(true) = {}",
+        temporary.should_restart(true)
+    );
 
     println!("\nNormal exit (graceful shutdown):");
-    println!("  Permanent:  should_restart(false) = {}", permanent.should_restart(false));
-    println!("  Transient:  should_restart(false) = {}", transient.should_restart(false));
-    println!("  Temporary:  should_restart(false) = {}", temporary.should_restart(false));
+    println!(
+        "  Permanent:  should_restart(false) = {}",
+        permanent.should_restart(false)
+    );
+    println!(
+        "  Transient:  should_restart(false) = {}",
+        transient.should_restart(false)
+    );
+    println!(
+        "  Temporary:  should_restart(false) = {}",
+        temporary.should_restart(false)
+    );
 
     // Example 5: Backoff strategies
     println!("\n\nExample 5: Backoff Strategies");
@@ -114,17 +135,26 @@ fn main() {
     let strict_config = SupervisorConfig::permanent()
         .with_max_restarts(1)
         .with_time_window(Duration::from_secs(10));
-    println!("Strict (1 restart per 10s): {:?}", strict_config.restart_policy);
+    println!(
+        "Strict (1 restart per 10s): {:?}",
+        strict_config.restart_policy
+    );
 
     let moderate_config = SupervisorConfig::permanent()
         .with_max_restarts(3)
         .with_time_window(Duration::from_secs(60));
-    println!("Moderate (3 restarts per 60s): {:?}", moderate_config.restart_policy);
+    println!(
+        "Moderate (3 restarts per 60s): {:?}",
+        moderate_config.restart_policy
+    );
 
     let lenient_config = SupervisorConfig::permanent()
         .with_max_restarts(10)
         .with_time_window(Duration::from_secs(300));
-    println!("Lenient (10 restarts per 300s): {:?}", lenient_config.restart_policy);
+    println!(
+        "Lenient (10 restarts per 300s): {:?}",
+        lenient_config.restart_policy
+    );
 
     // Example 8: Builder pattern composition
     println!("\n\nExample 8: Builder Pattern Configuration");

@@ -283,7 +283,12 @@ impl RestartTracker {
             }
         }
 
-        (failure_count, health_check_count, manual_count, timeout_count)
+        (
+            failure_count,
+            health_check_count,
+            manual_count,
+            timeout_count,
+        )
     }
 }
 

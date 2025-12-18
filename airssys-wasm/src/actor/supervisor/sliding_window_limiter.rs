@@ -172,9 +172,10 @@ impl SlidingWindowLimiter {
             self.limit_hit_count = self.limit_hit_count.saturating_add(1);
 
             // Calculate when the oldest restart exits the window
-            let next_available = self.restart_times.front().map(|oldest| {
-                *oldest + self.config.window_duration
-            });
+            let next_available = self
+                .restart_times
+                .front()
+                .map(|oldest| *oldest + self.config.window_duration);
 
             WindowLimitResult::DenyRestart {
                 reason: "Maximum restart rate exceeded in time window",

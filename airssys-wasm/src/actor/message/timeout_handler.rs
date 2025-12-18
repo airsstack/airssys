@@ -249,14 +249,14 @@ mod tests {
             to: ComponentId::new("comp-b"),
         };
 
-        tracker.register_pending(request).await.expect("Should register pending request successfully");
+        tracker
+            .register_pending(request)
+            .await
+            .expect("Should register pending request successfully");
 
         // Register timeout with same duration
-        let _handle = handler.register_timeout(
-            corr_id,
-            Duration::from_millis(100),
-            tracker.clone(),
-        );
+        let _handle =
+            handler.register_timeout(corr_id, Duration::from_millis(100), tracker.clone());
 
         assert_eq!(handler.active_count(), 1);
 
@@ -293,14 +293,13 @@ mod tests {
             to: ComponentId::new("comp-b"),
         };
 
-        tracker.register_pending(request).await.expect("Should register pending request successfully");
+        tracker
+            .register_pending(request)
+            .await
+            .expect("Should register pending request successfully");
 
         // Register timeout
-        handler.register_timeout(
-            corr_id,
-            Duration::from_secs(10),
-            tracker.clone(),
-        );
+        handler.register_timeout(corr_id, Duration::from_secs(10), tracker.clone());
 
         assert_eq!(handler.active_count(), 1);
 
@@ -318,7 +317,10 @@ mod tests {
             timestamp: Utc::now(),
         };
 
-        tracker.resolve(corr_id, response).await.expect("Should resolve request successfully");
+        tracker
+            .resolve(corr_id, response)
+            .await
+            .expect("Should resolve request successfully");
 
         // Wait a bit to ensure timeout doesn't fire (100ms is enough for verification)
         tokio::time::sleep(Duration::from_millis(100)).await;
@@ -347,13 +349,12 @@ mod tests {
                 to: ComponentId::new("comp-b"),
             };
 
-            tracker.register_pending(request).await.expect("Should register pending request successfully");
+            tracker
+                .register_pending(request)
+                .await
+                .expect("Should register pending request successfully");
 
-            handler.register_timeout(
-                corr_id,
-                Duration::from_secs(10),
-                tracker.clone(),
-            );
+            handler.register_timeout(corr_id, Duration::from_secs(10), tracker.clone());
         }
 
         assert_eq!(handler.active_count(), 5);

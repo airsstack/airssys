@@ -241,9 +241,10 @@ impl ComponentSupervisor {
         config: SupervisorConfig,
     ) -> Result<SupervisionHandle, WasmError> {
         if self.supervision_handles.contains_key(component_id) {
-            return Err(WasmError::internal(
-                format!("Component {:?} already supervised", component_id),
-            ));
+            return Err(WasmError::internal(format!(
+                "Component {:?} already supervised",
+                component_id
+            )));
         }
 
         let handle = SupervisionHandle {
@@ -487,10 +488,7 @@ impl ComponentSupervisor {
     ///
     /// - `Some(&mut SupervisionHandle)` if component supervised
     /// - `None` if component not found
-    pub fn get_handle_mut(
-        &mut self,
-        component_id: &ComponentId,
-    ) -> Option<&mut SupervisionHandle> {
+    pub fn get_handle_mut(&mut self, component_id: &ComponentId) -> Option<&mut SupervisionHandle> {
         self.supervision_handles.get_mut(component_id)
     }
 
@@ -699,8 +697,7 @@ impl ComponentSupervisor {
 
         // Query bridge if available
         let bridge = self.supervisor_bridge.as_ref()?;
-        
-        
+
         bridge.blocking_read().get_restart_stats(component_id)
     }
 
@@ -728,7 +725,10 @@ impl ComponentSupervisor {
     pub fn reset_restart_tracking(&mut self, component_id: &ComponentId) -> Result<(), WasmError> {
         // Check if component is supervised
         if !self.supervision_handles.contains_key(component_id) {
-            return Err(WasmError::component_not_found(format!("{:?}", component_id)));
+            return Err(WasmError::component_not_found(format!(
+                "{:?}",
+                component_id
+            )));
         }
 
         // Reset local tracking
@@ -960,10 +960,16 @@ mod tests {
     fn test_supervision_state_display() {
         assert_eq!(SupervisionState::Initializing.to_string(), "Initializing");
         assert_eq!(SupervisionState::Running.to_string(), "Running");
-        assert_eq!(SupervisionState::SchedulingRestart.to_string(), "SchedulingRestart");
+        assert_eq!(
+            SupervisionState::SchedulingRestart.to_string(),
+            "SchedulingRestart"
+        );
         assert_eq!(SupervisionState::Restarting.to_string(), "Restarting");
         assert_eq!(SupervisionState::Stopped.to_string(), "Stopped");
-        assert_eq!(SupervisionState::RestartLimitExceeded.to_string(), "RestartLimitExceeded");
+        assert_eq!(
+            SupervisionState::RestartLimitExceeded.to_string(),
+            "RestartLimitExceeded"
+        );
         assert_eq!(SupervisionState::Terminated.to_string(), "Terminated");
     }
 
@@ -1079,8 +1085,12 @@ mod tests {
         let parent_id = ComponentId::new("parent");
         let child_id = ComponentId::new("child");
 
-        supervisor.supervise(&parent_id, SupervisorConfig::default()).ok();
-        supervisor.supervise(&child_id, SupervisorConfig::default()).ok();
+        supervisor
+            .supervise(&parent_id, SupervisorConfig::default())
+            .ok();
+        supervisor
+            .supervise(&child_id, SupervisorConfig::default())
+            .ok();
 
         supervisor.set_parent(&child_id, parent_id.clone()).ok();
 
@@ -1099,9 +1109,15 @@ mod tests {
         let child1_id = ComponentId::new("child1");
         let child2_id = ComponentId::new("child2");
 
-        supervisor.supervise(&parent_id, SupervisorConfig::default()).ok();
-        supervisor.supervise(&child1_id, SupervisorConfig::default()).ok();
-        supervisor.supervise(&child2_id, SupervisorConfig::default()).ok();
+        supervisor
+            .supervise(&parent_id, SupervisorConfig::default())
+            .ok();
+        supervisor
+            .supervise(&child1_id, SupervisorConfig::default())
+            .ok();
+        supervisor
+            .supervise(&child2_id, SupervisorConfig::default())
+            .ok();
 
         supervisor.set_parent(&child1_id, parent_id.clone()).ok();
         supervisor.set_parent(&child2_id, parent_id.clone()).ok();
@@ -1120,9 +1136,15 @@ mod tests {
         let parent_id = ComponentId::new("parent");
         let child_id = ComponentId::new("child");
 
-        supervisor.supervise(&root_id, SupervisorConfig::default()).ok();
-        supervisor.supervise(&parent_id, SupervisorConfig::default()).ok();
-        supervisor.supervise(&child_id, SupervisorConfig::default()).ok();
+        supervisor
+            .supervise(&root_id, SupervisorConfig::default())
+            .ok();
+        supervisor
+            .supervise(&parent_id, SupervisorConfig::default())
+            .ok();
+        supervisor
+            .supervise(&child_id, SupervisorConfig::default())
+            .ok();
 
         supervisor.set_parent(&parent_id, root_id.clone()).ok();
         supervisor.set_parent(&child_id, parent_id.clone()).ok();
@@ -1207,7 +1229,9 @@ mod tests {
         supervisor.mark_running(&component_id).ok();
 
         // Stop should succeed even without bridge (updates local state only)
-        let result = supervisor.stop_component(&component_id, Duration::from_secs(5)).await;
+        let result = supervisor
+            .stop_component(&component_id, Duration::from_secs(5))
+            .await;
         assert!(result.is_ok());
 
         let handle = supervisor.get_handle(&component_id);

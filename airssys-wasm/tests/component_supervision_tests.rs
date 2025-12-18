@@ -3,7 +3,7 @@
 #[cfg(test)]
 mod component_supervision_tests {
     use airssys_wasm::actor::{
-        BackoffStrategy, ComponentSupervisor, RestartPolicy, SupervisorConfig, SupervisionState,
+        BackoffStrategy, ComponentSupervisor, RestartPolicy, SupervisionState, SupervisorConfig,
     };
     use airssys_wasm::core::ComponentId;
     use chrono::Utc;
@@ -204,8 +204,12 @@ mod component_supervision_tests {
         let parent_id = ComponentId::new("parent");
         let child_id = ComponentId::new("child");
 
-        supervisor.supervise(&parent_id, SupervisorConfig::default()).ok();
-        supervisor.supervise(&child_id, SupervisorConfig::default()).ok();
+        supervisor
+            .supervise(&parent_id, SupervisorConfig::default())
+            .ok();
+        supervisor
+            .supervise(&child_id, SupervisorConfig::default())
+            .ok();
 
         supervisor.set_parent(&child_id, parent_id.clone()).ok();
 
@@ -222,9 +226,15 @@ mod component_supervision_tests {
         let child1_id = ComponentId::new("child1");
         let child2_id = ComponentId::new("child2");
 
-        supervisor.supervise(&parent_id, SupervisorConfig::default()).ok();
-        supervisor.supervise(&child1_id, SupervisorConfig::default()).ok();
-        supervisor.supervise(&child2_id, SupervisorConfig::default()).ok();
+        supervisor
+            .supervise(&parent_id, SupervisorConfig::default())
+            .ok();
+        supervisor
+            .supervise(&child1_id, SupervisorConfig::default())
+            .ok();
+        supervisor
+            .supervise(&child2_id, SupervisorConfig::default())
+            .ok();
 
         supervisor.set_parent(&child1_id, parent_id.clone()).ok();
         supervisor.set_parent(&child2_id, parent_id.clone()).ok();
@@ -243,9 +253,15 @@ mod component_supervision_tests {
         let parent_id = ComponentId::new("parent");
         let child_id = ComponentId::new("child");
 
-        supervisor.supervise(&root_id, SupervisorConfig::default()).ok();
-        supervisor.supervise(&parent_id, SupervisorConfig::default()).ok();
-        supervisor.supervise(&child_id, SupervisorConfig::default()).ok();
+        supervisor
+            .supervise(&root_id, SupervisorConfig::default())
+            .ok();
+        supervisor
+            .supervise(&parent_id, SupervisorConfig::default())
+            .ok();
+        supervisor
+            .supervise(&child_id, SupervisorConfig::default())
+            .ok();
 
         supervisor.set_parent(&parent_id, root_id.clone()).ok();
         supervisor.set_parent(&child_id, parent_id.clone()).ok();
@@ -264,9 +280,15 @@ mod component_supervision_tests {
         let child1_id = ComponentId::new("child1");
         let child2_id = ComponentId::new("child2");
 
-        supervisor.supervise(&root_id, SupervisorConfig::default()).ok();
-        supervisor.supervise(&child1_id, SupervisorConfig::default()).ok();
-        supervisor.supervise(&child2_id, SupervisorConfig::default()).ok();
+        supervisor
+            .supervise(&root_id, SupervisorConfig::default())
+            .ok();
+        supervisor
+            .supervise(&child1_id, SupervisorConfig::default())
+            .ok();
+        supervisor
+            .supervise(&child2_id, SupervisorConfig::default())
+            .ok();
 
         supervisor.set_parent(&child1_id, root_id.clone()).ok();
         supervisor.set_parent(&child2_id, root_id.clone()).ok();
@@ -299,7 +321,9 @@ mod component_supervision_tests {
 
         for i in 0..5 {
             let component_id = ComponentId::new(format!("component-{}", i));
-            supervisor.supervise(&component_id, SupervisorConfig::default()).ok();
+            supervisor
+                .supervise(&component_id, SupervisorConfig::default())
+                .ok();
         }
 
         let stats = supervisor.get_statistics();
@@ -313,7 +337,9 @@ mod component_supervision_tests {
 
         for i in 0..3 {
             let component_id = ComponentId::new(format!("component-{}", i));
-            supervisor.supervise(&component_id, SupervisorConfig::default()).ok();
+            supervisor
+                .supervise(&component_id, SupervisorConfig::default())
+                .ok();
             supervisor.mark_running(&component_id).ok();
         }
 

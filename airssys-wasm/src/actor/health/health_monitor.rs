@@ -173,7 +173,7 @@ impl HealthMonitor {
             }
             HealthStatus::Unknown => HealthDecision::Unknown,
         };
-        
+
         // Record the status after decision is made
         self.record_check_result(status);
         decision

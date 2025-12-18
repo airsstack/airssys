@@ -38,10 +38,10 @@ use tracing::{error, info, warn};
 use wasmtime::{Config, Engine, Linker, Module, Store};
 
 // Layer 3: Internal module imports
-use airssys_rt::supervisor::{Child, ChildHealth};
-use crate::actor::component::{ActorState, ComponentActor, HealthStatus, WasmRuntime};
 use super::component_actor::{ComponentResourceLimiter, WasmExports};
+use crate::actor::component::{ActorState, ComponentActor, HealthStatus, WasmRuntime};
 use crate::core::WasmError;
+use airssys_rt::supervisor::{Child, ChildHealth};
 
 /// Child trait implementation for ComponentActor (STUB).
 ///
@@ -144,9 +144,7 @@ where
         // Call pre_start hook synchronously (hooks are sync, not async)
         let hook_result = {
             let ctx_clone = lifecycle_ctx.clone();
-            crate::actor::lifecycle::catch_unwind_hook(|| {
-                self.hooks_mut().pre_start(&ctx_clone)
-            })
+            crate::actor::lifecycle::catch_unwind_hook(|| self.hooks_mut().pre_start(&ctx_clone))
         };
 
         match hook_result {
@@ -174,10 +172,10 @@ where
 
         // 1. Transition to Starting state
         self.set_state(ActorState::Starting);
-        
+
         // 2. Load WASM bytes (stub for Block 6)
         let wasm_bytes = self.load_component_bytes().await?;
-        
+
         // 3. Validate WASM magic number
         if wasm_bytes.len() < 4 || !wasm_bytes.starts_with(b"\0asm") {
             let err_msg = if wasm_bytes.is_empty() {
@@ -187,71 +185,64 @@ where
             } else {
                 "Invalid WASM module: missing magic number \\0asm"
             };
-            
+
             self.set_state(ActorState::Failed(err_msg.to_string()));
             return Err(WasmError::component_validation_failed(err_msg));
         }
-        
+
         // 4. Create Wasmtime Engine with security config
         let mut config = Config::new();
-        config.async_support(true);  // Required for async component execution
-        config.wasm_multi_value(true);  // Allow multiple return values
-        config.consume_fuel(true);  // Enable fuel metering for CPU limits
-        
+        config.async_support(true); // Required for async component execution
+        config.wasm_multi_value(true); // Allow multiple return values
+        config.consume_fuel(true); // Enable fuel metering for CPU limits
+
         // Disable unsafe WASM features for security (ADR-WASM-003)
         config.wasm_bulk_memory(false);
         config.wasm_reference_types(false);
         config.wasm_threads(false);
         config.wasm_simd(false);
-        config.wasm_relaxed_simd(false);  // Must be disabled if SIMD is disabled
-        
-        let engine = Engine::new(&config)
-            .map_err(|e| {
-                let err_msg = format!("Failed to create Wasmtime engine: {e}");
-                self.set_state(ActorState::Failed(err_msg.clone()));
-                WasmError::engine_initialization(err_msg)
-            })?;
-        
+        config.wasm_relaxed_simd(false); // Must be disabled if SIMD is disabled
+
+        let engine = Engine::new(&config).map_err(|e| {
+            let err_msg = format!("Failed to create Wasmtime engine: {e}");
+            self.set_state(ActorState::Failed(err_msg.clone()));
+            WasmError::engine_initialization(err_msg)
+        })?;
+
         // 5. Compile WASM module
-        let module = Module::from_binary(&engine, &wasm_bytes)
-            .map_err(|e| {
-                let err_msg = format!(
-                    "Component {} compilation failed: {}",
-                    self.component_id().as_str(),
-                    e
-                );
-                error!(
-                    component_id = %self.component_id().as_str(),
-                    error = %e,
-                    "WASM module compilation failed"
-                );
-                self.set_state(ActorState::Failed(err_msg.clone()));
-                WasmError::component_load_failed(
-                    self.component_id().as_str(),
-                    err_msg
-                )
-            })?;
-        
+        let module = Module::from_binary(&engine, &wasm_bytes).map_err(|e| {
+            let err_msg = format!(
+                "Component {} compilation failed: {}",
+                self.component_id().as_str(),
+                e
+            );
+            error!(
+                component_id = %self.component_id().as_str(),
+                error = %e,
+                "WASM module compilation failed"
+            );
+            self.set_state(ActorState::Failed(err_msg.clone()));
+            WasmError::component_load_failed(self.component_id().as_str(), err_msg)
+        })?;
+
         // 6. Create Store with ResourceLimiter
         let max_memory_bytes = self.metadata().resource_limits.max_memory_bytes;
         let max_fuel = self.metadata().resource_limits.max_fuel;
-        
+
         let limiter = ComponentResourceLimiter::new(max_memory_bytes, max_fuel);
         let mut store = Store::new(&engine, limiter);
-        
+
         // Set initial fuel
-        store
-            .set_fuel(max_fuel)
-            .map_err(|e| {
-                let err_msg = format!("Failed to set fuel limit: {e}");
-                self.set_state(ActorState::Failed(err_msg.clone()));
-                WasmError::invalid_configuration(err_msg)
-            })?;
-        
+        store.set_fuel(max_fuel).map_err(|e| {
+            let err_msg = format!("Failed to set fuel limit: {e}");
+            self.set_state(ActorState::Failed(err_msg.clone()));
+            WasmError::invalid_configuration(err_msg)
+        })?;
+
         // 7. Create empty Linker (host functions will be added in Task 1.3)
         let linker = Linker::new(&engine);
         // TODO(Task 1.3): Register host functions here
-        
+
         // 8. Instantiate component
         let instance = linker
             .instantiate_async(&mut store, &module)
@@ -270,15 +261,16 @@ where
                 self.set_state(ActorState::Failed(err_msg.clone()));
                 WasmError::execution_failed(err_msg)
             })?;
-        
+
         // 9. Create WasmRuntime and call optional _start
         let mut runtime = WasmRuntime::new(engine, store, instance)?;
-        
+
         // Clone _start function to avoid borrowing issues
         let start_fn_opt = runtime.exports().start;
-        
+
         // Call _start if available
-        WasmExports::call_start_fn(start_fn_opt.as_ref(), runtime.store_mut()).await
+        WasmExports::call_start_fn(start_fn_opt.as_ref(), runtime.store_mut())
+            .await
             .map_err(|e| {
                 error!(
                     component_id = %self.component_id().as_str(),
@@ -288,12 +280,12 @@ where
                 self.set_state(ActorState::Failed(e.to_string()));
                 e
             })?;
-        
+
         // 10. Store runtime and transition state
         self.set_wasm_runtime(Some(runtime));
         self.set_started_at(Some(Utc::now()));
         self.set_state(ActorState::Ready);
-        
+
         info!(
             component_id = %self.component_id().as_str(),
             memory_limit = max_memory_bytes,
@@ -304,9 +296,7 @@ where
         // PHASE 5 TASK 5.2: Call post_start hook
         let hook_result = {
             let ctx_clone = lifecycle_ctx.clone();
-            crate::actor::lifecycle::catch_unwind_hook(|| {
-                self.hooks_mut().post_start(&ctx_clone)
-            })
+            crate::actor::lifecycle::catch_unwind_hook(|| self.hooks_mut().post_start(&ctx_clone))
         };
 
         match hook_result {
@@ -330,7 +320,7 @@ where
                 );
             }
         }
-        
+
         Ok(())
     }
 
@@ -411,9 +401,7 @@ where
 
         let hook_result = {
             let ctx_clone = lifecycle_ctx.clone();
-            crate::actor::lifecycle::catch_unwind_hook(|| {
-                self.hooks_mut().pre_stop(&ctx_clone)
-            })
+            crate::actor::lifecycle::catch_unwind_hook(|| self.hooks_mut().pre_stop(&ctx_clone))
         };
 
         match hook_result {
@@ -440,17 +428,19 @@ where
 
         // 1. Transition to Stopping state
         self.set_state(ActorState::Stopping);
-        
+
         // 2. Call optional _cleanup export if WASM is loaded
         if let Some(runtime) = self.wasm_runtime_mut() {
             // Clone cleanup function to avoid borrowing issues
             let cleanup_fn_opt = runtime.exports().cleanup;
-            
+
             match WasmExports::call_cleanup_fn(
                 cleanup_fn_opt.as_ref(),
                 runtime.store_mut(),
-                timeout
-            ).await {
+                timeout,
+            )
+            .await
+            {
                 Ok(()) => {
                     info!(
                         component_id = %self.component_id().as_str(),
@@ -475,19 +465,19 @@ where
                 }
             }
         }
-        
+
         // 3. Drop WasmRuntime (frees all resources via RAII)
         self.clear_wasm_runtime();
-        
+
         // 4. Verify cleanup completed
         debug_assert!(
             !self.is_wasm_loaded(),
             "WasmRuntime should be cleared after stop"
         );
-        
+
         // 5. Transition state
         self.set_state(ActorState::Terminated);
-        
+
         // 6. Log shutdown with uptime metrics
         if let Some(uptime) = self.uptime() {
             info!(
@@ -505,9 +495,7 @@ where
         // PHASE 5 TASK 5.2: Call post_stop hook
         let hook_result = {
             let ctx_clone = lifecycle_ctx.clone();
-            crate::actor::lifecycle::catch_unwind_hook(|| {
-                self.hooks_mut().post_stop(&ctx_clone)
-            })
+            crate::actor::lifecycle::catch_unwind_hook(|| self.hooks_mut().post_stop(&ctx_clone))
         };
 
         match hook_result {
@@ -531,7 +519,7 @@ where
                 );
             }
         }
-        
+
         Ok(())
     }
 
@@ -594,7 +582,7 @@ where
     /// ```
     async fn health_check(&self) -> ChildHealth {
         const HEALTH_CHECK_TIMEOUT: Duration = Duration::from_millis(1000);
-        
+
         match tokio::time::timeout(HEALTH_CHECK_TIMEOUT, self.health_check_inner()).await {
             Ok(health) => health,
             Err(_timeout) => {
@@ -621,14 +609,14 @@ where
     /// Implements comprehensive health aggregation logic based on component state
     /// and resource utilization. This method provides the core health assessment
     /// logic used by the timeout-protected `health_check()` public method.
-    /// 
+    ///
     /// # Design Note: WASM _health Export Limitation
     ///
     /// The _health export call requires mutable access to the Wasmtime Store,
     /// but the Child trait's health_check() method signature is `async fn health_check(&self)`.
-    /// 
+    ///
     /// **Current Implementation**: State-based health checking only (no _health export invocation).
-    /// 
+    ///
     /// **Future Enhancement**: If _health export invocation is needed, consider:
     /// - Using `RefCell<Store>` for interior mutability (with performance tradeoff)
     /// - Adding a separate mutable health check API to ComponentActor
@@ -724,10 +712,10 @@ where
                 return ChildHealth::Failed("WASM runtime not loaded".to_string());
             }
         };
-        
+
         // 2. Evaluate ActorState for health determination
         let component_id = self.component_id().as_str();
-        
+
         match self.state() {
             ActorState::Failed(reason) => {
                 warn!(
@@ -772,7 +760,7 @@ where
                 //         }
                 //     }
                 // }
-                
+
                 ChildHealth::Healthy
             }
         }
@@ -850,14 +838,14 @@ where
     pub fn parse_health_status(health_bytes: &[u8]) -> Result<HealthStatus, WasmError> {
         use crate::core::decode_multicodec;
         use borsh::BorshDeserialize;
-        
+
         if health_bytes.is_empty() {
             return Err(WasmError::health_check_failed(
                 String::new(),
                 "Empty health status bytes from _health export",
             ));
         }
-        
+
         // Decode multicodec prefix
         let (codec, payload) = decode_multicodec(health_bytes).map_err(|e| {
             WasmError::health_check_failed(
@@ -865,25 +853,25 @@ where
                 format!("Multicodec decoding failed: {}", e),
             )
         })?;
-        
+
         // Try deserializing with detected codec first, then try all formats
         // (component may have mislabeled the codec)
-        
+
         // Try Borsh (most common for Rust components)
         if let Ok(status) = HealthStatus::try_from_slice(&payload) {
             return Ok(status);
         }
-        
+
         // Try CBOR (common for cross-language)
         if let Ok(status) = serde_cbor::from_slice::<HealthStatus>(&payload) {
             return Ok(status);
         }
-        
+
         // Try JSON (human-readable, debugging)
         if let Ok(status) = serde_json::from_slice::<HealthStatus>(&payload) {
             return Ok(status);
         }
-        
+
         // All formats failed
         Err(WasmError::health_check_failed(
             String::new(),
@@ -896,10 +884,13 @@ where
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used, reason = "unwrap is acceptable in test code for brevity")]
+#[expect(
+    clippy::unwrap_used,
+    reason = "unwrap is acceptable in test code for brevity"
+)]
 mod tests {
     use super::*;
-    use crate::core::{ComponentId, ComponentMetadata, CapabilitySet, ResourceLimits};
+    use crate::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits};
 
     fn create_test_metadata() -> ComponentMetadata {
         ComponentMetadata {
@@ -1047,12 +1038,12 @@ mod tests {
     async fn test_health_check_creating_state_returns_degraded() {
         let actor = create_actor_in_state(ActorState::Creating);
         let health = actor.health_check().await;
-        
+
         assert!(
             matches!(health, ChildHealth::Failed(_)),
             "Creating state should return Failed (no WASM runtime), got: {health:?}"
         );
-        
+
         if let ChildHealth::Failed(reason) = health {
             assert!(
                 reason.contains("WASM runtime not loaded"),
@@ -1066,7 +1057,7 @@ mod tests {
     async fn test_health_check_starting_state_returns_degraded() {
         let actor = create_actor_in_state(ActorState::Starting);
         let health = actor.health_check().await;
-        
+
         assert!(
             matches!(health, ChildHealth::Failed(_)),
             "Starting state should return Failed (no WASM runtime), got: {health:?}"
@@ -1080,16 +1071,16 @@ mod tests {
         // Start first to load WASM
         let result = actor.start().await;
         assert!(result.is_ok(), "Failed to start actor: {result:?}");
-        
+
         // Manually set Stopping state (normally done by stop())
         actor.set_state(ActorState::Stopping);
-        
+
         let health = actor.health_check().await;
         assert!(
             matches!(health, ChildHealth::Degraded(_)),
             "Stopping state should return Degraded, got: {health:?}"
         );
-        
+
         if let ChildHealth::Degraded(reason) = health {
             assert!(
                 reason.contains("Component stopping"),
@@ -1103,12 +1094,12 @@ mod tests {
     async fn test_health_check_failed_state_returns_failed() {
         let actor = create_actor_in_state(ActorState::Failed("Test failure".to_string()));
         let health = actor.health_check().await;
-        
+
         assert!(
             matches!(health, ChildHealth::Failed(_)),
             "Failed state should return Failed, got: {health:?}"
         );
-        
+
         if let ChildHealth::Failed(reason) = health {
             assert!(
                 reason.contains("WASM runtime not loaded") || reason.contains("Test failure"),
@@ -1121,20 +1112,20 @@ mod tests {
     #[tokio::test]
     async fn test_health_check_terminated_state_returns_failed() {
         let mut actor = create_test_actor();
-        
+
         // Start and stop to reach Terminated state
         let result = actor.start().await;
         assert!(result.is_ok(), "Failed to start actor: {result:?}");
-        
+
         let result = actor.stop(Duration::from_secs(1)).await;
         assert!(result.is_ok(), "Failed to stop actor: {result:?}");
-        
+
         let health = actor.health_check().await;
         assert!(
             matches!(health, ChildHealth::Failed(_)),
             "Terminated state should return Failed, got: {health:?}"
         );
-        
+
         if let ChildHealth::Failed(reason) = health {
             assert!(
                 reason.contains("WASM runtime not loaded"),
@@ -1147,10 +1138,10 @@ mod tests {
     #[tokio::test]
     async fn test_health_check_ready_state_returns_healthy() {
         let mut actor = create_test_actor();
-        
+
         let result = actor.start().await;
         assert!(result.is_ok(), "Failed to start actor: {result:?}");
-        
+
         let health = actor.health_check().await;
         assert!(
             matches!(health, ChildHealth::Healthy),
@@ -1163,12 +1154,12 @@ mod tests {
     async fn test_health_check_no_wasm_runtime_returns_failed() {
         let actor = create_actor_without_runtime();
         let health = actor.health_check().await;
-        
+
         assert!(
             matches!(health, ChildHealth::Failed(_)),
             "No WASM runtime should return Failed, got: {health:?}"
         );
-        
+
         if let ChildHealth::Failed(reason) = health {
             assert!(
                 reason.contains("WASM runtime not loaded"),
@@ -1181,16 +1172,16 @@ mod tests {
     #[tokio::test]
     async fn test_health_check_has_timeout_protection() {
         let mut actor = create_test_actor();
-        
+
         // Start component
         let result = actor.start().await;
         assert!(result.is_ok(), "Failed to start actor: {result:?}");
-        
+
         // Call health_check and measure time
         let start = std::time::Instant::now();
         let health = actor.health_check().await;
         let elapsed = start.elapsed();
-        
+
         // Should complete very quickly (<100ms for state-based check)
         assert!(
             elapsed.as_millis() < 100,
@@ -1207,7 +1198,7 @@ mod tests {
     #[test]
     fn test_child_health_healthy_maps_to_health_status_healthy() {
         use super::super::component_actor::HealthStatus;
-        
+
         // Simulate mapping logic from actor_impl.rs
         let child_health = ChildHealth::Healthy;
         let health_status = match child_health {
@@ -1215,7 +1206,7 @@ mod tests {
             ChildHealth::Degraded(reason) => HealthStatus::Degraded { reason },
             ChildHealth::Failed(reason) => HealthStatus::Unhealthy { reason },
         };
-        
+
         assert_eq!(health_status, HealthStatus::Healthy);
     }
 
@@ -1223,16 +1214,16 @@ mod tests {
     #[test]
     fn test_child_health_degraded_maps_to_health_status_degraded() {
         use super::super::component_actor::HealthStatus;
-        
+
         let child_health = ChildHealth::Degraded("High latency".to_string());
         let health_status = match child_health {
             ChildHealth::Healthy => HealthStatus::Healthy,
             ChildHealth::Degraded(reason) => HealthStatus::Degraded { reason },
             ChildHealth::Failed(reason) => HealthStatus::Unhealthy { reason },
         };
-        
+
         assert!(matches!(health_status, HealthStatus::Degraded { .. }));
-        
+
         if let HealthStatus::Degraded { reason } = health_status {
             assert_eq!(reason, "High latency");
         }
@@ -1242,16 +1233,16 @@ mod tests {
     #[test]
     fn test_child_health_failed_maps_to_health_status_unhealthy() {
         use super::super::component_actor::HealthStatus;
-        
+
         let child_health = ChildHealth::Failed("Component crashed".to_string());
         let health_status = match child_health {
             ChildHealth::Healthy => HealthStatus::Healthy,
             ChildHealth::Degraded(reason) => HealthStatus::Degraded { reason },
             ChildHealth::Failed(reason) => HealthStatus::Unhealthy { reason },
         };
-        
+
         assert!(matches!(health_status, HealthStatus::Unhealthy { .. }));
-        
+
         if let HealthStatus::Unhealthy { reason } = health_status {
             assert_eq!(reason, "Component crashed");
         }
@@ -1266,7 +1257,7 @@ mod tests {
     fn test_parse_health_status_empty_bytes_error() {
         let result = ComponentActor::<()>::parse_health_status(&[]);
         assert!(result.is_err());
-        
+
         if let Err(e) = result {
             assert!(e.to_string().contains("Empty health status bytes"));
         }
@@ -1277,12 +1268,12 @@ mod tests {
     fn test_parse_health_status_borsh_healthy() {
         use crate::core::encode_multicodec;
         use crate::core::multicodec::Codec;
-        
+
         // Encode HealthStatus::Healthy with Borsh
         let status = HealthStatus::Healthy;
         let borsh_bytes = borsh::to_vec(&status).unwrap();
         let encoded = encode_multicodec(Codec::Borsh, &borsh_bytes).unwrap();
-        
+
         // Parse back
         let parsed = ComponentActor::<()>::parse_health_status(&encoded).unwrap();
         assert_eq!(parsed, HealthStatus::Healthy);
@@ -1293,13 +1284,13 @@ mod tests {
     fn test_parse_health_status_borsh_degraded() {
         use crate::core::encode_multicodec;
         use crate::core::multicodec::Codec;
-        
+
         let status = HealthStatus::Degraded {
             reason: "High memory usage".to_string(),
         };
         let borsh_bytes = borsh::to_vec(&status).unwrap();
         let encoded = encode_multicodec(Codec::Borsh, &borsh_bytes).unwrap();
-        
+
         let parsed = ComponentActor::<()>::parse_health_status(&encoded).unwrap();
         assert_eq!(parsed, status);
     }
@@ -1309,13 +1300,13 @@ mod tests {
     fn test_parse_health_status_borsh_unhealthy() {
         use crate::core::encode_multicodec;
         use crate::core::multicodec::Codec;
-        
+
         let status = HealthStatus::Unhealthy {
             reason: "Database connection lost".to_string(),
         };
         let borsh_bytes = borsh::to_vec(&status).unwrap();
         let encoded = encode_multicodec(Codec::Borsh, &borsh_bytes).unwrap();
-        
+
         let parsed = ComponentActor::<()>::parse_health_status(&encoded).unwrap();
         assert_eq!(parsed, status);
     }
@@ -1325,11 +1316,11 @@ mod tests {
     fn test_parse_health_status_json_healthy() {
         use crate::core::encode_multicodec;
         use crate::core::multicodec::Codec;
-        
+
         let status = HealthStatus::Healthy;
         let json_bytes = serde_json::to_vec(&status).unwrap();
         let encoded = encode_multicodec(Codec::JSON, &json_bytes).unwrap();
-        
+
         let parsed = ComponentActor::<()>::parse_health_status(&encoded).unwrap();
         assert_eq!(parsed, HealthStatus::Healthy);
     }
@@ -1339,13 +1330,13 @@ mod tests {
     fn test_parse_health_status_json_degraded() {
         use crate::core::encode_multicodec;
         use crate::core::multicodec::Codec;
-        
+
         let status = HealthStatus::Degraded {
             reason: "Response time elevated".to_string(),
         };
         let json_bytes = serde_json::to_vec(&status).unwrap();
         let encoded = encode_multicodec(Codec::JSON, &json_bytes).unwrap();
-        
+
         let parsed = ComponentActor::<()>::parse_health_status(&encoded).unwrap();
         assert_eq!(parsed, status);
     }
@@ -1355,11 +1346,11 @@ mod tests {
     fn test_parse_health_status_cbor_healthy() {
         use crate::core::encode_multicodec;
         use crate::core::multicodec::Codec;
-        
+
         let status = HealthStatus::Healthy;
         let cbor_bytes = serde_cbor::to_vec(&status).unwrap();
         let encoded = encode_multicodec(Codec::CBOR, &cbor_bytes).unwrap();
-        
+
         let parsed = ComponentActor::<()>::parse_health_status(&encoded).unwrap();
         assert_eq!(parsed, HealthStatus::Healthy);
     }
@@ -1369,13 +1360,13 @@ mod tests {
     fn test_parse_health_status_cbor_unhealthy() {
         use crate::core::encode_multicodec;
         use crate::core::multicodec::Codec;
-        
+
         let status = HealthStatus::Unhealthy {
             reason: "Critical failure".to_string(),
         };
         let cbor_bytes = serde_cbor::to_vec(&status).unwrap();
         let encoded = encode_multicodec(Codec::CBOR, &cbor_bytes).unwrap();
-        
+
         let parsed = ComponentActor::<()>::parse_health_status(&encoded).unwrap();
         assert_eq!(parsed, status);
     }
@@ -1394,14 +1385,14 @@ mod tests {
     fn test_parse_health_status_invalid_payload() {
         use crate::core::encode_multicodec;
         use crate::core::multicodec::Codec;
-        
+
         // Valid Borsh multicodec but invalid HealthStatus payload
         let invalid_payload = vec![0x99, 0x99, 0x99];
         let encoded = encode_multicodec(Codec::Borsh, &invalid_payload).unwrap();
-        
+
         let result = ComponentActor::<()>::parse_health_status(&encoded);
         assert!(result.is_err());
-        
+
         if let Err(e) = result {
             assert!(e.to_string().contains("Failed to deserialize HealthStatus"));
         }
@@ -1412,14 +1403,14 @@ mod tests {
     fn test_parse_health_status_fallback_to_all_formats() {
         use crate::core::encode_multicodec;
         use crate::core::multicodec::Codec;
-        
+
         // Encode JSON but label as Borsh (simulates component mislabeling)
         let status = HealthStatus::Degraded {
             reason: "Testing fallback".to_string(),
         };
         let json_bytes = serde_json::to_vec(&status).unwrap();
         let mislabeled = encode_multicodec(Codec::Borsh, &json_bytes).unwrap();
-        
+
         // Should still parse correctly because we try all formats
         let parsed = ComponentActor::<()>::parse_health_status(&mislabeled).unwrap();
         assert_eq!(parsed, status);
@@ -1430,15 +1421,15 @@ mod tests {
     fn test_parse_health_status_borsh_round_trip() {
         use crate::core::encode_multicodec;
         use crate::core::multicodec::Codec;
-        
+
         let original = HealthStatus::Degraded {
             reason: "Test reason with special chars: 日本語 🚀".to_string(),
         };
-        
+
         let borsh_bytes = borsh::to_vec(&original).unwrap();
         let encoded = encode_multicodec(Codec::Borsh, &borsh_bytes).unwrap();
         let parsed = ComponentActor::<()>::parse_health_status(&encoded).unwrap();
-        
+
         assert_eq!(parsed, original);
     }
 
@@ -1447,15 +1438,15 @@ mod tests {
     fn test_parse_health_status_json_round_trip() {
         use crate::core::encode_multicodec;
         use crate::core::multicodec::Codec;
-        
+
         let original = HealthStatus::Unhealthy {
             reason: "Complex UTF-8: Здравствуй мир! 你好世界!".to_string(),
         };
-        
+
         let json_bytes = serde_json::to_vec(&original).unwrap();
         let encoded = encode_multicodec(Codec::JSON, &json_bytes).unwrap();
         let parsed = ComponentActor::<()>::parse_health_status(&encoded).unwrap();
-        
+
         assert_eq!(parsed, original);
     }
 
@@ -1465,22 +1456,22 @@ mod tests {
         use crate::core::encode_multicodec;
         use crate::core::multicodec::Codec;
         use std::time::Instant;
-        
+
         let status = HealthStatus::Degraded {
             reason: "Performance test".to_string(),
         };
-        
+
         // Prepare encoded data
         let borsh_bytes = borsh::to_vec(&status).unwrap();
         let borsh_encoded = encode_multicodec(Codec::Borsh, &borsh_bytes).unwrap();
-        
+
         // Measure parsing time (should be <1ms)
         let start = Instant::now();
         for _ in 0..1000 {
             let _ = ComponentActor::<()>::parse_health_status(&borsh_encoded).unwrap();
         }
         let elapsed = start.elapsed();
-        
+
         // 1000 parses should complete in <10ms (10μs per parse)
         assert!(
             elapsed.as_millis() < 10,

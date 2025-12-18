@@ -51,7 +51,10 @@ description = "Security team signing key"
     // Load initial configuration
     println!("1️⃣  Loading initial configuration:");
     let registry = TrustRegistry::from_config(temp_file.path()).await?;
-    println!("   ✅ Loaded {} trusted sources\n", registry.list_trusted_sources().len());
+    println!(
+        "   ✅ Loaded {} trusted sources\n",
+        registry.list_trusted_sources().len()
+    );
 
     // List initial trusted sources
     println!("2️⃣  Initial trusted sources:");
@@ -111,7 +114,10 @@ description = "Security team signing key"
     };
     registry.add_trusted_source(new_source)?;
     println!("   ✅ Added: https://github.com/trusted-external-org/*");
-    println!("   Total trusted sources: {}\n", registry.list_trusted_sources().len());
+    println!(
+        "   Total trusted sources: {}\n",
+        registry.list_trusted_sources().len()
+    );
 
     // Test same component after adding source
     println!("5️⃣  Testing external organization (after trust):");
@@ -129,16 +135,24 @@ description = "Security team signing key"
     };
     registry.add_trusted_source(local_source)?;
     println!("   ✅ Added: /home/developer/workspace/components/*");
-    println!("   Total trusted sources: {}\n", registry.list_trusted_sources().len());
+    println!(
+        "   Total trusted sources: {}\n",
+        registry.list_trusted_sources().len()
+    );
 
     // List all sources after additions
     println!("7️⃣  All trusted sources after additions:");
     for (i, source) in registry.list_trusted_sources().iter().enumerate() {
-        println!("   {}. Type: {} - {}", i + 1, source.source_type(), match source {
-            TrustSource::GitRepository { url_pattern, .. } => url_pattern.clone(),
-            TrustSource::SigningKey { signer, .. } => format!("Signer: {}", signer),
-            TrustSource::LocalPath { path_pattern, .. } => path_pattern.clone(),
-        });
+        println!(
+            "   {}. Type: {} - {}",
+            i + 1,
+            source.source_type(),
+            match source {
+                TrustSource::GitRepository { url_pattern, .. } => url_pattern.clone(),
+                TrustSource::SigningKey { signer, .. } => format!("Signer: {}", signer),
+                TrustSource::LocalPath { path_pattern, .. } => path_pattern.clone(),
+            }
+        );
     }
     println!();
 

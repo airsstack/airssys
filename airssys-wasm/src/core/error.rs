@@ -904,10 +904,7 @@ impl WasmError {
     /// );
     /// assert!(err.to_string().contains("Health check failed"));
     /// ```
-    pub fn health_check_failed(
-        component_id: impl Into<String>,
-        reason: impl Into<String>,
-    ) -> Self {
+    pub fn health_check_failed(component_id: impl Into<String>, reason: impl Into<String>) -> Self {
         Self::HealthCheckFailed {
             component_id: component_id.into(),
             reason: reason.into(),

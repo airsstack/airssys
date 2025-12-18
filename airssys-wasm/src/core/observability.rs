@@ -742,11 +742,7 @@ mod tests {
     #[test]
     fn test_health_status_unhealthy() {
         let component_id = ComponentId::new("test-component");
-        let status = HealthStatus::unhealthy(
-            component_id.clone(),
-            5,
-            Some("Connection timeout"),
-        );
+        let status = HealthStatus::unhealthy(component_id.clone(), 5, Some("Connection timeout"));
 
         assert_eq!(status.component_id, component_id);
         assert!(!status.is_healthy);
