@@ -1,14 +1,71 @@
 # System Patterns: airssys-wasm-cli
 
 **Sub-Project:** airssys-wasm-cli  
-**Last Updated:** 2025-10-18  
-**Pattern Categories:** CLI Architecture, Error Handling, Configuration, UX, Testing
+**Last Updated:** 2025-12-18  
+**Pattern Categories:** CLI Architecture, Composable CLI, Error Handling, Configuration, UX, Testing
 
 ---
 
-## §1 CLI Architecture Patterns
+## §1 Composable CLI Architecture (NEW)
 
-### §1.1 Command Structure Pattern
+### §1.1 Library-Only Pattern
+
+**Pattern:** Export Clap structures from library, compose in binary
+
+**Decision**: ADR-CLI-001 (2025-12-18)  
+**Documentation**: KNOWLEDGE-CLI-002
+
+```rust
+// Library side (airssys-wasm-cli)
+// NO [[bin]] section in Cargo.toml!
+
+// src/lib.rs
+pub mod commands {
+    pub mod trust;
+}
+
+pub use commands::trust::{TrustArgs, TrustCommands, execute as execute_trust};
+```
+
+```rust
+// Binary side (airsstack or other)
+use airssys_wasm_cli::commands::trust::{TrustArgs, execute as execute_trust};
+
+#[derive(Subcommand)]
+enum Commands {
+    Trust(TrustArgs),
+    // ... other commands
+}
+
+match command {
+    Commands::Trust(args) => execute_trust(&args).await?,
+}
+```
+
+**Rationale:**
+- Maximum reusability across binaries
+- Perfect airsstack integration
+- Direct function testing (no process spawning)
+- Single source of truth
+- Flexible for future distribution models
+
+**Benefits**:
+- ✅ Zero code duplication
+- ✅ Fast compilation (library cached)
+- ✅ Easy testing (direct function calls)
+- ✅ Multiple binaries from one library
+- ✅ Clear separation of concerns
+
+**Example Commands**:
+- `airsstack wasm trust add-git ...` (via airsstack)
+- `my-tool trust list` (via custom binary)
+- Future standalone: `airssys-wasm trust ...` (thin wrapper if needed)
+
+---
+
+## §2 CLI Architecture Patterns
+
+### §2.1 Command Structure Pattern
 
 **Pattern:** Consistent command module structure with execute function signature
 
@@ -41,11 +98,14 @@ pub async fn execute(_args: &KeygenArgs) -> Result<()> {
 }
 ```
 
-### §1.2 Command Registration Pattern
+### §2.2 Command Registration Pattern
 
-**Pattern:** Centralized command enum with derive macros
+**Pattern:** Centralized command enum with derive macros (for binaries)
+
+**Note**: In library-only architecture, this pattern is used by **consuming binaries**, not the library itself.
 
 ```rust
+// Binary side (airsstack or other composing binary)
 #[derive(Parser)]
 #[command(name = "airssys-wasm")]
 #[command(about = "AirsSys WASM Component Management CLI")]
@@ -56,24 +116,23 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    Keygen(KeygenArgs),
-    Init(InitArgs),
-    Build(BuildArgs),
-    // ... all 14 commands
+    Trust(TrustArgs),  // From library
+    Keygen(KeygenArgs), // From library
+    // ... compose library commands
 }
 ```
 
 **Benefits:**
-- Single source of truth for commands
+- Single source of truth in binary
 - Type-safe command routing
 - Automatic help generation
 - Shell completion support
 
 ---
 
-## §2 Error Handling Patterns
+## §3 Error Handling Patterns
 
-### §2.1 Custom Error Type Pattern
+### §3.1 Custom Error Type Pattern
 
 **Pattern:** Enum-based errors with thiserror and conversions
 
@@ -115,7 +174,7 @@ pub async fn execute(_args: &BuildArgs) -> Result<()> {
 }
 ```
 
-### §2.2 User-Friendly Error Display Pattern
+### §3.2 User-Friendly Error Display Pattern
 
 **Pattern:** Colored, contextual error messages with utils
 

@@ -1,7 +1,7 @@
 # Progress Tracking: airssys-wasm-cli
 
 **Sub-Project:** airssys-wasm-cli  
-**Last Updated:** 2025-10-18  
+**Last Updated:** 2025-12-18  
 **Overall Completion:** 10%
 
 ---
@@ -38,10 +38,26 @@
 
 ---
 
-### Phase 2: Core Commands ⏳ PLANNED (0%)
+### Phase 1.5: Trust Command ⏳ PLANNED (0%)
 
 **Target:** Q1 2026  
-**Status:** Awaiting airssys-wasm core library
+**Status:** 📋 Pending (awaiting dependencies)  
+**Priority:** High
+
+**Task:** TASK-CLI-002 - Trust Command Implementation
+
+**Planned Deliverables:**
+- [ ] TrustArgs and TrustCommands Clap structures (10 commands)
+- [ ] Integration with airssys-wasm ConfigManager
+- [ ] Commands: add-git, add-key, add-local, list, remove, enable-devmode, disable-devmode, devmode-status, validate, show-path
+- [ ] Integration tests (30+ test cases)
+- [ ] Documentation and export from lib.rs
+
+**Prerequisites:**
+- WASM-TASK-005 Phase 2 Task 2.3 (Trust Configuration System - Core Library) must complete first
+- ConfigManager, TrustConfig, ConfigValidator APIs available
+
+**Estimated Effort:** 6-8 hours (1 day)
 
 **Planned Deliverables:**
 - [ ] `keygen` - Ed25519 keypair generation
@@ -99,19 +115,14 @@
 - Phase 2 and 3 complete
 - airssys-wasm 1.0 release
 
-**Estimated Effort:** 2-3 weeks
+**Estimated Effort:** 3-4 weeks
 
 ---
 
-## Milestones
+### Phase 4: Polish & Distribution ⏳ PLANNED (0%)
 
-| Milestone | Date | Status | Notes |
-|-----------|------|--------|-------|
-| Foundation Complete | 2025-10-18 | ✅ | All stubs implemented, zero warnings |
-| Core Commands (Phase 2) | Q1 2026 | ⏳ | Blocked on airssys-wasm core library |
-| Management Features (Phase 3) | Q2 2026 | ⏳ | Not started |
-| Polish & Distribution (Phase 4) | Q3 2026 | ⏳ | Not started |
-| v0.1.0 Release | Q3 2026 | ⏳ | First public release |
+**Target:** Q3 2026  
+**Status:** Not started
 
 ---
 

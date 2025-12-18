@@ -1,8 +1,8 @@
 # Knowledge Documentation Index: airssys-wasm-cli
 
 **Sub-Project:** airssys-wasm-cli  
-**Last Updated:** 2025-10-18  
-**Total Knowledge Docs:** 1
+**Last Updated:** 2025-12-18  
+**Total Knowledge Docs:** 2
 
 ---
 
@@ -46,13 +46,49 @@ Foundational implementation knowledge for airssys-wasm-cli, establishing pattern
 
 ---
 
+### KNOWLEDGE-CLI-002: Composable CLI Pattern
+
+**File:** `knowledge-cli-002-composable-cli-pattern.md`  
+**Created:** 2025-12-18  
+**Status:** Stable  
+**Category:** Architecture / Patterns
+
+**Summary:**
+The Composable CLI Pattern is an architectural approach where CLI tools are implemented as 100% library code with zero binary components, exporting Clap-based command structures that can be composed by any binary application. Enables maximum reusability, testability, and flexibility.
+
+**Key Topics:**
+- Library-only architecture (NO [[bin]] section)
+- Clap structure composition pattern
+- Binary composition strategies
+- Multiple binary support from single library
+- Testing without process spawning
+- Real-world examples (clap_cargo, clap_verbosity_flag)
+- Best practices and antipatterns
+- Performance considerations
+- Security implications
+- Implementation checklist
+
+**Related ADR:**
+- ADR-CLI-001: Library-Only Architecture (decision context)
+
+**Related Tasks:**
+- TASK-CLI-001: Foundation Setup (implementation)
+- TASK-CLI-002: Trust Command (first composable command)
+
+**Cross-References:**
+- tech_context.md - Composable CLI architecture section
+- system_patterns.md - CLI composition patterns
+- ADR-CLI-001 - Architectural decision rationale
+
+---
+
 ## Knowledge Categories
 
 ### Implementation Guides (1)
 - KNOWLEDGE-CLI-001: CLI Implementation Foundation
 
-### Architecture & Design (0)
-- (Planned: Future architecture discoveries)
+### Architecture & Design (1)
+- KNOWLEDGE-CLI-002: Composable CLI Pattern
 
 ### Integration Patterns (0)
 - (Planned: airssys-wasm integration patterns)
@@ -98,14 +134,14 @@ Foundational implementation knowledge for airssys-wasm-cli, establishing pattern
 
 ### Q1 2026 (Phase 2)
 
-**KNOWLEDGE-CLI-002: Core Command Implementation**
+**KNOWLEDGE-CLI-003: Core Command Implementation**
 - Keygen command implementation details
 - Init command and template system
 - Build command integration with build tools
 - Sign command and key management
 - Install command multi-source handling
 
-**KNOWLEDGE-CLI-003: airssys-wasm Integration Patterns**
+**KNOWLEDGE-CLI-004: airssys-wasm Integration Patterns**
 - Component API integration
 - ComponentBuilder usage patterns
 - ComponentRegistry interaction
@@ -114,14 +150,14 @@ Foundational implementation knowledge for airssys-wasm-cli, establishing pattern
 
 ### Q2 2026 (Phase 3)
 
-**KNOWLEDGE-CLI-004: Management Command Implementation**
+**KNOWLEDGE-CLI-005: Management Command Implementation**
 - Update command and version management
 - Uninstall command and cleanup
 - List/Info command and metadata queries
 - Status command and health monitoring
 - Logs command and log streaming
 
-**KNOWLEDGE-CLI-005: Security Implementation Details**
+**KNOWLEDGE-CLI-006: Security Implementation Details**
 - Ed25519 key generation best practices
 - Signature verification multi-layer approach
 - Key storage and permissions management
@@ -129,14 +165,14 @@ Foundational implementation knowledge for airssys-wasm-cli, establishing pattern
 
 ### Q3 2026 (Phase 4)
 
-**KNOWLEDGE-CLI-006: Distribution and Packaging**
+**KNOWLEDGE-CLI-007: Distribution and Packaging**
 - Pre-built binary creation (Linux, macOS, Windows)
 - GitHub Releases automation
 - Homebrew formula creation
 - Shell completion testing
 - Installation testing across platforms
 
-**KNOWLEDGE-CLI-007: Testing Best Practices**
+**KNOWLEDGE-CLI-008: Testing Best Practices**
 - Unit testing patterns for CLI
 - Integration testing with assert_cmd
 - End-to-end workflow testing
@@ -180,23 +216,23 @@ All knowledge documents must include:
 
 ### Naming Convention
 
-Format: `knowledge_cli_[number]_[description].md`
+Format: `knowledge-cli-[number]-[description].md`
 
 Examples:
-- `knowledge_cli_001_implementation_foundation.md`
-- `knowledge_cli_002_core_command_implementation.md`
-- `knowledge_cli_003_airssys_wasm_integration_patterns.md`
+- `knowledge-cli-001-implementation-foundation.md`
+- `knowledge-cli-002-composable-cli-pattern.md`
+- `knowledge-cli-003-core-command-implementation.md`
 
 ---
 
 ## Statistics
 
-- **Total Knowledge Docs:** 1
-- **Active Docs:** 1
+- **Total Knowledge Docs:** 2
+- **Active Docs:** 2
 - **Archived Docs:** 0
 - **Planned Docs:** 6
 - **Cross-Project References:** 10 (from airssys-wasm)
-- **Last Updated:** 2025-10-18
+- **Last Updated:** 2025-12-18
 
 ---
 

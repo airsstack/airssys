@@ -12,7 +12,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ airssys-wasm CLI                                            │
+│ airssys-wasm-cli (LIBRARY ONLY - 100% Composable)          │
 │                                                             │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
 │  │   Commands   │  │  CLI Config  │  │   Utilities  │     │
@@ -24,7 +24,17 @@
 │                     ┌──────▼───────┐                        │
 │                     │ Error Handler│                        │
 │                     └──────┬───────┘                        │
+│                            │                                │
+│                   ┌────────▼────────┐                       │
+│                   │   EXPORTS        │                       │
+│                   │ (Clap structures)│                       │
+│                   └────────┬────────┘                       │
 └────────────────────────────┼────────────────────────────────┘
+                             │
+                    ┌────────▼────────┐
+                    │   airsstack     │ (Binary - composes CLI)
+                    │  (or other bin) │
+                    └────────┬────────┘
                              │
                     ┌────────▼────────┐
                     │  airssys-wasm   │ (Core Library)
@@ -32,16 +42,23 @@
                     └─────────────────┘
 ```
 
+**Key Architecture Decision**: Library-only pattern (ADR-CLI-001)
+- NO binary in airssys-wasm-cli
+- All commands exported as Clap structures
+- Composable by any binary (primarily airsstack)
+- Maximum reusability and testability
+
 ### Module Organization
 
 ```
 src/
-├── main.rs              # CLI entry point, command routing
+├── lib.rs               # EXPORTS for composition (NO main.rs!)
 ├── cli_config.rs        # Configuration management
 ├── error.rs             # Error types and conversions
 ├── utils.rs             # Shared utilities (UX, formatting)
 └── commands/
     ├── mod.rs           # Command module exports
+    ├── trust.rs         # Trust management (TrustArgs, TrustCommands)
     ├── keygen.rs        # Ed25519 keypair generation
     ├── init.rs          # Component project initialization
     ├── build.rs         # WASM component building
@@ -57,6 +74,95 @@ src/
     ├── config.rs        # Configuration commands
     └── completions.rs   # Shell completions
 ```
+
+**Library-Only Pattern** (ADR-CLI-001):
+- All commands are Clap `Args` and `Subcommand` structures
+- Each command has a public `execute()` async function
+- Exported from `lib.rs` for external composition
+- Binaries (like airsstack) compose and route commands
+
+---
+
+## Composable CLI Pattern
+
+### Library-Only Architecture
+
+**Core Principle**: airssys-wasm-cli is 100% library with zero binary components.
+
+**Benefits**:
+1. **Maximum Reusability**: Commands can be used by any binary
+2. **airsstack Integration**: Primary use case - compose into airsstack binary
+3. **Testability**: Direct function calls without process spawning
+4. **Flexibility**: Support multiple distribution models
+5. **Maintainability**: Single source of truth for CLI logic
+
+**Pattern Structure**:
+
+```rust
+// airssys-wasm-cli/src/lib.rs
+pub mod commands {
+    pub mod trust;
+    // ... other command modules
+}
+
+// Re-export for convenience
+pub use commands::trust::{TrustArgs, TrustCommands, execute as execute_trust};
+```
+
+```rust
+// airssys-wasm-cli/src/commands/trust.rs
+use clap::{Args, Subcommand};
+
+#[derive(Debug, Args)]
+pub struct TrustArgs {
+    #[command(subcommand)]
+    pub command: TrustCommands,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum TrustCommands {
+    AddGit { url: String, branch: Option<String>, description: String },
+    AddKey { public_key: String, signer: String, description: String },
+    List,
+    // ... other commands
+}
+
+pub async fn execute(args: &TrustArgs) -> Result<()> {
+    // Implementation
+}
+```
+
+**Binary Composition** (e.g., airsstack):
+
+```rust
+// airsstack/src/main.rs
+use airssys_wasm_cli::commands::trust::{TrustArgs, execute as execute_trust};
+
+#[derive(Subcommand)]
+enum Commands {
+    #[command(subcommand)]
+    Wasm(WasmCommands),
+}
+
+#[derive(Subcommand)]
+enum WasmCommands {
+    Trust(TrustArgs),
+    // ... other commands
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    match cli.command {
+        Commands::Wasm(WasmCommands::Trust(args)) => execute_trust(&args).await?,
+        // ... other commands
+    }
+}
+```
+
+**Documentation**:
+- **ADR-CLI-001**: Architecture decision rationale
+- **KNOWLEDGE-CLI-002**: Comprehensive pattern documentation
+- **TASK-CLI-002**: First implementation (Trust Command)
 
 ---
 

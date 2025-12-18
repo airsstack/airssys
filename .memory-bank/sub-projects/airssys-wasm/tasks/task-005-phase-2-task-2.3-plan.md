@@ -3,53 +3,108 @@
 **Task:** Trust Configuration System  
 **Status:** 📋 PLANNED (Ready to Start)  
 **Date Created:** 2025-12-17  
-**Estimated Duration:** 2-3 days (16 hours)  
-**Prerequisites:** ✅ Phase 1 complete (Tasks 1.1-1.3), Tasks 2.1-2.2 (Trust + Approval) in progress
+**Estimated Duration:** 2 days (13.5 hours)  
+**Prerequisites:** ✅ Phase 1 complete (Tasks 1.1-1.3), ✅ Tasks 2.1-2.2 (Trust + Approval) COMPLETE
 
 ---
 
 ## Executive Summary
 
-**What**: Create a comprehensive trust configuration management system including: **trust-config.toml** file parser, configuration validation, CLI tools for managing trusted sources (add/remove/list), DevMode enable/disable controls, and configuration integrity verification.
+**What**: Create a comprehensive trust configuration management system including: **trust-config.toml** file parser, configuration validation, configuration file management (load/save/backup), DevMode enable/disable controls, and configuration integrity verification. **This task focuses ONLY on core library logic** - CLI commands are implemented separately in airssys-wasm-cli.
 
-**Why**: Administrators need intuitive tools to manage which component sources are trusted. The system must be easy to configure initially, maintainable over time, and secure against tampering. Clear CLI commands enable rapid trust management without editing raw TOML files.
+**Why**: Administrators need programmatic APIs to manage which component sources are trusted. The system must be easy to configure, maintainable over time, and secure against tampering. The core library provides the foundation for CLI tools and other management interfaces.
 
-**How**: Implement a TOML configuration parser with strict validation, CLI commands for trust management (`trust add-git`, `trust add-key`, `trust list`, `trust remove`), DevMode toggle with safety checks, configuration file integrity verification (checksums), and comprehensive error messages for troubleshooting.
+**How**: Implement a TOML configuration parser with strict validation (`TrustConfig`, `TrustSourceConfig`), configuration file management (`ConfigManager`), validation engine (`ConfigValidator`), DevMode toggle with safety checks, configuration file integrity verification (checksums), and comprehensive error messages for troubleshooting.
 
-**Architecture Position**: This module provides the user-facing interface for trust management, wrapping the trust registry (Task 2.1) with CLI commands and configuration persistence.
+**Architecture Position**: This module provides the **core library API** for trust management, wrapping the trust registry (Task 2.1) with configuration persistence and validation. CLI commands are implemented in `airssys-wasm-cli` (see separate task documentation).
+
+---
+
+## Scope: airssys-wasm Deliverables ONLY
+
+**This task implements the core library in `airssys-wasm` package:**
+
+### ✅ What WILL Be Implemented (airssys-wasm)
+
+| Component | File | Responsibility | Lines (Est.) |
+|-----------|------|----------------|--------------|
+| **TrustConfig** | `src/security/config.rs` | TOML configuration structs | ~200 |
+| **TrustSourceConfig** | `src/security/config.rs` | Source type enum (Git/Key/Local) | ~150 |
+| **ConfigValidator** | `src/security/config.rs` | Validation engine (13 rules) | ~300 |
+| **ConfigManager** | `src/security/config.rs` | File operations, backup, integrity | ~400 |
+| **Tests** | `src/security/config.rs` | 40+ unit tests | ~600 |
+| **Integration** | `src/security/mod.rs` | Module exports | ~20 |
+
+**Total Code:** ~1,670 lines in `airssys-wasm/src/security/config.rs`
+
+**Public APIs Exposed:**
+```rust
+// These APIs will be consumed by airssys-wasm-cli
+pub struct TrustConfig { /* ... */ }
+pub struct ConfigManager { /* ... */ }
+pub struct ConfigValidator { /* ... */ }
+
+impl TrustConfig {
+    pub fn from_file(path: &Path) -> Result<Self>;
+    pub fn from_toml(toml: &str) -> Result<Self>;
+    pub fn to_toml(&self) -> Result<String>;
+    pub fn validate(&self) -> Result<()>;
+}
+
+impl ConfigManager {
+    pub fn load_config(&self) -> Result<TrustConfig>;
+    pub fn save_config(&self, config: &TrustConfig) -> Result<()>;
+    pub fn backup_config(&self) -> Result<PathBuf>;
+    pub fn verify_integrity(&self) -> Result<bool>;
+}
+```
+
+### ❌ What Will NOT Be Implemented (Separate Package)
+
+**CLI Commands** → Implemented in `airssys-wasm-cli` package:
+- ❌ Clap command structures (`TrustArgs`, `TrustCommands`)
+- ❌ User-facing command implementations (add-git, list, remove, etc.)
+- ❌ Terminal output formatting (colored output, progress bars)
+- ❌ Interactive prompts (confirmations, safety warnings)
+- ❌ Shell completion scripts
+
+**Reference:** `.memory-bank/sub-projects/airssys-wasm-cli/tasks/task-cli-002-trust-command.md`
 
 ---
 
 ## Implementation Strategy
 
-### Core Design Principles
+### Core Design Principles (airssys-wasm Library)
 
-1. **User-Friendly CLI**: Intuitive commands with helpful prompts
+1. **Library-First Design**: Clean, testable APIs that can be consumed by any client
 2. **Validation First**: Reject invalid configurations before saving
 3. **Fail-Safe**: Backup config before modifications
-4. **Clear Errors**: Actionable error messages with examples
-5. **Audit Trail**: Log all configuration changes
+4. **Clear Errors**: Actionable error messages with context
+5. **Audit Trail**: Log all configuration changes via airssys-osl audit logger
 
 ### Trust Configuration Workflow
 
 ```text
-User Action (CLI/File Edit)
+Library Consumer (CLI/API/Service)
           ↓
-Parse trust-config.toml
+     ConfigManager::load_config()
           ↓
-Validate Configuration
+     TrustConfig::validate()
+          ↓
      ├─ Valid? ─→ Apply Changes
      │             ↓
-     │        Update TrustRegistry
+     │        TrustRegistry::update()
      │             ↓
-     │        Save to File
+     │        ConfigManager::save_config()
      │             ↓
-     │        Audit Log
+     │        Audit Log (airssys-osl)
      │
-     └─ Invalid? ─→ Show Errors
+     └─ Invalid? ─→ Return ConfigError
                     ↓
-                Return Suggestions
+                 (Consumer handles display)
 ```
+
+**Note**: This task implements ONLY the library layer. CLI commands that consume these APIs are in `airssys-wasm-cli` (task-cli-002).
 
 ---
 
@@ -230,82 +285,29 @@ impl ConfigManager {
 }
 ```
 
-### 5. TrustCli (CLI Commands)
+### 5. TrustCli (CLI Commands) - See airssys-wasm-cli
 
+**Note**: CLI commands for trust management are implemented in the `airssys-wasm-cli` package (library-only, 100% composable).
+
+**See**: `.memory-bank/sub-projects/airssys-wasm-cli/tasks/task-cli-002-trust-command.md`
+
+**APIs Exposed for CLI Integration:**
 ```rust
-/// Trust configuration CLI.
-/// 
-/// Provides user-facing commands for trust management.
-pub struct TrustCli {
-    /// Config manager
-    config_manager: Arc<ConfigManager>,
-    
-    /// Trust registry (Task 2.1)
-    trust_registry: Arc<TrustRegistry>,
+// airssys-wasm exposes these APIs for CLI usage:
+impl TrustConfig {
+    pub fn from_file(path: &Path) -> Result<Self, ConfigError>;
+    pub fn to_toml(&self) -> Result<String, ConfigError>;
+    pub fn validate(&self) -> Result<(), ConfigError>;
 }
 
-impl TrustCli {
-    /// Creates CLI with dependencies.
-    pub fn new(
-        config_manager: Arc<ConfigManager>,
-        trust_registry: Arc<TrustRegistry>,
-    ) -> Self;
-    
-    // ===== Git Repository Commands =====
-    
-    /// Adds trusted Git repository.
-    pub fn add_git_source(
-        &self,
-        url_pattern: String,
-        branch: Option<String>,
-        description: String,
-    ) -> Result<(), CliError>;
-    
-    // ===== Signing Key Commands =====
-    
-    /// Adds trusted signing key.
-    pub fn add_signing_key(
-        &self,
-        public_key: String,
-        signer: String,
-        description: String,
-    ) -> Result<(), CliError>;
-    
-    // ===== Local Path Commands =====
-    
-    /// Adds trusted local path.
-    pub fn add_local_path(
-        &self,
-        path_pattern: String,
-        description: String,
-    ) -> Result<(), CliError>;
-    
-    // ===== List/Remove Commands =====
-    
-    /// Lists all trusted sources.
-    pub fn list_sources(&self) -> Result<(), CliError>;
-    
-    /// Removes trusted source by index.
-    pub fn remove_source(&self, index: usize) -> Result<(), CliError>;
-    
-    // ===== DevMode Commands =====
-    
-    /// Enables development mode (with confirmation).
-    pub fn enable_dev_mode(&self) -> Result<(), CliError>;
-    
-    /// Disables development mode.
-    pub fn disable_dev_mode(&self) -> Result<(), CliError>;
-    
-    /// Shows current DevMode status.
-    pub fn show_dev_mode_status(&self) -> Result<(), CliError>;
-    
-    // ===== Validation Commands =====
-    
-    /// Validates current configuration.
-    pub fn validate_config(&self) -> Result<(), CliError>;
-    
-    /// Shows configuration file path.
-    pub fn show_config_path(&self) -> Result<(), CliError>;
+impl ConfigManager {
+    pub fn load_config(&self) -> Result<TrustConfig, ConfigError>;
+    pub fn save_config(&self, config: &TrustConfig) -> Result<(), ConfigError>;
+    pub fn backup_config(&self) -> Result<PathBuf, ConfigError>;
+}
+
+impl ConfigValidator {
+    pub fn validate_config(config: &TrustConfig) -> Result<(), ConfigError>;
 }
 ```
 
@@ -393,7 +395,71 @@ description = "Official AirsSys distribution components"
 
 ---
 
-## Implementation Steps (18 Steps, ~16 hours)
+## File Structure: What Will Be Created/Modified
+
+### Files to Create
+
+```
+airssys-wasm/
+└── src/
+    └── security/
+        └── config.rs           ← NEW FILE (~1,670 lines)
+            ├── TrustConfig struct
+            ├── TrustSettings struct  
+            ├── TrustSourceConfig enum
+            ├── ConfigValidator struct
+            ├── ConfigManager struct
+            ├── ConfigError enum
+            └── 40+ unit tests (inline)
+```
+
+### Files to Modify
+
+```
+airssys-wasm/
+└── src/
+    └── security/
+        └── mod.rs              ← UPDATE (add config module)
+            // Add this line:
+            pub mod config;
+            
+            // Re-export public types:
+            pub use config::{
+                TrustConfig,
+                TrustSettings,
+                TrustSourceConfig,
+                ConfigManager,
+                ConfigValidator,
+                ConfigError,
+            };
+```
+
+### Existing Files (No Changes)
+
+```
+airssys-wasm/
+└── src/
+    └── security/
+        ├── trust.rs            ← EXISTING (Task 2.1 - TrustRegistry)
+        ├── approval.rs         ← EXISTING (Task 2.2 - ApprovalWorkflow)
+        ├── capability.rs       ← EXISTING (Phase 1 - Capabilities)
+        └── parser.rs           ← EXISTING (Phase 1 - Component.toml parser)
+```
+
+### Integration Points
+
+**config.rs will use:**
+- `trust.rs` → `TrustRegistry` for applying configuration
+- `trust.rs` → `TrustSource` enum for conversion
+- `airssys-osl` → `SecurityAuditLogger` for audit trail
+
+**config.rs will NOT use:**
+- ❌ `approval.rs` (approval workflow - CLI will coordinate if needed)
+- ❌ `capability.rs` (capability enforcement - different concern)
+
+---
+
+## Implementation Steps (11 Steps, ~13.5 hours)
 
 ### Step 1: Create Config Module Structure (30 min)
 - Create `airssys-wasm/src/security/config.rs`
@@ -473,52 +539,12 @@ description = "Official AirsSys distribution components"
 - 4 unit tests
 - **Checkpoint**: Integrity checks work
 
-### Step 12: Implement TrustCli Core (2 hours)
-- `TrustCli` struct
-- `add_git_source()`, `add_signing_key()`, `add_local_path()`
-- Config mutation logic
-- 10 unit tests
-- **Checkpoint**: Add commands work
-
-### Step 13: Implement List/Remove Commands (1 hour)
-- `list_sources()` pretty printing
-- `remove_source()` by index
-- 5 unit tests
-- **Checkpoint**: List/remove tests pass
-
-### Step 14: Implement DevMode Commands (1.5 hours)
-- `enable_dev_mode()` with confirmation prompt
-- `disable_dev_mode()`
-- `show_dev_mode_status()`
-- Safety warnings
-- 5 unit tests
-- **Checkpoint**: DevMode commands work
-
-### Step 15: Implement Validation Commands (1 hour)
-- `validate_config()` CLI command
-- `show_config_path()` command
-- Pretty error formatting
-- 4 unit tests
-- **Checkpoint**: Validation commands work
-
-### Step 16: Integration with TrustRegistry (1.5 hours)
-- Apply config changes to TrustRegistry (Task 2.1)
-- Live reload functionality
-- 5 integration tests
-- **Checkpoint**: Registry integration works
-
-### Step 17: Comprehensive Documentation (1.5 hours)
-- Module-level rustdoc
-- CLI command documentation
-- Configuration file examples
-- Troubleshooting guide
-- **Checkpoint**: Zero rustdoc warnings
-
-### Step 18: Final Quality Gates (30 min)
-- `cargo clippy --all-targets` (zero warnings)
-- `cargo test --all-targets` (all pass)
-- `cargo doc --no-deps` (zero warnings)
-- **Checkpoint**: All quality gates pass
+### Steps 12-15: CLI Commands - See airssys-wasm-cli
+**Note**: CLI command implementation has been moved to `airssys-wasm-cli` package.
+- **Package**: airssys-wasm-cli (library-only, 100% composable)
+- **Task**: `.memory-bank/sub-projects/airssys-wasm-cli/tasks/task-cli-002-trust-command.md`
+- **Commands**: add-git, add-key, add-local, list, remove, dev-mode, validate
+- **Implementation**: Clap structures that compose library APIs
 
 ---
 
@@ -581,234 +607,41 @@ description = "Official AirsSys distribution components"
 
 ---
 
+## CLI Integration
+
+**Note**: CLI commands for trust management are implemented in a separate package:
+- **Package**: `airssys-wasm-cli` (library-only, 100% reusable)
+- **Task**: See `.memory-bank/sub-projects/airssys-wasm-cli/tasks/task-cli-002-trust-command.md`
+- **Architecture**: airssys-wasm-cli exports Clap structures that can be composed by any binary
+
+**APIs Exposed for CLI:**
+- `TrustConfig::from_file()` - Load configuration
+- `TrustConfig::to_toml()` - Serialize configuration
+- `ConfigManager::load_config()` - Load with validation
+- `ConfigManager::save_config()` - Save with backup
+- `ConfigManager::backup_config()` - Create backup
+- `ConfigValidator::validate_config()` - Validate configuration
+
+**CLI Usage Pattern:**
+```rust
+use airssys_wasm::security::{TrustConfig, ConfigManager};
+
+// CLI calls library functions
+let config_manager = ConfigManager::new()?;
+let mut config = config_manager.load_config()?;
+config.add_git_source(&url, branch, &description)?;
+config.validate()?;
+config_manager.backup_config()?;
+config_manager.save_config(&config)?;
+```
+
+---
+
 ## CLI Command Examples
 
-### Add Trusted Git Repository
+**Note**: These CLI commands are implemented in `airssys-wasm-cli` package. This section provides reference examples of how the library APIs are used by CLI commands.
 
-```bash
-$ airssys-wasm trust add-git "https://github.com/mycompany/*" \
-    --branch main \
-    --description "Internal company repositories"
-
-✅ Added trusted Git repository
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-URL Pattern: https://github.com/mycompany/*
-Branch:      main
-Description: Internal company repositories
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Configuration saved to: /etc/airssys/trust-config.toml
-Backup created: /etc/airssys/backups/trust-config-2025-12-17T10-30-45.toml
-```
-
-### Add Trusted Signing Key
-
-```bash
-$ airssys-wasm trust add-key "ed25519:AAAAC3NzaC1lZDI1NTE5AAAAIJbpYR..." \
-    --signer "engineering@mycompany.com" \
-    --description "Engineering team signing key"
-
-✅ Added trusted signing key
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Public Key: ed25519:AAAAC3NzaC1lZDI1NTE5AAAAIJbpYR... (truncated)
-Signer:     engineering@mycompany.com
-Description: Engineering team signing key
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Configuration saved to: /etc/airssys/trust-config.toml
-```
-
-### List Trusted Sources
-
-```bash
-$ airssys-wasm trust list
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Trusted Sources (5)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-[1] Git: https://github.com/mycompany/*
-    Branch: main
-    Description: Internal company repositories
-
-[2] Git: https://github.com/verified-org/wasm-*
-    Branch: stable
-    Description: Verified external organization
-
-[3] SigningKey: ed25519:AAAAC3Nz... (truncated)
-    Signer: engineering@mycompany.com
-    Description: Engineering team signing key
-
-[4] SigningKey: ed25519:AAAAC3Nz... (truncated)
-    Signer: security@mycompany.com
-    Description: Security team audit key
-
-[5] Local: /opt/verified-components/*
-    Description: System-verified components
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
-
-### Remove Trusted Source
-
-```bash
-$ airssys-wasm trust remove 3
-
-⚠️  Remove trusted source?
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-[3] SigningKey: ed25519:AAAAC3Nz... (truncated)
-    Signer: engineering@mycompany.com
-    Description: Engineering team signing key
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Confirm removal [y/N]: y
-
-✅ Removed trusted source #3
-
-Configuration saved to: /etc/airssys/trust-config.toml
-Backup created: /etc/airssys/backups/trust-config-2025-12-17T10-35-12.toml
-```
-
-### Enable DevMode (with Safety Confirmation)
-
-```bash
-$ airssys-wasm trust dev-mode enable
-
-⚠️  ⚠️  ⚠️  ENABLE DEVELOPMENT MODE? ⚠️  ⚠️  ⚠️
-
-This will BYPASS ALL SECURITY CHECKS!
-
-Components will have UNRESTRICTED ACCESS to:
-  • All filesystem paths (read/write/execute)
-  • All network endpoints (inbound/outbound)
-  • All storage namespaces (unlimited)
-
-⚠️  NEVER use DevMode in production!
-⚠️  Only use for local development and testing!
-
-Type "I UNDERSTAND THE RISKS" to confirm: I UNDERSTAND THE RISKS
-
-⚠️  DevMode ENABLED
-
-Configuration saved to: /etc/airssys/trust-config.toml
-```
-
-### Disable DevMode
-
-```bash
-$ airssys-wasm trust dev-mode disable
-
-✅ DevMode DISABLED
-
-Security checks will be enforced for all components.
-
-Configuration saved to: /etc/airssys/trust-config.toml
-```
-
-### Validate Configuration
-
-```bash
-$ airssys-wasm trust validate
-
-✅ Configuration is valid
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Config file:   /etc/airssys/trust-config.toml
-DevMode:       Disabled ✅
-Sources:       5 trusted sources
-Checksum:      SHA-256:abc123... ✅
-Last modified: 2025-12-17 10:30:45 UTC
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
-
-### Validate with Errors
-
-```bash
-$ airssys-wasm trust validate
-
-❌ Configuration validation failed
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-[ERROR] Invalid Git URL format: 'github.com/mycompany/*'
-        Expected: https:// or git:// prefix
-        Suggestion: Use https://github.com/mycompany/*
-
-[ERROR] Duplicate source: git:https://github.com/verified-org/*
-        Found at: line 15 and line 23
-        Suggestion: Remove duplicate entry
-
-[WARNING] DevMode enabled
-          DO NOT use in production!
-          Suggestion: Set dev_mode = false
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Fix errors and run: airssys-wasm trust validate
-```
-
----
-
-## Performance Targets
-
-### Configuration Operations
-- **Load Config**: <10ms (parse + validate)
-- **Save Config**: <20ms (serialize + write + backup)
-- **Validate Config**: <5ms (all validation rules)
-- **List Sources**: <1ms (format and print)
-- **Backup Creation**: <15ms (copy file)
-
----
-
-## Integration Points
-
-### Task 2.1 Integration (TrustRegistry)
-
-```rust
-// Apply configuration changes to TrustRegistry
-let config = config_manager.load_config()?;
-
-// Clear existing sources
-trust_registry.clear_sources();
-
-// Add sources from config
-for source_config in config.trust.sources {
-    let source = source_config.to_trust_source();
-    trust_registry.add_trusted_source(source)?;
-}
-
-// Set DevMode
-trust_registry.set_dev_mode(config.trust.dev_mode);
-```
-
-### Task 2.2 Integration (CLI Approval Commands)
-
-```bash
-# List approval requests (from Task 2.2)
-$ airssys-wasm approval list
-
-# If component needs approval, add source to trusted list
-$ airssys-wasm trust add-git "https://github.com/new-org/*"
-✅ Added trusted Git repository
-
-# Future installations from this source auto-approved
-```
-
----
-
-## Quality Gates
-
-### Cargo Clippy Requirements
-- **Command**: `cargo clippy --all-targets --all-features -- -D warnings`
-- **Target**: Zero warnings (deny warnings)
-- **Enforced Lints**: `unwrap_used`, `expect_used`, `panic` (deny)
-
-### Rustdoc Requirements
-- **Command**: `cargo doc --no-deps --document-private-items`
-- **Target**: Zero rustdoc warnings
-- **Standards**: Microsoft Rust Guidelines (M-MODULE-DOCS, M-CANONICAL-DOCS)
-
-### Test Coverage Targets
-- **Unit Test Coverage**: >90% (all config logic)
-- **Integration Test Coverage**: 10+ integration tests
-- **Edge Case Coverage**: 13+ edge case tests
-- **Total Tests**: 40+ test cases
+**See**: `.memory-bank/sub-projects/airssys-wasm-cli/tasks/task-cli-002-trust-command.md` for complete CLI implementation details.
 
 ---
 
@@ -827,21 +660,19 @@ $ airssys-wasm trust add-git "https://github.com/new-org/*"
 | 9 | ConfigManager core | 2 hours | 11 hours |
 | 10 | Backup system | 1.5 hours | 12.5 hours |
 | 11 | Integrity verification | 1 hour | 13.5 hours |
-| 12 | TrustCli core | 2 hours | 15.5 hours |
-| 13 | List/remove commands | 1 hour | 16.5 hours |
-| 14 | DevMode commands | 1.5 hours | 18 hours |
-| 15 | Validation commands | 1 hour | 19 hours |
-| 16 | Registry integration | 1.5 hours | 20.5 hours |
-| 17 | Documentation | 1.5 hours | 22 hours |
-| 18 | Final quality gates | 30 min | **16 hours** |
+| 12-15 | (See airssys-wasm-cli) | - | - |
 
-**Total Duration**: 16 hours ≈ **2-3 days** (6-8 hour workdays)
+**Total Duration**: 13.5 hours ≈ **2 days** (6-8 hour workdays)
 
 **Breakdown by Activity**:
-- Core implementation: 11 hours (69%)
-- Testing: 2.5 hours (16%)
-- Documentation: 1.5 hours (9%)
-- Quality assurance: 1 hour (6%)
+- Core implementation: 11 hours (81%)
+- Testing: 2.5 hours (19%)
+
+**Note**: CLI commands (Steps 12-15 from original plan) are implemented in airssys-wasm-cli package (estimated 6.5 additional hours for CLI-specific work).
+
+---
+
+## Performance Targets
 
 ---
 
@@ -877,12 +708,89 @@ $ airssys-wasm trust add-git "https://github.com/new-org/*"
 
 ---
 
+## Task Summary: airssys-wasm Deliverables
+
+### What This Task Delivers (airssys-wasm Package)
+
+**Single New File:** `airssys-wasm/src/security/config.rs` (~1,670 lines)
+
+**Contents:**
+1. ✅ `TrustConfig` - TOML configuration struct
+2. ✅ `TrustSettings` - Settings container (dev_mode + sources)
+3. ✅ `TrustSourceConfig` - Source type enum (Git/SigningKey/Local)
+4. ✅ `ConfigValidator` - Validation engine (13 rules)
+5. ✅ `ConfigManager` - File operations (load/save/backup/verify)
+6. ✅ `ConfigError` - Error types
+7. ✅ 40+ comprehensive unit tests
+8. ✅ Complete rustdoc documentation
+
+**Module Export:** Update `src/security/mod.rs` (add `pub mod config;`)
+
+**External Dependencies:** None (uses existing airssys-osl for audit logging)
+
+**Timeline:** 13.5 hours ≈ 2 days
+
+### What This Task Does NOT Deliver
+
+**CLI Commands** → Separate package: `airssys-wasm-cli`
+- ❌ Clap structures (TrustArgs, TrustCommands)
+- ❌ User-facing commands (add-git, list, remove, etc.)
+- ❌ Terminal output formatting
+- ❌ Interactive prompts
+
+**Reference:** `.memory-bank/sub-projects/airssys-wasm-cli/tasks/task-cli-002-trust-command.md`
+
+### Public APIs for Consumers
+
+**airssys-wasm-cli will consume these APIs:**
+
+```rust
+// Data structures
+pub struct TrustConfig { /* ... */ }
+pub struct TrustSettings { /* ... */ }
+pub enum TrustSourceConfig { /* ... */ }
+
+// Core operations
+impl TrustConfig {
+    pub fn from_file(path: &Path) -> Result<Self>;
+    pub fn from_toml(toml: &str) -> Result<Self>;
+    pub fn to_toml(&self) -> Result<String>;
+    pub fn validate(&self) -> Result<()>;
+    pub fn add_git_source(&mut self, url: &str, branch: Option<&str>, desc: &str);
+    pub fn add_signing_key(&mut self, key: &str, signer: &str, desc: &str);
+    pub fn add_local_path(&mut self, path: &str, desc: &str);
+}
+
+// File management
+impl ConfigManager {
+    pub fn new(config_path: PathBuf, backup_dir: PathBuf) -> Self;
+    pub fn load_config(&self) -> Result<TrustConfig>;
+    pub fn save_config(&self, config: &TrustConfig) -> Result<()>;
+    pub fn backup_config(&self) -> Result<PathBuf>;
+    pub fn verify_integrity(&self) -> Result<bool>;
+}
+
+// Validation
+impl ConfigValidator {
+    pub fn validate_config(config: &TrustConfig) -> Result<()>;
+}
+```
+
+---
+
 ## Approval Status
 
 **Planner**: Memory Bank Planner  
-**Date**: 2025-12-17  
+**Date**: 2025-12-18 (Updated)  
 **Status**: ✅ **APPROVED** - Ready for implementation
 
-This plan provides a comprehensive blueprint for implementing the trust configuration system with user-friendly CLI, robust validation, and production-ready documentation.
+**Scope Clarification (2025-12-18):**
+- This plan now focuses EXCLUSIVELY on `airssys-wasm` core library
+- CLI commands have been properly moved to `airssys-wasm-cli` (separate task)
+- Clear file structure and deliverables defined
+- Public APIs documented for future CLI consumption
 
-**Ready to Start:** Task 2.3 implementation can begin after Tasks 2.1-2.2 completion.
+This plan provides a comprehensive blueprint for implementing the trust configuration **core library** with robust validation, safe file operations, and production-ready documentation. CLI integration will be handled separately in the airssys-wasm-cli package.
+
+**Ready to Start:** Task 2.3 implementation can begin immediately (Tasks 2.1-2.2 COMPLETE).
+
