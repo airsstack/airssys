@@ -296,3 +296,20 @@
 
 **File**: `knowledge-wasm-022-runtime-architecture-summary.md`
 
+
+## KNOWLEDGE-WASM-023: DashMap Migration Rationale (2025-12-19)
+
+**File:** `knowledge-wasm-023-dashmap-migration-rationale.md`  
+**Status:** Active  
+**Related:** WASM-TASK-005 Phase 3, ADR-WASM-005
+
+**Summary:** Documents the rationale for migrating from `RwLock<HashMap>` to `DashMap` in Task 3.1 capability registry implementation. Explains how DashMap eliminates RwLock poisoning risks, simplifies code (30% less boilerplate), and improves concurrency through shard-based isolation.
+
+**Key Points:**
+- RwLock poisoning poses security risk (one panic kills entire system)
+- DashMap provides shard-based locking with failure isolation  
+- API simplified from 4-param to 3-param (no registry parameter)
+- All tests pass (37 tests, 100% pass rate)
+- Production-ready with comprehensive testing
+
+**Impact:** Future tasks (3.2+) must use DashMap-based API, not planned RwLock design.

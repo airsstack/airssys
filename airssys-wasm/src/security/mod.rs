@@ -165,6 +165,7 @@
 pub mod approval;
 pub mod capability;
 pub mod config;
+pub mod enforcement;
 pub mod parser;
 pub mod trust;
 
@@ -177,6 +178,10 @@ pub use capability::{WasmCapability, WasmCapabilitySet, WasmSecurityContext};
 pub use config::{
     ConfigError, ConfigManager, ConfigResult, ConfigValidator, TrustConfig, TrustSettings,
     TrustSourceConfig,
+};
+pub use enforcement::{
+    check_capability, register_component, unregister_component, CapabilityCheckError,
+    CapabilityCheckResult, CapabilityChecker,
 };
 pub use parser::{ComponentManifestParser, ParseError, ParseResult};
 pub use trust::{ComponentSource, TrustError, TrustLevel, TrustRegistry, TrustResult, TrustSource};

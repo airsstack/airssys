@@ -1,94 +1,100 @@
 # airssys-wasm Active Context
 
-**Last Verified:** 2025-12-15  
-**Current Phase:** Block 3 - Actor System Integration  
-**Overall Progress:** 89% Complete (16/18 tasks)
+**Last Verified:** 2025-12-19  
+**Current Phase:** Block 4 - Security & Isolation Layer  
+**Overall Progress:** Block 3 100% ✅ | Block 4 40% Complete (6/15 tasks)
 
 ## Current Focus
-**Task:** WASM-TASK-004 Phase 5 - Advanced Actor Patterns  
-**Status:** ⏸️ PENDING (2 tasks remaining)  
-**Priority:** MEDIUM - Optional advanced patterns for enhanced actor capabilities
+**Task:** WASM-TASK-005 Phase 3 - Capability Enforcement  
+**Status:** ⏳ IN PROGRESS (Phase 2 complete, Phase 3 ready to start)  
+**Priority:** 🔒 CRITICAL PATH - Security layer capability enforcement with airssys-osl
 
 ## Recent Completion Summary
 
-✅ **Phase 1 Complete (Nov 29 - Dec 13):** ComponentActor foundation + WASM lifecycle + message handling
-- Tasks 1.1-1.4: 3,450 lines, 189 tests, 9.5/10 quality
-- Full dual-trait pattern (Actor + Child) with multicodec support
-- Production-ready messaging infrastructure
+✅ **WASM-TASK-004 Complete (Nov 29 - Dec 16):** Block 3 - Actor System Integration (ALL 6 PHASES)
+- 18/18 tasks: ComponentActor foundation, ActorSystem integration, supervision, MessageBroker, advanced patterns, testing
+- 15,620+ lines, 589 tests, 9.7/10 quality, 0 warnings
+- Production-ready, performance targets exceeded
+- **Status:** 100% COMPLETE ✅
 
-✅ **Phase 2 Complete (Dec 14):** ActorSystem integration + component registry + routing
-- Tasks 2.1-2.3: 1,656 lines, 145+ tests, 9.5/10 quality
-- ComponentSpawner, ComponentRegistry, MessageRouter fully operational
-- Verified: <10ms spawn, ~211ns routing, 4.7M+ msg/sec throughput
+✅ **WASM-TASK-005 Phase 1 Complete (Dec 17):** WASM-OSL Security Bridge
+- Tasks 1.1-1.3: WasmCapability types, Component.toml parser, SecurityContext bridge
+- 2,100+ lines, 102 tests, 9.5/10 quality
+- Capability mapping to airssys-osl ACL/RBAC complete
+- **Status:** 100% COMPLETE ✅
 
-✅ **Phase 3 Complete (Dec 14):** Supervision and health monitoring (8 tasks)
-- Task 3.1: SupervisorConfig - 1,569 lines, 29+ tests, 9.6/10 quality
-- Task 3.2: SupervisorNode Integration - 1,690 lines, 32 tests, 9.5/10 quality
-- Task 3.3: Restart & Backoff - 1,540 lines, 25 tests, 9.5/10 quality
-- Task 3.4: Sliding Window Limiter - 895 lines, 18 tests, 9.5/10 quality
-- Task 3.5: Health Monitor - 756 lines, 15 tests, 9.5/10 quality
-- Tasks 3.6-3.8: Integration tests (28 tests), documentation
-- **Phase 3 Status:** 100% COMPLETE (8/8 tasks) ✅
-
-✅ **Phase 4 Complete (Dec 15):** MessageBroker Integration (3 tasks)
-- Task 4.1: MessageBroker Bridge - 590 lines, 10+ tests, 9.5/10 quality
-- Task 4.2: Pub-Sub Message Routing - 850 lines, 15+ tests, 9.5/10 quality
-- Task 4.3: ActorSystem as Primary Subscriber - 1,550 lines, 17 tests, 9.5/10 quality
-- **Phase 4 Status:** 100% COMPLETE (3/3 tasks) ✅ 🎉
+✅ **WASM-TASK-005 Phase 2 Complete (Dec 17-19):** Trust-Level System
+- Task 2.1: Trust Level Implementation - 71 tests, 95% audit score
+- Task 2.2: Approval Workflow Engine - 96 tests, 96% audit score
+- Task 2.3: Trust Configuration System - 64 tests, 100% audit score
+- Total: 7,000+ lines (trust.rs + approval.rs + config.rs), 231 tests, 97% average quality
+- Trust registry with Trusted/Unknown/DevMode workflows
+- **Status:** 100% COMPLETE ✅ 🎉
 
 ## Current & Next Tasks
 
-**Next:** Phase 5 - Advanced Actor Patterns (2 tasks)
-- Task 5.1: Message Correlation and Request-Response Patterns
-- Task 5.2: Actor Lifecycle Hooks and Custom State Management
+**Current:** Phase 3 - Capability Enforcement (Week 2-3)
+- Task 3.1: Capability Check API (check_capability() with airssys-osl integration)
+- Task 3.2: Host Function Integration Points (capability check macros)
+- Task 3.3: Audit Logging Integration (airssys-osl SecurityAuditLogger)
 
-**Then:** Block 4 - Component Model and WIT Integration
+**Next:** Phase 4 - ComponentActor Security Integration
+- Task 4.1: ComponentActor Security Context Attachment
+- Task 4.2: Message Passing Security (✅ already complete per DEBT-WASM-004)
+- Task 4.3: Resource Quota System
+
+**Then:** Phase 5 - Testing & Documentation (Week 4)
 
 ## Quick Reference
 
-📖 **Detailed Index:** See `tasks/_index.md` for complete WASM-TASK-004 overview:
-- Phase status matrix for all 18 tasks
+📖 **Detailed Task Index:** See `tasks/task-005-block-4-security-and-isolation-layer.md` for:
+- Complete WASM-TASK-005 overview (Block 4 - Security & Isolation Layer)
+- Phase status matrix for all 15 tasks
 - Task-by-task completion status and deliverables
-- Links to detailed task documentation
-- Performance metrics and code locations
+- Security architecture and airssys-osl integration
+- Performance targets and code locations
 - Estimated effort and dependencies
 
-## Phase 4 Achievements
+## Phase 2 Achievements
 
-**Inter-Component Communication Infrastructure:** Fully operational pub-sub messaging system
+**Trust-Level System:** Production-ready trust and approval infrastructure
 
-1. **MessageBrokerBridge** (Task 4.1)
-   - Trait abstraction over airssys-rt MessageBroker
-   - Layer separation maintained (ADR-WASM-018)
-   - Subscription tracking and management
+1. **Trust Level Implementation** (Task 2.1)
+   - TrustLevel enum (Trusted, Unknown, DevMode)
+   - TrustSource registry (Git repos, signing keys, certificates)
+   - Trust determination logic with pattern matching
+   - 71 tests, 95% audit score
 
-2. **Pub-Sub Message Routing** (Task 4.2)
-   - MessagePublisher for fire-and-forget publishing
-   - SubscriberManager for topic-based subscription resolution
-   - TopicFilter with MQTT-style wildcard support
-   - Multi-subscriber message delivery
+2. **Approval Workflow Engine** (Task 2.2)
+   - Approval state machine (Pending → Approved/Rejected)
+   - Trusted source auto-approval
+   - Unknown source review queue
+   - DevMode bypass with warnings
+   - 96 tests, 96% audit score
 
-3. **ActorSystem as Primary Subscriber** (Task 4.3)
-   - ActorSystemSubscriber: Single primary subscriber pattern
-   - UnifiedRouter: Centralized routing coordination
-   - RoutingStats: Performance metrics tracking
-   - Background async message processing
+3. **Trust Configuration System** (Task 2.3)
+   - Trust configuration TOML parser
+   - Git repository and signing key configuration
+   - DevMode enable/disable controls
+   - Configuration validation
+   - 64 tests, 100% audit score
 
 **Quality Metrics:**
-- 42 new tests (100% pass rate)
-- 2,990 lines of implementation code
+- 231 tests passing (100% pass rate)
+- 7,000+ lines of implementation code
+- 97% average audit score (95% + 96% + 100%)
 - Zero warnings (compiler + clippy + rustdoc)
 - 100% rustdoc coverage
-- ADR-WASM-009 and ADR-WASM-018 compliant
+- ADR-WASM-005 and ADR-WASM-010 compliant
 
-## Block 3 Summary
+## Block 4 Summary
 
-**Total Progress:** 89% (16/18 tasks complete)
+**Total Progress:** 40% (6/15 tasks complete)
 
-- **Phase 1:** ✅ 100% (3/3 tasks) - Foundation
-- **Phase 2:** ✅ 100% (2/2 tasks) - Registry & Routing  
-- **Phase 3:** ✅ 100% (8/8 tasks) - Supervision & Health
-- **Phase 4:** ✅ 100% (3/3 tasks) - MessageBroker Integration
-- **Phase 5:** ⏸️ 0% (0/2 tasks) - Advanced Patterns
+- **Phase 1:** ✅ 100% (3/3 tasks) - WASM-OSL Security Bridge
+- **Phase 2:** ✅ 100% (3/3 tasks) - Trust-Level System  
+- **Phase 3:** ⏳ 0% (0/3 tasks) - Capability Enforcement
+- **Phase 4:** ⏸️ 0% (0/3 tasks) - ComponentActor Security Integration
+- **Phase 5:** ⏸️ 0% (0/3 tasks) - Testing & Documentation
 
-**Next Milestone:** Complete Phase 5 to finish Block 3 (100% complete)
+**Next Milestone:** Complete Phase 3 (Capability Enforcement with airssys-osl)
