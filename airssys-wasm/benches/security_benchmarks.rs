@@ -22,7 +22,7 @@
 //! - **DEBT-WASM-004**: Technical Debt Resolution (Item #3: Capability Enforcement)
 //! - **ADR-WASM-005**: Capability-Based Security Model
 
-#![expect(clippy::unwrap_used, reason = "unwrap is acceptable in benchmark code")]
+#![allow(clippy::unwrap_used, reason = "unwrap is acceptable in benchmark code")]
 
 // Layer 1: Standard library imports
 use std::hint::black_box;
@@ -144,7 +144,7 @@ fn bench_rate_limit_check_multiple_senders(c: &mut Criterion) {
 
     // Pre-populate with 100 senders
     for i in 0..100 {
-        let sender = ComponentId::new(&format!("sender-{}", i));
+        let sender = ComponentId::new(format!("sender-{}", i));
         limiter.check_rate_limit(&sender);
     }
 

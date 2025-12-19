@@ -28,6 +28,17 @@
 
 ## Implementation Strategy
 
+### CRITICAL: Task 3.1 DashMap Migration
+
+**⚠️ IMPORTANT ARCHITECTURE CHANGE**: Task 3.1 was implemented using **DashMap** instead of the originally planned `RwLock<HashMap>`. This eliminates RwLock poisoning risks and simplifies the API.
+
+**API Impact:**
+- ✅ **Correct API**: `check_capability(component_id, resource, permission)` (3 parameters)
+- ❌ **OLD API (DO NOT USE)**: `check_capability(&registry, component_id, resource, permission)` (4 parameters)
+- ❌ **Non-existent**: `COMPONENT_SECURITY_REGISTRY` global variable
+
+**Reference:** See `.memory-bank/sub-projects/airssys-wasm/docs/knowledges/knowledge-wasm-023-dashmap-migration-rationale.md` for complete details.
+
 ### Core Design Principles
 
 1. **Zero Boilerplate**: Macro reduces capability checks to one line
@@ -55,9 +66,7 @@
                      ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ 3. require_capability! Macro Expansion                      │
-│    check_capability(&REGISTRY, component_id, path, "read")  │
-│    .into_result()                                           │
-│    .map_err(|reason| CapabilityError::Denied(reason))?     │
+│    check_capability(component_id, path, "read")?            │
 └────────────────────┬────────────────────────────────────────┘
                      │
                      ▼
@@ -240,13 +249,7 @@ impl From<CapabilityCheckResult> for Result<(), CapabilityError> {
 /// // expands to:
 /// {
 ///     let component_id = get_current_component_id()?;
-///     let result = check_capability(
-///         &COMPONENT_SECURITY_REGISTRY,
-///         component_id,
-///         path,
-///         "read",
-///     );
-///     result.into_result().map_err(CapabilityError::access_denied)?;
+///     check_capability(&component_id, path, "read")?;
 /// }
 /// ```
 ///
@@ -264,16 +267,12 @@ macro_rules! require_capability {
                 format!("Failed to get component ID: {}", e)
             ))?;
         
-        // Perform capability check
-        let result = $crate::security::enforcement::check_capability(
-            &$crate::security::enforcement::COMPONENT_SECURITY_REGISTRY,
+        // Perform capability check (3-parameter API, no registry needed)
+        $crate::security::enforcement::check_capability(
             &component_id,
             $resource,
             $permission,
-        );
-        
-        // Convert to Result and propagate error
-        result.into_result().map_err($crate::security::enforcement::CapabilityError::access_denied)?;
+        )?;
     }};
 }
 ```
@@ -685,9 +684,7 @@ pub fn storage_delete(key: String) -> Result<(), CapabilityError> {
 
 require_capability!(Filesystem, path, "read")?;
 // expands to:
-check_capability(&REGISTRY, component_id, path, "read")
-    .into_result()
-    .map_err(CapabilityError::access_denied)?;
+check_capability(component_id, path, "read")?;
 ```
 
 ### Task 3.3 Integration (Audit Logging)
