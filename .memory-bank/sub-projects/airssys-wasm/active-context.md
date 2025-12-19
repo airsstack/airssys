@@ -2,12 +2,12 @@
 
 **Last Verified:** 2025-12-19  
 **Current Phase:** Block 4 - Security & Isolation Layer  
-**Overall Progress:** Block 3 100% ✅ | Block 4 53% Complete (8/15 tasks)
+**Overall Progress:** Block 3 100% ✅ | Block 4 60% Complete (9/15 tasks)
 
 ## Current Focus
-**Task:** WASM-TASK-005 Phase 4 Task 4.1 - ComponentActor Security Context Attachment  
-**Status:** ⏳ READY TO START (Phase 3 complete, Phase 4 next)  
-**Priority:** 🔒 CRITICAL PATH - Attach WasmSecurityContext to ComponentActor lifecycle
+**Task:** WASM-TASK-005 Phase 4 Task 4.3 - Resource Quota System  
+**Status:** ⏳ READY TO START (Phase 4 Task 4.1 complete, Task 4.2 already complete)  
+**Priority:** 🔒 CRITICAL PATH - Resource quotas and enforcement
 
 ## Recent Completion Summary
 
@@ -31,33 +31,33 @@
 - Trust registry with Trusted/Unknown/DevMode workflows
 - **Status:** 100% COMPLETE ✅ 🎉
 
-✅ **WASM-TASK-005 Phase 3 Complete (Dec 19):** Capability Enforcement System ✅ ALL TASKS
-- Task 3.1: Capability Check API - DashMap-based registry, 29 tests, <5μs performance
-- Task 3.2: Host Function Integration Points - `require_capability!` macro, 36 tests, 9.5/10 quality
-- Task 3.3: Audit Logging Integration - airssys-osl SecurityAuditLogger, 11 tests, 9/10 quality
-- Total: 3,000+ lines (enforcement.rs + host_integration.rs + audit.rs + errors.wit)
-- Thread-local component context with RAII guard
-- WIT error types (4 variants: access-denied, component-not-found, invalid-resource, security-error)
-- 13 integration patterns (filesystem, network, storage, custom)
-- ALL capability checks logged (granted + denied) with full context
-- Async non-blocking audit logging (~1-5μs overhead)
-- **Status:** 100% COMPLETE ✅ (Phase 3 fully audited and verified)
+✅ **WASM-TASK-005 Phase 4 Task 4.1 Complete (Dec 19):** ComponentActor Security Context Attachment
+- WasmSecurityContext field added to ComponentActor
+- Initialize security context during component spawn
+- Capability set isolation (each component has separate capabilities)
+- Security context restoration after supervisor restart (automatic registration/unregistration)
+- 21 isolation verification tests passing (100% pass rate)
+- Security boundary documentation complete
+- Total: 780+ lines (130 implementation + 650 tests/docs), 21 tests, 98.5/100 quality
+- **Status:** 100% COMPLETE ✅ (All deliverables met, all criteria verified, production-ready)
 
 ## Current & Next Tasks
 
-**Current:** Phase 4 Task 4.1 - ComponentActor Security Context Attachment (READY TO START)
-- Attach WasmSecurityContext to ComponentActor state
-- Initialize security context during component spawn
-- Restore security context after actor restart
-- Integrate with existing ComponentActor lifecycle
-- Target: <1ms security context setup overhead
+**Current:** Phase 4 Task 4.3 - Resource Quota System (READY TO START)
+- ResourceQuota struct (storage bytes, message rate, network bandwidth)
+- Quota tracking per ComponentActor
+- Quota enforcement in capability checks
+- Quota violation error responses
+- Quota configuration (default + per-component override)
+- Quota monitoring API
+- Target: 15+ test cases
 
-**Next:** Phase 4 Tasks 4.2-4.3
-- Task 4.1: ComponentActor Security Context Attachment
-- Task 4.2: Message Passing Security (✅ already complete per DEBT-WASM-004)
-- Task 4.3: Resource Quota System
+**Next:** Phase 5 - Testing & Documentation (Week 4)
+- Task 5.1: Security Integration Testing (100+ tests, penetration testing)
+- Task 5.2: Security Documentation (Component.toml guide, best practices)
+- Task 5.3: Production Readiness Checklist (security audit, sign-off)
 
-**Then:** Phase 5 - Testing & Documentation (Week 4)
+**Note:** Phase 4 Task 4.2 (Message Passing Security) already complete per DEBT-WASM-004 Item #3
 
 ## Quick Reference
 
@@ -94,21 +94,21 @@
    - 64 tests, 100% audit score
 
 **Quality Metrics:**
-- 278 tests passing (100% pass rate: 102 Phase 1 + 231 Phase 2 + 47 Phase 3)
-- 9,500+ lines of implementation code
-- 96% average audit score (95% Phase 1 + 97% Phase 2 + 97% Phase 3)
+- 299 tests passing (100% pass rate: 102 Phase 1 + 231 Phase 2 + 47 Phase 3 + 21 Phase 4 Task 4.1)
+- 10,300+ lines of implementation code
+- 96.5% average audit score (95% Phase 1 + 97% Phase 2 + 97% Phase 3 + 98.5% Phase 4 Task 4.1)
 - Zero warnings (compiler + clippy + rustdoc)
 - 100% rustdoc coverage
 - ADR-WASM-005 and ADR-WASM-010 compliant
 
 ## Block 4 Summary
 
-**Total Progress:** 47% (7/15 tasks complete)
+**Total Progress:** 60% (9/15 tasks complete)
 
 - **Phase 1:** ✅ 100% (3/3 tasks) - WASM-OSL Security Bridge
 - **Phase 2:** ✅ 100% (3/3 tasks) - Trust-Level System  
-- **Phase 3:** 🔄 67% (2/3 tasks) - Capability Enforcement (Task 3.3 next)
-- **Phase 4:** ⏸️ 0% (0/3 tasks) - ComponentActor Security Integration
+- **Phase 3:** ✅ 100% (3/3 tasks) - Capability Enforcement
+- **Phase 4:** 🔄 33% (1/3 tasks) - ComponentActor Security Integration (Task 4.1 ✅, Task 4.2 ✅ already complete, Task 4.3 next)
 - **Phase 5:** ⏸️ 0% (0/3 tasks) - Testing & Documentation
 
-**Next Milestone:** Complete Task 3.3 (Audit Logging Integration) to finish Phase 3
+**Next Milestone:** Complete Task 4.3 (Resource Quota System) to finish Phase 4

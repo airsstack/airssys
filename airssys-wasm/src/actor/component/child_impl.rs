@@ -286,6 +286,19 @@ where
         self.set_started_at(Some(Utc::now()));
         self.set_state(ActorState::Ready);
 
+        // 11. Register security context (WASM-TASK-005 Phase 4 Task 4.1)
+        // Register component's security context with the global enforcement system
+        // so host functions can perform capability checks. This context is preserved
+        // across supervisor restarts.
+        if let Err(e) = crate::security::register_component(self.security_context().clone()) {
+            warn!(
+                component_id = %self.component_id().as_str(),
+                error = %e,
+                "Failed to register security context (continuing with startup)"
+            );
+            // Note: This is non-fatal as capability checks will fail-safe (deny-by-default)
+        }
+
         info!(
             component_id = %self.component_id().as_str(),
             memory_limit = max_memory_bytes,
@@ -478,7 +491,19 @@ where
         // 5. Transition state
         self.set_state(ActorState::Terminated);
 
-        // 6. Log shutdown with uptime metrics
+        // 6. Unregister security context (WASM-TASK-005 Phase 4 Task 4.1)
+        // Remove component's security context from global enforcement system
+        // to prevent capability checks after component termination.
+        if let Err(e) = crate::security::unregister_component(self.component_id().as_str()) {
+            warn!(
+                component_id = %self.component_id().as_str(),
+                error = %e,
+                "Failed to unregister security context (non-fatal)"
+            );
+            // Note: This is non-fatal as component is already terminated
+        }
+
+        // 7. Log shutdown with uptime metrics
         if let Some(uptime) = self.uptime() {
             info!(
                 component_id = %self.component_id().as_str(),

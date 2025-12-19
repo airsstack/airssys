@@ -664,6 +664,23 @@ where
     /// - Max message size (default 1MB)
     /// - Capability check timeout
     security_config: crate::core::config::SecurityConfig,
+
+    /// WASM security context (WASM-TASK-005 Phase 4 Task 4.1).
+    ///
+    /// Encapsulates component-specific security context including:
+    /// - Component ID (maps to ACL identity)
+    /// - WASM capability set (Filesystem, Network, Storage)
+    ///
+    /// This context is **immutable** after component spawn to prevent runtime
+    /// privilege escalation. It bridges WASM capability declarations from
+    /// Component.toml to airssys-osl ACL/RBAC policies.
+    ///
+    /// The security context is:
+    /// - Initialized during component spawn
+    /// - Preserved across supervisor restarts
+    /// - Isolated per component (no capability sharing)
+    /// - Used by host functions for capability checks
+    security_context: crate::security::WasmSecurityContext,
 }
 
 /// Actor lifecycle state machine.
@@ -992,6 +1009,13 @@ where
         capabilities: CapabilitySet,
         initial_state: S,
     ) -> Self {
+        // Create WASM security context with empty capability set
+        // Real capabilities will be set via with_security_context() builder method
+        let security_context = crate::security::WasmSecurityContext::new(
+            component_id.as_str().to_string(),
+            crate::security::WasmCapabilitySet::new(),
+        );
+
         Self {
             component_id,
             wasm_runtime: None,
@@ -1008,6 +1032,7 @@ where
             event_callback: None,
             rate_limiter: crate::core::rate_limiter::MessageRateLimiter::default(),
             security_config: crate::core::config::SecurityConfig::default(),
+            security_context,
         }
     }
 
@@ -1176,6 +1201,95 @@ where
     /// ```
     pub fn uptime(&self) -> Option<chrono::Duration> {
         self.started_at.map(|started| Utc::now() - started)
+    }
+
+    /// Get the component's security context.
+    ///
+    /// Returns a reference to the `WasmSecurityContext` containing the component's
+    /// unique identifier and granted capabilities. This context is immutable after
+    /// component spawn to prevent privilege escalation.
+    ///
+    /// # Returns
+    ///
+    /// Reference to the component's `WasmSecurityContext`
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// // Get component security context
+    /// let context = actor.security_context();
+    /// println!("Component ID: {}", context.component_id);
+    ///
+    /// // Convert to ACL entries for capability check
+    /// let acl_entries = context.capabilities.to_acl_entries(&context.component_id);
+    /// ```
+    ///
+    /// # Implementation Note (WASM-TASK-005 Phase 4 Task 4.1)
+    ///
+    /// This method provides read-only access to the security context. The context
+    /// is set during component spawn and preserved across supervisor restarts.
+    /// Components cannot modify their own security context at runtime.
+    pub fn security_context(&self) -> &crate::security::WasmSecurityContext {
+        &self.security_context
+    }
+
+    /// Set the component's security context (builder pattern).
+    ///
+    /// Replaces the component's security context with a new one. This is typically
+    /// called during component initialization before spawn, or during supervisor
+    /// restart to restore the previous security context.
+    ///
+    /// # Arguments
+    ///
+    /// * `context` - New security context to set
+    ///
+    /// # Returns
+    ///
+    /// `self` for method chaining (builder pattern)
+    ///
+    /// # Security Considerations
+    ///
+    /// This method should only be called:
+    /// 1. During component initialization (before spawn)
+    /// 2. During supervisor restart (restoring previous context)
+    ///
+    /// **Never** call this method after a component is running, as it would
+    /// allow privilege escalation by changing capabilities at runtime.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// use airssys_wasm::security::{WasmCapability, WasmCapabilitySet, WasmSecurityContext};
+    ///
+    /// // Create security context with capabilities
+    /// let capabilities = WasmCapabilitySet::new()
+    ///     .grant(WasmCapability::Filesystem {
+    ///         paths: vec!["/app/data/*".to_string()],
+    ///         permissions: vec!["read".to_string()],
+    ///     });
+    ///
+    /// let context = WasmSecurityContext::new(
+    ///     "my-component".to_string(),
+    ///     capabilities,
+    /// );
+    ///
+    /// // Set security context during initialization
+    /// let actor = ComponentActor::new(
+    ///     ComponentId::new("my-component"),
+    ///     metadata,
+    ///     CapabilitySet::new(),
+    ///     (),
+    /// )
+    /// .with_security_context(context);
+    /// ```
+    ///
+    /// # Implementation Note (WASM-TASK-005 Phase 4 Task 4.1)
+    ///
+    /// This builder method enables fluent API for component construction while
+    /// maintaining security context immutability after spawn.
+    pub fn with_security_context(mut self, context: crate::security::WasmSecurityContext) -> Self {
+        self.security_context = context;
+        self
     }
 
     /// Load WASM component bytes from storage.
