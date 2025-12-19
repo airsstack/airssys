@@ -65,6 +65,9 @@ dashmap = { workspace = true }
 # SHA-256 hashing for component identity (WASM-TASK-005 Phase 2 Task 2.2)
 sha2 = "0.10"
 
+# Parking lot for quota time-window tracking (WASM-TASK-005 Phase 4 Task 4.3)
+parking_lot = "0.12"
+
 [dev-dependencies]
 # WAT compiler for test fixtures (workspace dependency)
 wat = { workspace = true }

@@ -169,6 +169,7 @@ pub mod config;
 pub mod enforcement;
 pub mod host_integration;
 pub mod parser;
+pub mod quota;
 pub mod trust;
 
 // Re-export primary types for ergonomic imports
@@ -188,4 +189,5 @@ pub use enforcement::{
     CapabilityCheckResult, CapabilityChecker, ComponentContextGuard,
 };
 pub use parser::{ComponentManifestParser, ParseError, ParseResult};
+pub use quota::{QuotaError, QuotaResourceStatus, QuotaStatus, QuotaTracker, QuotaUsage, ResourceQuota};
 pub use trust::{ComponentSource, TrustError, TrustLevel, TrustRegistry, TrustResult, TrustSource};

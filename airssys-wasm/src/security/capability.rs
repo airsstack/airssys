@@ -143,6 +143,7 @@
 
 // Layer 1: Standard library imports
 use std::collections::HashSet;
+use std::sync::Arc;
 
 // Layer 2: Third-party crate imports
 use airssys_osl::core::context::SecurityContext;
@@ -150,7 +151,7 @@ use airssys_osl::middleware::security::{AclEntry, AclPolicy};
 use serde::{Deserialize, Serialize};
 
 // Layer 3: Internal module imports
-// (none - this is a leaf module)
+use crate::security::quota::{ResourceQuota, QuotaTracker};
 
 /// WASM component capability types.
 ///
@@ -734,8 +735,9 @@ impl WasmCapabilitySet {
 /// WASM component security context.
 ///
 /// Encapsulates all security-related information for a WASM component instance,
-/// including its unique identifier and granted capabilities. This context is
-/// attached to each `ComponentActor` and used to evaluate host function access.
+/// including its unique identifier, granted capabilities, and resource quotas.
+/// This context is attached to each `ComponentActor` and used to evaluate host
+/// function access.
 ///
 /// # Lifecycle
 ///
@@ -746,8 +748,9 @@ impl WasmCapabilitySet {
 ///
 /// # Immutability
 ///
-/// Once created, a `WasmSecurityContext` is **immutable**. Components cannot
-/// request additional capabilities at runtime, preventing privilege escalation.
+/// Once created, a `WasmSecurityContext` is **immutable** regarding capabilities.
+/// Components cannot request additional capabilities at runtime, preventing
+/// privilege escalation. Quota usage tracking is mutable (via `Arc<QuotaTracker>`).
 ///
 /// # Examples
 ///
@@ -794,10 +797,16 @@ pub struct WasmSecurityContext {
 
     /// Set of capabilities granted to the component
     pub capabilities: WasmCapabilitySet,
+
+    /// Resource quota configuration (Task 4.3)
+    pub resource_quota: ResourceQuota,
+
+    /// Quota usage tracker (Task 4.3)
+    pub quota_tracker: Arc<QuotaTracker>,
 }
 
 impl WasmSecurityContext {
-    /// Create a new WASM security context.
+    /// Create a new WASM security context with default quota.
     ///
     /// # Arguments
     ///
@@ -806,7 +815,7 @@ impl WasmSecurityContext {
     ///
     /// # Returns
     ///
-    /// A new `WasmSecurityContext` instance
+    /// A new `WasmSecurityContext` instance with default resource quotas
     ///
     /// # Example
     ///
@@ -827,9 +836,63 @@ impl WasmSecurityContext {
     /// assert_eq!(context.component_id, "my-component");
     /// ```
     pub fn new(component_id: String, capabilities: WasmCapabilitySet) -> Self {
+        let resource_quota = ResourceQuota::default();
+        let quota_tracker = Arc::new(QuotaTracker::new(resource_quota.clone()));
+
         Self {
             component_id,
             capabilities,
+            resource_quota,
+            quota_tracker,
+        }
+    }
+
+    /// Create a new WASM security context with custom quota (Task 4.3).
+    ///
+    /// # Arguments
+    ///
+    /// - `component_id`: Unique identifier for the component
+    /// - `capabilities`: Set of capabilities granted to the component
+    /// - `resource_quota`: Custom resource quota configuration
+    ///
+    /// # Returns
+    ///
+    /// A new `WasmSecurityContext` instance with custom resource quotas
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use airssys_wasm::security::{WasmCapability, WasmCapabilitySet, WasmSecurityContext};
+    /// use airssys_wasm::security::quota::ResourceQuota;
+    ///
+    /// let capabilities = WasmCapabilitySet::new()
+    ///     .grant(WasmCapability::Filesystem {
+    ///         paths: vec!["/app/data/*".to_string()],
+    ///         permissions: vec!["read".to_string()],
+    ///     });
+    ///
+    /// let quota = ResourceQuota::new()
+    ///     .with_storage(50 * 1024 * 1024)  // 50 MB
+    ///     .with_message_rate(500);          // 500 msg/sec
+    ///
+    /// let context = WasmSecurityContext::with_quota(
+    ///     "my-component".to_string(),
+    ///     capabilities,
+    ///     quota,
+    /// );
+    /// ```
+    pub fn with_quota(
+        component_id: String,
+        capabilities: WasmCapabilitySet,
+        resource_quota: ResourceQuota,
+    ) -> Self {
+        let quota_tracker = Arc::new(QuotaTracker::new(resource_quota.clone()));
+
+        Self {
+            component_id,
+            capabilities,
+            resource_quota,
+            quota_tracker,
         }
     }
 
