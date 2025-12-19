@@ -133,6 +133,7 @@
 //! - **Microsoft Rust Guidelines**: M-DESIGN-FOR-AI, M-ESSENTIAL-FN-INHERENT ✅
 
 // Layer 1: Standard library imports
+use std::cell::RefCell;
 use std::sync::{Arc, OnceLock};
 
 // Layer 2: Third-party crate imports
@@ -837,6 +838,322 @@ pub fn check_capability(
         .to_result()
 }
 
+// ═════════════════════════════════════════════════════════════════════════════
+// Thread-Local Component Context Management
+// ═════════════════════════════════════════════════════════════════════════════
+
+// Thread-local storage for current component ID.
+//
+// This allows host functions to retrieve the component ID without
+// passing it through all function arguments. The WASM runtime sets
+// this before invoking host functions and clears it after completion.
+//
+// Thread Safety: Each thread has its own independent component context,
+// preventing race conditions when multiple components execute concurrently.
+//
+// Security: The context must be set by trusted runtime code before calling
+// host functions. Host functions should never trust component-provided IDs.
+thread_local! {
+    static CURRENT_COMPONENT_ID: RefCell<Option<String>> = const { RefCell::new(None) };
+}
+
+/// Sets the current component ID for this thread.
+///
+/// This function must be called by the WASM runtime before invoking any
+/// host function for a component. It establishes the security context
+/// for all capability checks during host function execution.
+///
+/// # Security Note
+///
+/// This function should ONLY be called by trusted WASM runtime code,
+/// never by component code or untrusted sources.
+///
+/// # Examples
+///
+/// ## Runtime Usage Pattern
+///
+/// ```rust,ignore
+/// use airssys_wasm::security::enforcement::{
+///     set_component_context, clear_component_context
+/// };
+///
+/// // Called by runtime before host function invocation
+/// set_component_context("component-123".to_string());
+///
+/// // Host function executes (can use require_capability! macro)
+/// let result = my_host_function()?;
+///
+/// // Called by runtime after host function returns
+/// clear_component_context();
+/// ```
+///
+/// ## Basic Usage
+///
+/// ```rust
+/// use airssys_wasm::security::enforcement::{
+///     set_component_context, get_component_context, clear_component_context
+/// };
+///
+/// set_component_context("test-component".to_string());
+/// assert_eq!(get_component_context().unwrap(), "test-component");
+/// clear_component_context();
+/// ```
+pub fn set_component_context(component_id: String) {
+    CURRENT_COMPONENT_ID.with(|id| {
+        *id.borrow_mut() = Some(component_id);
+    });
+}
+
+/// Gets the current component ID for this thread.
+///
+/// Returns the component ID set by `set_component_context()`, or an error
+/// if no component ID is set.
+///
+/// # Errors
+///
+/// Returns error if called outside a host function invocation context
+/// (i.e., when no component context has been set).
+///
+/// # Examples
+///
+/// ## Successful Retrieval
+///
+/// ```rust
+/// use airssys_wasm::security::enforcement::{
+///     set_component_context, get_component_context, clear_component_context
+/// };
+///
+/// set_component_context("comp-1".to_string());
+/// let id = get_component_context().unwrap();
+/// assert_eq!(id, "comp-1");
+/// clear_component_context();
+/// ```
+///
+/// ## Error Case (No Context Set)
+///
+/// ```rust
+/// use airssys_wasm::security::enforcement::get_component_context;
+///
+/// let result = get_component_context();
+/// assert!(result.is_err());
+/// assert!(result.unwrap_err().contains("No component ID set"));
+/// ```
+pub fn get_component_context() -> Result<String, String> {
+    CURRENT_COMPONENT_ID.with(|id| {
+        id.borrow()
+            .as_ref()
+            .cloned()
+            .ok_or_else(|| "No component ID set for current thread".to_string())
+    })
+}
+
+/// Clears the current component ID after host function returns.
+///
+/// This function must be called by the WASM runtime after a host function
+/// completes to prevent context leakage between component invocations.
+///
+/// # Security Note
+///
+/// Failing to clear the context can lead to security vulnerabilities where
+/// one component's context is mistakenly used for another component's
+/// host function invocations.
+///
+/// # Examples
+///
+/// ## Runtime Cleanup Pattern
+///
+/// ```rust
+/// use airssys_wasm::security::enforcement::{
+///     set_component_context, clear_component_context, get_component_context
+/// };
+///
+/// // Setup context
+/// set_component_context("comp-cleanup".to_string());
+/// assert!(get_component_context().is_ok());
+///
+/// // Cleanup context
+/// clear_component_context();
+/// assert!(get_component_context().is_err());
+/// ```
+pub fn clear_component_context() {
+    CURRENT_COMPONENT_ID.with(|id| {
+        *id.borrow_mut() = None;
+    });
+}
+
+/// RAII guard for scoped component context management.
+///
+/// Automatically clears the component context when dropped, ensuring
+/// proper cleanup even in the face of panics or early returns.
+///
+/// # Examples
+///
+/// ```rust
+/// use airssys_wasm::security::enforcement::{
+///     ComponentContextGuard, get_component_context
+/// };
+///
+/// {
+///     let _guard = ComponentContextGuard::new("scoped-comp".to_string());
+///     assert_eq!(get_component_context().unwrap(), "scoped-comp");
+/// } // Guard dropped here, context automatically cleared
+///
+/// // Context is cleared after guard drop
+/// assert!(get_component_context().is_err());
+/// ```
+#[must_use = "ComponentContextGuard clears context on drop"]
+pub struct ComponentContextGuard {
+    _phantom: std::marker::PhantomData<()>,
+}
+
+impl ComponentContextGuard {
+    /// Creates a new context guard and sets the component context.
+    ///
+    /// # Arguments
+    ///
+    /// - `component_id`: The component ID to set for the current thread
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use airssys_wasm::security::enforcement::{
+    ///     ComponentContextGuard, get_component_context
+    /// };
+    ///
+    /// let _guard = ComponentContextGuard::new("guard-comp".to_string());
+    /// assert_eq!(get_component_context().unwrap(), "guard-comp");
+    /// ```
+    pub fn new(component_id: String) -> Self {
+        set_component_context(component_id);
+        Self {
+            _phantom: std::marker::PhantomData,
+        }
+    }
+}
+
+impl Drop for ComponentContextGuard {
+    fn drop(&mut self) {
+        clear_component_context();
+    }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Capability Check Macro
+// ═════════════════════════════════════════════════════════════════════════════
+
+/// Require capability check in host functions (macro).
+///
+/// This macro provides ergonomic capability checking for host functions,
+/// reducing boilerplate from 5+ lines to a single line. It automatically
+/// retrieves the current component ID from thread-local storage and
+/// performs the capability check.
+///
+/// # Syntax
+///
+/// ```rust,ignore
+/// require_capability!(resource, permission)?;
+/// ```
+///
+/// # Arguments
+///
+/// - `resource`: Resource being accessed (path, endpoint, namespace)
+/// - `permission`: Permission requested ("read", "write", "connect", etc.)
+///
+/// # Returns
+///
+/// Returns `Result<(), CapabilityCheckError>`. Use `?` operator to propagate errors.
+///
+/// # Macro Expansion
+///
+/// The macro expands to:
+///
+/// ```rust,ignore
+/// // require_capability!("/app/data/file.json", "read")?;
+/// // expands to:
+/// {
+///     let component_id = $crate::security::enforcement::get_component_context()
+///         .map_err(|e| $crate::security::enforcement::CapabilityCheckError::AccessDenied {
+///             reason: format!("Failed to get component context: {}", e),
+///         })?;
+///     
+///     $crate::security::enforcement::check_capability(
+///         &component_id,
+///         "/app/data/file.json",
+///         "read",
+///     )
+/// }
+/// ```
+///
+/// # Examples
+///
+/// ## Filesystem Host Function
+///
+/// ```rust,ignore
+/// use airssys_wasm::require_capability;
+///
+/// fn filesystem_read(path: &str) -> Result<Vec<u8>, HostError> {
+///     // Single-line capability check
+///     require_capability!(path, "read")?;
+///     
+///     // Proceed with actual file read
+///     std::fs::read(path).map_err(HostError::from)
+/// }
+/// ```
+///
+/// ## Network Host Function
+///
+/// ```rust,ignore
+/// use airssys_wasm::require_capability;
+/// use std::net::TcpStream;
+///
+/// fn network_connect(endpoint: &str) -> Result<TcpStream, HostError> {
+///     require_capability!(endpoint, "connect")?;
+///     
+///     TcpStream::connect(endpoint).map_err(HostError::from)
+/// }
+/// ```
+///
+/// ## Storage Host Function
+///
+/// ```rust,ignore
+/// use airssys_wasm::require_capability;
+///
+/// fn storage_write(key: &str, value: &[u8]) -> Result<(), HostError> {
+///     require_capability!(key, "write")?;
+///     
+///     STORAGE.insert(key, value)?;
+///     Ok(())
+/// }
+/// ```
+///
+/// # Performance
+///
+/// - Zero runtime overhead compared to manual check_capability() call
+/// - Compile-time macro expansion (no runtime cost)
+/// - Inlined for maximum performance
+///
+/// # Thread Safety
+///
+/// The macro uses thread-local storage for component context, ensuring
+/// thread-safe operation even when multiple components execute concurrently.
+#[macro_export]
+macro_rules! require_capability {
+    ($resource:expr, $permission:expr) => {{
+        // Get current component ID from thread-local storage
+        let component_id = $crate::security::enforcement::get_component_context()
+            .map_err(|e| $crate::security::enforcement::CapabilityCheckError::AccessDenied {
+                reason: format!("Failed to get component context: {}", e),
+            })?;
+
+        // Perform capability check (3-parameter API)
+        $crate::security::enforcement::check_capability(
+            &component_id,
+            $resource,
+            $permission,
+        )
+    }};
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1077,5 +1394,289 @@ mod tests {
 
         // All components should be registered
         assert_eq!(checker.component_count(), 10);
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    // Component Context Management Tests
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// Test set and get component context.
+    #[test]
+    fn test_component_context_set_get() {
+        set_component_context("test-ctx".to_string());
+        let result = get_component_context();
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "test-ctx");
+        clear_component_context();
+    }
+
+    /// Test get component context when not set.
+    #[test]
+    fn test_component_context_not_set() {
+        clear_component_context(); // Ensure clean state
+        let result = get_component_context();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("No component ID set"));
+    }
+
+    /// Test clear component context.
+    #[test]
+    fn test_component_context_clear() {
+        set_component_context("clear-test".to_string());
+        assert!(get_component_context().is_ok());
+
+        clear_component_context();
+        assert!(get_component_context().is_err());
+    }
+
+    /// Test component context guard RAII pattern.
+    #[test]
+    fn test_component_context_guard() {
+        // Ensure clean state
+        clear_component_context();
+        assert!(get_component_context().is_err());
+
+        {
+            let _guard = ComponentContextGuard::new("guard-test".to_string());
+            assert_eq!(get_component_context().unwrap(), "guard-test");
+        } // Guard dropped here
+
+        // Context should be cleared after guard drop
+        assert!(get_component_context().is_err());
+    }
+
+    /// Test component context guard with early return.
+    #[test]
+    fn test_component_context_guard_early_return() {
+        fn test_function() -> Result<(), String> {
+            let _guard = ComponentContextGuard::new("early-return".to_string());
+            assert_eq!(get_component_context().unwrap(), "early-return");
+            
+            // Early return - guard should still clean up
+            return Err("early error".to_string());
+        }
+
+        clear_component_context();
+        let _ = test_function();
+        
+        // Context should be cleared even after early return
+        assert!(get_component_context().is_err());
+    }
+
+    /// Test component context thread isolation.
+    #[test]
+    fn test_component_context_thread_isolation() {
+        use std::thread;
+
+        // Main thread context
+        set_component_context("main-thread".to_string());
+
+        let handle = thread::spawn(|| {
+            // Spawned thread should have no context
+            assert!(get_component_context().is_err());
+
+            // Set context in spawned thread
+            set_component_context("spawned-thread".to_string());
+            assert_eq!(get_component_context().unwrap(), "spawned-thread");
+            
+            clear_component_context();
+        });
+
+        handle.join().expect("thread panicked");
+
+        // Main thread context should be unaffected
+        assert_eq!(get_component_context().unwrap(), "main-thread");
+        
+        clear_component_context();
+    }
+
+    /// Test multiple component context changes in same thread.
+    #[test]
+    fn test_component_context_multiple_changes() {
+        set_component_context("first".to_string());
+        assert_eq!(get_component_context().unwrap(), "first");
+
+        set_component_context("second".to_string());
+        assert_eq!(get_component_context().unwrap(), "second");
+
+        set_component_context("third".to_string());
+        assert_eq!(get_component_context().unwrap(), "third");
+
+        clear_component_context();
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    // Macro Tests
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// Test require_capability! macro with valid capability.
+    #[test]
+    fn test_macro_require_capability_granted() {
+        // Setup: Register component with filesystem capability
+        let capabilities = WasmCapabilitySet::new().grant(WasmCapability::Filesystem {
+            paths: vec!["/app/data/*".to_string()],
+            permissions: vec!["read".to_string()],
+        });
+
+        let security_ctx = WasmSecurityContext::new("macro-granted".to_string(), capabilities);
+        register_component(security_ctx).expect("registration failed");
+
+        // Set component context
+        set_component_context("macro-granted".to_string());
+
+        // Test macro
+        let result: Result<(), CapabilityCheckError> = (|| {
+            require_capability!("/app/data/file.json", "read")?;
+            Ok(())
+        })();
+
+        assert!(result.is_ok());
+
+        // Cleanup
+        clear_component_context();
+        unregister_component("macro-granted").expect("unregistration failed");
+    }
+
+    /// Test require_capability! macro with denied capability.
+    #[test]
+    fn test_macro_require_capability_denied() {
+        // Setup: Register component with no capabilities
+        let security_ctx = WasmSecurityContext::new(
+            "macro-denied".to_string(),
+            WasmCapabilitySet::new(),
+        );
+        register_component(security_ctx).expect("registration failed");
+
+        // Set component context
+        set_component_context("macro-denied".to_string());
+
+        // Test macro
+        let result: Result<(), CapabilityCheckError> = (|| {
+            require_capability!("/etc/passwd", "read")?;
+            Ok(())
+        })();
+
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            CapabilityCheckError::AccessDenied { .. }
+        ));
+
+        // Cleanup
+        clear_component_context();
+        unregister_component("macro-denied").expect("unregistration failed");
+    }
+
+    /// Test require_capability! macro without component context.
+    #[test]
+    fn test_macro_require_capability_no_context() {
+        // Ensure no context is set
+        clear_component_context();
+
+        // Test macro
+        let result: Result<(), CapabilityCheckError> = (|| {
+            require_capability!("/app/data/file.json", "read")?;
+            Ok(())
+        })();
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(matches!(err, CapabilityCheckError::AccessDenied { .. }));
+        assert!(err.to_string().contains("Failed to get component context"));
+    }
+
+    /// Test require_capability! macro with multiple checks.
+    #[test]
+    fn test_macro_require_capability_multiple() {
+        // Setup: Register component with multiple capabilities
+        let capabilities = WasmCapabilitySet::new()
+            .grant(WasmCapability::Filesystem {
+                paths: vec!["/app/data/*".to_string()],
+                permissions: vec!["read".to_string(), "write".to_string()],
+            })
+            .grant(WasmCapability::Network {
+                endpoints: vec!["api.example.com:443".to_string()],
+                permissions: vec!["connect".to_string()],
+            });
+
+        let security_ctx = WasmSecurityContext::new("macro-multi".to_string(), capabilities);
+        register_component(security_ctx).expect("registration failed");
+
+        // Set component context
+        set_component_context("macro-multi".to_string());
+
+        // Test multiple macro invocations
+        let result: Result<(), CapabilityCheckError> = (|| {
+            require_capability!("/app/data/file.json", "read")?;
+            require_capability!("/app/data/file.json", "write")?;
+            require_capability!("api.example.com:443", "connect")?;
+            Ok(())
+        })();
+
+        assert!(result.is_ok());
+
+        // Cleanup
+        clear_component_context();
+        unregister_component("macro-multi").expect("unregistration failed");
+    }
+
+    /// Test require_capability! macro in nested function calls.
+    #[test]
+    fn test_macro_require_capability_nested() {
+        fn inner_function() -> Result<(), CapabilityCheckError> {
+            require_capability!("/app/data/inner.json", "read")?;
+            Ok(())
+        }
+
+        fn outer_function() -> Result<(), CapabilityCheckError> {
+            require_capability!("/app/data/outer.json", "read")?;
+            inner_function()?;
+            Ok(())
+        }
+
+        // Setup
+        let capabilities = WasmCapabilitySet::new().grant(WasmCapability::Filesystem {
+            paths: vec!["/app/data/*".to_string()],
+            permissions: vec!["read".to_string()],
+        });
+
+        let security_ctx = WasmSecurityContext::new("macro-nested".to_string(), capabilities);
+        register_component(security_ctx).expect("registration failed");
+        set_component_context("macro-nested".to_string());
+
+        // Test
+        let result = outer_function();
+        assert!(result.is_ok());
+
+        // Cleanup
+        clear_component_context();
+        unregister_component("macro-nested").expect("unregistration failed");
+    }
+
+    /// Test require_capability! macro with guard pattern.
+    #[test]
+    fn test_macro_require_capability_with_guard() {
+        // Setup
+        let capabilities = WasmCapabilitySet::new().grant(WasmCapability::Filesystem {
+            paths: vec!["/app/data/*".to_string()],
+            permissions: vec!["read".to_string()],
+        });
+
+        let security_ctx = WasmSecurityContext::new("macro-guard".to_string(), capabilities);
+        register_component(security_ctx).expect("registration failed");
+
+        let result: Result<(), CapabilityCheckError> = (|| {
+            let _guard = ComponentContextGuard::new("macro-guard".to_string());
+            require_capability!("/app/data/file.json", "read")?;
+            Ok(())
+        })();
+
+        assert!(result.is_ok());
+
+        // Context should be cleared after guard drop
+        assert!(get_component_context().is_err());
+
+        // Cleanup
+        unregister_component("macro-guard").expect("unregistration failed");
     }
 }
