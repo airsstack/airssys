@@ -163,6 +163,7 @@
 
 // Module declarations (§4.3 - ONLY declarations in mod.rs)
 pub mod approval;
+pub mod audit;
 pub mod capability;
 pub mod config;
 pub mod enforcement;
@@ -175,6 +176,7 @@ pub use approval::{
     ApprovalDecision, ApprovalError, ApprovalRequest, ApprovalResult, ApprovalState, ApprovalStore,
     ApprovalWorkflow, ReviewQueue, StateTransition,
 };
+pub use audit::{CapabilityCheckResultType, WasmAuditLogger, WasmCapabilityAuditLog};
 pub use capability::{WasmCapability, WasmCapabilitySet, WasmSecurityContext};
 pub use config::{
     ConfigError, ConfigManager, ConfigResult, ConfigValidator, TrustConfig, TrustSettings,
@@ -182,8 +184,8 @@ pub use config::{
 };
 pub use enforcement::{
     check_capability, clear_component_context, get_component_context, register_component,
-    set_component_context, unregister_component, CapabilityCheckError, CapabilityCheckResult,
-    CapabilityChecker, ComponentContextGuard,
+    set_component_context, set_global_audit_logger, unregister_component, CapabilityCheckError,
+    CapabilityCheckResult, CapabilityChecker, ComponentContextGuard,
 };
 pub use parser::{ComponentManifestParser, ParseError, ParseResult};
 pub use trust::{ComponentSource, TrustError, TrustLevel, TrustRegistry, TrustResult, TrustSource};

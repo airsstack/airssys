@@ -143,6 +143,8 @@ use thiserror::Error;
 
 // Layer 3: Internal module imports
 use crate::security::WasmSecurityContext;
+use airssys_osl::middleware::security::audit::ConsoleSecurityAuditLogger;
+use crate::security::audit::{WasmAuditLogger, WasmCapabilityAuditLog};
 
 /// Result of a capability check operation.
 ///
@@ -296,6 +298,13 @@ pub enum CapabilityCheckError {
     /// allowing host functions to propagate denials as errors.
     #[error("Access denied: {reason}")]
     AccessDenied { reason: String },
+
+    /// Audit logging error.
+    ///
+    /// This occurs when audit logging fails. Note that audit logging failures
+    /// should NOT prevent capability checks from succeeding.
+    #[error("Audit logging failed: {reason}")]
+    AuditLogError { reason: String },
 }
 
 /// Thread-safe capability checking engine with DashMap-backed context cache.
@@ -681,6 +690,49 @@ impl CapabilityChecker {
 /// Used by the free function API (`check_capability()`, `register_component()`, etc.).
 static GLOBAL_CHECKER: OnceLock<CapabilityChecker> = OnceLock::new();
 
+// ═════════════════════════════════════════════════════════════════════════════
+// Global Audit Logger
+// ═════════════════════════════════════════════════════════════════════════════
+
+// Global audit logger instance (follows same pattern as GLOBAL_CHECKER)
+static GLOBAL_AUDIT_LOGGER: OnceLock<WasmAuditLogger> = OnceLock::new();
+
+/// Get global audit logger instance.
+///
+/// Lazily initializes with ConsoleSecurityAuditLogger for development.
+/// Use `set_global_audit_logger()` to inject a custom logger.
+fn global_audit_logger() -> &'static WasmAuditLogger {
+    GLOBAL_AUDIT_LOGGER.get_or_init(|| {
+        // Default to console logger for development
+        let console_logger = Arc::new(ConsoleSecurityAuditLogger::new());
+        WasmAuditLogger::new(console_logger)
+    })
+}
+
+/// Set global audit logger (for testing or custom implementations).
+///
+/// # Errors
+///
+/// Returns an error if the global audit logger has already been set.
+///
+/// # Examples
+///
+/// ```no_run
+/// use std::sync::Arc;
+/// use airssys_wasm::security::audit::WasmAuditLogger;
+/// use airssys_osl::middleware::security::audit::ConsoleSecurityAuditLogger;
+///
+/// let custom_logger = Arc::new(ConsoleSecurityAuditLogger::new());
+/// let audit_logger = WasmAuditLogger::new(custom_logger);
+/// airssys_wasm::security::enforcement::set_global_audit_logger(audit_logger).unwrap();
+/// ```
+pub fn set_global_audit_logger(logger: WasmAuditLogger) -> Result<(), String> {
+    GLOBAL_AUDIT_LOGGER
+        .set(logger)
+        .map_err(|_| "Global audit logger already set".to_string())
+}
+
+
 /// Get or initialize the global capability checker.
 ///
 /// Returns a reference to the singleton `CapabilityChecker` instance,
@@ -833,9 +885,32 @@ pub fn check_capability(
     resource: &str,
     permission: &str,
 ) -> Result<(), CapabilityCheckError> {
-    global_checker()
+    let result = global_checker()
         .check(component_id, resource, permission)
-        .to_result()
+        .to_result();
+
+    // Audit log the capability check (best-effort, non-blocking)
+    let log = match &result {
+        Ok(_) => WasmCapabilityAuditLog::granted(component_id, resource, permission),
+        Err(e) => WasmCapabilityAuditLog::denied(
+            component_id,
+            resource,
+            permission,
+            e.to_string(),
+        ),
+    };
+
+    // Spawn async logging task if Tokio runtime is available (best-effort)
+    let logger = global_audit_logger().clone();
+    if tokio::runtime::Handle::try_current().is_ok() {
+        tokio::spawn(async move {
+            if let Err(e) = logger.log_capability_check(log).await {
+                eprintln!("[WARN] Failed to log capability check: {e}");
+            }
+        });
+    }
+
+    result
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
