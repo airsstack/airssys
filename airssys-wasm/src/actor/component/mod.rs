@@ -32,7 +32,8 @@ pub mod type_conversion;
 // Public re-exports
 #[doc(inline)]
 pub use component_actor::{
-    ActorState, ComponentActor, ComponentMessage, HealthStatus, WasmRuntime,
+    ActorState, ComponentActor, ComponentMessage, HealthStatus, MessageReceptionConfig,
+    WasmRuntime,
 };
 #[doc(inline)]
 pub use component_registry::ComponentRegistry;

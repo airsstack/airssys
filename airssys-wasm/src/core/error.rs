@@ -711,6 +711,27 @@ impl WasmError {
         }
     }
 
+    /// Create a backpressure applied error (WASM-TASK-006 Task 1.2).
+    ///
+    /// This error indicates that message delivery was rejected due to backpressure
+    /// (mailbox full). The component's message queue has reached capacity and
+    /// cannot accept new messages until some are processed.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::error::WasmError;
+    ///
+    /// let err = WasmError::backpressure_applied("Component mailbox full (1000 messages)");
+    /// assert!(err.to_string().contains("mailbox full"));
+    /// ```
+    pub fn backpressure_applied(reason: impl Into<String>) -> Self {
+        Self::ExecutionFailed {
+            reason: format!("Backpressure: {}", reason.into()),
+            source: None,
+        }
+    }
+
     /// Create a resource limit exceeded error.
     ///
     /// # Examples

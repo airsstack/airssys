@@ -136,9 +136,9 @@ pub mod supervisor;
 #[doc(inline)]
 pub use component::{
     extract_wasm_results, prepare_wasm_params, ActorState, ComponentActor, ComponentMessage,
-    ComponentRegistry, ComponentSpawner, ComponentSupervisor, HealthStatus, RestartDecision,
-    SupervisionHandle, SupervisionState, SupervisionStatistics, SupervisionTree,
-    SupervisionTreeNode, WasmRuntime,
+    ComponentRegistry, ComponentSpawner, ComponentSupervisor, HealthStatus,
+    MessageReceptionConfig, RestartDecision, SupervisionHandle, SupervisionState,
+    SupervisionStatistics, SupervisionTree, SupervisionTreeNode, WasmRuntime,
 };
 
 // Supervisor subdomain re-exports

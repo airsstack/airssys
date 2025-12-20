@@ -457,59 +457,85 @@ where
                     );
                 }
 
-                trace!(
+                 trace!(
                     component_id = %component_id_str,
                     sender = %sender_str,
                     "Security checks passed (took < 5μs)"
-                );
+                 );
 
-                // 3. Route to WASM handle-message export
-                let runtime = self
-                    .wasm_runtime_mut()
-                    .ok_or_else(|| ComponentActorError::not_ready(&component_id_str))?;  
-                let handle_fn_opt = runtime.exports().handle_message;
-                
-                if let Some(handle_fn) = handle_fn_opt {
-                    trace!(
-                        component_id = %component_id_str,
-                        sender = %sender_str,
-                        payload_len = payload.len(),
-                        "Calling handle-message export"
-                    );
-
-                    // 3.1. Call handle-message export
-                    // Note: handle-message signature is component-specific
-                    // For component model, it takes serialized payload
-                    // We pass the raw payload as-is (component deserializes internally)
-                    let mut results = vec![];
-                    handle_fn
-                        .call_async(&mut *runtime.store_mut(), &[], &mut results)
-                        .await
-                        .map_err(|e| {
-                            // wasmtime::Error doesn't implement std::error::Error
-                            ComponentActorError::from(WasmError::execution_failed(
+                // 3. Backpressure Detection (WASM-TASK-006 Task 1.2) 🚦
+                if self.message_config().enable_backpressure {
+                    let current_depth = self.message_metrics().get_queue_depth();
+                    if current_depth >= self.message_config().max_queue_depth as u64 {
+                        self.message_metrics().record_backpressure_drop();
+                        
+                        warn!(
+                            component_id = %component_id_str,
+                            sender = %sender_str,
+                            current_depth = current_depth,
+                            max_depth = self.message_config().max_queue_depth,
+                            "Backpressure: Message dropped (mailbox full)"
+                        );
+                        
+                        return Err(ComponentActorError::from(
+                            WasmError::backpressure_applied(
                                 format!(
-                                    "handle-message trapped in component {} (from {}): {}",
-                                    component_id_str, sender_str, e
+                                    "Component {} mailbox full ({} messages), backpressure applied",
+                                    component_id_str, current_depth
                                 )
-                            ))
-                        })?;
-
-                    debug!(
-                        component_id = %component_id_str,
-                        sender = %sender_str,
-                        "handle-message export call completed successfully"
-                    );
-                } else {
-                    warn!(
-                        component_id = %component_id_str,
-                        sender = %sender_str,
-                        "Component has no handle-message export, message discarded"
-                    );
+                            )
+                        ));
+                    }
+                    
+                    // Update queue depth estimate (increment before processing)
+                    self.message_metrics().set_queue_depth(current_depth + 1);
                 }
 
-                Ok(())
-            }
+                 // 4. Route to WASM handle-message export with timeout
+                 let result = self.invoke_handle_message_with_timeout(sender, payload).await
+                    .map_err(ComponentActorError::from);
+                 
+                 // Update queue depth estimate (decrement after processing)
+                 if self.message_config().enable_backpressure {
+                     let current_depth = self.message_metrics().get_queue_depth();
+                     if current_depth > 0 {
+                         self.message_metrics().set_queue_depth(current_depth - 1);
+                     }
+                 }
+                 
+                 // Handle result and update metrics
+                 match result {
+                     Ok(_) => {
+                         self.message_metrics().record_message_received();
+                         debug!(
+                             component_id = %component_id_str,
+                             sender = %sender_str,
+                             "Message processed successfully"
+                         );
+                         Ok(())
+                     }
+                     Err(e) if matches!(e.inner, WasmError::ExecutionTimeout { .. }) => {
+                         self.message_metrics().record_delivery_timeout();
+                         warn!(
+                             component_id = %component_id_str,
+                             sender = %sender_str,
+                             timeout_ms = self.message_config().delivery_timeout_ms,
+                             "Message delivery timeout"
+                         );
+                         Err(e)
+                     }
+                     Err(e) => {
+                         self.message_metrics().record_delivery_error();
+                         warn!(
+                             component_id = %component_id_str,
+                             sender = %sender_str,
+                             error = %e,
+                             "Message delivery error"
+                         );
+                         Err(e)
+                     }
+                 }
+             }
 
             ComponentMessage::InterComponentWithCorrelation {
                 sender,

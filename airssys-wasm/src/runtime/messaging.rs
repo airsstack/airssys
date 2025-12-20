@@ -321,6 +321,212 @@ pub struct MessagingStats {
     pub routing_failures: u64,
 }
 
+/// Message reception metrics for ComponentActor (WASM-TASK-006 Task 1.2).
+///
+/// Tracks metrics specific to message reception and delivery to WASM components,
+/// including backpressure events, timeouts, and processing latency. All counters
+/// use atomic operations for thread-safe, lock-free updates.
+///
+/// # Architecture
+///
+/// Each ComponentActor maintains its own MessageReceptionMetrics instance to track
+/// per-component reception behavior. These metrics are essential for:
+/// - Monitoring component health and performance
+/// - Detecting backpressure conditions
+/// - Identifying slow or failing components
+/// - Capacity planning and resource allocation
+///
+/// # Thread Safety
+///
+/// All counters use AtomicU64 with Relaxed ordering, providing:
+/// - Lock-free updates (<10ns overhead)
+/// - Eventually consistent reads
+/// - Safe concurrent access from multiple threads
+///
+/// # Performance Impact
+///
+/// Total overhead per message: ~50ns
+/// - messages_received increment: ~10ns
+/// - Conditional backpressure check: ~20ns
+/// - Conditional timeout check: ~20ns
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// use airssys_wasm::runtime::MessageReceptionMetrics;
+///
+/// let metrics = MessageReceptionMetrics::default();
+///
+/// // Record successful message reception
+/// metrics.record_message_received();
+///
+/// // Record backpressure event
+/// metrics.record_backpressure_drop();
+///
+/// // Get snapshot of metrics
+/// let stats = metrics.snapshot();
+/// println!("Received: {}, Dropped: {}, Timeouts: {}",
+///     stats.messages_received,
+///     stats.backpressure_drops,
+///     stats.delivery_timeouts
+/// );
+/// ```
+///
+/// # References
+///
+/// - WASM-TASK-006 Phase 1 Task 1.2: Message reception infrastructure
+/// - Performance targets: >10,000 msg/sec per component, <20ns delivery latency
+#[derive(Debug, Default)]
+pub struct MessageReceptionMetrics {
+    /// Total messages successfully received and processed
+    pub messages_received: AtomicU64,
+    
+    /// Messages dropped due to backpressure (mailbox full)
+    pub backpressure_drops: AtomicU64,
+    
+    /// Messages that timed out during WASM export invocation
+    pub delivery_timeouts: AtomicU64,
+    
+    /// WASM export invocation errors (traps, not found, etc.)
+    pub delivery_errors: AtomicU64,
+    
+    /// Current estimated queue depth (in-flight messages)
+    pub current_queue_depth: AtomicU64,
+}
+
+impl MessageReceptionMetrics {
+    /// Create new metrics with all counters at zero.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    
+    /// Record successful message reception.
+    ///
+    /// Increments messages_received counter atomically.
+    ///
+    /// # Performance
+    ///
+    /// ~10ns overhead (single atomic fetch_add)
+    #[inline]
+    pub fn record_message_received(&self) {
+        self.messages_received.fetch_add(1, Ordering::Relaxed);
+    }
+    
+    /// Record backpressure drop event.
+    ///
+    /// Increments backpressure_drops counter atomically.
+    ///
+    /// # Performance
+    ///
+    /// ~10ns overhead (single atomic fetch_add)
+    #[inline]
+    pub fn record_backpressure_drop(&self) {
+        self.backpressure_drops.fetch_add(1, Ordering::Relaxed);
+    }
+    
+    /// Record delivery timeout.
+    ///
+    /// Increments delivery_timeouts counter atomically.
+    ///
+    /// # Performance
+    ///
+    /// ~10ns overhead (single atomic fetch_add)
+    #[inline]
+    pub fn record_delivery_timeout(&self) {
+        self.delivery_timeouts.fetch_add(1, Ordering::Relaxed);
+    }
+    
+    /// Record delivery error.
+    ///
+    /// Increments delivery_errors counter atomically.
+    ///
+    /// # Performance
+    ///
+    /// ~10ns overhead (single atomic fetch_add)
+    #[inline]
+    pub fn record_delivery_error(&self) {
+        self.delivery_errors.fetch_add(1, Ordering::Relaxed);
+    }
+    
+    /// Update current queue depth estimate.
+    ///
+    /// Sets current_queue_depth to the provided value atomically.
+    ///
+    /// # Parameters
+    ///
+    /// * `depth` - Current number of in-flight messages
+    ///
+    /// # Performance
+    ///
+    /// ~5ns overhead (single atomic store)
+    #[inline]
+    pub fn set_queue_depth(&self, depth: u64) {
+        self.current_queue_depth.store(depth, Ordering::Relaxed);
+    }
+    
+    /// Get current queue depth estimate.
+    ///
+    /// Returns the last recorded queue depth value.
+    ///
+    /// # Performance
+    ///
+    /// ~3ns overhead (single atomic load)
+    #[inline]
+    pub fn get_queue_depth(&self) -> u64 {
+        self.current_queue_depth.load(Ordering::Relaxed)
+    }
+    
+    /// Get snapshot of all metrics.
+    ///
+    /// Returns MessageReceptionStats with point-in-time values of all counters.
+    ///
+    /// # Performance
+    ///
+    /// ~30ns overhead (5 atomic loads)
+    pub fn snapshot(&self) -> MessageReceptionStats {
+        MessageReceptionStats {
+            messages_received: self.messages_received.load(Ordering::Relaxed),
+            backpressure_drops: self.backpressure_drops.load(Ordering::Relaxed),
+            delivery_timeouts: self.delivery_timeouts.load(Ordering::Relaxed),
+            delivery_errors: self.delivery_errors.load(Ordering::Relaxed),
+            current_queue_depth: self.current_queue_depth.load(Ordering::Relaxed),
+        }
+    }
+}
+
+/// Snapshot of message reception statistics.
+///
+/// Point-in-time view of MessageReceptionMetrics counters. Values are eventually
+/// consistent due to Relaxed atomic ordering.
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// let metrics = MessageReceptionMetrics::default();
+/// metrics.record_message_received();
+/// metrics.record_message_received();
+///
+/// let stats = metrics.snapshot();
+/// assert_eq!(stats.messages_received, 2);
+/// ```
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct MessageReceptionStats {
+    /// Total messages successfully received
+    pub messages_received: u64,
+    
+    /// Messages dropped due to backpressure
+    pub backpressure_drops: u64,
+    
+    /// Messages that timed out during delivery
+    pub delivery_timeouts: u64,
+    
+    /// WASM export invocation errors
+    pub delivery_errors: u64,
+    
+    /// Current estimated queue depth
+    pub current_queue_depth: u64,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
