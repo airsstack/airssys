@@ -802,9 +802,14 @@ pub enum ComponentMessage {
     },
 
     /// Message from another component.
+    ///
+    /// Phase 1 uses direct ComponentId addressing (KNOWLEDGE-WASM-024).
+    /// The `to` field specifies the target component for routing.
     InterComponent {
         /// Sender component ID
         sender: ComponentId,
+        /// Target component ID (direct addressing)
+        to: ComponentId,
         /// Multicodec-encoded payload
         payload: Vec<u8>,
     },
@@ -813,9 +818,14 @@ pub enum ComponentMessage {
     ///
     /// Used for request-response patterns where the sender expects a correlated
     /// response message. The correlation_id allows matching responses to requests.
+    ///
+    /// Phase 1 uses direct ComponentId addressing (KNOWLEDGE-WASM-024).
+    /// The `to` field specifies the target component for routing.
     InterComponentWithCorrelation {
         /// Sender component ID
         sender: ComponentId,
+        /// Target component ID (direct addressing)
+        to: ComponentId,
         /// Multicodec-encoded payload
         payload: Vec<u8>,
         /// Correlation ID for request-response pattern
@@ -1624,6 +1634,9 @@ where
         // Publish request message via MessageBroker
         let message = ComponentMessage::InterComponentWithCorrelation {
             sender: self.component_id.clone(),
+            // TODO(WASM-TASK-006): Phase 1 uses direct ComponentId addressing
+            // This needs to specify actual target component in Phase 1 implementation
+            to: ComponentId::new("__topic_broadcast__"),
             payload: serde_json::to_vec(&request_msg)
                 .map_err(|e| WasmError::internal(format!("Failed to serialize request: {}", e)))?,
             correlation_id,
@@ -2056,9 +2069,9 @@ where
         use crate::core::WasmError;
 
         match msg {
-            ComponentMessage::InterComponent { sender, payload }
+            ComponentMessage::InterComponent { sender, to: _, payload }
             | ComponentMessage::InterComponentWithCorrelation {
-                sender, payload, ..
+                sender, to: _, payload, ..
             } => {
                 let component_id_str = self.component_id().as_str();
                 let sender_str = sender.as_str();
@@ -2247,14 +2260,17 @@ mod tests {
     #[test]
     fn test_component_message_inter_component() {
         let sender_id = ComponentId::new("sender");
+        let target_id = ComponentId::new("target");
         let msg = ComponentMessage::InterComponent {
             sender: sender_id.clone(),
+            to: target_id.clone(),
             payload: vec![7, 8, 9],
         };
 
         match msg {
-            ComponentMessage::InterComponent { sender, payload } => {
+            ComponentMessage::InterComponent { sender, to, payload } => {
                 assert_eq!(sender, sender_id);
+                assert_eq!(to, target_id);
                 assert_eq!(payload, vec![7, 8, 9]);
             }
             _ => unreachable!("Expected InterComponent variant"),

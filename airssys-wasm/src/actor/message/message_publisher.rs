@@ -175,6 +175,9 @@ impl MessagePublisher {
     pub async fn publish(&self, topic: &str, payload: Vec<u8>) -> Result<(), WasmError> {
         let message = ComponentMessage::InterComponent {
             sender: self.component_id.clone(),
+            // TODO(WASM-TASK-006): Phase 1 uses direct ComponentId addressing
+            // This topic-based routing is Phase 2+. For now, use placeholder.
+            to: ComponentId::new("__topic_broadcast__"),
             payload,
         };
 
@@ -285,6 +288,9 @@ impl MessagePublisher {
     ) -> Result<(), WasmError> {
         let message = ComponentMessage::InterComponentWithCorrelation {
             sender: self.component_id.clone(),
+            // TODO(WASM-TASK-006): Phase 1 uses direct ComponentId addressing
+            // This topic-based routing is Phase 2+. For now, use placeholder.
+            to: ComponentId::new("__topic_broadcast__"),
             payload,
             correlation_id,
         };

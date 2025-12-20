@@ -352,7 +352,7 @@ where
                 Ok(())
             }
 
-            ComponentMessage::InterComponent { sender, payload } => {
+            ComponentMessage::InterComponent { sender, to: _, payload } => {
                 let component_id_str = self.component_id().as_str().to_string();
                 let sender_str = sender.as_str().to_string();
                 
@@ -513,6 +513,7 @@ where
 
             ComponentMessage::InterComponentWithCorrelation {
                 sender,
+                to: _,
                 payload,
                 correlation_id,
             } => {
@@ -1003,14 +1004,17 @@ mod tests {
     #[test]
     fn test_inter_component_message() {
         let sender = ComponentId::new("sender-component");
+        let target = ComponentId::new("target-component");
         let msg = ComponentMessage::InterComponent {
             sender: sender.clone(),
+            to: target.clone(),
             payload: vec![10, 20, 30],
         };
 
         match msg {
-            ComponentMessage::InterComponent { sender: s, payload } => {
+            ComponentMessage::InterComponent { sender: s, to, payload } => {
                 assert_eq!(s, sender);
+                assert_eq!(to, target);
                 assert_eq!(payload, vec![10, 20, 30]);
             }
             _ => panic!("Wrong message type"),

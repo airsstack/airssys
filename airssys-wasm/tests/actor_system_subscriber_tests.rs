@@ -95,6 +95,7 @@ async fn test_message_routes_to_mailbox() {
     let component_id = ComponentId::new("test-component");
     let message = ComponentMessage::InterComponent {
         sender: component_id.clone(),
+        to: ComponentId::new("target"), // TODO(WASM-TASK-006): Use actual target
         payload: vec![1, 2, 3],
     };
 
@@ -132,6 +133,7 @@ async fn test_unified_router_centralizes_routing() {
     let target = ComponentId::new("target");
     let message = ComponentMessage::InterComponent {
         sender: source.clone(),
+        to: ComponentId::new("target"), // TODO(WASM-TASK-006): Use actual target
         payload: vec![1, 2, 3],
     };
 
@@ -195,6 +197,7 @@ async fn test_error_handling_unreachable_component() {
     // Publish message for nonexistent component
     let message = ComponentMessage::InterComponent {
         sender: ComponentId::new("nonexistent"),
+        to: ComponentId::new("target"), // TODO(WASM-TASK-006): Use actual target
         payload: vec![1, 2, 3],
     };
     let envelope = airssys_rt::message::MessageEnvelope::new(message);
@@ -230,6 +233,7 @@ async fn test_concurrent_routing() {
             let target = ComponentId::new(format!("target-{}", i));
             let message = ComponentMessage::InterComponent {
                 sender: source.clone(),
+                to: ComponentId::new("target"), // TODO(WASM-TASK-006): Use actual target
                 payload: vec![i as u8],
             };
             router_clone.route(source, target, message).await
@@ -286,6 +290,7 @@ async fn test_target_extraction_from_message() {
     // InterComponent message
     let message = ComponentMessage::InterComponent {
         sender: component_id.clone(),
+        to: component_id.clone(), // TODO(WASM-TASK-006): Use actual target
         payload: vec![1, 2, 3],
     };
     let result =
@@ -299,6 +304,7 @@ async fn test_target_extraction_from_message() {
     // InterComponentWithCorrelation message
     let message = ComponentMessage::InterComponentWithCorrelation {
         sender: component_id.clone(),
+        to: component_id.clone(), // TODO(WASM-TASK-006): Use actual target
         payload: vec![1, 2, 3],
         correlation_id: uuid::Uuid::new_v4(),
     };
@@ -332,6 +338,7 @@ async fn test_multiple_messages_sequential() {
     for i in 0..5 {
         let message = ComponentMessage::InterComponent {
             sender: ComponentId::new(format!("component-{}", i)),
+            to: ComponentId::new("target"), // TODO(WASM-TASK-006): Fix target
             payload: vec![i as u8],
         };
         let envelope = airssys_rt::message::MessageEnvelope::new(message);

@@ -71,6 +71,7 @@ pub mod async_host;
 pub mod engine;
 pub mod limits;
 pub mod loader;
+pub mod messaging;
 pub mod store_manager;
 
 // Public re-exports for ergonomic imports
@@ -83,4 +84,5 @@ pub use limits::{
     ComponentResourceLimiter, MemoryConfig, MemoryMetrics, ResourceLimits, ResourceLimitsBuilder,
 };
 pub use loader::ComponentLoader;
+pub use messaging::{MessagingService, MessagingStats};
 pub use store_manager::StoreWrapper;

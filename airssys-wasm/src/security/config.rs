@@ -1154,6 +1154,13 @@ impl ConfigManager {
 
         // Copy current config to backup
         tokio::fs::copy(&self.config_path, &backup_path).await?;
+        
+        // Ensure the backup is flushed to disk before returning
+        let file = tokio::fs::OpenOptions::new()
+            .write(true)
+            .open(&backup_path)
+            .await?;
+        file.sync_all().await?;
 
         // Audit log via tracing
         info!(
@@ -1213,6 +1220,14 @@ impl ConfigManager {
 
         // Restore backup
         tokio::fs::copy(backup_path, &self.config_path).await?;
+        
+        // Ensure the file is flushed to disk before returning
+        // This prevents race conditions where subsequent reads might see stale data
+        let file = tokio::fs::OpenOptions::new()
+            .write(true)
+            .open(&self.config_path)
+            .await?;
+        file.sync_all().await?;
 
         // Audit log via tracing
         info!(

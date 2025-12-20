@@ -217,6 +217,7 @@ impl Default for TimeoutHandler {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
     use crate::actor::message::correlation_tracker::PendingRequest;
@@ -252,21 +253,20 @@ mod tests {
         tracker
             .register_pending(request)
             .await
-            .expect("Should register pending request successfully");
+            .expect("TEST: Should register pending request successfully");
 
         // Register timeout with same duration
-        let _handle =
-            handler.register_timeout(corr_id, Duration::from_millis(100), tracker.clone());
+        handler.register_timeout(corr_id, Duration::from_millis(100), tracker.clone());
 
         assert_eq!(handler.active_count(), 1);
 
         // Wait for timeout to fire
-        let response = rx.await.expect("Should receive timeout response");
+        let response = rx.await.expect("TEST: Should receive timeout response");
 
         // Verify timeout error received
         assert_eq!(response.correlation_id, corr_id);
         assert!(response.result.is_err());
-        assert_eq!(response.result.unwrap_err(), RequestError::Timeout);
+        assert!(matches!(response.result, Err(RequestError::Timeout)));
 
         // Give task time to cleanup (50ms margin for background task completion)
         tokio::time::sleep(Duration::from_millis(50)).await;
@@ -296,7 +296,7 @@ mod tests {
         tracker
             .register_pending(request)
             .await
-            .expect("Should register pending request successfully");
+            .expect("TEST: Should register pending request successfully");
 
         // Register timeout
         handler.register_timeout(corr_id, Duration::from_secs(10), tracker.clone());
@@ -320,13 +320,13 @@ mod tests {
         tracker
             .resolve(corr_id, response)
             .await
-            .expect("Should resolve request successfully");
+            .expect("TEST: Should resolve request successfully");
 
         // Wait a bit to ensure timeout doesn't fire (100ms is enough for verification)
         tokio::time::sleep(Duration::from_millis(100)).await;
 
         // Verify response received (not timeout)
-        let received = rx.await.expect("Should receive response message");
+        let received = rx.await.expect("TEST: Should receive response message");
         assert!(received.result.is_ok());
     }
 
@@ -352,7 +352,7 @@ mod tests {
             tracker
                 .register_pending(request)
                 .await
-                .expect("Should register pending request successfully");
+                .expect("TEST: Should register pending request successfully");
 
             handler.register_timeout(corr_id, Duration::from_secs(10), tracker.clone());
         }

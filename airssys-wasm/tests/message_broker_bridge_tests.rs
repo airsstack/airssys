@@ -37,6 +37,7 @@ async fn test_broker_bridge_publish() {
 
     let message = ComponentMessage::InterComponent {
         sender: ComponentId::new("test-sender"),
+        to: ComponentId::new("target"), // TODO(WASM-TASK-006): Use actual target
         payload: vec![1, 2, 3],
     };
 
@@ -160,6 +161,7 @@ async fn test_publish_without_subscriber() {
 
     let message = ComponentMessage::InterComponent {
         sender: ComponentId::new("test-sender"),
+        to: ComponentId::new("target"), // TODO(WASM-TASK-006): Use actual target
         payload: vec![1, 2, 3],
     };
 
@@ -228,6 +230,7 @@ async fn test_broker_bridge_type_safety() {
     let msg2 = ComponentMessage::Shutdown;
     let msg3 = ComponentMessage::InterComponent {
         sender: ComponentId::new("sender"),
+        to: ComponentId::new("target"), // TODO(WASM-TASK-006): Use actual target
         payload: vec![1, 2, 3],
     };
 

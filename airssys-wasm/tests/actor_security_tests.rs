@@ -121,6 +121,7 @@ async fn test_authorized_intercomponent_message() {
     let msg = ComponentMessage::InterComponent {
         sender: sender.clone(),
         payload,
+        to: ComponentId::new("target"),
     };
 
     // Security checks should pass
@@ -149,6 +150,7 @@ async fn test_unauthorized_sender_denied() {
     let msg = ComponentMessage::InterComponent {
         sender: sender.clone(),
         payload,
+        to: ComponentId::new("target"),
     };
 
     // Security check should deny this message
@@ -187,6 +189,7 @@ async fn test_oversized_payload_rejected() {
     let sender = ComponentId::new("sender");
     let msg = ComponentMessage::InterComponent {
         sender: sender.clone(),
+        to: ComponentId::new("target"), // TODO(WASM-TASK-006): Use actual target
         payload: oversized_payload,
     };
 
@@ -252,6 +255,7 @@ async fn test_rate_limit_enforcement() {
     for i in 0..10 {
         let msg = ComponentMessage::InterComponent {
             sender: sender.clone(),
+            to: ComponentId::new("target"), // TODO(WASM-TASK-006): Use actual target
             payload: format!("message {}", i).into_bytes(),
         };
 
@@ -266,6 +270,7 @@ async fn test_rate_limit_enforcement() {
     // 11th message should be denied by rate limiter
     let msg = ComponentMessage::InterComponent {
         sender: sender.clone(),
+        to: ComponentId::new("target"), // TODO(WASM-TASK-006): Use actual target
         payload: b"message 11".to_vec(),
     };
 
@@ -318,6 +323,7 @@ async fn test_rate_limit_per_sender_isolation() {
         for i in 0..99 {
             let msg = ComponentMessage::InterComponent {
                 sender: sender.clone(),
+                to: ComponentId::new("target"), // TODO(WASM-TASK-006): Use actual target
                 payload: format!("message {}", i).into_bytes(),
             };
 
@@ -338,6 +344,7 @@ async fn test_rate_limit_per_sender_isolation() {
     for sender in [&sender1, &sender2, &sender3] {
         let msg = ComponentMessage::InterComponent {
             sender: sender.clone(),
+            to: ComponentId::new("target"), // TODO(WASM-TASK-006): Use actual target
             payload: b"message 100".to_vec(),
         };
 
@@ -373,6 +380,7 @@ async fn test_security_audit_logging() {
     let sender = ComponentId::new("sender");
     let msg = ComponentMessage::InterComponent {
         sender: sender.clone(),
+        to: ComponentId::new("target"), // TODO(WASM-TASK-006): Use actual target
         payload: b"audited message".to_vec(),
     };
 
@@ -404,6 +412,7 @@ async fn test_intercomponent_with_correlation_security() {
 
     let msg = ComponentMessage::InterComponentWithCorrelation {
         sender: sender.clone(),
+        to: ComponentId::new("target"), // TODO(WASM-TASK-006): Use actual target
         payload: b"correlated message".to_vec(),
         correlation_id: Uuid::new_v4(),
     };
@@ -433,6 +442,7 @@ async fn test_intercomponent_with_correlation_security() {
     let unauthorized_recipient = create_unauthorized_component("recipient");
     let msg_unauth = ComponentMessage::InterComponentWithCorrelation {
         sender: sender.clone(),
+        to: ComponentId::new("target"), // TODO(WASM-TASK-006): Use actual target
         payload: b"unauthorized correlated".to_vec(),
         correlation_id: Uuid::new_v4(),
     };
@@ -446,6 +456,7 @@ async fn test_intercomponent_with_correlation_security() {
     // 7.3: Oversized payload with correlation
     let msg_oversized = ComponentMessage::InterComponentWithCorrelation {
         sender: sender.clone(),
+        to: ComponentId::new("target"), // TODO(WASM-TASK-006): Use actual target
         payload: vec![0u8; 2 * 1024 * 1024], // 2MB
         correlation_id: Uuid::new_v4(),
     };
@@ -471,6 +482,7 @@ async fn test_payload_at_exact_limit() {
     let sender = ComponentId::new("sender");
     let msg = ComponentMessage::InterComponent {
         sender: sender.clone(),
+        to: ComponentId::new("target"), // TODO(WASM-TASK-006): Use actual target
         payload: exact_limit_payload,
     };
 
@@ -491,6 +503,7 @@ async fn test_payload_at_exact_limit() {
     let over_limit_payload = vec![0u8; 1024 * 1024 + 1];
     let msg_over = ComponentMessage::InterComponent {
         sender: sender.clone(),
+        to: ComponentId::new("target"), // TODO(WASM-TASK-006): Use actual target
         payload: over_limit_payload,
     };
 
@@ -514,6 +527,7 @@ async fn test_multiple_security_failures() {
     let sender = ComponentId::new("malicious-sender");
     let msg = ComponentMessage::InterComponent {
         sender: sender.clone(),
+        to: ComponentId::new("target"), // TODO(WASM-TASK-006): Use actual target
         payload: vec![0u8; 2 * 1024 * 1024], // 2MB oversized
     };
 
@@ -550,6 +564,7 @@ async fn test_security_performance() {
     for _ in 0..100 {
         let msg = ComponentMessage::InterComponent {
             sender: sender.clone(),
+            to: ComponentId::new("target"), // TODO(WASM-TASK-006): Use actual target
             payload: payload.clone(),
         };
         let _ = recipient.check_message_security(&msg);
@@ -562,6 +577,7 @@ async fn test_security_performance() {
     for _ in 0..iterations {
         let msg = ComponentMessage::InterComponent {
             sender: sender.clone(),
+            to: ComponentId::new("target"), // TODO(WASM-TASK-006): Use actual target
             payload: payload.clone(),
         };
 
@@ -698,6 +714,7 @@ async fn test_concurrent_security_checks() {
             for msg_id in 0..50 {
                 let msg = ComponentMessage::InterComponent {
                     sender: sender.clone(),
+                    to: ComponentId::new("target"), // TODO(WASM-TASK-006): Use actual target
                     payload: format!("message {}", msg_id).into_bytes(),
                 };
 
@@ -738,6 +755,7 @@ async fn test_security_mode_variations() {
     let sender = ComponentId::new("sender");
     let msg = ComponentMessage::InterComponent {
         sender: sender.clone(),
+        to: ComponentId::new("target"), // TODO(WASM-TASK-006): Use actual target
         payload: b"test".to_vec(),
     };
 

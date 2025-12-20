@@ -314,14 +314,13 @@ impl<B: MessageBroker<ComponentMessage> + Send + Sync + 'static> ActorSystemSubs
     /// This method is public for testing purposes.
     pub fn extract_target(message: &ComponentMessage) -> Result<ComponentId, WasmError> {
         match message {
-            ComponentMessage::InterComponent { sender, .. } => {
-                // Placeholder: In real implementation, message would contain target field
-                // For now, we use sender as a stand-in (this should be improved)
-                Ok(sender.clone())
+            ComponentMessage::InterComponent { to, .. } => {
+                // Phase 1: Direct ComponentId addressing
+                Ok(to.clone())
             }
-            ComponentMessage::InterComponentWithCorrelation { sender, .. } => {
-                // Placeholder: Same as above
-                Ok(sender.clone())
+            ComponentMessage::InterComponentWithCorrelation { to, .. } => {
+                // Phase 1: Direct ComponentId addressing
+                Ok(to.clone())
             }
             _ => Err(WasmError::internal(
                 "Cannot extract target from message type".to_string(),
@@ -433,9 +432,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_extract_target_inter_component() {
-        let component_id = ComponentId::new("test-component");
+        let sender_id = ComponentId::new("sender-component");
+        let target_id = ComponentId::new("test-component");
         let message = ComponentMessage::InterComponent {
-            sender: component_id.clone(),
+            sender: sender_id,
+            to: target_id.clone(),
             payload: vec![1, 2, 3],
         };
 
@@ -444,14 +445,16 @@ mod tests {
                 &message,
             );
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), component_id);
+        assert_eq!(result.unwrap(), target_id);
     }
 
     #[tokio::test]
     async fn test_extract_target_with_correlation() {
-        let component_id = ComponentId::new("test-component");
+        let sender_id = ComponentId::new("sender-component");
+        let target_id = ComponentId::new("test-component");
         let message = ComponentMessage::InterComponentWithCorrelation {
-            sender: component_id.clone(),
+            sender: sender_id,
+            to: target_id.clone(),
             payload: vec![1, 2, 3],
             correlation_id: uuid::Uuid::new_v4(),
         };
@@ -461,7 +464,7 @@ mod tests {
                 &message,
             );
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), component_id);
+        assert_eq!(result.unwrap(), target_id);
     }
 
     #[tokio::test]
@@ -485,9 +488,11 @@ mod tests {
     async fn test_route_message_validation() {
         let registry = ComponentRegistry::new();
         let subscriber_manager = Arc::new(SubscriberManager::new());
-        let component_id = ComponentId::new("test-component");
+        let sender_id = ComponentId::new("sender-component");
+        let target_id = ComponentId::new("test-component");
         let message = ComponentMessage::InterComponent {
-            sender: component_id.clone(),
+            sender: sender_id,
+            to: target_id,
             payload: vec![1, 2, 3],
         };
         let envelope = MessageEnvelope::new(message);

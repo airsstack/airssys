@@ -588,6 +588,7 @@ mod tests {
         let target = ComponentId::new("target");
         let message = ComponentMessage::InterComponent {
             sender: source.clone(),
+            to: target.clone(),
             payload: vec![1, 2, 3],
         };
 

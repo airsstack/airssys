@@ -100,12 +100,14 @@ fn test_intercomponent_message_construction() {
 
     let msg = ComponentMessage::InterComponent {
         sender: sender.clone(),
+        to: ComponentId::new("target"), // TODO(WASM-TASK-006): Use actual target
         payload: payload.clone(),
     };
 
     match msg {
         ComponentMessage::InterComponent {
             sender: s,
+            to: _,
             payload: p,
         } => {
             assert_eq!(s, sender);
@@ -349,6 +351,7 @@ fn test_intercomponent_payload_handling() {
 
     let msg = ComponentMessage::InterComponent {
         sender: sender.clone(),
+        to: ComponentId::new("target"), // TODO(WASM-TASK-006): Use actual target
         payload: payload.clone(),
     };
 
@@ -356,6 +359,7 @@ fn test_intercomponent_payload_handling() {
     match msg {
         ComponentMessage::InterComponent {
             sender: s,
+            to: _,
             payload: p,
         } => {
             assert_eq!(s.as_str(), "sender");
@@ -374,6 +378,7 @@ fn test_intercomponent_empty_payload() {
     let msg = ComponentMessage::InterComponent {
         sender,
         payload: payload.clone(),
+        to: ComponentId::new("target"),
     };
 
     match msg {

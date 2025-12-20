@@ -63,6 +63,7 @@ async fn test_full_pub_sub_flow_with_actor_system() {
     // Publish message
     let message = ComponentMessage::InterComponent {
         sender: publisher_id.clone(),
+        to: ComponentId::new("target"), // TODO(WASM-TASK-006): Use actual target
         payload: vec![1, 2, 3],
     };
     let envelope = airssys_rt::message::MessageEnvelope::new(message);
@@ -130,6 +131,7 @@ async fn test_multiple_subscribers_same_topic() {
     // Publish message
     let message = ComponentMessage::InterComponent {
         sender: ComponentId::new("publisher"),
+        to: ComponentId::new("target"), // TODO(WASM-TASK-006): Use actual target
         payload: vec![1, 2, 3],
     };
     let envelope = airssys_rt::message::MessageEnvelope::new(message);
@@ -270,6 +272,7 @@ async fn test_routing_statistics_accuracy() {
         let target = ComponentId::new(format!("target-{}", i));
         let message = ComponentMessage::InterComponent {
             sender: source.clone(),
+            to: ComponentId::new("target"), // TODO(WASM-TASK-006): Use actual target
             payload: vec![i as u8],
         };
 
