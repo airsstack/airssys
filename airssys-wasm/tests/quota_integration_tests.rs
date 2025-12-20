@@ -24,6 +24,8 @@
 //! - Quota update: <5μs per operation
 //! - Memory overhead: <1KB per component
 
+#![allow(clippy::panic)]
+
 use airssys_wasm::security::quota::{QuotaError, QuotaTracker, ResourceQuota};
 use airssys_wasm::security::{WasmCapability, WasmCapabilitySet, WasmSecurityContext};
 use std::sync::Arc;
@@ -110,7 +112,7 @@ fn test_storage_quota_enforcement_denied() {
             assert_eq!(requested, 3 * 1024);
             assert_eq!(limit, 10 * 1024);
         }
-        _ => panic!("Expected StorageExceeded error"),
+        other => panic!("Expected StorageExceeded error, got: {:?}", other),
     }
 }
 
@@ -171,7 +173,7 @@ fn test_message_rate_enforcement_denied() {
             assert_eq!(requested, 1);
             assert_eq!(limit, 10);
         }
-        _ => panic!("Expected MessageRateExceeded error"),
+        other => panic!("Expected MessageRateExceeded error, got: {:?}", other),
     }
 }
 
@@ -242,7 +244,7 @@ fn test_network_bandwidth_enforcement_denied() {
             assert_eq!(requested, 300);
             assert_eq!(limit, 1024);
         }
-        _ => panic!("Expected NetworkBandwidthExceeded error"),
+        other => panic!("Expected NetworkBandwidthExceeded error, got: {:?}", other),
     }
 }
 
@@ -300,7 +302,7 @@ fn test_cpu_time_enforcement_denied() {
             assert_eq!(requested, 300);
             assert_eq!(limit, 1000);
         }
-        _ => panic!("Expected CpuTimeExceeded error"),
+        other => panic!("Expected CpuTimeExceeded error, got: {:?}", other),
     }
 }
 
@@ -336,7 +338,7 @@ fn test_memory_enforcement_denied() {
             assert_eq!(requested, 15 * 1024);
             assert_eq!(limit, 10 * 1024);
         }
-        _ => panic!("Expected MemoryExceeded error"),
+        other => panic!("Expected MemoryExceeded error, got: {:?}", other),
     }
 }
 
@@ -371,7 +373,7 @@ fn test_quota_violation_clear_error_messages() {
     assert!(result.is_err());
 
     // Error message should be clear and informative
-    let error_message = result.unwrap_err().to_string();
+    let error_message = result.expect_err("Expected error").to_string();
     assert!(error_message.contains("Storage quota exceeded"));
     assert!(error_message.contains("1000"));
     assert!(error_message.contains("100"));
@@ -528,25 +530,31 @@ fn test_quota_unlimited() {
 #[test]
 fn test_parse_storage_sizes() {
     assert_eq!(
-        ResourceQuota::parse_storage("100MB").unwrap(),
+        ResourceQuota::parse_storage("100MB").expect("valid size"),
         100 * 1024 * 1024
     );
     assert_eq!(
-        ResourceQuota::parse_storage("1GB").unwrap(),
+        ResourceQuota::parse_storage("1GB").expect("valid size"),
         1024 * 1024 * 1024
     );
-    assert_eq!(ResourceQuota::parse_storage("500KB").unwrap(), 500 * 1024);
-    assert_eq!(ResourceQuota::parse_storage("1024B").unwrap(), 1024);
+    assert_eq!(
+        ResourceQuota::parse_storage("500KB").expect("valid size"),
+        500 * 1024
+    );
+    assert_eq!(
+        ResourceQuota::parse_storage("1024B").expect("valid size"),
+        1024
+    );
 }
 
 #[test]
 fn test_parse_bandwidth() {
     assert_eq!(
-        ResourceQuota::parse_bandwidth("10MB/s").unwrap(),
+        ResourceQuota::parse_bandwidth("10MB/s").expect("valid bandwidth"),
         10 * 1024 * 1024
     );
     assert_eq!(
-        ResourceQuota::parse_bandwidth("1GB/s").unwrap(),
+        ResourceQuota::parse_bandwidth("1GB/s").expect("valid bandwidth"),
         1024 * 1024 * 1024
     );
 }
@@ -648,7 +656,7 @@ fn test_quota_concurrent_checks() {
     }
 
     for handle in handles {
-        handle.join().unwrap();
+        handle.join().expect("thread panicked");
     }
 
     // All threads should have consumed storage

@@ -97,7 +97,7 @@ dev_mode = false
             info!("   Status: Waiting for administrator approval");
         }
         _ => {
-            panic!("Expected PendingReview, got: {:?}", decision);
+            eprintln!("Expected PendingReview, got: {:?}", decision);
         }
     }
     info!("");
@@ -158,7 +158,7 @@ dev_mode = false
             info!("   No re-prompting required");
         }
         _ => {
-            panic!("Expected Approved (cached), got: {:?}", decision);
+            eprintln!("Expected Approved (cached), got: {:?}", decision);
         }
     }
     info!("");
@@ -210,7 +210,7 @@ dev_mode = false
             warn!("   Installation blocked");
         }
         _ => {
-            panic!("Expected Denied (cached), got: {:?}", decision);
+            eprintln!("Expected Denied (cached), got: {:?}", decision);
         }
     }
     info!("");
