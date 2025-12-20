@@ -203,5 +203,148 @@ Per instructions lines 124-173:
 
 ---
 
+## 8. Mandatory Testing Requirements (CRITICAL - NO EXCEPTIONS)
+
+### The Testing Mandate
+
+**ZERO EXCEPTIONS POLICY**: No code is considered complete without BOTH unit tests AND integration tests.
+
+This is enforced across ALL agents and ALL tasks. There are NO waivers, NO compromises, NO shortcuts.
+
+### What Must Be True For Code to Be "Complete":
+
+1. ✅ **Unit Tests Exist** - In module #[cfg(test)] blocks
+   - Test success paths
+   - Test error/edge cases  
+   - Test actual functionality (not just APIs)
+   - All passing: `cargo test --lib`
+
+2. ✅ **Integration Tests Exist** - In tests/ directory
+   - Test end-to-end workflows
+   - Test component/module interaction
+   - Test real message/data flow
+   - All passing: `cargo test --test [name]`
+
+3. ✅ **Code Quality** - Zero warnings
+   - `cargo build` - clean build
+   - `cargo clippy --all-targets --all-features -- -D warnings` - zero warnings
+
+### What Does NOT Count as Complete:
+
+- ❌ Tests that only validate helper APIs or configuration
+- ❌ Missing unit tests OR missing integration tests (BOTH required)
+- ❌ Failing tests
+- ❌ Incomplete/placeholder tests
+- ❌ Code with compiler warnings
+- ❌ Code with clippy warnings
+
+### Enforcement Points:
+
+**PLANNING** (@memorybank-planner):
+- ❌ REJECT plans without Unit Testing Plan section
+- ❌ REJECT plans without Integration Testing Plan section
+- Must specify what will be tested and how
+
+**IMPLEMENTATION** (@memorybank-implementer):
+- 🛑 HALT if unit tests missing from module
+- 🛑 HALT if integration tests missing from tests/
+- 🛑 HALT if any tests failing
+- 🛑 HALT if any compiler/clippy warnings
+
+**REVIEW** (@rust-reviewer):
+- 🛑 REJECT code without BOTH unit AND integration tests
+- 🛑 REJECT if tests are failing
+- 🛑 REJECT if tests only validate APIs (not functionality)
+- 🛑 REJECT if any warnings present
+
+**COMPLETION** (@memorybank-auditor):
+- 🛑 HALT task completion if unit tests missing
+- 🛑 HALT task completion if integration tests missing
+- 🛑 HALT task completion if any tests failing
+- 🛑 HALT task completion if tests only validate APIs
+- ✅ REQUIRE test results in completion summary
+
+### Test Quality Requirements:
+
+**UNIT TESTS MUST:**
+```rust
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_feature_success_path() {
+        // Instantiate real types
+        // Call functions with valid inputs
+        // Assert expected behavior
+    }
+    
+    #[test]
+    fn test_feature_error_case() {
+        // Test error handling
+        // Verify error messages/types
+    }
+    
+    #[test]
+    fn test_feature_edge_cases() {
+        // Test boundary conditions
+        // Test special values
+    }
+}
+```
+
+**INTEGRATION TESTS MUST:**
+```rust
+// tests/messaging-integration-tests.rs
+#[test]
+fn test_end_to_end_message_flow() {
+    // Create real components
+    // Send actual messages
+    // Verify actual behavior
+    // Show complete workflow
+}
+```
+
+**INTEGRATION TESTS MUST NOT:**
+```rust
+// ❌ WRONG - Only tests metrics API
+#[test]
+fn test_metrics_snapshot() {
+    let metrics = Metrics::new();
+    metrics.record_something();
+    assert_eq!(metrics.snapshot().count, 1);
+}
+```
+
+### Verification Commands:
+
+Every completed task must verify:
+```bash
+# All unit tests pass
+cargo test --lib
+
+# All integration tests pass  
+cargo test --test '*'
+
+# Build is clean
+cargo build
+
+# Zero warnings
+cargo clippy --all-targets --all-features -- -D warnings
+```
+
+### Non-Negotiable Commitment
+
+**This policy is ABSOLUTE:**
+- ✅ Every task requires testing
+- ✅ Every code change requires testing
+- ✅ Every plan must include testing
+- ✅ Every implementation must include testing
+- ✅ Every review must verify testing
+- ✅ Every completion must verify testing
+
+**Violations are NOT acceptable and will be escalated immediately.**
+
+---
+
+
 **Reference:** `.aiassisted/instructions/multi-project-memory-bank.instructions.md` (lines 11-822)
 
