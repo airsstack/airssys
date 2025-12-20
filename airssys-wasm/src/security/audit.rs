@@ -110,7 +110,7 @@ pub enum CapabilityCheckResultType {
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WasmCapabilityAuditLog {
-    /// Timestamp when the capability check occurred (§3.2 - chrono DateTime<Utc>)
+    /// Timestamp when the capability check occurred (§3.2 - chrono DateTime&lt;Utc&gt;)
     pub timestamp: DateTime<Utc>,
 
     /// Component ID requesting the capability

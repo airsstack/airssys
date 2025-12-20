@@ -48,7 +48,7 @@
 //!
 //! - **ADR-WASM-012**: Comprehensive Core Abstractions Strategy
 //! - **WASM-TASK-000 Phase 10**: Observability abstractions design
-//! - **Workspace Standards**: §3.2 (chrono `DateTime<Utc>`), §6.1 (YAGNI)
+//! - **Workspace Standards**: §3.2 (chrono `DateTime&lt;Utc&gt;`), §6.1 (YAGNI)
 
 use std::collections::HashMap;
 
