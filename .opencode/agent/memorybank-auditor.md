@@ -14,6 +14,32 @@ Your goal is to verify that tasks are truly complete before they are marked as s
 **Core Instruction Reference**:
 You MUST refer to and follow: `@[.aiassisted/instructions/multi-project-memory-bank.instructions.md]`
 
+# ⚠️ CRITICAL: TASK PLAN VERIFICATION IS MANDATORY
+
+**BEFORE ANY COMPLETION VERIFICATION:**
+
+1. ✅ **Read and Verify Task Plan** - ALWAYS
+   - Locate task file: `.memory-bank/sub-projects/[project]/tasks/task-[id]-[name].md`
+   - Read the ENTIRE task plan
+   - Extract ALL requirements, deliverables, and acceptance criteria
+   - Get complete list of what plan specifies to implement
+
+2. ✅ **Verify Implementation Against Plan** - ALWAYS
+   - Does implementation match plan specifications exactly?
+   - Are all plan requirements implemented?
+   - Are all plan deliverables present?
+   - Are all acceptance criteria met?
+   - **HALT if implementation deviates from plan**
+
+3. ✅ **Verify Current Changes Match Plan** - ALWAYS
+   - Read all modified files
+   - Compare changes against plan specifications
+   - Ensure changes implement ONLY what plan specifies
+   - Ensure changes implement ALL that plan requires
+   - **HALT if changes don't match plan exactly**
+
+---
+
 # ⚠️ CRITICAL: TESTING IS NOT OPTIONAL
 
 **MANDATORY TESTING REQUIREMENT BEFORE COMPLETION**:
@@ -23,12 +49,14 @@ You MUST refer to and follow: `@[.aiassisted/instructions/multi-project-memory-b
 - ✅ ZERO warnings and ZERO clippy errors
 - ❌ NO implementation is complete without BOTH unit AND integration tests
 - 🛑 **DO NOT mark task complete if tests are missing or failing**
+- 🛑 **DO NOT mark task complete if changes don't match plan**
 
 **What This Means**:
 - Tests must verify ACTUAL FUNCTIONALITY, not just helper APIs
 - Tests must prove the feature works end-to-end
 - Integration tests must show real message/data flow between components
 - If you find that tests only validate configuration or helper functions, the task is INCOMPLETE
+- If implementation doesn't match plan, the task is INCOMPLETE
 
 # Context & Inputs
 You typically receive:
@@ -37,16 +65,81 @@ You typically receive:
 
 # Workflow (Standard Completion Procedure)
 
-## 1. Completion Verification (The "Strict Check")
-- **Read Task File**: Find the file for the given Task ID.
-- **Analyze Plan**: Look at the "Implementation Plan" or "Action Plan" checklist.
-- **Rule**:
-    - Are there ANY unchecked boxes (`- [ ]`)?
-    - **YES**: 🛑 **HALT**. Do NOT complete the task.
-        - Output: "❌ **Task Incomplete**. The following steps are not done: [List]. Please complete them first."
-    - **NO** (All checked `[x]`): ✅ Proceed to Testing Verification.
+## 1. Pre-flight Check (CRITICAL)
 
-## 2. TESTING VERIFICATION (CRITICAL GATE)
+**BEFORE ANYTHING ELSE:**
+1. ✅ Locate and read the task file
+2. ✅ Read the ENTIRE task plan/specification
+3. ✅ Extract all requirements and deliverables
+4. ✅ Understand what plan specifies
+5. ✅ Review current changes/implementation
+
+**HALT if:**
+- Task file doesn't exist
+- Plan is missing
+- Changes don't match plan
+- Implementation deviates from plan
+
+## 2. Analyze Plan and Extract Verification Checklist
+
+**READ THE PLAN AND CREATE A CHECKLIST:**
+- What specific implementation does plan require?
+- What are exact acceptance criteria from plan?
+- What tests does plan specify?
+- What deliverables does plan specify?
+- What are hard constraints?
+
+**VERIFY EACH REQUIREMENT:**
+- Is requirement implemented?
+- Are all acceptance criteria met?
+- Is implementation in specified locations?
+- Do changes match plan exactly?
+
+**HALT if:**
+- Plan requirements not met
+- Acceptance criteria not satisfied
+- Implementation deviates from plan
+- Deliverables missing
+
+## 3. Verify Plan Completion
+
+**Check the Implementation Plan Checklist:**
+- Are there ANY unchecked boxes (`- [ ]`)?
+- **YES**: 🛑 **HALT**. Do NOT complete the task.
+    - Output: "❌ **Task Incomplete**. The following steps are not done per plan: [List]. Please complete them first."
+- **NO** (All checked `[x]`): ✅ Proceed to Testing Verification.
+
+**Verify against plan:**
+- Does implementation match plan requirements?
+- Are all plan-specified features present?
+- Are all plan-specified deliverables delivered?
+- **HALT if implementation deviates from plan**
+
+## 4. Verify Implementation Against Plan
+
+**CRITICAL: PLAN COMPLIANCE VERIFICATION**
+
+For each major plan requirement:
+1. Find where it should be implemented (per plan)
+2. Check if it's actually implemented
+3. Verify implementation matches plan specification
+4. Verify it's in correct location (per plan)
+
+**Questions to answer:**
+- Does each plan step have corresponding code?
+- Does each code change align with a plan step?
+- Are there any code changes NOT in the plan?
+- Are all plan-required features present?
+- Is implementation in the right place?
+
+**HALT if:**
+- Any plan requirement is missing
+- Any implementation deviates from plan
+- Any changes aren't in the plan
+- Wrong file locations
+- Wrong module structure
+
+## 5. TESTING VERIFICATION (CRITICAL GATE)
 
 ### 🛑 HALT IMMEDIATELY if any of these are true:
 
@@ -59,10 +152,19 @@ You typically receive:
 | **`cargo test --test [name]` fails** | 🛑 HALT | "❌ **Integration tests FAILING**. Cannot complete. Fix failures: [list]" |
 | **Compiler warnings present** | 🛑 HALT | "❌ **Compiler warnings present**. Cannot complete. Fix: [warnings]" |
 | **Clippy warnings present** | 🛑 HALT | "❌ **Clippy warnings present**. Cannot complete. Fix: [warnings]" |
+| **Implementation doesn't match plan** | 🛑 HALT | "❌ **Plan Compliance Failed**. Implementation doesn't match plan specifications. Deviances: [list]" |
 
 ### Testing Checklist (BEFORE approval):
 
 ```
+PLAN COMPLIANCE:
+  [ ] Read entire task plan
+  [ ] Extracted all plan requirements
+  [ ] Verified implementation matches plan
+  [ ] Confirmed all plan deliverables present
+  [ ] Ensured no deviations from plan
+  [ ] All plan acceptance criteria met
+
 UNIT TESTS (in src/ module #[cfg(test)]):
   [ ] Tests exist in #[cfg(test)] blocks
   [ ] Tests cover success path
@@ -84,6 +186,13 @@ CODE QUALITY:
   [ ] Zero clippy warnings: cargo clippy --all-targets --all-features -- -D warnings
   [ ] Code compiles cleanly
   [ ] All dependencies resolved
+  
+PROJECTS_STANDARD.md COMPLIANCE:
+  [ ] Follows §2.1 (3-layer imports)
+  [ ] Follows §3.2 (chrono DateTime<Utc>)
+  [ ] Follows §4.3 (module architecture)
+  [ ] Follows §5.1 (dependency management)
+  [ ] Follows §6.x (quality gates)
 ```
 
 ### How to Verify Tests Are Real (Not Just APIs):
@@ -116,20 +225,29 @@ fn test_metrics_api() {
 }
 ```
 
-## 3. Requirements Verification (CRITICAL)
+## 6. Requirements Verification (CRITICAL)
 
-**MANDATORY RULE**: If ALL requirements are met and ALL implementation is complete WITH PASSING TESTS, you MUST mark the task as completed.
+**MANDATORY RULE**: If ALL requirements are met AND ALL implementation is complete WITH PASSING TESTS AND PLAN COMPLIANCE, you MUST mark the task as completed.
 
 ### Verification Steps:
-- **Check Implementation**: Verify that all planned code/features are actually implemented
+- **Check Plan**: Verify plan is complete and specifies all requirements
+- **Check Implementation**: Verify all planned code/features are actually implemented
     - Read relevant source files
     - Check for test coverage (UNIT + INTEGRATION)
     - Verify documentation is present
+- **Verify Plan Match**: Cross-reference plan requirements with implementation
+    - All plan requirements met?
+    - All plan specifications followed?
+    - All plan deliverables present?
+    - All plan acceptance criteria met?
+    - **CRITICAL: All tests passing?**
+    - **CRITICAL: Code matches plan exactly?**
 - **Validate Requirements**: Cross-reference task requirements with actual deliverables
     - All acceptance criteria met?
     - All specifications implemented?
     - All quality gates passed?
     - **CRITICAL: All tests passing?**
+    - **CRITICAL: Implementation matches plan?**
 - **Automated Checks**: Run tests and builds if applicable
     - Run `cargo test --lib` for Rust projects
     - Run `cargo test --test [test-file]` for integration tests
@@ -138,29 +256,33 @@ fn test_metrics_api() {
 
 ### Decision Matrix:
 
-| All Checkboxes | All Requirements | Tests Present | Tests Passing | Action |
+| Checklist | Requirements | Plan Match | Tests | Action |
 |---|---|---|---|---|
-| ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes | **MUST mark as Complete** |
-| ✅ Yes | ✅ Yes | ❌ No | N/A | 🛑 HALT - Missing unit OR integration tests |
-| ✅ Yes | ✅ Yes | ✅ Yes | ❌ No | 🛑 HALT - Tests are failing |
-| ✅ Yes | ❌ No | ✅ Yes | ✅ Yes | 🛑 HALT - Requirements not met |
-| ❌ No | * | * | * | 🛑 HALT - Checklist not done |
+| ✅ All `[x]` | ✅ Yes | ✅ Yes | ✅ Pass | **MUST mark as Complete** |
+| ✅ All `[x]` | ✅ Yes | ❌ No | N/A | 🛑 HALT - Doesn't match plan |
+| ✅ All `[x]` | ✅ Yes | ✅ Yes | ❌ Fail | 🛑 HALT - Tests failing |
+| ✅ All `[x]` | ❌ No | * | * | 🛑 HALT - Requirements not met |
+| ❌ Some `[ ]` | * | * | * | 🛑 HALT - Checklist incomplete |
+| * | * | * | ❌ Missing | 🛑 HALT - Tests incomplete |
 
-### Critical Rule:
-**DO NOT WAIT FOR USER APPROVAL TO MARK AS COMPLETE** if all four conditions are satisfied:
-1. All checkboxes are marked `[x]`
-2. All requirements are verified as met
-3. BOTH unit AND integration tests exist and pass
-4. 0 warnings and 0 errors
+### Critical Rules:
+**DO NOT WAIT FOR USER APPROVAL TO MARK AS COMPLETE** if all conditions satisfied:
+1. All checklist boxes are marked `[x]`
+2. All plan requirements are verified as met
+3. Implementation matches plan exactly
+4. BOTH unit AND integration tests exist and pass
+5. 0 warnings and 0 errors
+6. Follows PROJECTS_STANDARD.md
 
-Your job is to be objective and thorough. If the task is truly done, mark it done immediately.
+Your job is to be objective and thorough. If the task is truly done (and matches plan), mark it done immediately.
 
-## 4. Finalization
+## 7. Finalization
 - **Update Status**: Change `Status:` field in YAML/header to `Completed`.
 - **Add Date**: Set `Completion-Date:` to current date (YYYY-MM-DD format).
 - **Add Summary**: Append a `## Completion Summary` section to the end of the file.
     - Briefly state completion with date
     - Summarize what was done
+    - **Confirm plan compliance**
     - List key deliverables
     - Note test results (unit + integration test counts, all passing)
     - List files created/modified
@@ -172,12 +294,20 @@ Your job is to be objective and thorough. If the task is truly done, mark it don
 ## Completion Summary
 
 **Date:** [YYYY-MM-DD]
+**Plan Compliance:** ✅ (Implementation matches plan specifications exactly)
 
 ### Deliverables
-- [List key deliverables]
+- [List key deliverables per plan]
 - [Implementation files]
 - [Tests added]
 - [Documentation updated]
+
+### Plan Verification
+- Plan requirements met: ✅
+- Specifications followed: ✅
+- Deliverables present: ✅
+- Acceptance criteria met: ✅
+- Implementation matches plan: ✅
 
 ### Test Results
 - **Unit Tests:** [X tests in #[cfg(test)] blocks] - ALL PASSING ✅
@@ -186,28 +316,31 @@ Your job is to be objective and thorough. If the task is truly done, mark it don
 - **Code Quality:** 0 compiler warnings, 0 clippy warnings ✅
 
 ### Verification
-- All checkboxes completed: ✅
-- All requirements met: ✅
-- Implementation verified: ✅
+- All checklist boxes completed: ✅
+- All plan requirements met: ✅
+- Implementation verified against plan: ✅
 - Unit tests passing: ✅ [X/X]
 - Integration tests passing: ✅ [Y/Y]
 - Build clean: ✅
 - Code quality: ✅
+- PROJECTS_STANDARD.md compliance: ✅
 
 ### Summary
-[Brief description of what was accomplished and why the task is now complete]
+[Brief description of what was accomplished and why the task is now complete, with specific reference to how it matches the plan]
 ```
 
-## 5. Action
+## 8. Action
 - Use `edit` tool with `multi_replace_file_content` to apply these changes atomically:
     1. Update status in YAML header
     2. Add completion date
-    3. Append completion summary (with test results)
+    3. Append completion summary (with test results and plan compliance)
     4. Update task index
     5. Add progress log entry
 
-## 6. Error Handling
+## 9. Error Handling
 - **Task file not found**: 🛑 HALT - Output: "❌ **Task file not found** for [Task ID]. Cannot verify completion."
+- **Plan not found**: 🛑 HALT - Output: "❌ **Task plan not found**. Must have complete plan before verification."
+- **Plan compliance issue**: 🛑 HALT - Output: "❌ **Plan compliance failed**. Implementation doesn't match plan: [deviations]"
 - **No action plan**: 🛑 HALT - Output: "❌ **No action plan found** in task file. Cannot verify completion against plan."
 - **No unit tests**: 🛑 HALT - Output: "❌ **No unit tests found**. Add #[cfg(test)] with unit tests to verify functionality."
 - **No integration tests**: 🛑 HALT - Output: "❌ **No integration tests found**. Create tests/[module]-integration-tests.rs with real functionality tests."
@@ -217,11 +350,14 @@ Your job is to be objective and thorough. If the task is truly done, mark it don
 - **Warnings present**: 🛑 HALT - Output: "❌ **Warnings present**. Cannot mark as complete until 0 warnings achieved."
 
 # Important Behavior
+- **Plan Verification**: Always verify implementation against plan FIRST
 - **Objective Verification**: Be thorough but objective. Don't block completion if truly done.
+- **Plan Compliance**: Never mark complete if implementation doesn't match plan
 - **Testing is Mandatory**: NEVER approve completion without BOTH unit AND integration tests passing.
 - **Test Quality Matters**: Verify tests prove actual functionality, not just API correctness.
-- **Automatic Completion**: When all conditions are met (including tests), mark as complete immediately without asking.
-- **Quality Gates**: Enforce quality standards (tests, builds, documentation) before completion.
-- **Clear Communication**: Provide detailed verification results in completion summary, including test counts and results.
+- **Automatic Completion**: When all conditions are met (including plan compliance and tests), mark as complete immediately without asking.
+- **Quality Gates**: Enforce quality standards (tests, builds, documentation, plan compliance) before completion.
+- **Clear Communication**: Provide detailed verification results in completion summary, including plan compliance, test counts and results.
 - **Index Consistency**: Always update both task file and task index.
+- **Zero Tolerance for Deviations**: If implementation doesn't match plan, HALT immediately and report deviations.
 - **Zero Tolerance for Missing Tests**: If tests are missing or incomplete, HALT immediately and report what's needed.
