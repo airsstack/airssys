@@ -1,9 +1,9 @@
 # airssys-wasm Knowledge Documentation Index
 
 **Sub-Project:** airssys-wasm  
-**Last Updated:** 2025-11-30  
-**Total Knowledge Docs:** 16  
-**Active Knowledge Docs:** 16
+**Last Updated:** 2025-12-21  
+**Total Knowledge Docs:** 17  
+**Active Knowledge Docs:** 17
 
 ## Current Knowledge Documentation
 
@@ -313,3 +313,12 @@
 - Production-ready with comprehensive testing
 
 **Impact:** Future tasks (3.2+) must use DashMap-based API, not planned RwLock design.
+
+- **[KNOWLEDGE-WASM-024: Component Messaging Clarifications](knowledge-wasm-024-component-messaging-clarifications.md)** ✅ **CRITICAL**
+  - **Purpose**: Critical clarifications about component messaging architecture from Block 5 Phase 1 planning
+  - **Scope**: Async-only communication model, two send methods, component perspective, internal vs component-facing features
+  - **Key Content**: No synchronous communication, `send-message` vs `send-request` distinction, unified receiver pattern, push-based delivery, runtime-managed subscriptions, common misconceptions corrected
+  - **Status**: Active reference (Created 2025-12-21)
+  - **Impact**: Critical - prevents implementation mistakes in Block 5, clarifies component developer experience
+  - **Audience**: All Block 5 implementers, component developers, architects
+  - **Related**: ADR-WASM-009, KNOWLEDGE-WASM-005, WASM-TASK-006

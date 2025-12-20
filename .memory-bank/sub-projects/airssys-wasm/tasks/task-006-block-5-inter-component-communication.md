@@ -10,7 +10,9 @@
 
 ## Overview
 
-Implement the actor-based inter-component messaging system that enables secure, high-performance communication between WASM components through MessageBroker integration, supporting fire-and-forget and request-response patterns with multicodec self-describing serialization, capability-based security, and push-based event delivery achieving ~260ns messaging overhead.
+Implement the actor-based inter-component messaging system that enables secure, high-performance communication between WASM components through MessageBroker integration, supporting fire-and-forget and request-response patterns with **direct ComponentId addressing** (Phase 1), multicodec self-describing serialization, capability-based security, and push-based event delivery achieving ~260ns messaging overhead.
+
+**Note:** Phase 1 uses direct ComponentId addressing. Topic-based pub-sub is an optional future enhancement (Phase 2+).
 
 ## Context
 
@@ -56,18 +58,23 @@ Implement actor-based inter-component messaging with MessageBroker integration, 
 
 ## Scope
 
-### In Scope
+### In Scope - Phase 1
 1. **MessageBroker Integration** - airssys-rt MessageBroker for routing
 2. **Fire-and-Forget Pattern** - One-way async messages (~280ns)
 3. **Request-Response Pattern** - RPC with callbacks (~560ns round-trip)
-4. **Multicodec Serialization** - Self-describing message format
-5. **Push-Based Delivery** - handle-message export invocation
-6. **Message Security** - Capability checks and quotas
-7. **Topic Management** - Subscription and filtering
-8. **Request Correlation** - Automatic request_id management
-9. **Timeout Handling** - Request timeout enforcement
+4. **Direct ComponentId Addressing** - Target components by ComponentId
+5. **Multicodec Serialization** - Self-describing message format
+6. **Push-Based Delivery** - handle-message export invocation
+7. **Message Security** - Capability checks and quotas
+8. **ActorSystem Event Subscription** - Runtime-level MessageBroker subscription
+9. **Request Correlation** - Automatic request_id management
+10. **Timeout Handling** - Request timeout enforcement
 
-### Out of Scope
+### Out of Scope - Phase 1
+- Topic-based pub-sub (optional Phase 2+ enhancement)
+- Component-level topic subscription API
+- Dynamic topic registration
+- Topic pattern matching (wildcards)
 - Message persistence/durability (Phase 2)
 - Cross-host messaging (Phase 2)
 - Message ordering guarantees beyond actor mailbox FIFO
@@ -80,17 +87,18 @@ Implement actor-based inter-component messaging with MessageBroker integration, 
 
 #### Task 1.1: MessageBroker Setup for Components
 **Deliverables:**
-- MessageBroker instance initialization
-- Component subscription management
-- Topic routing configuration
-- ActorSystem as primary subscriber pattern
-- MessageBroker performance validation
+- MessageBroker instance initialization in WasmRuntime
+- ActorSystem event-driven subscription (runtime-level)
+- ComponentId-based message routing infrastructure
+- ActorSystemSubscriber for routing to ComponentActor mailboxes
+- Performance validation (≤220ns total routing)
 
 **Success Criteria:**
 - MessageBroker routes component messages
-- Components can subscribe to topics
+- ActorSystem subscribes to MessageBroker event stream (runtime-level)
+- Messages route to ComponentActor mailboxes by ComponentId
+- Direct ComponentId addressing functional
 - Routing performance: ~211ns (airssys-rt baseline)
-- ActorSystem subscribes to all component topics
 - Performance validated with benchmarks
 
 #### Task 1.2: ComponentActor Message Reception
@@ -108,20 +116,23 @@ Implement actor-based inter-component messaging with MessageBroker integration, 
 - Failed delivery handled gracefully
 - Comprehensive test coverage
 
-#### Task 1.3: Topic Subscription System
+#### Task 1.3: ActorSystem Event Subscription Infrastructure
 **Deliverables:**
-- Topic subscription API
-- Dynamic subscription management
-- Topic pattern matching (wildcards)
-- Subscription persistence
-- Subscription documentation
+- ActorSystem subscription to MessageBroker initialization
+- ComponentId → ActorAddress registry management
+- Message routing logic (ComponentId-based)
+- Routing error handling and fallback
+- Internal subscription infrastructure documentation
+
+**Clarification:**
+This is INTERNAL infrastructure (runtime-level), NOT a component-facing API. Components are addressed by ComponentId directly, not via topic subscriptions. Topic-based pub-sub is an optional future enhancement (Phase 2+).
 
 **Success Criteria:**
-- Components subscribe to topics at runtime
-- Wildcards work (`events.*`, `logs.error.*`)
-- Subscriptions persist across restarts
-- Clear subscription management API
-- Examples demonstrate patterns
+- ActorSystem successfully subscribes to MessageBroker
+- ComponentId → ActorAddress registry functional
+- Message routing by ComponentId works correctly
+- Routing errors logged and handled gracefully
+- Internal infrastructure documented clearly
 
 ---
 
@@ -492,7 +503,7 @@ This task is complete when:
 ### Phase Breakdown
 | Phase | Description | Status | Estimated Duration | Notes |
 |-------|-------------|--------|-------------------|-------|
-| 1 | MessageBroker Integration Foundation | not-started | Week 1-2 | Routing foundation |
+| 1 | MessageBroker Integration Foundation | not-started | Week 1-2 (44 hours) | Routing foundation |
 | 2 | Fire-and-Forget Messaging | not-started | Week 2-3 | Core pattern |
 | 3 | Request-Response Pattern | not-started | Week 3-4 | RPC pattern |
 | 4 | Multicodec Serialization | not-started | Week 4 | Language-agnostic |
@@ -502,9 +513,9 @@ This task is complete when:
 ### Subtasks
 | ID | Description | Status | Updated | Notes |
 |----|-------------|--------|---------|-------|
-| 1.1 | MessageBroker Setup for Components | not-started | - | Foundation |
-| 1.2 | ComponentActor Message Reception | not-started | - | Mailbox integration |
-| 1.3 | Topic Subscription System | not-started | - | Pub-sub |
+| 1.1 | MessageBroker Setup for Components | not-started | - | Foundation (12 hours) |
+| 1.2 | ComponentActor Message Reception | not-started | - | Mailbox integration (16 hours) |
+| 1.3 | ActorSystem Event Subscription Infrastructure | not-started | - | Internal subscription (12 hours) |
 | 2.1 | send-message Host Function | not-started | - | Fire-and-forget |
 | 2.2 | handle-message Component Export | not-started | - | Push delivery |
 | 2.3 | Fire-and-Forget Performance | not-started | - | Performance target |
@@ -534,6 +545,7 @@ This task is complete when:
 - **ADR-WASM-005: Capability-Based Security Model** - Message permissions
 
 ### Knowledge Documentation
+- **KNOWLEDGE-WASM-024: Component Messaging Clarifications** - Critical clarifications for Block 5 implementation (created 2025-12-21)
 - **KNOWLEDGE-WASM-005: Inter-Component Messaging Architecture** - Complete messaging specification
 - **KNOWLEDGE-WASM-006: Multiformat Strategy** - Multicodec integration
 - **KNOWLEDGE-WASM-004: WIT Management Architecture** - Messaging WIT interfaces
@@ -567,9 +579,22 @@ This block HEAVILY depends on Block 3 (Actor System Integration):
 - ActorSystem as primary subscriber pattern
 - SupervisorNode for fault tolerance
 
+**Phase 1 uses Direct ComponentId Addressing (KNOWLEDGE-WASM-024):**
+- Components addressed by ComponentId (direct addressing)
+- ActorSystem subscribes to MessageBroker (runtime-level)
+- NO topic-based routing in Phase 1
+- Topic-based pub-sub is optional Phase 2+ enhancement
+
 **Push-Based Delivery:**
 NO polling required. Components export handle-message which host invokes directly.
 This is NOT HTTP-style request-pull. It's Erlang-style message-push.
+
+**Direct ComponentId Addressing (Phase 1 - KNOWLEDGE-WASM-024):**
+- Components addressed by ComponentId directly
+- NO topic-based routing in Phase 1
+- ActorSystem subscribes to MessageBroker (runtime-level subscription)
+- Components NEVER subscribe manually - runtime handles all routing
+- Topic-based pub-sub is optional Phase 2+ enhancement
 
 **Multicodec Self-Describing:**
 Messages carry codec information (ADR-WASM-001). Host does NOT translate between codecs.
@@ -592,9 +617,12 @@ Components don't need to implement correlation logic.
 Host runtime enforces timeouts using tokio::time::timeout.
 Timeout errors delivered to handle-callback with error status.
 
-**Topic Pattern Matching:**
-Wildcard support: `events.*` matches `events.user.created`, `events.order.shipped`
-Follows pub-sub best practices from message queuing systems.
+**Phase 1 Clarifications (KNOWLEDGE-WASM-024):**
+- Direct ComponentId addressing ONLY (no topic routing)
+- ActorSystem event-driven subscription IS the runtime-level subscription
+- Components NEVER subscribe manually - runtime handles routing transparently
+- Two async patterns: fire-and-forget and request-response (both use ComponentId)
+- Topic-based pub-sub is optional Phase 2+ enhancement (not required for basic messaging)
 
 **Phase 2 Enhancements:**
 - Message persistence and durability
