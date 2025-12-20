@@ -112,4 +112,4 @@ __pycache__/
 *$py.class
 
 # mdBook build output (legacy, kept for reference)
-**/docs/book/
+**/docs/book/*.backup
