@@ -28,14 +28,12 @@
 //! - Task 1.2 Plan: lines 557-700 (test strategy)
 
 // Layer 1: Standard library imports
-use std::sync::Arc;
 use std::time::Duration;
 
 // Layer 2: Third-party crate imports
-use tokio::sync::RwLock;
 
 // Layer 3: Internal module imports
-use airssys_wasm::actor::{ComponentActor, ComponentMessage, MessageReceptionConfig};
+use airssys_wasm::actor::{ComponentActor, MessageReceptionConfig};
 use airssys_wasm::core::{
     CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits, WasmError,
 };
@@ -52,6 +50,7 @@ mod helpers {
     /// - Empty handle-message export (message handler)
     ///
     /// The module is minimal but valid WebAssembly that can be instantiated.
+    #[allow(dead_code)]
     pub fn create_minimal_wasm_module() -> Vec<u8> {
         // WAT (WebAssembly Text Format):
         // (module
@@ -76,6 +75,7 @@ mod helpers {
     }
 
     /// Create a WASM module without handle-message export.
+    #[allow(dead_code)]
     pub fn create_wasm_module_no_export() -> Vec<u8> {
         // WAT:
         // (module
