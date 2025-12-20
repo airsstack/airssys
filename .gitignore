@@ -113,3 +113,8 @@ __pycache__/
 
 # mdBook build output (legacy, kept for reference)
 **/docs/book/*.backup
+**/docs/book/
+
+# === BACKUP FILES ===
+# Editor and tool-generated backup files
+*.backup
