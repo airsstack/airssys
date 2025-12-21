@@ -2048,7 +2048,7 @@ where
                 // that returns i32 (0 = success, non-zero = error). The sender and payload
                 // parameters will be passed once proper WIT bindings are generated.
                 //
-                // TODO(WASM-TASK-006 Task 1.2 Follow-up): Implement proper parameter
+                // TODO(WASM-TASK-006 Phase 2 Task 2.2): Implement proper parameter
                 // marshalling using wasmtime component model bindings once generated.
                 //
                 // Pre-allocate result slot for i32 return value
