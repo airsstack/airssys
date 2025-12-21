@@ -1,17 +1,17 @@
 # airssys-wasm Progress
 
 ## Current Status
-**Phase:** Block 5 (Inter-Component Communication) - Phase 1 in-progress  
-**Overall Progress:** Block 3 100% COMPLETE (18/18 tasks) | Block 4 ✅ **100% COMPLETE** (15/15 tasks) | Block 5 Phase 1 in-progress (2/3 tasks)  
-**Last Updated:** 2025-12-21 (WASM-TASK-006 Phase 1 Task 1.1 ✅ COMPLETE, Task 1.2 ✅ COMPLETE)
+**Phase:** Block 5 (Inter-Component Communication) - Phase 1 ✅ COMPLETE  
+**Overall Progress:** Block 3 100% COMPLETE (18/18 tasks) | Block 4 ✅ **100% COMPLETE** (15/15 tasks) | Block 5 Phase 1 ✅ **100% COMPLETE** (3/3 tasks)  
+**Last Updated:** 2025-12-21 (WASM-TASK-006 Phase 1 ✅ ALL 3 TASKS COMPLETE)
 
-**✅ Task 1.1 & 1.2 COMPLETE (2025-12-21):**
+**🎉 PHASE 1 COMPLETE (2025-12-21):**
 - ✅ **Task 1.1:** MessageBroker Setup - Remediation complete, actual message delivery working
-- ✅ **Task 1.2:** ComponentActor Message Reception - Remediation complete, WASM invocation proven with 9 integration tests
-- ⏳ **Task 1.3:** ActorSystem Event Subscription - Not started (ready to begin)
-- **Phase 1 Progress:** 2/3 tasks complete (67%)
+- ✅ **Task 1.2:** ComponentActor Message Reception - Remediation complete, WASM invocation proven
+- ✅ **Task 1.3:** ActorSystem Event Subscription - Complete, 29 tests, code review 9.5/10
+- **Phase 1 Progress:** 3/3 tasks complete (100%) 🎉
 
-See **ADR-WASM-020** for architectural fix applied to Task 1.1 & 1.2.  
+See **ADR-WASM-020** for architectural decisions applied across Phase 1.  
 
 ## What Works
 ### ✅ Completed Tasks
@@ -362,6 +362,69 @@ See `active-context.md` for current focus and task references.
 The TODO for "proper parameter marshalling using wasmtime component model bindings" remains as a follow-up enhancement. Current fixtures use parameterless `handle-message` for simplicity. This is documented and tracked, not a blocker for current functionality.
 
 ---
+
+---
+
+### 2025-12-21: Task 1.3 COMPLETE - ActorSystem Event Subscription ✅
+
+**Status:** ✅ COMPLETE  
+**Completion Date:** 2025-12-21  
+**Code Review Score:** 9.5/10 (APPROVED by @rust-reviewer)
+
+**Implementation Summary:**
+- ✅ `MessagingSubscriptionService` module created (1,185 lines)
+- ✅ Full lifecycle management: new(), start(), stop(), status()
+- ✅ Component registration: register_component(), unregister_component()
+- ✅ Address resolution: resolve_address(), is_component_registered()
+- ✅ Lock-free metrics with AtomicU64
+- ✅ 4 new routing error types added to error.rs
+- ✅ 3 new helper methods in ComponentRegistry
+
+**Files Created:**
+- `src/runtime/messaging_subscription.rs` (1,185 lines, 19 unit tests)
+- `tests/messaging_subscription_integration_tests.rs` (584 lines, 10 tests)
+
+**Files Modified:**
+- `src/runtime/mod.rs` - Module exports
+- `src/core/error.rs` - 4 routing error types
+- `src/actor/component/component_registry.rs` - 3 resolution helpers
+
+**Test Results:**
+- 19 unit tests passing (messaging_subscription)
+- 10 integration tests passing
+- 5 ComponentRegistry tests passing
+- 4 routing error tests passing
+- All Task 1.1/1.2 regression tests passing (7 + 9)
+
+**Quality:**
+- ✅ Zero clippy warnings (lib)
+- ✅ Clean build
+- ✅ ADR-WASM-020 compliant
+- ✅ Comprehensive documentation
+
+**Verification Chain:**
+- ✅ Implemented by @memorybank-implementer
+- ✅ Verified by @memorybank-verifier (VERIFIED status)
+- ✅ Code reviewed by @rust-reviewer (9.5/10 - APPROVED)
+
+---
+
+### 🎉 PHASE 1 COMPLETE (2025-12-21)
+
+**Block 5 Phase 1 (MessageBroker Integration Foundation) is 100% COMPLETE!**
+
+| Task | Status | Tests | Review |
+|------|--------|-------|--------|
+| Task 1.1: MessageBroker Setup | ✅ COMPLETE | 22 tests | ✅ Approved |
+| Task 1.2: ComponentActor Message Reception | ✅ COMPLETE | 9+ tests | ✅ Approved |
+| Task 1.3: ActorSystem Event Subscription | ✅ COMPLETE | 29 tests | ✅ Approved (9.5/10) |
+
+**Phase 1 Totals:**
+- 3/3 tasks complete (100%)
+- ~60+ tests across all tasks
+- Full verification chain for all tasks
+- Ready for Phase 2
+
 
 **Block 4 Completion Summary (✅ COMPLETE - Dec 20):**
 - ✅ Phase 1-5: All 15 tasks complete

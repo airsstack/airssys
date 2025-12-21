@@ -532,6 +532,98 @@ pub enum WasmError {
         /// Maximum allowed size
         max_size: usize,
     },
+
+    // ========================================================================
+    // Routing-Specific Errors (WASM-TASK-006 Task 1.3)
+    // ========================================================================
+
+    /// Message routing failed because target component is not registered.
+    ///
+    /// Occurs when ActorSystemSubscriber cannot find a mailbox for the target
+    /// component. This may happen if:
+    /// - Component was never spawned
+    /// - Component has been stopped
+    /// - ComponentId typo in sender code
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::error::WasmError;
+    ///
+    /// let err = WasmError::routing_component_not_found("target-component");
+    /// assert!(err.to_string().contains("target-component"));
+    /// assert!(err.to_string().contains("not registered"));
+    /// ```
+    #[error("Routing failed: component '{component_id}' not registered for message delivery")]
+    RoutingComponentNotFound {
+        /// Target component ID that was not found
+        component_id: String,
+    },
+
+    /// Message routing failed because target component's mailbox is closed.
+    ///
+    /// Occurs when the target component is shutting down and its mailbox
+    /// receiver has been dropped. Messages sent to this component are dropped.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::error::WasmError;
+    ///
+    /// let err = WasmError::routing_mailbox_closed("shutting-down-component");
+    /// assert!(err.to_string().contains("shutting-down-component"));
+    /// assert!(err.to_string().contains("mailbox closed"));
+    /// ```
+    #[error("Routing failed: component '{component_id}' mailbox closed (component shutting down)")]
+    RoutingMailboxClosed {
+        /// Component ID with closed mailbox
+        component_id: String,
+    },
+
+    /// Message routing failed because message type cannot be routed.
+    ///
+    /// Occurs when a message type doesn't have a "to" field for routing
+    /// (e.g., Shutdown, HealthCheck messages are not inter-component).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::error::WasmError;
+    ///
+    /// let err = WasmError::routing_invalid_message_type("Shutdown");
+    /// assert!(err.to_string().contains("Shutdown"));
+    /// assert!(err.to_string().contains("cannot be routed"));
+    /// ```
+    #[error("Routing failed: message type '{message_type}' cannot be routed (no target component)")]
+    RoutingInvalidMessageType {
+        /// Message type that cannot be routed
+        message_type: String,
+    },
+
+    /// Message routing timeout exceeded.
+    ///
+    /// Occurs when routing takes longer than the configured timeout.
+    /// This may indicate:
+    /// - Target component is overloaded
+    /// - Deadlock in message processing
+    /// - System resource exhaustion
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::error::WasmError;
+    ///
+    /// let err = WasmError::routing_timeout("slow-component", 5000);
+    /// assert!(err.to_string().contains("slow-component"));
+    /// assert!(err.to_string().contains("5000"));
+    /// ```
+    #[error("Routing timeout: delivery to component '{component_id}' exceeded {timeout_ms}ms")]
+    RoutingTimeout {
+        /// Target component ID
+        component_id: String,
+        /// Timeout in milliseconds
+        timeout_ms: u64,
+    },
 }
 
 /// Result type alias for airssys-wasm operations.
@@ -1071,6 +1163,75 @@ impl WasmError {
     pub fn payload_too_large(size: usize, max_size: usize) -> Self {
         Self::PayloadTooLarge { size, max_size }
     }
+
+    // ========================================================================
+    // Routing Error Constructors (WASM-TASK-006 Task 1.3)
+    // ========================================================================
+
+    /// Create a routing component not found error.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::error::WasmError;
+    ///
+    /// let err = WasmError::routing_component_not_found("target-component");
+    /// assert!(err.to_string().contains("target-component"));
+    /// ```
+    pub fn routing_component_not_found(component_id: impl Into<String>) -> Self {
+        Self::RoutingComponentNotFound {
+            component_id: component_id.into(),
+        }
+    }
+
+    /// Create a routing mailbox closed error.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::error::WasmError;
+    ///
+    /// let err = WasmError::routing_mailbox_closed("shutting-down-component");
+    /// assert!(err.to_string().contains("shutting-down-component"));
+    /// ```
+    pub fn routing_mailbox_closed(component_id: impl Into<String>) -> Self {
+        Self::RoutingMailboxClosed {
+            component_id: component_id.into(),
+        }
+    }
+
+    /// Create a routing invalid message type error.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::error::WasmError;
+    ///
+    /// let err = WasmError::routing_invalid_message_type("Shutdown");
+    /// assert!(err.to_string().contains("Shutdown"));
+    /// ```
+    pub fn routing_invalid_message_type(message_type: impl Into<String>) -> Self {
+        Self::RoutingInvalidMessageType {
+            message_type: message_type.into(),
+        }
+    }
+
+    /// Create a routing timeout error.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use airssys_wasm::core::error::WasmError;
+    ///
+    /// let err = WasmError::routing_timeout("slow-component", 5000);
+    /// assert!(err.to_string().contains("slow-component"));
+    /// ```
+    pub fn routing_timeout(component_id: impl Into<String>, timeout_ms: u64) -> Self {
+        Self::RoutingTimeout {
+            component_id: component_id.into(),
+            timeout_ms,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -1275,5 +1436,45 @@ mod tests {
         let msg = err.to_string();
         assert!(msg.contains(&actual.to_string()));
         assert!(msg.contains(&limit.to_string()));
+    }
+
+    // ========================================================================
+    // Routing Error Tests (WASM-TASK-006 Task 1.3)
+    // ========================================================================
+
+    #[test]
+    fn test_routing_component_not_found_error() {
+        let err = WasmError::routing_component_not_found("missing-component");
+        assert!(matches!(err, WasmError::RoutingComponentNotFound { .. }));
+        let msg = err.to_string();
+        assert!(msg.contains("missing-component"));
+        assert!(msg.contains("not registered"));
+    }
+
+    #[test]
+    fn test_routing_mailbox_closed_error() {
+        let err = WasmError::routing_mailbox_closed("shutting-down-component");
+        assert!(matches!(err, WasmError::RoutingMailboxClosed { .. }));
+        let msg = err.to_string();
+        assert!(msg.contains("shutting-down-component"));
+        assert!(msg.contains("mailbox closed"));
+    }
+
+    #[test]
+    fn test_routing_invalid_message_type_error() {
+        let err = WasmError::routing_invalid_message_type("Shutdown");
+        assert!(matches!(err, WasmError::RoutingInvalidMessageType { .. }));
+        let msg = err.to_string();
+        assert!(msg.contains("Shutdown"));
+        assert!(msg.contains("cannot be routed"));
+    }
+
+    #[test]
+    fn test_routing_timeout_error() {
+        let err = WasmError::routing_timeout("slow-component", 5000);
+        assert!(matches!(err, WasmError::RoutingTimeout { .. }));
+        let msg = err.to_string();
+        assert!(msg.contains("slow-component"));
+        assert!(msg.contains("5000"));
     }
 }

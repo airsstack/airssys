@@ -161,22 +161,50 @@ Implement actor-based inter-component messaging with MessageBroker integration, 
 
 
 #### Task 1.3: ActorSystem Event Subscription Infrastructure
+**Status:** ✅ COMPLETE (2025-12-21)  
+**Code Review Score:** 9.5/10 (APPROVED by @rust-reviewer)
+
 **Deliverables:**
-- ActorSystem subscription to MessageBroker initialization
-- ComponentId → ActorAddress registry management
-- Message routing logic (ComponentId-based)
-- Routing error handling and fallback
-- Internal subscription infrastructure documentation
+- ✅ ActorSystem subscription to MessageBroker initialization
+- ✅ ComponentId → ActorAddress registry management
+- ✅ Message routing logic (ComponentId-based)
+- ✅ Routing error handling and fallback
+- ✅ Internal subscription infrastructure documentation
 
 **Clarification:**
 This is INTERNAL infrastructure (runtime-level), NOT a component-facing API. Components are addressed by ComponentId directly, not via topic subscriptions. Topic-based pub-sub is an optional future enhancement (Phase 2+).
 
 **Success Criteria:**
-- ActorSystem successfully subscribes to MessageBroker
-- ComponentId → ActorAddress registry functional
-- Message routing by ComponentId works correctly
-- Routing errors logged and handled gracefully
-- Internal infrastructure documented clearly
+- ✅ ActorSystem successfully subscribes to MessageBroker
+- ✅ ComponentId → ActorAddress registry functional
+- ✅ Message routing by ComponentId works correctly
+- ✅ Routing errors logged and handled gracefully
+- ✅ Internal infrastructure documented clearly
+
+**Implementation Highlights:**
+- MessagingSubscriptionService with full lifecycle management
+- Lock-free metrics with AtomicU64 (Acquire/Release ordering)
+- Thread-safe with Arc<RwLock<>> patterns
+- 4 new routing error types
+- 3 new ComponentRegistry helper methods
+- Comprehensive documentation with architecture diagrams
+
+**Files Created:**
+- `src/runtime/messaging_subscription.rs` (1,185 lines, 19 unit tests)
+- `tests/messaging_subscription_integration_tests.rs` (584 lines, 10 integration tests)
+
+**Files Modified:**
+- `src/runtime/mod.rs` - Module exports
+- `src/core/error.rs` - 4 routing error types
+- `src/actor/component/component_registry.rs` - 3 resolution helpers
+
+**Verification Chain:**
+- ✅ Implemented by @memorybank-implementer
+- ✅ Verified by @memorybank-verifier (VERIFIED status)
+- ✅ Code reviewed by @rust-reviewer (9.5/10 - APPROVED)
+- ✅ All 29 tests pass (19 unit + 10 integration)
+- ✅ Zero clippy warnings
+- ✅ No regressions (Task 1.1/1.2 tests pass)
 
 ---
 
@@ -542,12 +570,12 @@ This task is complete when:
 
 ## Progress Tracking
 
-**Overall Status:** in-progress - Task 1.1 ✅ COMPLETE, Task 1.2 ✅ COMPLETE
+**Overall Status:** Phase 1 ✅ COMPLETE - All 3 tasks done, ready for Phase 2
 
 ### Phase Breakdown
 | Phase | Description | Status | Estimated Duration | Notes |
 |-------|-------------|--------|-------------------|-------|
-| 1 | MessageBroker Integration Foundation | in-progress | Week 1-2 (44 hours) | Task 1.1 ✅ COMPLETE, Task 1.2 ✅ COMPLETE |
+| 1 | MessageBroker Integration Foundation | ✅ complete | Week 1-2 (44 hours) | ALL 3 TASKS COMPLETE 🎉 |
 | 2 | Fire-and-Forget Messaging | not-started | Week 2-3 | Core pattern |
 | 3 | Request-Response Pattern | not-started | Week 3-4 | RPC pattern |
 | 4 | Multicodec Serialization | not-started | Week 4 | Language-agnostic |
@@ -559,7 +587,7 @@ This task is complete when:
 |----|-------------|--------|---------|-------|
 | 1.1 | MessageBroker Setup for Components | ✅ complete | 2025-12-21 | Remediation complete - mailbox delivery working |
 | 1.2 | ComponentActor Message Reception | ✅ complete | 2025-12-21 | Remediation complete - WASM invocation proven with 9 integration tests |
-| 1.3 | ActorSystem Event Subscription Infrastructure | not-started | - | Internal subscription (12 hours) |
+| 1.3 | ActorSystem Event Subscription Infrastructure | ✅ complete | 2025-12-21 | 29 tests, code review 9.5/10 |
 | 2.1 | send-message Host Function | not-started | - | Fire-and-forget |
 | 2.2 | handle-message Component Export | not-started | - | Push delivery |
 | 2.3 | Fire-and-Forget Performance | not-started | - | Performance target |
@@ -578,7 +606,7 @@ This task is complete when:
 
 ## Progress Log
 
-### Phase 1 Progress: Task 1.1 & Task 1.2 Complete (2/3 tasks complete - 67%)
+### Phase 1 Progress: ALL TASKS COMPLETE (3/3 tasks - 100%) 🎉
 
 ### 2025-12-21: Task 1.1 Remediation COMPLETE - Actual Message Delivery Working
 
@@ -699,6 +727,63 @@ This task is complete when:
 
 **Known Limitation (Documented):**
 The TODO for "proper parameter marshalling using wasmtime component model bindings" remains as a follow-up enhancement. Current fixtures use parameterless `handle-message` for simplicity. Full WIT signature support is tracked as future work.
+
+
+---
+
+### 2025-12-21: Task 1.3 COMPLETE - ActorSystem Event Subscription ✅
+
+**Status:** ✅ COMPLETE  
+**Completion Date:** 2025-12-21  
+**Code Review Score:** 9.5/10 (APPROVED by @rust-reviewer)
+
+**Implementation Summary:**
+- ✅ `MessagingSubscriptionService` module created (1,185 lines)
+- ✅ Full lifecycle management: new(), start(), stop(), status()
+- ✅ Component registration: register_component(), unregister_component()
+- ✅ Address resolution: resolve_address(), is_component_registered()
+- ✅ Lock-free metrics with AtomicU64
+- ✅ 4 new routing error types
+- ✅ 3 new ComponentRegistry helper methods
+
+**Test Results:**
+- 19 unit tests passing (messaging_subscription)
+- 10 integration tests passing
+- 5 ComponentRegistry tests passing
+- 4 routing error tests passing
+- All regression tests passing
+
+**Files Created:**
+- `src/runtime/messaging_subscription.rs` (1,185 lines)
+- `tests/messaging_subscription_integration_tests.rs` (584 lines)
+
+**Files Modified:**
+- `src/runtime/mod.rs` - Module exports
+- `src/core/error.rs` - 4 routing error types
+- `src/actor/component/component_registry.rs` - 3 helpers
+
+**Verification Chain:**
+- ✅ Implemented by @memorybank-implementer
+- ✅ Verified by @memorybank-verifier (VERIFIED status)
+- ✅ Code reviewed by @rust-reviewer (9.5/10 - APPROVED)
+
+---
+
+### 🎉 PHASE 1 COMPLETE (2025-12-21)
+
+**Block 5 Phase 1 (MessageBroker Integration Foundation) - 100% COMPLETE**
+
+| Task | Status | Tests | Review |
+|------|--------|-------|--------|
+| 1.1 | ✅ COMPLETE | 22 tests | Approved |
+| 1.2 | ✅ COMPLETE | 9+ tests | Approved |
+| 1.3 | ✅ COMPLETE | 29 tests | Approved (9.5/10) |
+
+**Phase 1 Totals:**
+- 3/3 tasks complete
+- ~60+ tests
+- Full verification chain
+- Ready for Phase 2 (Fire-and-Forget Messaging)
 
 
 ## Related Documentation

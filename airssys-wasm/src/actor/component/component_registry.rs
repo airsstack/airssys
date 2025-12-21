@@ -289,6 +289,118 @@ impl ComponentRegistry {
 
         Ok(instances.len())
     }
+
+    // ========================================================================
+    // Task 1.3 Enhancements: Address Resolution Helpers
+    // ========================================================================
+
+    /// Resolve ComponentId to ActorAddress for routing decisions.
+    ///
+    /// This is a non-failing alternative to `lookup()` that returns `Option`
+    /// instead of `Result`. Useful for routing code where a missing component
+    /// is a normal condition (not an error).
+    ///
+    /// Per ADR-WASM-020: Registry = identity only, Subscriber = delivery.
+    /// This method is for identity lookup, not message delivery.
+    ///
+    /// # Arguments
+    ///
+    /// * `component_id` - Component identifier to resolve
+    ///
+    /// # Returns
+    ///
+    /// - `Some(ActorAddress)` - Component found
+    /// - `None` - Component not registered (or lock poisoned)
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use airssys_wasm::actor::ComponentRegistry;
+    /// use airssys_wasm::core::ComponentId;
+    /// use airssys_rt::util::ActorAddress;
+    ///
+    /// let registry = ComponentRegistry::new();
+    /// let component_id = ComponentId::new("test");
+    /// let actor_addr = ActorAddress::named("test");
+    ///
+    /// registry.register(component_id.clone(), actor_addr.clone()).unwrap();
+    ///
+    /// // Using resolve_address (returns Option)
+    /// let resolved = registry.resolve_address(&component_id);
+    /// assert!(resolved.is_some());
+    /// assert_eq!(resolved.unwrap(), actor_addr);
+    /// ```
+    pub fn resolve_address(&self, component_id: &ComponentId) -> Option<ActorAddress> {
+        self.instances
+            .read()
+            .ok()
+            .and_then(|instances| instances.get(component_id).cloned())
+    }
+
+    /// Check if a component is registered.
+    ///
+    /// Returns true if the component exists in the registry, false otherwise.
+    /// This is a fast check that doesn't require cloning the ActorAddress.
+    ///
+    /// # Arguments
+    ///
+    /// * `component_id` - Component identifier to check
+    ///
+    /// # Returns
+    ///
+    /// `true` if registered, `false` otherwise (or if lock is poisoned).
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use airssys_wasm::actor::ComponentRegistry;
+    /// use airssys_wasm::core::ComponentId;
+    /// use airssys_rt::util::ActorAddress;
+    ///
+    /// let registry = ComponentRegistry::new();
+    /// let component_id = ComponentId::new("test");
+    ///
+    /// assert!(!registry.is_registered(&component_id));
+    ///
+    /// registry.register(component_id.clone(), ActorAddress::named("test")).unwrap();
+    ///
+    /// assert!(registry.is_registered(&component_id));
+    /// ```
+    pub fn is_registered(&self, component_id: &ComponentId) -> bool {
+        self.instances
+            .read()
+            .ok()
+            .map(|instances| instances.contains_key(component_id))
+            .unwrap_or(false)
+    }
+
+    /// Get count of registered components (non-failing version).
+    ///
+    /// Returns 0 if the lock is poisoned.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use airssys_wasm::actor::ComponentRegistry;
+    /// use airssys_wasm::core::ComponentId;
+    /// use airssys_rt::util::ActorAddress;
+    ///
+    /// let registry = ComponentRegistry::new();
+    /// assert_eq!(registry.component_count(), 0);
+    ///
+    /// registry.register(
+    ///     ComponentId::new("test"),
+    ///     ActorAddress::named("test")
+    /// ).unwrap();
+    /// assert_eq!(registry.component_count(), 1);
+    /// ```
+    pub fn component_count(&self) -> usize {
+        self.instances
+            .read()
+            .ok()
+            .map(|instances| instances.len())
+            .unwrap_or(0)
+    }
 }
 
 impl Default for ComponentRegistry {
@@ -550,5 +662,85 @@ mod tests {
     fn test_default_implementation() {
         let registry = ComponentRegistry::default();
         assert_eq!(registry.count().expect("Failed to get count"), 0);
+    }
+
+    // ========================================================================
+    // Task 1.3 Enhancement Tests: Address Resolution Helpers
+    // ========================================================================
+
+    #[test]
+    fn test_resolve_address_registered() {
+        let registry = ComponentRegistry::new();
+        let component_id = ComponentId::new("resolve-test");
+        let actor_addr = ActorAddress::named("resolve-test");
+
+        registry.register(component_id.clone(), actor_addr.clone())
+            .expect("Failed to register");
+
+        // resolve_address should return Some
+        let resolved = registry.resolve_address(&component_id);
+        assert!(resolved.is_some(), "resolve_address should return Some for registered component");
+        assert_eq!(resolved.unwrap(), actor_addr);
+    }
+
+    #[test]
+    fn test_resolve_address_not_registered() {
+        let registry = ComponentRegistry::new();
+        let component_id = ComponentId::new("nonexistent");
+
+        // resolve_address should return None
+        let resolved = registry.resolve_address(&component_id);
+        assert!(resolved.is_none(), "resolve_address should return None for unregistered component");
+    }
+
+    #[test]
+    fn test_is_registered_true() {
+        let registry = ComponentRegistry::new();
+        let component_id = ComponentId::new("is-registered-test");
+        let actor_addr = ActorAddress::named("is-registered-test");
+
+        assert!(!registry.is_registered(&component_id), "Should not be registered initially");
+
+        registry.register(component_id.clone(), actor_addr)
+            .expect("Failed to register");
+
+        assert!(registry.is_registered(&component_id), "Should be registered after register()");
+    }
+
+    #[test]
+    fn test_is_registered_after_unregister() {
+        let registry = ComponentRegistry::new();
+        let component_id = ComponentId::new("unregister-is-registered-test");
+        let actor_addr = ActorAddress::named("unregister-is-registered-test");
+
+        registry.register(component_id.clone(), actor_addr)
+            .expect("Failed to register");
+        assert!(registry.is_registered(&component_id), "Should be registered");
+
+        registry.unregister(&component_id)
+            .expect("Failed to unregister");
+        assert!(!registry.is_registered(&component_id), "Should not be registered after unregister");
+    }
+
+    #[test]
+    fn test_component_count() {
+        let registry = ComponentRegistry::new();
+
+        assert_eq!(registry.component_count(), 0, "Initial count should be 0");
+
+        // Register multiple components
+        for i in 0..5 {
+            let component_id = ComponentId::new(format!("count-test-{}", i));
+            let actor_addr = ActorAddress::named(format!("count-test-{}", i));
+            registry.register(component_id, actor_addr).expect("Failed to register");
+        }
+
+        assert_eq!(registry.component_count(), 5, "Count should be 5 after registering 5 components");
+
+        // Unregister some
+        registry.unregister(&ComponentId::new("count-test-0")).expect("Failed to unregister");
+        registry.unregister(&ComponentId::new("count-test-2")).expect("Failed to unregister");
+
+        assert_eq!(registry.component_count(), 3, "Count should be 3 after unregistering 2 components");
     }
 }

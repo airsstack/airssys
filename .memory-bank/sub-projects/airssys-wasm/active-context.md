@@ -1,86 +1,70 @@
 # airssys-wasm Active Context
 
 **Last Verified:** 2025-12-21  
-**Current Phase:** Block 5 Phase 1 - Task 1.3 Ready  
-**Overall Progress:** Block 3 100% ✅ | Block 4 100% ✅ | Block 5 PHASE 1 in-progress (2/3 tasks)
+**Current Phase:** Block 5 Phase 1 - ✅ COMPLETE | Ready for Phase 2  
+**Overall Progress:** Block 3 100% ✅ | Block 4 100% ✅ | Block 5 PHASE 1 100% ✅ (3/3 tasks)
 
-## ✅ STATUS UPDATE (2025-12-21)
+## 🎉 MILESTONE: Phase 1 Complete (2025-12-21)
 
-**Task 1.1 & Task 1.2 COMPLETE - Ready for Task 1.3**
+**Block 5 Phase 1 (MessageBroker Integration Foundation) is 100% COMPLETE!**
 
-### Task 1.1: MessageBroker Setup
-**Status:** ✅ COMPLETE (2025-12-21)  
-**Remediation Successful:**
-- `mailbox_senders` field added (line 186)
-- `register_mailbox()` method (lines 247-268)
-- `unregister_mailbox()` method (lines 297-317)
-- `route_message_to_subscribers()` fixed - actual delivery via `sender.send(envelope.payload)` (line 454)
-- 15 unit tests + 7 integration tests = 22 tests passing
-- All tests are REAL (verified by auditor)
-- ADR-WASM-020 compliant
-
-### Task 1.2: ComponentActor Message Reception
-**Status:** ✅ COMPLETE (2025-12-21)  
-**Remediation Successful:**
-- Result slot allocation fixed in `invoke_handle_message_with_timeout()` (line 2055)
-- WAT fixtures converted to core WASM modules with correct signatures
-- 9 NEW integration tests proving WASM invocation works
-- 1 NEW unit test for error case (WASM not loaded)
-- All tests are REAL - they instantiate ComponentActor and invoke actual WASM
-- Verified by @memorybank-verifier
-
-**Files Created:**
-- `airssys-wasm/tests/message_reception_integration_tests.rs` - 9 integration tests
-- `airssys-wasm/tests/fixtures/no-handle-message.wat` - New fixture for error testing
-
-**Files Modified:**
-- `airssys-wasm/src/actor/component/component_actor.rs` - Fixed result slot allocation
-- `airssys-wasm/src/actor/component/mod.rs` - Exported types for test access
-- `airssys-wasm/src/actor/mod.rs` - Re-exported types
-- `airssys-wasm/tests/fixtures/basic-handle-message.wat` - Fixed signature
-- `airssys-wasm/tests/fixtures/rejecting-handler.wat` - Fixed signature
-- `airssys-wasm/tests/fixtures/slow-handler.wat` - Fixed signature
-
-### Task 1.3: ActorSystem Event Subscription
-**Status:** ⏳ NOT STARTED  
-**Next Task:** Ready to begin
+All 3 tasks finished with full verification chain:
+- ✅ Implemented by @memorybank-implementer
+- ✅ Verified by @memorybank-verifier
+- ✅ Code reviewed by @rust-reviewer (9.5/10)
 
 ---
 
-## Phase 1 Progress
+## Phase 1 Summary
 
-| Task | Description | Status | Notes |
-|------|-------------|--------|-------|
-| 1.1 | MessageBroker Setup | ✅ COMPLETE | Remediation successful - delivery working |
-| 1.2 | ComponentActor Message Reception | ✅ COMPLETE | Remediation successful - WASM invocation proven |
-| 1.3 | ActorSystem Event Subscription | ⏳ NOT STARTED | Ready to begin |
+| Task | Description | Status | Tests | Review |
+|------|-------------|--------|-------|--------|
+| 1.1 | MessageBroker Setup | ✅ COMPLETE | 22 tests | ✅ Approved |
+| 1.2 | ComponentActor Message Reception | ✅ COMPLETE | 9+ tests | ✅ Approved |
+| 1.3 | ActorSystem Event Subscription | ✅ COMPLETE | 29 tests | ✅ Approved (9.5/10) |
 
-**Phase 1 Progress:** 2/3 tasks complete (67%)
+**Phase 1 Progress:** 3/3 tasks complete (100%) 🎉
+
+---
+
+## Task 1.3 Completion Details
+
+**Status:** ✅ COMPLETE (2025-12-21)  
+**Code Review Score:** 9.5/10 (APPROVED)
+
+### Files Created
+- `airssys-wasm/src/runtime/messaging_subscription.rs` (1,185 lines)
+  - MessagingSubscriptionService with full lifecycle management
+  - SubscriptionStatus and SubscriptionMetrics
+  - 19 unit tests
+- `airssys-wasm/tests/messaging_subscription_integration_tests.rs` (584 lines)
+  - 10 integration tests proving functionality
+
+### Files Modified
+- `airssys-wasm/src/runtime/mod.rs` - Module exports
+- `airssys-wasm/src/core/error.rs` - 4 routing error types
+- `airssys-wasm/src/actor/component/component_registry.rs` - 3 resolution helpers
+
+### Verification Chain
+- ✅ Implemented by @memorybank-implementer
+- ✅ Verified by @memorybank-verifier (VERIFIED status)
+- ✅ Code reviewed by @rust-reviewer (9.5/10 - APPROVED)
+- ✅ All 29 tests pass (19 unit + 10 integration)
+- ✅ Zero clippy warnings
+- ✅ No regressions (Task 1.1/1.2 tests still pass)
 
 ---
 
 ## Current Focus
 
-**Task:** Block 5 Phase 1 Task 1.3 - ActorSystem Event Subscription Infrastructure  
-**Priority:** 🟡 MEDIUM - Can begin now  
+**Next Phase:** Block 5 Phase 2 - Fire-and-Forget Messaging  
+**Priority:** 🟡 MEDIUM  
 **Reference:** task-006-block-5-inter-component-communication.md
 
-**Task 1.3 Deliverables:**
-- ActorSystem subscription to MessageBroker initialization
-- ComponentId → ActorAddress registry management
-- Message routing logic (ComponentId-based)
-- Routing error handling and fallback
-- Internal subscription infrastructure documentation
-
----
-
-## Verification Chain (Task 1.2)
-
-- ✅ Implemented by @memorybank-implementer
-- ✅ Verified by @memorybank-verifier (VERIFIED status)
-- ✅ All 9 integration tests pass
-- ✅ All 861 unit tests pass
-- ✅ Library code clippy-clean
+**Phase 2 Tasks:**
+- Task 2.1: send-message Host Function
+- Task 2.2: handle-message Component Export
+- Task 2.3: Fire-and-Forget Performance
 
 ---
 
@@ -88,39 +72,26 @@
 
 📖 **Critical Documents:**
 - `tasks/task-006-block-5-inter-component-communication.md` - Main task file
-- `tasks/task-006-phase-1-task-1.1-plan.md` - Task 1.1 plan (✅ COMPLETE)
-- `tasks/task-006-phase-1-task-1.1-remediation-plan.md` - Task 1.1 remediation (✅ COMPLETE)
-- `tasks/task-006-phase-1-task-1.2-plan.md` - Task 1.2 plan (✅ COMPLETE)
-- `tasks/task-006-phase-1-task-1.2-remediation-plan.md` - Task 1.2 remediation (✅ COMPLETE)
-- `docs/adr/adr-wasm-020-message-delivery-ownership-architecture.md` - Architectural fix
+- `tasks/task-006-phase-1-task-1.3-plan.md` - Task 1.3 plan (✅ COMPLETE)
+- `docs/adr/adr-wasm-020-message-delivery-ownership-architecture.md` - Architecture
 
-📋 **Test Files:**
-- `airssys-wasm/tests/message_delivery_integration_tests.rs` - Task 1.1 tests (7 tests)
-- `airssys-wasm/tests/message_reception_integration_tests.rs` - Task 1.2 tests (9 tests)
-- `airssys-wasm/tests/messaging_reception_tests.rs` - API tests (22 tests)
-- `airssys-wasm/tests/messaging_backpressure_tests.rs` - Backpressure tests (19 tests)
+📋 **Test Files (Phase 1):**
+- `tests/message_delivery_integration_tests.rs` - Task 1.1 (7 tests)
+- `tests/message_reception_integration_tests.rs` - Task 1.2 (9 tests)
+- `tests/messaging_subscription_integration_tests.rs` - Task 1.3 (10 tests)
 
-🔧 **Implementation Files:**
-- `airssys-wasm/src/actor/component/component_actor.rs` - Message reception
-- `airssys-wasm/src/actor/message/actor_system_subscriber.rs` - Message delivery
-- `airssys-wasm/src/runtime/messaging.rs` - MessagingService
+🔧 **Implementation Files (Phase 1):**
+- `src/actor/message/actor_system_subscriber.rs` - Message delivery
+- `src/actor/component/component_actor.rs` - Message reception
+- `src/runtime/messaging_subscription.rs` - Subscription service (NEW)
 
 ---
 
-## Block 4 Status (Complete)
+## Block Status Summary
 
-✅ **WASM-TASK-005 Block 4 - 100% COMPLETE**
-
-- Phase 1: WASM-OSL Security Bridge ✅
-- Phase 2: Trust-Level System ✅  
-- Phase 3: Capability Enforcement ✅
-- Phase 4: ComponentActor Security Integration ✅
-- Phase 5: Testing & Documentation ✅
-
----
-
-## Block 3 Status (Complete)
-
-✅ **WASM-TASK-004 Block 3 - 100% COMPLETE**
-
-All 6 phases and 18 tasks complete.
+| Block | Status | Progress |
+|-------|--------|----------|
+| Block 3 | ✅ COMPLETE | 18/18 tasks |
+| Block 4 | ✅ COMPLETE | 15/15 tasks |
+| Block 5 Phase 1 | ✅ COMPLETE | 3/3 tasks |
+| Block 5 Phase 2-6 | ⏳ Not Started | 0/15 tasks |
