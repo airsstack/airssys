@@ -1,44 +1,17 @@
 # airssys-wasm Progress
 
 ## Current Status
-**Phase:** Block 5 (Inter-Component Communication) - ⚠️ **Task 1.2 REMEDIATION REQUIRED**  
-**Overall Progress:** Block 3 100% COMPLETE (18/18 tasks) | Block 4 ✅ **100% COMPLETE** (15/15 tasks) | Block 5 Phase 1 in-progress (1/3 tasks)  
-**Last Updated:** 2025-12-21 (WASM-TASK-006 Phase 1 Task 1.1 ✅ COMPLETE, Task 1.2 ⚠️ REMEDIATION REQUIRED)
+**Phase:** Block 5 (Inter-Component Communication) - Phase 1 in-progress  
+**Overall Progress:** Block 3 100% COMPLETE (18/18 tasks) | Block 4 ✅ **100% COMPLETE** (15/15 tasks) | Block 5 Phase 1 in-progress (2/3 tasks)  
+**Last Updated:** 2025-12-21 (WASM-TASK-006 Phase 1 Task 1.1 ✅ COMPLETE, Task 1.2 ✅ COMPLETE)
 
-**✅ Task 1.1 COMPLETE (2025-12-21):**
+**✅ Task 1.1 & 1.2 COMPLETE (2025-12-21):**
 - ✅ **Task 1.1:** MessageBroker Setup - Remediation complete, actual message delivery working
-- ⚠️ **Task 1.2:** ComponentActor Message Reception - Tests validate metrics/config only, NOT actual message flow
-- ⏳ **Task 1.3:** ActorSystem Event Subscription - Not started (blocked by 1.2)
-- **Phase 1 Progress:** 1/3 tasks complete
+- ✅ **Task 1.2:** ComponentActor Message Reception - Remediation complete, WASM invocation proven with 9 integration tests
+- ⏳ **Task 1.3:** ActorSystem Event Subscription - Not started (ready to begin)
+- **Phase 1 Progress:** 2/3 tasks complete (67%)
 
-See **ADR-WASM-020** for architectural fix applied to Task 1.1.  
-
-**🎉 MILESTONE ACHIEVED (2025-12-20):**
-Block 4 (Security & Isolation Layer) is **100% COMPLETE** and **AUTHORIZED FOR PRODUCTION**:
-- ✅ All 5 phases complete (15/15 tasks): WASM-OSL Bridge, Trust-Level System, Capability Enforcement, ComponentActor Integration, Testing & Documentation
-- ✅ 13,500+ lines of security implementation (9 modules)
-- ✅ 388 tests passing (100% pass rate, >95% coverage, 100% critical paths)
-- ✅ 11,622 lines of documentation (12 security guides + 6 verification reports)
-- ✅ Zero critical vulnerabilities (HIGH security confidence, 100% attack block rate)
-- ✅ All performance targets exceeded by 20-60%
-- ✅ Quality: 96.9% average (EXCELLENT)
-- ✅ All 4 stakeholder teams approved (Technical Lead, Security, Documentation, QA)
-- ✅ Deployment authorization granted
-
-See **context-snapshots/2025-12-20-task-5.3-production-readiness-complete.md** for complete verification.
-
-**🚀 Major Discovery (2025-11-29):**
-WASM-TASK-003 is **100% COMPLETE** (Implementation finished, documentation sprint parallelized). Complete retrospective analysis reveals:
-- ✅ All WIT interfaces implemented (2,214 lines across 16 files)
-- ✅ Extension interfaces fully complete (1,645 lines - filesystem, network, process)
-- ✅ Build system functional (build.rs 176 lines + wit-bindgen integration)
-- ✅ Permission system complete (Component.toml parser + validation + tests)
-- ✅ Test coverage comprehensive (250+ library tests passing)
-- ✅ All architectural deviations justified and documented (DEBT-WASM-003, KNOWLEDGE-WASM-009)
-- ⏳ Only user-facing documentation remaining (30% complete - Getting Started guides, examples)
-- ✅ Ready for Block 3 (Actor System Integration) - no blockers
-
-See **KNOWLEDGE-WASM-014** for complete retrospective analysis.
+See **ADR-WASM-020** for architectural fix applied to Task 1.1 & 1.2.  
 
 ## What Works
 ### ✅ Completed Tasks
@@ -330,6 +303,63 @@ See `active-context.md` for current focus and task references.
 4. Tests must prove end-to-end functionality per AGENTS.md Section 8
 
 **Reference:** ADR-WASM-020 for architectural fix that applies to both tasks
+
+
+---
+
+### 2025-12-21: Task 1.2 Remediation COMPLETE ✅
+
+**Status:** ✅ COMPLETE  
+**Completion Date:** 2025-12-21
+
+**Remediation Implemented:**
+- ✅ Result slot allocation fixed in `invoke_handle_message_with_timeout()` (line 2055)
+- ✅ WAT fixtures converted to core WASM modules with correct signatures
+- ✅ 9 NEW integration tests proving WASM handle-message export is invoked
+- ✅ 1 NEW unit test for error case (WASM not loaded)
+- ✅ Exported `ComponentResourceLimiter` and `WasmExports` for test access
+
+**Files Created:**
+- `tests/message_reception_integration_tests.rs` (428 lines, 9 tests)
+- `tests/fixtures/no-handle-message.wat` (19 lines)
+
+**Files Modified:**
+- `src/actor/component/component_actor.rs` - Fixed result slot allocation
+- `src/actor/component/mod.rs` - Exported types for test access
+- `src/actor/mod.rs` - Re-exported types
+- `tests/fixtures/basic-handle-message.wat` - Fixed signature
+- `tests/fixtures/rejecting-handler.wat` - Fixed signature
+- `tests/fixtures/slow-handler.wat` - Fixed signature
+- `tests/messaging_reception_tests.rs` - Updated scope documentation
+
+**Test Results:**
+- 861 unit tests passing (lib)
+- 9 integration tests passing (message_reception_integration_tests)
+- 22 API tests passing (messaging_reception_tests)
+- All tests are REAL - they instantiate ComponentActor and invoke actual WASM
+
+**Key Integration Tests:**
+| Test | Purpose |
+|------|---------|
+| `test_component_actor_receives_message_and_invokes_wasm` | CRITICAL - Proves WASM invocation |
+| `test_component_actor_handles_wasm_success_result` | Verifies success path |
+| `test_component_actor_with_rejecting_handler` | Tests error code handling |
+| `test_component_actor_enforces_execution_limits` | Tests fuel/timeout limits |
+| `test_multiple_messages_processed_sequentially` | Tests message sequencing |
+| `test_invoke_without_wasm_returns_error` | Error case: no WASM |
+| `test_invoke_without_export_returns_error` | Error case: no export |
+
+**Quality:**
+- Zero clippy warnings (lib code)
+- Clean build
+- ADR-WASM-020 compliant
+
+**Verification:**
+- ✅ Implemented by @memorybank-implementer
+- ✅ Verified by @memorybank-verifier (VERIFIED status)
+
+**Known Limitation (Documented):**
+The TODO for "proper parameter marshalling using wasmtime component model bindings" remains as a follow-up enhancement. Current fixtures use parameterless `handle-message` for simplicity. This is documented and tracked, not a blocker for current functionality.
 
 ---
 

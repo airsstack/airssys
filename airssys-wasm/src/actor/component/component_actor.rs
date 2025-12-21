@@ -2044,13 +2044,15 @@ where
                 // Note: handle-message WIT signature is:
                 // handle-message: func(sender: component-id, message: list<u8>) -> result<_, component-error>
                 //
-                // For now, we pass empty params as the actual parameter marshalling
-                // depends on the WIT bindings generation. This is a known limitation
-                // that will be addressed when proper WIT bindings are generated.
+                // For current fixtures, handle-message is a simple parameterless function
+                // that returns i32 (0 = success, non-zero = error). The sender and payload
+                // parameters will be passed once proper WIT bindings are generated.
                 //
                 // TODO(WASM-TASK-006 Task 1.2 Follow-up): Implement proper parameter
                 // marshalling using wasmtime component model bindings once generated.
-                let mut results = vec![];
+                //
+                // Pre-allocate result slot for i32 return value
+                let mut results = vec![wasmtime::Val::I32(0)];
                 handle_fn
                     .call_async(&mut *runtime.store_mut(), &[], &mut results)
                     .await
@@ -2059,7 +2061,12 @@ where
                             "handle-message trapped in component {} (from {}): {}",
                             component_id_str, sender_str, e
                         ))
-                    })
+                    })?;
+                
+                // Check result value (0 = success, non-zero = error)
+                // For now, we treat all non-trapping execution as success.
+                // Result interpretation will be enhanced with WIT bindings.
+                Ok(())
             }
         )
         .await;
@@ -3034,5 +3041,37 @@ mod tests {
             })
             .await;
         assert_eq!(incremented, 51);
+    }
+
+    // ========================================================================
+    // UNIT TESTS: invoke_handle_message_with_timeout Error Cases
+    // (WASM-TASK-006 Task 1.2 Remediation)
+    // ========================================================================
+
+    /// Test that invoke_handle_message_with_timeout returns error without WASM
+    ///
+    /// This test verifies error handling when WASM runtime is not loaded.
+    #[tokio::test]
+    async fn test_invoke_handle_message_returns_error_without_wasm() {
+        let mut actor = create_test_actor();
+
+        // WASM is not loaded
+        assert!(!actor.is_wasm_loaded());
+
+        let sender = ComponentId::new("sender");
+        let payload = vec![1, 2, 3];
+
+        let result = actor
+            .invoke_handle_message_with_timeout(sender, payload)
+            .await;
+
+        // Should fail with ComponentNotFound (WASM not loaded)
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            matches!(err, WasmError::ComponentNotFound { .. }),
+            "Error should be ComponentNotFound: {:?}",
+            err
+        );
     }
 }

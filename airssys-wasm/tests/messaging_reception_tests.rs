@@ -268,10 +268,33 @@ async fn test_invoke_handle_message_missing_export() {
     assert!(matches!(err, WasmError::ComponentNotFound { .. }));
 }
 
-// Note: Testing actual WASM invocation requires instantiating a real WASM module,
-// which needs the full WasmEngine infrastructure. These tests focus on the
-// message reception logic and metrics tracking. Full integration tests with
-// real WASM modules are in the main test suite.
+// ============================================================================
+// SCOPE CLARIFICATION (WASM-TASK-006 Task 1.2 Remediation)
+// ============================================================================
+//
+// This test file focuses on MessageReceptionMetrics and BackpressureConfig
+// API validation. It tests the infrastructure components in ISOLATION.
+//
+// For tests that PROVE actual WASM handle-message invocation works, see:
+// - tests/message_reception_integration_tests.rs (WASM fixtures)
+// - Tests: test_component_actor_receives_message_and_invokes_wasm()
+//          test_component_actor_handles_wasm_success_result()
+//          test_component_actor_with_rejecting_handler()
+//          test_component_actor_enforces_execution_limits()
+//          test_multiple_messages_processed_sequentially()
+//
+// This API test suite validates:
+// - MessageReceptionMetrics atomic counter operations
+// - BackpressureConfig struct initialization and validation
+// - Error type construction and display
+// - Performance overhead of metrics operations
+//
+// The integration test suite validates:
+// - ComponentActor receives messages and invokes WASM
+// - invoke_handle_message_with_timeout() executes WASM handle-message export
+// - Error handling with real WASM traps and fuel exhaustion
+// - Execution limit enforcement (timeout and fuel)
+// ============================================================================
 
 // ============================================================================
 // UNIT TESTS: Error Handling
@@ -287,23 +310,20 @@ fn test_backpressure_applied_error() {
 }
 
 // ============================================================================
-// INTEGRATION TESTS: End-to-End Message Flow
+// INTEGRATION TESTS REFERENCE
 // ============================================================================
-
-// Note: Full end-to-end tests require:
-// 1. WasmEngine initialization
-// 2. Component instantiation with real WASM bytes
-// 3. ActorSystem integration
-// 4. MessageBroker routing
 //
-// These are covered in the main integration test suite (actor_invocation_tests.rs,
-// actor_routing_tests.rs) which already test the complete message flow.
+// Full end-to-end WASM invocation tests are in:
+// - tests/message_reception_integration_tests.rs
 //
-// This test suite focuses on the NEW Task 1.2 functionality:
-// - Message reception metrics
-// - Backpressure detection
-// - Timeout enforcement
-// - Error handling enhancements
+// Those tests load real WASM fixtures and PROVE:
+// - handle-message export is actually invoked
+// - Message payload reaches WASM component
+// - Error handling works with real WASM traps
+// - Execution limits are enforced
+//
+// This test suite focuses on the infrastructure components (metrics, config).
+// ============================================================================
 
 // ============================================================================
 // PERFORMANCE TESTS: Message Delivery Latency

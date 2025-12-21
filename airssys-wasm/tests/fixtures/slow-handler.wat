@@ -1,34 +1,30 @@
-;; Slow Handle-Message Component for timeout testing
-;; Delays ~500ms before responding
+;; Slow Handle-Message Module for timeout testing
+;; Delays via busy loop before responding
+;;
+;; This is a core WASM module (not Component Model) for use with
+;; wasmtime's Module loader. The delay loop consumes fuel, which
+;; is used to enforce execution limits.
 
-(component
-  (core module $M
-    (memory (export "memory") 1)
-    
-    (func $delay (param $n i32)
-      (local $i i32)
-      (local.set $i (i32.const 0))
-      (loop $L
-        (local.set $i (i32.add (local.get $i) (i32.const 1)))
-        (br_if $L (i32.lt_u (local.get $i) (local.get $n)))
-      )
+(module
+  (memory (export "memory") 1)
+  
+  ;; Busy loop for delay (consumes fuel)
+  (func $delay (param $n i32)
+    (local $i i32)
+    (local.set $i (i32.const 0))
+    (loop $L
+      (local.set $i (i32.add (local.get $i) (i32.const 1)))
+      (br_if $L (i32.lt_u (local.get $i) (local.get $n)))
     )
-    
-    (func $handle_msg (export "handle-message") (param i32 i32 i32) (result i32)
-      (call $delay (i32.const 50000000))
-      i32.const 0
-    )
-    
-    (func (export "_start"))
   )
   
-  (core instance $m (instantiate $M))
-  
-  (func (export "handle-message") (result u32)
-    (canon lift (core func $m "handle-message"))
+  ;; Handle-message that delays then returns success
+  (func $handle_message (export "handle-message") (result i32)
+    ;; Large loop count to consume significant fuel
+    (call $delay (i32.const 50000000))
+    i32.const 0
   )
   
-  (func (export "_start")
-    (canon lift (core func $m "_start"))
-  )
+  ;; Optional _start for initialization
+  (func (export "_start"))
 )

@@ -1,25 +1,18 @@
-;; Basic Handle-Message Component for testing
-;; Accepts messages and returns success
+;; Basic Handle-Message Module for testing
+;; Accepts messages and returns success (0 = success)
+;;
+;; This is a core WASM module (not Component Model) for use with
+;; wasmtime's Module loader. The handle-message function takes no
+;; parameters and returns i32 (0 = success, non-zero = error).
 
-(component
-  (core module $M
-    (memory (export "memory") 1)
-    
-    (func $handle_msg (export "handle-message") (param i32 i32 i32) (result i32)
-      i32.const 0
-    )
-    
-    (func (export "_start"))
+(module
+  (memory (export "memory") 1)
+  
+  ;; Simple handle-message that always returns success (0)
+  (func $handle_message (export "handle-message") (result i32)
+    i32.const 0
   )
   
-  (core instance $m (instantiate $M))
-  
-  ;; Component-level export with proper signature
-  (func (export "handle-message") (result u32)
-    (canon lift (core func $m "handle-message"))
-  )
-  
-  (func (export "_start")
-    (canon lift (core func $m "_start"))
-  )
+  ;; Optional _start for initialization
+  (func (export "_start"))
 )

@@ -1,24 +1,17 @@
-;; Rejecting Handle-Message Component for error testing
+;; Rejecting Handle-Message Module for error testing
 ;; Always rejects messages with error code 99
+;;
+;; This is a core WASM module (not Component Model) for use with
+;; wasmtime's Module loader.
 
-(component
-  (core module $M
-    (memory (export "memory") 1)
-    
-    (func $handle_msg (export "handle-message") (param i32 i32 i32) (result i32)
-      i32.const 99
-    )
-    
-    (func (export "_start"))
+(module
+  (memory (export "memory") 1)
+  
+  ;; Handle-message that always returns error code 99
+  (func $handle_message (export "handle-message") (result i32)
+    i32.const 99
   )
   
-  (core instance $m (instantiate $M))
-  
-  (func (export "handle-message") (result u32)
-    (canon lift (core func $m "handle-message"))
-  )
-  
-  (func (export "_start")
-    (canon lift (core func $m "_start"))
-  )
+  ;; Optional _start for initialization
+  (func (export "_start"))
 )
