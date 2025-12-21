@@ -597,10 +597,20 @@ Block 5 implements the actor-based inter-component messaging system enabling sec
 | Task | Description | Status | Updated | Notes |
 |------|-------------|--------|---------|-------|
 | 1.1 | MessageBroker Setup for Components | ✅ **COMPLETE** | 2025-12-21 | Remediation complete - actual delivery working |
-| 1.2 | ComponentActor Message Reception | ⚠️ **REMEDIATION REQUIRED** | 2025-12-21 | Tests validate APIs only, NOT actual WASM invocation |
-| 1.3 | ActorSystem Event Subscription Infrastructure | ⏳ Not started | - | Internal subscription (12 hours) |
+| 1.2 | ComponentActor Message Reception | ✅ **COMPLETE** | 2025-12-21 | Remediation complete - WASM invocation proven |
+| 1.3 | ActorSystem Event Subscription Infrastructure | ✅ **COMPLETE** | 2025-12-21 | 29 tests, code review 9.5/10 |
 
-**Phase 1 Progress:** 1/3 tasks complete (33%)
+**Phase 1 Progress:** 3/3 tasks complete (100%) ✅
+
+### Phase 2: Fire-and-Forget Messaging (in-progress)
+
+| Task | Description | Status | Updated | Notes |
+|------|-------------|--------|---------|-------|
+| 2.1 | send-message Host Function | ✅ **COMPLETE** | 2025-12-21 | 8 unit + 18 integration tests, verified |
+| 2.2 | handle-message Component Export | ✅ **COMPLETE** | 2025-12-22 | 4 unit + 8 integration tests, verified |
+| 2.3 | Fire-and-Forget Performance | ⏳ Not started | - | Performance benchmarking |
+
+**Phase 2 Progress:** 2/3 tasks complete (67%)
 
 ### Task 1.1 Completion Summary (2025-12-21)
 
