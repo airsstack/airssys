@@ -340,3 +340,66 @@
   - **Related**: ADR-WASM-009, KNOWLEDGE-WASM-024, KNOWLEDGE-WASM-018, WASM-TASK-006
   - **Note**: This document supersedes KNOWLEDGE-WASM-025 which proposed extending ComponentRegistry (rejected)
 
+
+---
+
+## KNOWLEDGE-WASM-027: Duplicate WASM Runtime - Fatal Architecture Violation 🔴
+
+**File:** `knowledge-wasm-027-duplicate-wasm-runtime-fatal-architecture-violation.md`  
+**Status:** Active  
+**Created:** 2025-12-21  
+**Category:** Architecture / Fatal Errors / Lessons Learned  
+**Severity:** 🔴 **CRITICAL / FATAL**
+
+**Summary:** Documents a fatal architectural violation where a duplicate WASM runtime was created in `actor/component/` using the WRONG API (core WASM `wasmtime::Module`) instead of the CORRECT API (Component Model `wasmtime::component::Component`). This violates ADR-WASM-002 and renders the entire WIT interface system non-functional.
+
+**Key Points:**
+- `runtime/engine.rs` correctly uses Component Model API (IGNORED)
+- `actor/component/child_impl.rs` uses core WASM API (WRONG)
+- 154KB of generated bindings (`src/generated/`) are completely UNUSED
+- 250+ lines of workaround code (WasmBumpAllocator, etc.) exist as workarounds
+- Circular dependency: `runtime/` imports from `actor/` (WRONG direction)
+
+**Impact:**
+- All WIT interfaces non-functional
+- Type safety bypassed
+- Security guarantees of Canonical ABI bypassed
+- 3-5 days of refactoring required to fix
+
+**Related:**
+- ADR-WASM-002 (mandates Component Model)
+- ADR-WASM-021 (remediation plan)
+- ADR-WASM-018 (layer architecture)
+
+**Audience:** All developers, architects, future maintainers - MUST READ before working on component execution
+
+## KNOWLEDGE-WASM-028: Circular Dependency Between actor/ and runtime/ 🔴
+
+**File:** `knowledge-wasm-028-circular-dependency-actor-runtime.md`  
+**Status:** Active  
+**Created:** 2025-12-21  
+**Category:** Architecture / Fatal Errors / Module Dependencies  
+**Severity:** 🔴 **CRITICAL**
+
+**Summary:** Documents a critical architectural violation where `runtime/` module incorrectly imports types from `actor/` module, creating a circular dependency. The correct dependency direction is one-way: `actor/ → runtime/ → core/`.
+
+**Evidence:**
+- `runtime/async_host.rs:52` imports `crate::actor::ComponentMessage`
+- `runtime/messaging.rs:76` imports `crate::actor::ComponentMessage`
+- `runtime/messaging_subscription.rs:108-109` imports `ComponentRegistry`, `ActorSystemSubscriber`
+
+**Root Cause:**
+- `ComponentMessage` is a data type but placed in `actor/` instead of `core/`
+- `messaging_subscription.rs` contains integration logic that belongs in `actor/`
+
+**Remediation:**
+1. Move `ComponentMessage` to `core/`
+2. Move `messaging_subscription.rs` to `actor/component/`
+3. Add CI check to enforce layer boundaries
+
+**Related:**
+- ADR-WASM-018 (three-layer architecture)
+- ADR-WASM-022 (remediation plan)
+- KNOWLEDGE-WASM-027 (related duplicate runtime issue)
+
+**Audience:** All developers - MUST understand correct layer dependencies

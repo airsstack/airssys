@@ -49,9 +49,8 @@ use tokio::time::timeout;
 use airssys_rt::broker::{InMemoryMessageBroker, MessageBroker};
 use airssys_rt::message::MessageEnvelope;
 use airssys_rt::util::ActorAddress;
-use airssys_wasm::actor::{ComponentMessage, ComponentRegistry, SubscriberManager};
+use airssys_wasm::actor::{ComponentMessage, ComponentRegistry, MessagingSubscriptionService, SubscriberManager};
 use airssys_wasm::core::ComponentId;
-use airssys_wasm::runtime::MessagingSubscriptionService;
 
 // ============================================================================
 // Test 1: End-to-End Subscription Initialization

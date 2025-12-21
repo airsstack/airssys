@@ -29,18 +29,21 @@
 //! - **ADR-WASM-006**: Component Isolation and Sandboxing
 
 // Layer 1: Standard library imports
+use std::sync::Arc;
 use std::time::Duration;
 
 // Layer 2: Third-party crate imports
 use async_trait::async_trait;
 use chrono::Utc;
 use tracing::{error, info, warn};
-use wasmtime::{Config, Engine, Linker, Module, Store};
+// NOTE: wasmtime imports removed - legacy core WASM API deleted in WASM-TASK-006-HOTFIX Phase 2 Task 2.1
 
 // Layer 3: Internal module imports
-use super::component_actor::{ComponentResourceLimiter, WasmExports};
-use crate::actor::component::{ActorState, ComponentActor, HealthStatus, WasmRuntime};
+// NOTE: ComponentResourceLimiter, WasmExports, WasmRuntime deleted in WASM-TASK-006-HOTFIX Phase 2 Task 2.1
+use crate::actor::component::{ActorState, ComponentActor};
+use crate::core::ComponentHealthStatus as HealthStatus;
 use crate::core::WasmError;
+use crate::core::runtime::RuntimeEngine; // Component Model trait
 use airssys_rt::supervisor::{Child, ChildHealth};
 
 /// Child trait implementation for ComponentActor (STUB).
@@ -190,151 +193,124 @@ where
             return Err(WasmError::component_validation_failed(err_msg));
         }
 
-        // 4. Create Wasmtime Engine with security config
-        let mut config = Config::new();
-        config.async_support(true); // Required for async component execution
-        config.wasm_multi_value(true); // Allow multiple return values
-        config.consume_fuel(true); // Enable fuel metering for CPU limits
-
-        // Disable unsafe WASM features for security (ADR-WASM-003)
-        config.wasm_bulk_memory(false);
-        config.wasm_reference_types(false);
-        config.wasm_threads(false);
-        config.wasm_simd(false);
-        config.wasm_relaxed_simd(false); // Must be disabled if SIMD is disabled
-
-        let engine = Engine::new(&config).map_err(|e| {
-            let err_msg = format!("Failed to create Wasmtime engine: {e}");
-            self.set_state(ActorState::Failed(err_msg.clone()));
-            WasmError::engine_initialization(err_msg)
-        })?;
-
-        // 5. Compile WASM module
-        let module = Module::from_binary(&engine, &wasm_bytes).map_err(|e| {
-            let err_msg = format!(
-                "Component {} compilation failed: {}",
-                self.component_id().as_str(),
-                e
-            );
-            error!(
+        // =============================================================================
+        // COMPONENT MODEL PATH (WASM-TASK-006-HOTFIX Phase 2)
+        // =============================================================================
+        // If component_engine is configured, use the CORRECT Component Model API.
+        // This is the target architecture per ADR-WASM-002.
+        //
+        // Benefits over legacy path:
+        // - Uses wasmtime::component::{Component, Linker} instead of wasmtime::Module
+        // - WIT interfaces are fully functional
+        // - Generated bindings (154KB) are actually used
+        // - Type-safe host function calls
+        // - Proper Canonical ABI handling (no manual bump allocator needed)
+        // =============================================================================
+        if let Some(engine) = self.component_engine() {
+            let engine = Arc::clone(engine);
+            info!(
                 component_id = %self.component_id().as_str(),
-                error = %e,
-                "WASM module compilation failed"
+                "Using Component Model API (correct architecture per ADR-WASM-002)"
             );
-            self.set_state(ActorState::Failed(err_msg.clone()));
-            WasmError::component_load_failed(self.component_id().as_str(), err_msg)
-        })?;
 
-        // 6. Create Store with ResourceLimiter
-        let max_memory_bytes = self.metadata().resource_limits.max_memory_bytes;
-        let max_fuel = self.metadata().resource_limits.max_fuel;
-
-        let limiter = ComponentResourceLimiter::new(max_memory_bytes, max_fuel);
-        let mut store = Store::new(&engine, limiter);
-
-        // Set initial fuel
-        store.set_fuel(max_fuel).map_err(|e| {
-            let err_msg = format!("Failed to set fuel limit: {e}");
-            self.set_state(ActorState::Failed(err_msg.clone()));
-            WasmError::invalid_configuration(err_msg)
-        })?;
-
-        // 7. Create empty Linker (host functions will be added in Task 1.3)
-        let linker = Linker::new(&engine);
-        // TODO(Task 1.3): Register host functions here
-
-        // 8. Instantiate component
-        let instance = linker
-            .instantiate_async(&mut store, &module)
-            .await
-            .map_err(|e| {
-                let err_msg = format!(
-                    "Component {} instantiation failed: {}",
-                    self.component_id().as_str(),
+            // Load component using Component Model API
+            let handle = engine
+                .load_component(self.component_id(), &wasm_bytes)
+                .await
+                .map_err(|e| {
+                    let err_msg = format!(
+                        "Component {} loading failed: {}",
+                        self.component_id().as_str(),
+                        e
+                    );
+                    error!(
+                        component_id = %self.component_id().as_str(),
+                        error = %e,
+                        "Component Model loading failed"
+                    );
+                    self.set_state(ActorState::Failed(err_msg.clone()));
                     e
-                );
-                error!(
+                })?;
+
+            // Store the handle
+            self.set_component_handle(Some(handle));
+
+            // Transition to Ready state
+            self.set_started_at(Some(Utc::now()));
+            self.set_state(ActorState::Ready);
+
+            // Register security context
+            if let Err(e) = crate::security::register_component(self.security_context().clone()) {
+                warn!(
                     component_id = %self.component_id().as_str(),
                     error = %e,
-                    "Component instantiation failed"
+                    "Failed to register security context (continuing with startup)"
                 );
-                self.set_state(ActorState::Failed(err_msg.clone()));
-                WasmError::execution_failed(err_msg)
-            })?;
+            }
 
-        // 9. Create WasmRuntime and call optional _start
-        let mut runtime = WasmRuntime::new(engine, store, instance)?;
+            let max_memory_bytes = self.metadata().resource_limits.max_memory_bytes;
+            let max_fuel = self.metadata().resource_limits.max_fuel;
 
-        // Clone _start function to avoid borrowing issues
-        let start_fn_opt = runtime.exports().start;
-
-        // Call _start if available
-        WasmExports::call_start_fn(start_fn_opt.as_ref(), runtime.store_mut())
-            .await
-            .map_err(|e| {
-                error!(
-                    component_id = %self.component_id().as_str(),
-                    error = %e,
-                    "Component _start function failed"
-                );
-                self.set_state(ActorState::Failed(e.to_string()));
-                e
-            })?;
-
-        // 10. Store runtime and transition state
-        self.set_wasm_runtime(Some(runtime));
-        self.set_started_at(Some(Utc::now()));
-        self.set_state(ActorState::Ready);
-
-        // 11. Register security context (WASM-TASK-005 Phase 4 Task 4.1)
-        // Register component's security context with the global enforcement system
-        // so host functions can perform capability checks. This context is preserved
-        // across supervisor restarts.
-        if let Err(e) = crate::security::register_component(self.security_context().clone()) {
-            warn!(
+            info!(
                 component_id = %self.component_id().as_str(),
-                error = %e,
-                "Failed to register security context (continuing with startup)"
+                memory_limit = max_memory_bytes,
+                fuel_limit = max_fuel,
+                "Component started successfully (Component Model)"
             );
-            // Note: This is non-fatal as capability checks will fail-safe (deny-by-default)
+
+            // Call post_start hook
+            let hook_result = {
+                let ctx_clone = lifecycle_ctx.clone();
+                crate::actor::lifecycle::catch_unwind_hook(|| self.hooks_mut().post_start(&ctx_clone))
+            };
+
+            match hook_result {
+                crate::actor::lifecycle::HookResult::Ok => {
+                    tracing::debug!(
+                        component_id = %self.component_id().as_str(),
+                        "post_start hook completed successfully"
+                    );
+                }
+                crate::actor::lifecycle::HookResult::Error(e) => {
+                    tracing::warn!(
+                        component_id = %self.component_id().as_str(),
+                        error = %e,
+                        "post_start hook returned error (startup complete)"
+                    );
+                }
+                crate::actor::lifecycle::HookResult::Timeout => {
+                    tracing::warn!(
+                        component_id = %self.component_id().as_str(),
+                        "post_start hook unexpectedly timed out"
+                    );
+                }
+            }
+
+            return Ok(());
         }
 
-        info!(
+        // =============================================================================
+        // LEGACY PATH DELETED (WASM-TASK-006-HOTFIX Phase 2 Task 2.1)
+        // =============================================================================
+        // The legacy core WASM API path has been completely removed.
+        // Component Model is now MANDATORY per ADR-WASM-002.
+        //
+        // If you reach this point, it means component_engine was not configured.
+        // This is a configuration error - use with_component_engine() when creating
+        // ComponentActor.
+        // =============================================================================
+        error!(
             component_id = %self.component_id().as_str(),
-            memory_limit = max_memory_bytes,
-            fuel_limit = max_fuel,
-            "Component started successfully"
+            "Component Model engine not configured - use with_component_engine() to set up"
         );
-
-        // PHASE 5 TASK 5.2: Call post_start hook
-        let hook_result = {
-            let ctx_clone = lifecycle_ctx.clone();
-            crate::actor::lifecycle::catch_unwind_hook(|| self.hooks_mut().post_start(&ctx_clone))
-        };
-
-        match hook_result {
-            crate::actor::lifecycle::HookResult::Ok => {
-                tracing::debug!(
-                    component_id = %self.component_id().as_str(),
-                    "post_start hook completed successfully"
-                );
-            }
-            crate::actor::lifecycle::HookResult::Error(e) => {
-                tracing::warn!(
-                    component_id = %self.component_id().as_str(),
-                    error = %e,
-                    "post_start hook returned error (startup complete)"
-                );
-            }
-            crate::actor::lifecycle::HookResult::Timeout => {
-                tracing::warn!(
-                    component_id = %self.component_id().as_str(),
-                    "post_start hook unexpectedly timed out"
-                );
-            }
-        }
-
-        Ok(())
+        
+        self.set_state(ActorState::Failed(
+            "Component Model engine not configured - legacy path removed in WASM-TASK-006-HOTFIX".to_string()
+        ));
+        
+        Err(WasmError::engine_initialization(
+            "Component Model engine not configured. Use ComponentActor::new().with_component_engine(engine) to configure."
+        ))
     }
 
     /// Stop the component gracefully with resource cleanup.
@@ -404,7 +380,7 @@ where
     ///     Ok(())
     /// }
     /// ```
-    async fn stop(&mut self, timeout: Duration) -> Result<(), Self::Error> {
+    async fn stop(&mut self, _timeout: Duration) -> Result<(), Self::Error> {
         // PHASE 5 TASK 5.2: Call pre_stop hook
         let lifecycle_ctx = crate::actor::lifecycle::LifecycleContext {
             component_id: self.component_id().clone(),
@@ -442,56 +418,32 @@ where
         // 1. Transition to Stopping state
         self.set_state(ActorState::Stopping);
 
-        // 2. Call optional _cleanup export if WASM is loaded
-        if let Some(runtime) = self.wasm_runtime_mut() {
-            // Clone cleanup function to avoid borrowing issues
-            let cleanup_fn_opt = runtime.exports().cleanup;
-
-            match WasmExports::call_cleanup_fn(
-                cleanup_fn_opt.as_ref(),
-                runtime.store_mut(),
-                timeout,
-            )
-            .await
-            {
-                Ok(()) => {
-                    info!(
-                        component_id = %self.component_id().as_str(),
-                        "Component cleanup completed successfully"
-                    );
-                }
-                Err(WasmError::ExecutionTimeout { .. }) => {
-                    warn!(
-                        component_id = %self.component_id().as_str(),
-                        timeout_ms = timeout.as_millis(),
-                        "Component cleanup timed out (non-fatal)"
-                    );
-                    // Non-fatal: continue with resource cleanup
-                }
-                Err(e) => {
-                    warn!(
-                        component_id = %self.component_id().as_str(),
-                        error = %e,
-                        "Component cleanup function failed (non-fatal)"
-                    );
-                    // Non-fatal: continue with resource cleanup
-                }
-            }
+        // 2. Component Model: Clear component handle to release resources
+        // The legacy WasmRuntime cleanup path has been deleted.
+        // Component Model uses set_component_handle(None) which drops the Arc,
+        // releasing resources when reference count reaches 0.
+        //
+        // Note: _cleanup export invocation is not supported in current Component Model
+        // implementation. This is a simplification for the hotfix. Future task can
+        // add proper cleanup export support via WasmEngine::call_cleanup().
+        if self.is_wasm_loaded() {
+            info!(
+                component_id = %self.component_id().as_str(),
+                "Releasing Component Model resources"
+            );
+            self.set_component_handle(None);
         }
 
-        // 3. Drop WasmRuntime (frees all resources via RAII)
-        self.clear_wasm_runtime();
-
-        // 4. Verify cleanup completed
+        // 3. Verify cleanup completed
         debug_assert!(
             !self.is_wasm_loaded(),
-            "WasmRuntime should be cleared after stop"
+            "ComponentHandle should be cleared after stop"
         );
 
-        // 5. Transition state
+        // 4. Transition state
         self.set_state(ActorState::Terminated);
 
-        // 6. Unregister security context (WASM-TASK-005 Phase 4 Task 4.1)
+        // 5. Unregister security context (WASM-TASK-005 Phase 4 Task 4.1)
         // Remove component's security context from global enforcement system
         // to prevent capability checks after component termination.
         if let Err(e) = crate::security::unregister_component(self.component_id().as_str()) {
@@ -503,7 +455,7 @@ where
             // Note: This is non-fatal as component is already terminated
         }
 
-        // 7. Log shutdown with uptime metrics
+        // 6. Log shutdown with uptime metrics
         if let Some(uptime) = self.uptime() {
             info!(
                 component_id = %self.component_id().as_str(),
@@ -654,7 +606,7 @@ where
     /// Health status is determined by checking multiple factors in priority order:
     ///
     /// 1. **WASM Runtime Status**: Component must have loaded WASM runtime
-    ///    - If None → `Failed("WASM runtime not loaded")`
+    ///    - If None → `Failed("Component not loaded")`
     ///
     /// 2. **Actor State Assessment**: Current lifecycle state determines health
     ///    - `Failed(reason)` → `Failed(reason)` (unrecoverable error)
@@ -726,17 +678,14 @@ where
     /// - `parse_health_status()` - Helper for future _health export deserialization
     /// - `Child::health_check()` - Public API with timeout protection
     async fn health_check_inner(&self) -> ChildHealth {
-        // 1. Check if WASM loaded
-        let _runtime = match self.wasm_runtime() {
-            Some(rt) => rt,
-            None => {
-                warn!(
-                    component_id = %self.component_id().as_str(),
-                    "Health check failed: WASM runtime not loaded"
-                );
-                return ChildHealth::Failed("WASM runtime not loaded".to_string());
-            }
-        };
+        // 1. Check if WASM loaded (Component Model: check component_handle)
+        if !self.is_wasm_loaded() {
+            warn!(
+                component_id = %self.component_id().as_str(),
+                "Health check failed: Component not loaded"
+            );
+            return ChildHealth::Failed("Component not loaded".to_string());
+        }
 
         // 2. Evaluate ActorState for health determination
         let component_id = self.component_id().as_str();
@@ -916,6 +865,7 @@ where
 mod tests {
     use super::*;
     use crate::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits};
+    use crate::runtime::WasmEngine;
 
     fn create_test_metadata() -> ComponentMetadata {
         ComponentMetadata {
@@ -933,6 +883,8 @@ mod tests {
         }
     }
 
+    /// Create test actor WITHOUT Component Model engine (for testing error cases).
+    /// Tests that use this should expect start() to fail.
     fn create_test_actor() -> ComponentActor {
         ComponentActor::new(
             ComponentId::new("test-component"),
@@ -942,22 +894,35 @@ mod tests {
         )
     }
 
+    /// Create test actor WITH Component Model engine (for lifecycle tests).
+    /// Tests that call start() should use this helper.
+    fn create_test_actor_with_engine() -> ComponentActor {
+        let engine = std::sync::Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
+        ComponentActor::new(
+            ComponentId::new("test-component"),
+            create_test_metadata(),
+            CapabilitySet::new(),
+            (),
+        )
+        .with_component_engine(engine)
+    }
+
     #[tokio::test]
     async fn test_child_start_transitions_state() {
-        let mut actor = create_test_actor();
+        let mut actor = create_test_actor_with_engine();
 
         assert_eq!(*actor.state(), ActorState::Creating);
 
         // Start should transition to Ready
         let result = actor.start().await;
-        assert!(result.is_ok());
+        assert!(result.is_ok(), "Failed to start actor: {result:?}");
         assert_eq!(*actor.state(), ActorState::Ready);
         assert!(actor.uptime().is_some());
     }
 
     #[tokio::test]
     async fn test_child_stop_transitions_state() {
-        let mut actor = create_test_actor();
+        let mut actor = create_test_actor_with_engine();
 
         let result = actor.start().await;
         assert!(result.is_ok(), "Failed to start actor: {result:?}");
@@ -972,9 +937,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_child_health_check_state_based() {
-        let mut actor = create_test_actor();
+        let mut actor = create_test_actor_with_engine();
 
-        // Before start - WASM not loaded → Failed
+        // Before start - Component not loaded → Failed
         let health = actor.health_check().await;
         assert!(matches!(health, ChildHealth::Failed(_)));
 
@@ -993,7 +958,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_child_lifecycle_full_cycle() {
-        let mut actor = create_test_actor();
+        let mut actor = create_test_actor_with_engine();
 
         // Full lifecycle
         assert_eq!(*actor.state(), ActorState::Creating);
@@ -1012,18 +977,18 @@ mod tests {
 
     #[tokio::test]
     async fn test_child_stop_timeout_parameter() {
-        let mut actor = create_test_actor();
+        let mut actor = create_test_actor_with_engine();
         let result = actor.start().await;
         assert!(result.is_ok(), "Failed to start actor: {result:?}");
 
-        // Timeout parameter is accepted (though not used in stub)
+        // Timeout parameter is accepted (though not used in current implementation)
         let result = actor.stop(Duration::from_millis(100)).await;
         assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn test_child_start_sets_timestamp() {
-        let mut actor = create_test_actor();
+        let mut actor = create_test_actor_with_engine();
 
         assert_eq!(actor.uptime(), None);
 
@@ -1051,10 +1016,10 @@ mod tests {
         actor
     }
 
-    /// Helper: Create actor without WASM runtime (simulates uninitialized state)
+    /// Helper: Create actor without component handle (simulates uninitialized state)
     fn create_actor_without_runtime() -> ComponentActor {
         let mut actor = create_test_actor();
-        actor.clear_wasm_runtime();
+        actor.set_component_handle(None);
         actor
     }
 
@@ -1071,8 +1036,8 @@ mod tests {
 
         if let ChildHealth::Failed(reason) = health {
             assert!(
-                reason.contains("WASM runtime not loaded"),
-                "Expected 'WASM runtime not loaded', got: {reason}"
+                reason.contains("Component not loaded"),
+                "Expected 'Component not loaded', got: {reason}"
             );
         }
     }
@@ -1092,8 +1057,8 @@ mod tests {
     // Test: ActorState::Stopping → ChildHealth::Degraded
     #[tokio::test]
     async fn test_health_check_stopping_state_returns_degraded() {
-        let mut actor = create_test_actor();
-        // Start first to load WASM
+        let mut actor = create_test_actor_with_engine();
+        // Start first to load component
         let result = actor.start().await;
         assert!(result.is_ok(), "Failed to start actor: {result:?}");
 
@@ -1127,7 +1092,7 @@ mod tests {
 
         if let ChildHealth::Failed(reason) = health {
             assert!(
-                reason.contains("WASM runtime not loaded") || reason.contains("Test failure"),
+                reason.contains("Component not loaded") || reason.contains("Test failure"),
                 "Expected failure reason, got: {reason}"
             );
         }
@@ -1136,7 +1101,7 @@ mod tests {
     // Test: ActorState::Terminated → ChildHealth::Failed
     #[tokio::test]
     async fn test_health_check_terminated_state_returns_failed() {
-        let mut actor = create_test_actor();
+        let mut actor = create_test_actor_with_engine();
 
         // Start and stop to reach Terminated state
         let result = actor.start().await;
@@ -1153,8 +1118,8 @@ mod tests {
 
         if let ChildHealth::Failed(reason) = health {
             assert!(
-                reason.contains("WASM runtime not loaded"),
-                "Expected 'WASM runtime not loaded', got: {reason}"
+                reason.contains("Component not loaded"),
+                "Expected 'Component not loaded', got: {reason}"
             );
         }
     }
@@ -1162,7 +1127,7 @@ mod tests {
     // Test: ActorState::Ready → ChildHealth::Healthy
     #[tokio::test]
     async fn test_health_check_ready_state_returns_healthy() {
-        let mut actor = create_test_actor();
+        let mut actor = create_test_actor_with_engine();
 
         let result = actor.start().await;
         assert!(result.is_ok(), "Failed to start actor: {result:?}");
@@ -1187,8 +1152,8 @@ mod tests {
 
         if let ChildHealth::Failed(reason) = health {
             assert!(
-                reason.contains("WASM runtime not loaded"),
-                "Expected 'WASM runtime not loaded', got: {reason}"
+                reason.contains("Component not loaded"),
+                "Expected 'Component not loaded', got: {reason}"
             );
         }
     }
@@ -1196,7 +1161,7 @@ mod tests {
     // Test: health_check() has timeout protection
     #[tokio::test]
     async fn test_health_check_has_timeout_protection() {
-        let mut actor = create_test_actor();
+        let mut actor = create_test_actor_with_engine();
 
         // Start component
         let result = actor.start().await;
@@ -1503,5 +1468,96 @@ mod tests {
             "1000 parses took {}ms (expected <10ms)",
             elapsed.as_millis()
         );
+    }
+
+    // ========================================================================
+    // WASM-TASK-006-HOTFIX Phase 2: Component Model Path Tests
+    // ========================================================================
+
+    /// Test that start fails without Component Model engine configured
+    /// (Legacy path was removed in WASM-TASK-006-HOTFIX Phase 2 Task 2.1)
+    #[tokio::test]
+    async fn test_start_fails_without_engine() {
+        // ComponentActor without component_engine should fail to start
+        let mut actor = create_test_actor();
+        
+        // Verify no Component Model engine configured
+        assert!(!actor.uses_component_model());
+        
+        // Start should FAIL now that legacy path is removed
+        let result = actor.start().await;
+        assert!(result.is_err(), "Start without engine should fail: {result:?}");
+        
+        // State should be Failed
+        assert!(matches!(actor.state(), ActorState::Failed(_)));
+        
+        // Component should not be loaded
+        assert!(!actor.is_wasm_loaded());
+        
+        // Error should indicate missing engine
+        if let Err(e) = result {
+            assert!(
+                e.to_string().contains("Component Model engine not configured"),
+                "Expected engine configuration error, got: {e}"
+            );
+        }
+    }
+
+    /// Test Component Model path detection
+    #[test]
+    fn test_uses_component_model_detection() {
+        use crate::runtime::WasmEngine;
+        
+        // Without engine
+        let actor1 = create_test_actor();
+        assert!(!actor1.uses_component_model());
+        
+        // With engine
+        let engine = std::sync::Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
+        let actor2 = ComponentActor::new(
+            ComponentId::new("test"),
+            create_test_metadata(),
+            CapabilitySet::new(),
+            (),
+        )
+        .with_component_engine(engine);
+        
+        assert!(actor2.uses_component_model());
+    }
+
+    /// Test that Component Model engine is accessible after setting
+    #[test]
+    fn test_component_engine_accessor() {
+        use crate::runtime::WasmEngine;
+        
+        let engine = std::sync::Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
+        
+        let actor = ComponentActor::new(
+            ComponentId::new("test"),
+            create_test_metadata(),
+            CapabilitySet::new(),
+            (),
+        )
+        .with_component_engine(engine.clone());
+        
+        // Engine should be accessible
+        assert!(actor.component_engine().is_some());
+        
+        // Should be the same engine (by Arc pointer)
+        let retrieved = actor.component_engine().unwrap();
+        assert!(std::sync::Arc::ptr_eq(&engine, retrieved));
+    }
+
+    /// Test component_handle accessors
+    #[test]
+    fn test_component_handle_accessors() {
+        let mut actor = create_test_actor();
+        
+        // Initially None
+        assert!(actor.component_handle().is_none());
+        
+        // Set to None (no-op but should work)
+        actor.set_component_handle(None);
+        assert!(actor.component_handle().is_none());
     }
 }

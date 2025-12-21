@@ -49,7 +49,7 @@ use airssys_rt::message::MessageEnvelope;
 use async_trait::async_trait;
 
 // Layer 3: Internal module imports
-use crate::actor::ComponentMessage;
+use crate::core::ComponentMessage;
 use crate::core::{
     bridge::{CapabilityMapping, HostCallContext, HostFunction},
     error::{WasmError, WasmResult},

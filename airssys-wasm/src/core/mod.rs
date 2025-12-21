@@ -164,6 +164,7 @@ pub mod capability;
 pub mod component;
 pub mod config;
 pub mod error;
+pub mod component_message; // ADR-WASM-022: Component messages moved from actor/ to core/
 pub mod multicodec; // Phase 1 Task 1.3: Multicodec support for message serialization
 pub mod multicodec_prefix; // WASM-TASK-006 Phase 2: ADR-WASM-001 multicodec prefix validation
 pub mod rate_limiter; // DEBT-WASM-004 Item #3: Rate limiting for message security
@@ -233,3 +234,4 @@ pub use security::{
     TrustLevel,
 };
 pub use storage::{StorageBackend, StorageOperation};
+pub use component_message::{ComponentMessage, ComponentHealthStatus};

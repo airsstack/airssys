@@ -303,3 +303,76 @@ ActorSystemSubscriber (ENHANCED)
 
 **File:** `adr-wasm-020-message-delivery-ownership.md`
 
+
+---
+
+## ADR-WASM-021: Duplicate WASM Runtime Remediation 🔴
+
+**Status:** Accepted  
+**Date:** 2025-12-21  
+**Category:** Architecture Remediation / Critical Fix  
+**Severity:** 🔴 **CRITICAL**
+
+**Summary:** Remediation plan for a fatal architectural violation where a duplicate WASM runtime was created in `actor/component/` using the wrong API (core WASM) instead of the correct API (Component Model). This ADR mandates deleting the duplicate runtime and refactoring ComponentActor to use the existing `runtime/WasmEngine`.
+
+**Key Decisions:**
+1. **DELETE** duplicate runtime code (WasmRuntime, WasmExports, WasmBumpAllocator, HandleMessageParams, HandleMessageResult)
+2. **INJECT** `Arc<WasmEngine>` into ComponentActor
+3. **FIX** Child::start() to use WasmEngine::load_component()
+4. **FIX** Actor::handle() to use Component Model typed calls
+5. **FIX** circular dependency by moving ComponentMessage to core/
+
+**Impact:**
+- Enables WIT interfaces (currently non-functional)
+- Activates 154KB of generated bindings (currently unused)
+- Removes 250+ lines of workaround code
+- Restores correct layer architecture
+
+**Timeline:** 4.5 days
+- Phase 1: Fix circular dependency (0.5 days)
+- Phase 2: Refactor ComponentActor (2 days)
+- Phase 3: Update tests (2 days)
+
+**Related:**
+- KNOWLEDGE-WASM-027 (detailed violation documentation)
+- ADR-WASM-002 (mandates Component Model)
+- ADR-WASM-018 (three-layer architecture)
+
+**File:** `adr-wasm-021-duplicate-runtime-remediation.md`
+
+**Priority:** 🔴 CRITICAL - Must be resolved before Block 5 can proceed
+
+## ADR-WASM-022: Circular Dependency Remediation (actor/ ↔ runtime/) 🔴
+
+**Status:** Accepted  
+**Date:** 2025-12-21  
+**Category:** Architecture Remediation / Module Dependencies  
+**Severity:** 🔴 **CRITICAL**
+
+**Summary:** Remediation plan for circular dependency between `actor/` and `runtime/` modules. The correct architecture is one-way: `actor/ → runtime/ → core/`. Currently `runtime/` incorrectly imports from `actor/`.
+
+**Key Decisions:**
+1. **MOVE** `ComponentMessage` from `actor/` to `core/` (it's a data type)
+2. **RELOCATE** `messaging_subscription.rs` from `runtime/` to `actor/component/` (it's integration logic)
+3. **ADD** CI check to enforce layer boundaries and prevent future violations
+
+**Evidence of Violation:**
+- `runtime/async_host.rs:52` → `use crate::actor::ComponentMessage`
+- `runtime/messaging.rs:76` → `use crate::actor::ComponentMessage`
+- `runtime/messaging_subscription.rs:108-109` → `use crate::actor::component::{...}`
+
+**Timeline:** 2.5-4.5 hours
+- Phase 1: Move ComponentMessage to core/ (1-2 hours)
+- Phase 2: Relocate messaging_subscription.rs (1-2 hours)
+- Phase 3: Add CI enforcement (30 min)
+
+**Dependencies:** This is a PREREQUISITE for ADR-WASM-021 (duplicate runtime fix)
+
+**Related:**
+- KNOWLEDGE-WASM-028 (detailed documentation)
+- ADR-WASM-018 (three-layer architecture)
+- ADR-WASM-021 (duplicate runtime - depends on this)
+
+**File:** `adr-wasm-022-circular-dependency-remediation.md`
+
+**Priority:** 🔴 CRITICAL - Must be done FIRST before ADR-WASM-021

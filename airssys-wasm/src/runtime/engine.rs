@@ -401,6 +401,134 @@ impl WasmEngine {
 
         WasmError::component_trapped(reason, fuel_consumed)
     }
+
+    /// Call the handle-message export on a component.
+    ///
+    /// Uses Component Model API for type-safe invocation with automatic
+    /// parameter marshalling via Canonical ABI.
+    ///
+    /// # Arguments
+    ///
+    /// * `handle` - Component handle from `load_component()`
+    /// * `sender` - Sender component ID
+    /// * `payload` - Message payload bytes
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - Message handled successfully
+    /// * `Err(WasmError)` - Execution failed
+    ///
+    /// # WIT Interface
+    ///
+    /// The handle-message export is defined in component-lifecycle.wit:
+    /// ```wit
+    /// handle-message: func(sender: component-id, message: list<u8>) -> result<_, component-error>;
+    /// ```
+    ///
+    /// # Implementation Notes
+    ///
+    /// This method uses Wasmtime's Component Model typed function API:
+    /// 1. Creates a Store with fuel metering for CPU limiting
+    /// 2. Creates a Linker for component instantiation
+    /// 3. Instantiates the component
+    /// 4. Gets the typed handle-message function export
+    /// 5. Calls the function with sender and message parameters
+    /// 6. Handles success/error results
+    ///
+    /// For the WIT record `component-id`, we use a simplified approach:
+    /// - Pass sender ID as a string tuple: (namespace, name, version)
+    /// - Components can parse this to reconstruct the component-id record
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// use airssys_wasm::runtime::WasmEngine;
+    /// use airssys_wasm::core::ComponentId;
+    ///
+    /// async fn handle_message(engine: &WasmEngine, handle: &ComponentHandle) {
+    ///     let sender = ComponentId::new("sender-component");
+    ///     let payload = b"hello world";
+    ///     
+    ///     engine.call_handle_message(handle, &sender, payload).await?;
+    /// }
+    /// ```
+    pub async fn call_handle_message(
+        &self,
+        handle: &ComponentHandle,
+        sender: &ComponentId,
+        payload: &[u8],
+    ) -> WasmResult<()> {
+        // Default fuel limit for message handling operations
+        const DEFAULT_FUEL: u64 = 10_000_000;
+
+        // 1. Create Store with fuel metering for CPU limiting
+        let mut store = StoreWrapper::new(&self.inner.engine, (), DEFAULT_FUEL)?;
+        store.set_component_id(handle.id().to_string());
+
+        // 2. Create Linker for component instantiation
+        let linker = Linker::new(&self.inner.engine);
+
+        // 3. Instantiate component
+        let instance = linker
+            .instantiate_async(&mut store, handle.component())
+            .await
+            .map_err(|e| {
+                WasmError::execution_failed(format!(
+                    "Failed to instantiate component '{}' for handle-message: {e}",
+                    handle.id()
+                ))
+            })?;
+
+        // 4. Get typed function for handle-message export
+        //
+        // Component Model type mapping for WIT:
+        //   handle-message: func(sender: component-id, message: list<u8>) -> result<_, component-error>
+        //
+        // Where component-id is a record { namespace: string, name: string, version: string }
+        //
+        // In Wasmtime typed functions, this maps to:
+        //   - Input: ((&str, &str, &str), &[u8]) - component-id as tuple, message as slice
+        //   - Output: (Result<(), ComponentError>,) - result variant
+        //
+        // For simplicity in initial implementation, we use a simplified signature:
+        //   - Input: (&str, &[u8]) - sender as simple string, message as slice
+        //   - Output: (Result<(), ()>,) - success or error
+        //
+        // This works with components that expect a simple string sender ID.
+        // Full component-id record support requires bindgen-generated types.
+        let func = instance
+            .get_typed_func::<(&str, &[u8]), (Result<(), ()>,)>(&mut store, "handle-message")
+            .map_err(|e| {
+                WasmError::execution_failed(format!(
+                    "Component '{}' has no handle-message export or type mismatch. \
+                     Expected signature: (string, list<u8>) -> result<_, _>. Error: {e}",
+                    handle.id()
+                ))
+            })?;
+
+        // 5. Call the handle-message function
+        let (result,) = func
+            .call_async(&mut store, (sender.as_str(), payload))
+            .await
+            .map_err(|e| {
+                // Collect fuel consumed for diagnostics
+                let fuel_consumed = store.fuel_consumed();
+                Self::categorize_wasmtime_error_with_fuel(
+                    &e,
+                    &ComponentId::new(handle.id()),
+                    "handle-message",
+                    fuel_consumed,
+                )
+            })?;
+
+        // 6. Handle result
+        result.map_err(|()| {
+            WasmError::execution_failed(format!(
+                "Component '{}' handle-message returned error (component-side failure)",
+                handle.id()
+            ))
+        })
+    }
 }
 
 // Implement RuntimeEngine trait for WasmEngine
@@ -518,5 +646,136 @@ mod tests {
 
         assert_send::<WasmEngine>();
         assert_sync::<WasmEngine>();
+    }
+
+    // ============================================================================
+    // call_handle_message Tests (Task 2.5)
+    // ============================================================================
+
+    /// Test that call_handle_message returns error when component has no handle-message export.
+    ///
+    /// Uses hello_world.wasm which only exports "hello", not "handle-message".
+    #[tokio::test]
+    async fn test_call_handle_message_no_export() {
+        // Load hello_world.wasm which doesn't have handle-message export
+        let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures/hello_world.wasm");
+        let bytes = std::fs::read(&fixture_path).expect("Failed to read fixture");
+
+        let engine = WasmEngine::new().unwrap();
+        let component_id = ComponentId::new("test-component");
+        let handle = engine
+            .load_component(&component_id, &bytes)
+            .await
+            .expect("Failed to load component");
+
+        // Attempt to call handle-message (should fail - no export)
+        let sender = ComponentId::new("sender-component");
+        let payload = b"test message";
+
+        let result = engine.call_handle_message(&handle, &sender, payload).await;
+
+        // Should fail with execution error (no handle-message export)
+        assert!(result.is_err(), "Expected error when no handle-message export");
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("handle-message") || err_msg.contains("no handle-message"),
+            "Error should mention handle-message export: {err_msg}"
+        );
+    }
+
+    /// Test successful call_handle_message with a component that has handle-message export.
+    ///
+    /// Uses handle-message-component.wasm which exports:
+    ///   handle-message: func(sender: string, message: list<u8>) -> result
+    #[tokio::test]
+    async fn test_call_handle_message_success() {
+        // Load handle-message-component.wasm which has handle-message export
+        let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures/handle-message-component.wasm");
+        let bytes = std::fs::read(&fixture_path).expect("Failed to read fixture");
+
+        let engine = WasmEngine::new().unwrap();
+        let component_id = ComponentId::new("test-handler");
+        let handle = engine
+            .load_component(&component_id, &bytes)
+            .await
+            .expect("Failed to load component");
+
+        // Call handle-message (should succeed)
+        let sender = ComponentId::new("sender-component");
+        let payload = b"hello world";
+
+        let result = engine.call_handle_message(&handle, &sender, payload).await;
+
+        // Should succeed
+        assert!(
+            result.is_ok(),
+            "Expected success when component has handle-message export: {:?}",
+            result.err()
+        );
+    }
+
+    /// Test call_handle_message with empty payload.
+    #[tokio::test]
+    async fn test_call_handle_message_empty_payload() {
+        let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures/handle-message-component.wasm");
+        let bytes = std::fs::read(&fixture_path).expect("Failed to read fixture");
+
+        let engine = WasmEngine::new().unwrap();
+        let component_id = ComponentId::new("test-handler");
+        let handle = engine
+            .load_component(&component_id, &bytes)
+            .await
+            .expect("Failed to load component");
+
+        // Call with empty payload
+        let sender = ComponentId::new("sender");
+        let payload: &[u8] = &[];
+
+        let result = engine.call_handle_message(&handle, &sender, payload).await;
+
+        // Should succeed with empty payload
+        assert!(
+            result.is_ok(),
+            "Expected success with empty payload: {:?}",
+            result.err()
+        );
+    }
+
+    /// Test call_handle_message with various sender IDs.
+    #[tokio::test]
+    async fn test_call_handle_message_various_senders() {
+        let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures/handle-message-component.wasm");
+        let bytes = std::fs::read(&fixture_path).expect("Failed to read fixture");
+
+        let engine = WasmEngine::new().unwrap();
+        let component_id = ComponentId::new("test-handler");
+        let handle = engine
+            .load_component(&component_id, &bytes)
+            .await
+            .expect("Failed to load component");
+
+        // Test with various sender IDs
+        let senders = [
+            ComponentId::new("simple"),
+            ComponentId::new("namespace/component-v1.0.0"),
+            ComponentId::new("a-very-long-component-identifier-for-testing"),
+            ComponentId::new("unicode-测试-テスト"),
+        ];
+
+        for sender in &senders {
+            let result = engine
+                .call_handle_message(&handle, sender, b"test")
+                .await;
+            assert!(
+                result.is_ok(),
+                "Expected success with sender '{}': {:?}",
+                sender.as_str(),
+                result.err()
+            );
+        }
     }
 }

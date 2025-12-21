@@ -258,14 +258,14 @@ async fn test_invoke_handle_message_missing_export() {
     let sender = ComponentId::new("sender");
     let payload = vec![1, 2, 3, 4];
 
-    // Should fail with ComponentNotFound (WASM not loaded)
+    // Should fail with Internal (Component Model engine not configured)
     let result = actor
         .invoke_handle_message_with_timeout(sender, payload)
         .await;
 
     assert!(result.is_err());
     let err = result.unwrap_err();
-    assert!(matches!(err, WasmError::ComponentNotFound { .. }));
+    assert!(matches!(err, WasmError::Internal { .. }), "Expected Internal error when Component Model engine not configured, got: {:?}", err);
 }
 
 // ============================================================================
@@ -276,7 +276,7 @@ async fn test_invoke_handle_message_missing_export() {
 // API validation. It tests the infrastructure components in ISOLATION.
 //
 // For tests that PROVE actual WASM handle-message invocation works, see:
-// - tests/message_reception_integration_tests.rs (WASM fixtures)
+// - tests/wasm_engine_call_handle_message_tests.rs (WASM fixtures)
 // - Tests: test_component_actor_receives_message_and_invokes_wasm()
 //          test_component_actor_handles_wasm_success_result()
 //          test_component_actor_with_rejecting_handler()
@@ -314,7 +314,7 @@ fn test_backpressure_applied_error() {
 // ============================================================================
 //
 // Full end-to-end WASM invocation tests are in:
-// - tests/message_reception_integration_tests.rs
+// - tests/wasm_engine_call_handle_message_tests.rs
 //
 // Those tests load real WASM fixtures and PROVE:
 // - handle-message export is actually invoked

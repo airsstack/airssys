@@ -134,11 +134,14 @@ pub mod supervisor;
 
 // Component subdomain re-exports
 #[doc(inline)]
+pub use crate::core::{ComponentMessage, ComponentHealthStatus as HealthStatus};
+#[doc(inline)]
 pub use component::{
-    extract_wasm_results, prepare_wasm_params, ActorState, ComponentActor, ComponentMessage,
-    ComponentRegistry, ComponentResourceLimiter, ComponentSpawner, ComponentSupervisor,
-    HealthStatus, MessageReceptionConfig, RestartDecision, SupervisionHandle, SupervisionState,
-    SupervisionStatistics, SupervisionTree, SupervisionTreeNode, WasmExports, WasmRuntime,
+    extract_wasm_results, prepare_wasm_params, ActorState, ComponentActor,
+    ComponentRegistry, ComponentSpawner, ComponentSupervisor,
+    MessageReceptionConfig, 
+    RestartDecision, SupervisionHandle, SupervisionState, SupervisionStatistics, 
+    SupervisionTree, SupervisionTreeNode,
 };
 
 // Supervisor subdomain re-exports
@@ -168,4 +171,5 @@ pub use message::{
     MessageBrokerWrapper, MessagePublisher, MessageRouter, PendingRequest, RequestError,
     RequestMessage, ResponseMessage, RoutingStats, SubHandle, SubscriberManager,
     SubscriptionHandle, TimeoutHandler, TopicFilter, UnifiedRouter,
+    MessagingSubscriptionService, SubscriptionStatus,
 };

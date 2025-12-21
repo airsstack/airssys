@@ -72,7 +72,6 @@ pub mod engine;
 pub mod limits;
 pub mod loader;
 pub mod messaging;
-pub mod messaging_subscription;
 pub mod store_manager;
 
 // Public re-exports for ergonomic imports
@@ -86,5 +85,4 @@ pub use limits::{
 };
 pub use loader::ComponentLoader;
 pub use messaging::{MessageReceptionMetrics, MessageReceptionStats, MessagingService, MessagingStats};
-pub use messaging_subscription::{MessagingSubscriptionService, SubscriptionStatus};
 pub use store_manager::StoreWrapper;

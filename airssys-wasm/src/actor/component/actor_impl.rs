@@ -96,9 +96,12 @@ use async_trait::async_trait;
 use tracing::{debug, trace, warn};
 
 // Layer 3: Internal module imports
-use super::component_actor::{ActorState, ComponentActor, ComponentMessage, HealthStatus};
-use super::type_conversion::{extract_wasm_results, prepare_wasm_params};
-use crate::core::{decode_multicodec, encode_multicodec, WasmError};
+use super::component_actor::ActorState;
+use crate::actor::component::ComponentActor;
+use crate::core::{ComponentMessage, ComponentHealthStatus as HealthStatus};
+// NOTE: extract_wasm_results and prepare_wasm_params unused after legacy code removal (WASM-TASK-006-HOTFIX)
+// NOTE: encode_multicodec unused after legacy code removal (WASM-TASK-006-HOTFIX)
+use crate::core::{decode_multicodec, WasmError};
 use airssys_rt::actor::{Actor, ActorContext};
 use airssys_rt::broker::MessageBroker;
 use airssys_rt::message::Message;
@@ -258,98 +261,51 @@ where
                     "Processing Invoke message"
                 );
 
+                // =============================================================================
+                // LEGACY CODE REMOVED (WASM-TASK-006-HOTFIX Phase 2 Task 2.1)
+                // =============================================================================
+                // The legacy Invoke handler using core WASM API (wasmtime::Module) has been
+                // removed. Component Model is now MANDATORY per ADR-WASM-002.
+                //
+                // The Invoke message type needs Component Model implementation which requires:
+                // 1. WasmEngine::call_function() method (not yet implemented)
+                // 2. Typed function calls via WIT interface bindings
+                //
+                // For now, this returns an error. Full implementation is TODO.
+                // =============================================================================
+                
                 // 1. Verify WASM loaded
-                let _runtime = self
-                    .wasm_runtime_mut()
-                    .ok_or_else(|| ComponentActorError::not_ready(&component_id_str))?;
+                if !self.is_wasm_loaded() {
+                    return Err(ComponentActorError::not_ready(&component_id_str));
+                }
 
                 // 2. Deserialize args using multicodec (ADR-WASM-001)
-                let (codec, decoded_args) = decode_multicodec(&args)
+                let (codec, _decoded_args) = decode_multicodec(&args)
                     .map_err(ComponentActorError::from)?;
 
                 trace!(
                     component_id = %component_id_str,
                     codec = %codec,
-                    decoded_len = decoded_args.len(),
                     "Decoded multicodec arguments"
                 );
 
-                // 3. WASM function invocation
-                let runtime = self
-                    .wasm_runtime_mut()
-                    .ok_or_else(|| ComponentActorError::not_ready(&component_id_str))?;
-
-                // 3.1. Get function export (copy Instance to avoid borrow issues)
-                let instance = *runtime.instance();
-                let func = instance
-                    .get_func(&mut *runtime.store_mut(), &function)
-                    .ok_or_else(|| {
-                        ComponentActorError::from(WasmError::execution_failed(format!(
-                            "Function '{}' not found in component {}",
-                            function, component_id_str
-                        )))
-                    })?;
-
-                trace!(
+                // 3. Component Model function invocation
+                // TODO(WASM-TASK-006-HOTFIX Phase 3): Implement Component Model function invocation
+                // This requires WasmEngine::call_function() which is not yet implemented.
+                // For now, return error indicating legacy path removed.
+                warn!(
                     component_id = %component_id_str,
                     function = %function,
-                    "Function export found, preparing parameters"
+                    "Invoke not supported - legacy path removed, Component Model implementation TODO"
                 );
-
-                // 3.2. Convert decoded args to WASM Val parameters
-                let func_type = func.ty(&mut *runtime.store_mut());
-                let wasm_params = prepare_wasm_params(&decoded_args, &func_type)
-                    .map_err(ComponentActorError::from)?;
-
-                trace!(
-                    component_id = %component_id_str,
-                    param_count = wasm_params.len(),
-                    "Parameters prepared, invoking WASM function"
-                );
-
-                // 3.3. Call WASM function asynchronously
-                let result_count = func_type.results().len();
-                let mut results = vec![wasmtime::Val::I32(0); result_count];
-                func.call_async(&mut *runtime.store_mut(), &wasm_params, &mut results)
-                    .await
-                    .map_err(|e| {
-                        // wasmtime::Error doesn't implement std::error::Error, so we convert to string
-                        ComponentActorError::from(WasmError::execution_failed(
-                            format!(
-                                "WASM function '{}' trapped in component {}: {}",
-                                function, component_id_str, e
-                            )
-                        ))
-                    })?;
-
-                debug!(
-                    component_id = %component_id_str,
-                    function = %function,
-                    result_count = results.len(),
-                    "WASM function execution completed successfully"
-                );
-
-                // 3.4. Convert results to bytes
-                let result_bytes = extract_wasm_results(&results)
-                    .map_err(ComponentActorError::from)?;
-
-                // 3.5. Encode with multicodec (use same codec as request)
-                let encoded_result = encode_multicodec(codec, &result_bytes)
-                    .map_err(ComponentActorError::from)?;
-
-                trace!(
-                    component_id = %component_id_str,
-                    result_len = encoded_result.len(),
-                    codec = %codec,
-                    "Function result encoded successfully"
-                );
-
-                // 3.6. Send reply via ActorContext
-                // TODO(Phase 2 Task 2.3): Implement ctx.reply() once ActorContext messaging is fully integrated
-                // For now, log the result - full reply mechanism pending ActorSystem completion
-                // Will be: ctx.reply(ComponentMessage::InvokeResult { result: encoded_result, error: None }).await?;
-
-                Ok(())
+                
+                Err(ComponentActorError::from(WasmError::internal(
+                    format!(
+                        "Invoke message not supported: Component Model function invocation not yet implemented. \
+                         Function '{}' in component {}. Legacy path removed in WASM-TASK-006-HOTFIX.",
+                        function, component_id_str
+                    )
+                )))
             }
 
             ComponentMessage::InterComponent { sender, to: _, payload } => {
@@ -364,7 +320,7 @@ where
                 );
 
                 // 1. Verify WASM loaded
-                if self.wasm_runtime().is_none() {
+                if !self.is_wasm_loaded() {
                     return Err(ComponentActorError::not_ready(&component_id_str));
                 }
 
@@ -555,7 +511,7 @@ where
                 );
 
                 // 1. Verify WASM loaded
-                if self.wasm_runtime().is_none() {
+                if !self.is_wasm_loaded() {
                     return Err(ComponentActorError::not_ready(&component_id_str));
                 }
 
@@ -660,49 +616,28 @@ where
                     "Security checks passed (took < 5μs)"
                 );
 
-                // 3. Route to WASM handle-message export
-                let runtime = self
-                    .wasm_runtime_mut()
-                    .ok_or_else(|| ComponentActorError::not_ready(&component_id_str))?;  
-                let handle_fn_opt = runtime.exports().handle_message;
-                
-                if let Some(handle_fn) = handle_fn_opt {
-                    trace!(
-                        component_id = %component_id_str,
-                        sender = %sender_str,
-                        correlation_id = %correlation_id,
-                        payload_len = payload.len(),
-                        "Calling handle-message export with correlation ID"
-                    );
-
-                    // 3.1. Call handle-message export
-                    // Note: Component should extract correlation_id from payload if needed
-                    let mut results = vec![];
-                    handle_fn
-                        .call_async(&mut *runtime.store_mut(), &[], &mut results)
-                        .await
-                        .map_err(|e| {
-                            ComponentActorError::from(WasmError::execution_failed(
-                                format!(
-                                    "handle-message trapped in component {} (from {}, correlation: {}): {}",
-                                    component_id_str, sender_str, correlation_id, e
-                                )
-                            ))
-                        })?;
-
-                    debug!(
-                        component_id = %component_id_str,
-                        sender = %sender_str,
-                        correlation_id = %correlation_id,
-                        "handle-message export call completed successfully"
-                    );
-                } else {
-                    warn!(
-                        component_id = %component_id_str,
-                        sender = %sender_str,
-                        correlation_id = %correlation_id,
-                        "Component has no handle-message export, message discarded"
-                    );
+                // 3. Route to WASM handle-message export via Component Model
+                // WASM-TASK-006-HOTFIX Phase 2: Use invoke_handle_message_with_timeout()
+                // which uses WasmEngine::call_handle_message() for typed invocation.
+                match self.invoke_handle_message_with_timeout(sender.clone(), payload).await {
+                    Ok(()) => {
+                        debug!(
+                            component_id = %component_id_str,
+                            sender = %sender_str,
+                            correlation_id = %correlation_id,
+                            "handle-message export call completed successfully (Component Model)"
+                        );
+                    }
+                    Err(e) => {
+                        warn!(
+                            component_id = %component_id_str,
+                            sender = %sender_str,
+                            correlation_id = %correlation_id,
+                            error = %e,
+                            "handle-message export failed"
+                        );
+                        return Err(ComponentActorError::from(e));
+                    }
                 }
 
                 Ok(())
@@ -937,13 +872,17 @@ mod tests {
         }
     }
 
-    fn create_test_actor() -> ComponentActor {
+    /// Create test actor with Component Model engine (for lifecycle tests).
+    fn create_test_actor_with_engine() -> ComponentActor {
+        use crate::runtime::WasmEngine;
+        let engine = std::sync::Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
         ComponentActor::new(
             ComponentId::new("test-component"),
             create_test_metadata(),
             CapabilitySet::new(),
             (),
         )
+        .with_component_engine(engine)
     }
 
     #[test]
@@ -975,7 +914,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_actor_pre_start() {
-        let mut actor = create_test_actor();
+        let mut actor = create_test_actor_with_engine();
 
         // Start component first (Child trait)
         let result = actor.start().await;
@@ -988,7 +927,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_actor_post_stop() {
-        let mut actor = create_test_actor();
+        let mut actor = create_test_actor_with_engine();
         let result = actor.start().await;
         assert!(result.is_ok(), "Failed to start actor: {result:?}");
 

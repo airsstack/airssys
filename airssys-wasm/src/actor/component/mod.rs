@@ -31,9 +31,10 @@ pub mod type_conversion;
 
 // Public re-exports
 #[doc(inline)]
+pub use crate::core::{ComponentMessage, ComponentHealthStatus as HealthStatus};
+#[doc(inline)]
 pub use component_actor::{
-    ActorState, ComponentActor, ComponentMessage, ComponentResourceLimiter, HealthStatus,
-    MessageReceptionConfig, WasmExports, WasmRuntime,
+    ActorState, ComponentActor, MessageReceptionConfig,
 };
 #[doc(inline)]
 pub use component_registry::ComponentRegistry;

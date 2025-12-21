@@ -50,7 +50,7 @@
 //! # Usage Example
 //!
 //! ```rust,ignore
-//! use airssys_wasm::runtime::{MessagingSubscriptionService, MessagingService};
+//! use airssys_wasm::actor::message::MessagingSubscriptionService;
 //! use airssys_wasm::actor::{ComponentRegistry, SubscriberManager};
 //! use std::sync::Arc;
 //!
@@ -105,8 +105,9 @@ use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::RwLock;
 
 // Layer 3: Internal module imports
-use crate::actor::component::{ComponentMessage, ComponentRegistry};
-use crate::actor::message::{ActorSystemSubscriber, SubscriberManager};
+use crate::actor::component::ComponentRegistry;
+use crate::core::ComponentMessage;
+use super::{ActorSystemSubscriber, SubscriberManager};
 use crate::core::{ComponentId, WasmError};
 use airssys_rt::broker::InMemoryMessageBroker;
 use airssys_rt::util::ActorAddress;
@@ -218,7 +219,7 @@ impl SubscriptionMetrics {
 /// # Examples
 ///
 /// ```rust,ignore
-/// use airssys_wasm::runtime::MessagingSubscriptionService;
+/// use airssys_wasm::actor::message::MessagingSubscriptionService;
 ///
 /// let mut service = MessagingSubscriptionService::new(broker, registry, subscriber_manager);
 /// service.start().await?;

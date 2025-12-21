@@ -72,425 +72,48 @@
 //! - **Task**: WASM-TASK-004 Phase 1 Task 1.1
 
 // Layer 1: Standard library imports
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
 // Layer 2: Third-party crate imports
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+
 use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::sync::RwLock;
 use tracing::{debug, trace};
-use wasmtime::{Engine, Instance, Store};
 
 // Layer 3: Internal module imports
 use crate::core::{CapabilitySet, ComponentId, ComponentMetadata, WasmError};
+use crate::core::runtime::ComponentHandle;
+use crate::runtime::WasmEngine;
 
-/// WASM runtime managing Wasmtime engine, store, and component instance.
-///
-/// WasmRuntime encapsulates all Wasmtime resources for a single component instance,
-/// providing controlled access to the engine, store, and exported functions. This
-/// struct implements RAII resource cleanup through Drop.
-///
-/// # Architecture
-///
-/// ```text
-/// ┌─────────────────────────────────┐
-/// │       WasmRuntime               │
-/// ├─────────────────────────────────┤
-/// │ - engine: Engine                │ ← Compilation engine
-/// │ - store: Store<ResourceLimiter> │ ← Memory + fuel management
-/// │ - instance: Instance            │ ← Component exports
-/// │ - exports: WasmExports          │ ← Cached function exports
-/// └─────────────────────────────────┘
-/// ```
-///
-/// # Resource Management
-///
-/// - **Engine**: Shared compilation engine (could be shared across components in future)
-/// - **Store**: Per-component memory and fuel tracking with ResourceLimiter
-/// - **Instance**: Per-component WASM instance with exports
-/// - **Exports**: Cached function handles for performance
-///
-/// # Lifecycle
-///
-/// 1. Created during Child::start() after successful instantiation
-/// 2. Used during Actor message handling for function calls
-/// 3. Dropped during Child::stop() to free all resources
-///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Created in Child::start()
-/// let runtime = WasmRuntime::new(engine, store, instance)?;
-///
-/// // Used in Actor::handle_message()
-/// runtime.exports().call_start(runtime.store_mut()).await?;
-///
-/// // Dropped in Child::stop()
-/// drop(runtime); // Frees all WASM resources
-/// ```
-#[allow(dead_code)] // Engine will be used in future actor message handling
-pub struct WasmRuntime {
-    /// Wasmtime compilation engine
-    engine: Engine,
+// =============================================================================
+// LEGACY CODE DELETED (WASM-TASK-006-HOTFIX Phase 2 Task 2.1)
+// =============================================================================
+// The following legacy types were deleted as part of the Component Model migration:
+// - WasmRuntime struct (replaced by WasmEngine + ComponentHandle)
+// - WasmExports struct (Component Model uses generated bindings)
+//
+// See ADR-WASM-002 and ADR-WASM-021 for migration details.
+// =============================================================================
 
-    /// Wasmtime store with resource limiter
-    store: Store<ComponentResourceLimiter>,
 
-    /// Component instance with exports
-    instance: Instance,
 
-    /// Cached function exports
-    exports: WasmExports,
-}
-
-/// Cached WASM function exports for performance.
-///
-/// WasmExports stores Optional function handles for common component exports,
-/// enabling fast lookup without repeated export resolution. All exports are
-/// optional per WASM Component Model conventions.
-///
-/// # Standard Exports
-///
-/// - **_start**: Component initialization (called once after instantiation)
-/// - **_cleanup**: Graceful shutdown (called before component termination)
-/// - **_health**: Health check reporting (periodic monitoring)
-/// - **handle-message**: Inter-component message handler (Actor trait)
-///
-/// # Performance
-///
-/// Caching exports avoids repeated `get_func()` calls during message handling,
-/// reducing Actor message processing latency.
-///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Extract exports from instance
-/// let exports = WasmExports::extract(&instance, &mut store)?;
-///
-/// // Call optional _start
-/// exports.call_start(&mut store).await?;
-///
-/// // Check if handle-message exists
-/// if exports.handle_message.is_some() {
-///     // Component supports Actor message handling
-/// }
-/// ```
-pub struct WasmExports {
-    /// Optional _start export (component initialization)
-    pub start: Option<wasmtime::Func>,
-
-    /// Optional _cleanup export (graceful shutdown)
-    pub cleanup: Option<wasmtime::Func>,
-
-    /// Optional _health export (health reporting)
-    pub health: Option<wasmtime::Func>,
-
-    /// Optional handle-message export (Actor message handling)
-    pub handle_message: Option<wasmtime::Func>,
-}
-
-/// Per-component resource limiter implementing Wasmtime ResourceLimiter trait.
-///
-/// ComponentResourceLimiter enforces memory and fuel limits for individual
-/// component instances, preventing resource exhaustion and enabling fair
-/// resource sharing across components.
-///
-/// # Resource Types
-///
-/// - **Memory**: Linear memory allocation limit (max_memory_bytes)
-/// - **Fuel**: CPU execution limit (max_fuel)
-/// - **Tables**: WASM table growth (allowed by default)
-///
-/// # Integration
-///
-/// Used as the `T` parameter in `Store<T>`, allowing Wasmtime to call
-/// resource check callbacks during component execution.
-///
-/// # Thread Safety
-///
-/// Uses AtomicU64 for thread-safe current memory tracking, though Wasmtime
-/// stores are not currently Send/Sync (future consideration).
-///
-/// # Examples
-///
-/// ```rust,ignore
-/// let limits = ComponentResourceLimiter::new(
-///     64 * 1024 * 1024,  // 64MB memory
-///     1_000_000,         // 1M fuel
-/// );
-///
-/// let mut store = Store::new(&engine, limits);
-/// store.set_fuel(1_000_000)?;
-/// ```
-#[allow(dead_code)] // max_fuel will be used for fuel_consumed callbacks in future
-pub struct ComponentResourceLimiter {
-    /// Maximum memory in bytes
-    max_memory: u64,
-
-    /// Maximum fuel (CPU limit)
-    max_fuel: u64,
-
-    /// Current memory usage (atomic for thread safety)
-    current_memory: Arc<AtomicU64>,
-}
-
-impl ComponentResourceLimiter {
-    /// Create a new resource limiter with specified limits.
-    ///
-    /// # Parameters
-    ///
-    /// * `max_memory` - Maximum memory in bytes
-    /// * `max_fuel` - Maximum fuel (CPU limit)
-    ///
-    /// # Examples
-    ///
-    /// ```rust,ignore
-    /// let limiter = ComponentResourceLimiter::new(64 * 1024 * 1024, 1_000_000);
-    /// ```
-    pub fn new(max_memory: u64, max_fuel: u64) -> Self {
-        Self {
-            max_memory,
-            max_fuel,
-            current_memory: Arc::new(AtomicU64::new(0)),
-        }
-    }
-}
-
-impl wasmtime::ResourceLimiter for ComponentResourceLimiter {
-    fn memory_growing(
-        &mut self,
-        current: usize,
-        desired: usize,
-        _maximum: Option<usize>,
-    ) -> anyhow::Result<bool> {
-        let new_total = current.saturating_add(desired) as u64;
-
-        if new_total <= self.max_memory {
-            self.current_memory.store(new_total, Ordering::Relaxed);
-            Ok(true)
-        } else {
-            Ok(false)
-        }
-    }
-
-    fn table_growing(
-        &mut self,
-        _current: u32,
-        _desired: u32,
-        _maximum: Option<u32>,
-    ) -> anyhow::Result<bool> {
-        // Table growth allowed by default (tables don't consume linear memory)
-        Ok(true)
-    }
-}
-
-impl WasmExports {
-    /// Extract function exports from a component instance.
-    ///
-    /// Resolves optional standard exports (_start, _cleanup, _health, handle-message)
-    /// and caches them for fast access during component lifecycle and message handling.
-    ///
-    /// # Parameters
-    ///
-    /// * `instance` - Component instance to extract exports from
-    /// * `store` - Mutable store reference for export resolution
-    ///
-    /// # Returns
-    ///
-    /// WasmExports with cached function handles (None for missing exports).
-    ///
-    /// # Errors
-    ///
-    /// Returns WasmError if export resolution fails (should not happen for optional exports).
-    ///
-    /// # Examples
-    ///
-    /// ```rust,ignore
-    /// let exports = WasmExports::extract(&instance, &mut store)?;
-    /// if let Some(start_fn) = &exports.start {
-    ///     // Component has _start export
-    /// }
-    /// ```
-    pub fn extract(
-        instance: &Instance,
-        store: &mut Store<ComponentResourceLimiter>,
-    ) -> Result<Self, WasmError> {
-        Ok(Self {
-            start: instance.get_func(&mut *store, "_start"),
-            cleanup: instance.get_func(&mut *store, "_cleanup"),
-            health: instance.get_func(&mut *store, "_health"),
-            handle_message: instance.get_func(&mut *store, "handle-message"),
-        })
-    }
-
-    /// Call optional _start export.
-    ///
-    /// Invokes the component's _start export if present. This function is called
-    /// once after instantiation to allow component initialization.
-    ///
-    /// # Parameters
-    ///
-    /// * `start_fn` - Optional _start function from exports
-    /// * `store` - Mutable store reference for function execution
-    ///
-    /// # Returns
-    ///
-    /// Ok(()) if _start succeeds or is not present.
-    ///
-    /// # Errors
-    ///
-    /// Returns WasmError::ExecutionFailed if _start execution fails.
-    ///
-    /// # Examples
-    ///
-    /// ```rust,ignore
-    /// WasmExports::call_start_fn(exports.start.as_ref(), &mut store).await?;
-    /// ```
-    pub async fn call_start_fn(
-        start_fn: Option<&wasmtime::Func>,
-        store: &mut Store<ComponentResourceLimiter>,
-    ) -> Result<(), WasmError> {
-        if let Some(func) = start_fn {
-            func.call_async(store, &[], &mut []).await.map_err(|e| {
-                WasmError::execution_failed(format!("Component _start function failed: {e}"))
-            })?;
-        }
-        Ok(())
-    }
-
-    /// Call optional _cleanup export with timeout protection.
-    ///
-    /// Invokes the component's _cleanup export if present, with a configurable
-    /// timeout to prevent hanging during shutdown. Timeout or execution errors
-    /// are non-fatal (logged but don't prevent resource cleanup).
-    ///
-    /// # Parameters
-    ///
-    /// * `cleanup_fn` - Optional _cleanup function from exports
-    /// * `store` - Mutable store reference for function execution
-    /// * `timeout` - Maximum time to wait for cleanup completion
-    ///
-    /// # Returns
-    ///
-    /// Ok(()) if cleanup succeeds, is not present, or times out (non-fatal).
-    ///
-    /// # Errors
-    ///
-    /// Returns WasmError::ExecutionFailed if cleanup execution fails (non-fatal).
-    ///
-    /// # Examples
-    ///
-    /// ```rust,ignore
-    /// WasmExports::call_cleanup_fn(exports.cleanup.as_ref(), &mut store, Duration::from_secs(5)).await?;
-    /// ```
-    pub async fn call_cleanup_fn(
-        cleanup_fn: Option<&wasmtime::Func>,
-        store: &mut Store<ComponentResourceLimiter>,
-        timeout: Duration,
-    ) -> Result<(), WasmError> {
-        if let Some(func) = cleanup_fn {
-            match tokio::time::timeout(timeout, func.call_async(store, &[], &mut [])).await {
-                Ok(Ok(())) => Ok(()),
-                Ok(Err(e)) => Err(WasmError::execution_failed(format!(
-                    "Component _cleanup function failed: {e}"
-                ))),
-                Err(_) => Err(WasmError::execution_timeout(
-                    timeout.as_millis() as u64,
-                    None,
-                )),
-            }
-        } else {
-            Ok(())
-        }
-    }
-}
-
-impl WasmRuntime {
-    /// Create a new WasmRuntime from Wasmtime components.
-    ///
-    /// Wraps Wasmtime engine, store, and instance into a managed runtime
-    /// with cached exports for performance.
-    ///
-    /// # Parameters
-    ///
-    /// * `engine` - Wasmtime compilation engine
-    /// * `store` - Wasmtime store with resource limiter
-    /// * `instance` - Component instance with exports
-    ///
-    /// # Returns
-    ///
-    /// WasmRuntime ready for component execution.
-    ///
-    /// # Errors
-    ///
-    /// Returns WasmError if export extraction fails.
-    ///
-    /// # Examples
-    ///
-    /// ```rust,ignore
-    /// let runtime = WasmRuntime::new(engine, store, instance)?;
-    /// ```
-    pub fn new(
-        engine: Engine,
-        mut store: Store<ComponentResourceLimiter>,
-        instance: Instance,
-    ) -> Result<Self, WasmError> {
-        let exports = WasmExports::extract(&instance, &mut store)?;
-
-        Ok(Self {
-            engine,
-            store,
-            instance,
-            exports,
-        })
-    }
-
-    /// Get mutable reference to the store.
-    ///
-    /// # Examples
-    ///
-    /// ```rust,ignore
-    /// let store = runtime.store_mut();
-    /// ```
-    pub fn store_mut(&mut self) -> &mut Store<ComponentResourceLimiter> {
-        &mut self.store
-    }
-
-    /// Get reference to the instance.
-    ///
-    /// # Examples
-    ///
-    /// ```rust,ignore
-    /// let instance = runtime.instance();
-    /// ```
-    pub fn instance(&self) -> &Instance {
-        &self.instance
-    }
-
-    /// Get reference to cached exports.
-    ///
-    /// # Examples
-    ///
-    /// ```rust,ignore
-    /// let exports = runtime.exports();
-    /// ```
-    pub fn exports(&self) -> &WasmExports {
-        &self.exports
-    }
-}
-
-impl Drop for WasmRuntime {
-    fn drop(&mut self) {
-        // Wasmtime automatically cleans up:
-        // - Store drop: frees linear memory
-        // - Engine drop: frees compilation cache
-        // - Instance drop: frees export handles
-        tracing::debug!("WasmRuntime dropped - all WASM resources freed");
-    }
-}
+// =============================================================================
+// LEGACY WORKAROUND CODE DELETED (WASM-TASK-006-HOTFIX Phase 2 Task 2.1)
+// =============================================================================
+// The following legacy workaround types were deleted as part of the Component Model migration:
+// - WasmBumpAllocator (Canonical ABI handles memory marshalling automatically)
+// - HandleMessageParams (Component Model has typed function calls)
+// - HandleMessageResult (Component Model has typed returns)
+// - BUMP_ALLOCATOR_BASE, MAX_SENDER_SIZE, MAX_MESSAGE_SIZE constants
+//
+// These were workarounds for the wrong API (wasmtime::Module instead of 
+// wasmtime::component::Component). The Component Model API handles all parameter
+// marshalling automatically via the Canonical ABI.
+//
+// See ADR-WASM-002 and ADR-WASM-021 for migration details.
+// =============================================================================
 
 /// Message reception configuration (WASM-TASK-006 Task 1.2).
 ///
@@ -709,8 +332,8 @@ where
     /// Unique component identifier
     component_id: ComponentId,
 
-    /// WASM runtime instance (None until Child::start())
-    wasm_runtime: Option<WasmRuntime>,
+    // NOTE: wasm_runtime field removed in WASM-TASK-006-HOTFIX Phase 2 Task 2.1
+    // Component Model uses component_engine + component_handle instead
 
     /// Component capabilities and permissions
     capabilities: CapabilitySet,
@@ -831,6 +454,66 @@ where
     /// Backpressure prevents message storms from overwhelming components by
     /// dropping messages when queue depth exceeds max_queue_depth.
     message_config: MessageReceptionConfig,
+
+    // =============================================================================
+    // COMPONENT MODEL ARCHITECTURE (WASM-TASK-006-HOTFIX Phase 2)
+    // =============================================================================
+    // These fields replace the legacy core WASM API (WasmRuntime) with Component Model.
+    // The transition follows ADR-WASM-002 (Component Model mandate) and ADR-WASM-021.
+    // =============================================================================
+
+    /// Shared WASM execution engine (Component Model API).
+    ///
+    /// This is the CORRECT architecture per ADR-WASM-002:
+    /// - Uses `wasmtime::component::{Component, Linker}` (Component Model API)
+    /// - Shared across components for efficient compilation caching
+    /// - Supports WIT interfaces and typed host function calls
+    ///
+    /// **Migration Note (WASM-TASK-006-HOTFIX):**
+    /// This field replaces the legacy `wasm_runtime: Option<WasmRuntime>` which
+    /// incorrectly used core WASM API (`wasmtime::Module`). During migration,
+    /// both fields may exist, but `component_engine` is the target architecture.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// // Create shared engine (typically at system startup)
+    /// let engine = Arc::new(WasmEngine::new()?);
+    ///
+    /// // Pass to ComponentActor during creation
+    /// let actor = ComponentActor::with_engine(engine.clone(), ...);
+    /// ```
+    component_engine: Option<Arc<WasmEngine>>,
+
+    /// Handle to loaded component instance (Component Model API).
+    ///
+    /// This is the CORRECT architecture per ADR-WASM-002:
+    /// - Uses `ComponentHandle` which wraps `Arc<wasmtime::component::Component>`
+    /// - Loaded via `WasmEngine::load_component()`
+    /// - Supports typed function calls via Component Model bindings
+    ///
+    /// **Migration Note (WASM-TASK-006-HOTFIX):**
+    /// This field replaces component loading via `wasmtime::Module::from_binary()`.
+    /// The Component Model approach enables WIT interface usage and type-safe
+    /// host function calls.
+    ///
+    /// # Lifecycle
+    ///
+    /// - `None` after construction
+    /// - `Some(handle)` after `Child::start()` successfully loads component
+    /// - `None` after `Child::stop()` unloads component
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// // In Child::start()
+    /// let handle = engine.load_component(&component_id, &wasm_bytes).await?;
+    /// self.component_handle = Some(handle);
+    ///
+    /// // In Child::stop()
+    /// self.component_handle = None;
+    /// ```
+    component_handle: Option<ComponentHandle>,
 }
 
 /// Actor lifecycle state machine.
@@ -890,214 +573,25 @@ pub enum ActorState {
     Failed(String),
 }
 
-/// Component message types for actor communication.
-///
-/// ComponentMessage defines all message types that ComponentActor can handle.
-/// Messages are processed sequentially by the actor's message handler.
-///
-/// # Message Types
-///
-/// - **Invoke**: Call a WASM function with arguments
-/// - **InvokeResult**: Result of a function invocation (request-response pattern)
-/// - **InterComponent**: Message from another component
-/// - **Shutdown**: Signal to stop the actor
-/// - **HealthCheck**: Request health status
-/// - **HealthStatus**: Health status response
-///
-/// # Multicodec Encoding
-///
-/// Invoke and InterComponent messages use multicodec-prefixed payloads
-/// (ADR-WASM-001) supporting Borsh, CBOR, and JSON codecs.
-///
-/// # Example
-///
-/// ```rust
-/// use airssys_wasm::actor::ComponentMessage;
-/// use airssys_wasm::core::ComponentId;
-///
-/// // Invoke WASM function
-/// let msg = ComponentMessage::Invoke {
-///     function: "process_data".to_string(),
-///     args: vec![1, 2, 3, 4], // Multicodec-encoded
-/// };
-///
-/// // Inter-component message
-/// let sender = ComponentId::new("sender-component");
-/// let msg = ComponentMessage::InterComponent {
-///     sender,
-///     payload: vec![0x70, 0x01, 0x00, 0x01], // Multicodec Borsh
-/// };
-///
-/// // Health check
-/// let msg = ComponentMessage::HealthCheck;
-/// ```
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum ComponentMessage {
-    /// Invoke WASM function with arguments.
-    ///
-    /// Arguments are multicodec-encoded (ADR-WASM-001).
-    Invoke {
-        /// Function name to invoke
-        function: String,
-        /// Multicodec-encoded arguments
-        args: Vec<u8>,
-    },
 
-    /// Result of invoke (for request-response pattern).
-    InvokeResult {
-        /// Multicodec-encoded result
-        result: Vec<u8>,
-        /// Error message if invocation failed
-        error: Option<String>,
-    },
+// =============================================================================
+// MOVED TO core/component_message.rs (ADR-WASM-022)
+// =============================================================================
+// ComponentMessage and HealthStatus (now ComponentHealthStatus) have been moved
+// to core/component_message.rs to prevent circular dependencies between actor/
+// and runtime/ modules.
+//
+// Re-exports are provided here for backward compatibility.
+// =============================================================================
 
-    /// Message from another component.
-    ///
-    /// Phase 1 uses direct ComponentId addressing (KNOWLEDGE-WASM-024).
-    /// The `to` field specifies the target component for routing.
-    InterComponent {
-        /// Sender component ID
-        sender: ComponentId,
-        /// Target component ID (direct addressing)
-        to: ComponentId,
-        /// Multicodec-encoded payload
-        payload: Vec<u8>,
-    },
+// Re-export ComponentMessage from core for backward compatibility
+// Note: The actual enum is now in crate::core::component_message
+pub use crate::core::ComponentMessage;
 
-    /// Message from another component with correlation ID (request-response).
-    ///
-    /// Used for request-response patterns where the sender expects a correlated
-    /// response message. The correlation_id allows matching responses to requests.
-    ///
-    /// Phase 1 uses direct ComponentId addressing (KNOWLEDGE-WASM-024).
-    /// The `to` field specifies the target component for routing.
-    InterComponentWithCorrelation {
-        /// Sender component ID
-        sender: ComponentId,
-        /// Target component ID (direct addressing)
-        to: ComponentId,
-        /// Multicodec-encoded payload
-        payload: Vec<u8>,
-        /// Correlation ID for request-response pattern
-        correlation_id: uuid::Uuid,
-    },
+// Re-export ComponentHealthStatus as HealthStatus for backward compatibility
+// Note: Renamed to avoid conflict with core::observability::HealthStatus
+pub use crate::core::ComponentHealthStatus as HealthStatus;
 
-    /// Signal to shutdown the actor.
-    Shutdown,
-
-    /// Request health status.
-    HealthCheck,
-
-    /// Health status response.
-    HealthStatus(HealthStatus),
-}
-
-/// Component health status for monitoring and supervision.
-///
-/// HealthStatus represents the operational state of a component, used by both
-/// internal health checks and external monitoring systems. This enum supports
-/// serialization via Borsh (binary), CBOR (binary), and JSON (text).
-///
-/// # Serialization Formats
-///
-/// **Borsh (Recommended):**
-/// ```text
-/// Healthy:    [0x00]
-/// Degraded:   [0x01, len_u32, reason_bytes...]
-/// Unhealthy:  [0x02, len_u32, reason_bytes...]
-/// ```
-///
-/// **JSON:**
-/// ```json
-/// { "status": "healthy" }
-/// { "status": "degraded", "reason": "High latency" }
-/// { "status": "unhealthy", "reason": "Database unreachable" }
-/// ```
-///
-/// **CBOR:** Binary equivalent of JSON structure
-///
-/// # Example
-///
-/// ```rust
-/// use airssys_wasm::actor::HealthStatus;
-/// use serde_json;
-///
-/// let status = HealthStatus::Degraded {
-///     reason: "High memory usage".to_string(),
-/// };
-///
-/// // JSON serialization
-/// let json = serde_json::to_string(&status).unwrap();
-/// assert!(json.contains("degraded"));
-///
-/// // Deserialization
-/// let parsed: HealthStatus = serde_json::from_str(&json).unwrap();
-/// assert!(matches!(parsed, HealthStatus::Degraded { .. }));
-/// ```
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(tag = "status", content = "reason", rename_all = "lowercase")]
-pub enum HealthStatus {
-    /// Component operating normally
-    #[serde(rename = "healthy")]
-    Healthy,
-
-    /// Component operational but experiencing issues
-    #[serde(rename = "degraded")]
-    Degraded {
-        /// Reason for degraded status
-        reason: String,
-    },
-
-    /// Component failed or non-functional
-    #[serde(rename = "unhealthy")]
-    Unhealthy {
-        /// Reason for unhealthy status
-        reason: String,
-    },
-}
-
-// Borsh serialization for compact binary format
-impl borsh::BorshSerialize for HealthStatus {
-    fn serialize<W: std::io::Write>(&self, writer: &mut W) -> std::io::Result<()> {
-        match self {
-            HealthStatus::Healthy => borsh::BorshSerialize::serialize(&0u8, writer),
-            HealthStatus::Degraded { reason } => {
-                borsh::BorshSerialize::serialize(&1u8, writer)?;
-                borsh::BorshSerialize::serialize(reason, writer)
-            }
-            HealthStatus::Unhealthy { reason } => {
-                borsh::BorshSerialize::serialize(&2u8, writer)?;
-                borsh::BorshSerialize::serialize(reason, writer)
-            }
-        }
-    }
-}
-
-impl borsh::BorshDeserialize for HealthStatus {
-    fn deserialize(buf: &mut &[u8]) -> std::io::Result<Self> {
-        let variant = borsh::BorshDeserialize::deserialize(buf)?;
-        match variant {
-            0u8 => Ok(HealthStatus::Healthy),
-            1u8 => Ok(HealthStatus::Degraded {
-                reason: borsh::BorshDeserialize::deserialize(buf)?,
-            }),
-            2u8 => Ok(HealthStatus::Unhealthy {
-                reason: borsh::BorshDeserialize::deserialize(buf)?,
-            }),
-            _ => Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                format!("Invalid HealthStatus variant: {}", variant),
-            )),
-        }
-    }
-
-    fn deserialize_reader<R: std::io::Read>(reader: &mut R) -> std::io::Result<Self> {
-        let mut buf = Vec::new();
-        reader.read_to_end(&mut buf)?;
-        let mut slice = buf.as_slice();
-        <Self as borsh::BorshDeserialize>::deserialize(&mut slice)
-    }
-}
 
 impl<S> ComponentActor<S>
 where
@@ -1178,7 +672,7 @@ where
 
         Self {
             component_id,
-            wasm_runtime: None,
+            // NOTE: wasm_runtime field removed in WASM-TASK-006-HOTFIX Phase 2 Task 2.1
             capabilities,
             state: ActorState::Creating,
             metadata,
@@ -1195,6 +689,9 @@ where
             security_context,
             message_metrics: crate::runtime::MessageReceptionMetrics::new(),
             message_config: MessageReceptionConfig::default(),
+            // WASM-TASK-006-HOTFIX Phase 2: Component Model fields (initially None)
+            component_engine: None,
+            component_handle: None,
         }
     }
 
@@ -1283,18 +780,13 @@ where
         self.started_at = timestamp;
     }
 
-    /// Clear the WASM runtime (internal use by Child::stop()).
-    ///
-    /// This method is public but primarily for internal use by the Child trait
-    /// implementation. External code should not normally call this.
-    #[doc(hidden)]
-    pub fn clear_wasm_runtime(&mut self) {
-        self.wasm_runtime = None;
-    }
+    // NOTE: clear_wasm_runtime() removed in WASM-TASK-006-HOTFIX Phase 2 Task 2.1
+    // Component Model uses set_component_handle(None) instead
 
-    /// Check if WASM runtime is loaded.
+    /// Check if component is loaded and ready.
     ///
-    /// Returns true if Child::start() has successfully loaded the WASM runtime.
+    /// Returns true if Child::start() has successfully loaded the component.
+    /// Now checks component_handle (Component Model) rather than legacy wasm_runtime.
     ///
     /// # Example
     ///
@@ -1321,11 +813,12 @@ where
     ///     CapabilitySet::new()
     /// );
     ///
-    /// // WASM not loaded until Child::start()
+    /// // Component not loaded until Child::start()
     /// assert!(!actor.is_wasm_loaded());
     /// ```
     pub fn is_wasm_loaded(&self) -> bool {
-        self.wasm_runtime.is_some()
+        // WASM-TASK-006-HOTFIX: Now checks component_handle instead of legacy wasm_runtime
+        self.component_handle.is_some()
     }
 
     /// Calculate component uptime.
@@ -1526,6 +1019,116 @@ where
         self
     }
 
+    // =============================================================================
+    // COMPONENT MODEL API (WASM-TASK-006-HOTFIX Phase 2)
+    // =============================================================================
+
+    /// Set the shared WASM engine (Component Model - builder pattern).
+    ///
+    /// Configures the ComponentActor to use the provided WasmEngine for component
+    /// loading and execution. This is the **CORRECT** architecture per ADR-WASM-002.
+    ///
+    /// # Arguments
+    ///
+    /// * `engine` - Shared WasmEngine (Component Model API)
+    ///
+    /// # Returns
+    ///
+    /// `self` for method chaining (builder pattern)
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// use std::sync::Arc;
+    /// use airssys_wasm::runtime::WasmEngine;
+    /// use airssys_wasm::actor::ComponentActor;
+    ///
+    /// let engine = Arc::new(WasmEngine::new()?);
+    ///
+    /// let actor = ComponentActor::new(component_id, metadata, caps, ())
+    ///     .with_component_engine(engine);
+    /// ```
+    ///
+    /// # Migration Note (WASM-TASK-006-HOTFIX)
+    ///
+    /// This replaces the legacy pattern where Child::start() created a local
+    /// Wasmtime Engine using core WASM API. The shared WasmEngine:
+    /// - Uses Component Model API (wasmtime::component)
+    /// - Enables compilation caching across components
+    /// - Supports WIT interfaces and typed calls
+    pub fn with_component_engine(mut self, engine: Arc<WasmEngine>) -> Self {
+        self.component_engine = Some(engine);
+        self
+    }
+
+    /// Get reference to the Component Model engine (if set).
+    ///
+    /// Returns the shared WasmEngine used for component loading and execution.
+    ///
+    /// # Returns
+    ///
+    /// - `Some(&Arc<WasmEngine>)` - Engine is configured
+    /// - `None` - Engine not set (legacy mode)
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// if let Some(engine) = actor.component_engine() {
+    ///     let handle = engine.load_component(&id, &bytes).await?;
+    /// }
+    /// ```
+    pub fn component_engine(&self) -> Option<&Arc<WasmEngine>> {
+        self.component_engine.as_ref()
+    }
+
+    /// Get reference to the loaded component handle (if loaded).
+    ///
+    /// Returns the ComponentHandle loaded via `WasmEngine::load_component()`.
+    ///
+    /// # Returns
+    ///
+    /// - `Some(&ComponentHandle)` - Component is loaded
+    /// - `None` - Component not loaded or unloaded
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// if let Some(handle) = actor.component_handle() {
+    ///     println!("Component {} loaded", handle.id());
+    /// }
+    /// ```
+    pub fn component_handle(&self) -> Option<&ComponentHandle> {
+        self.component_handle.as_ref()
+    }
+
+    /// Set the component handle (internal use by Child::start()).
+    ///
+    /// This method is public but primarily for internal use by the Child trait
+    /// implementation. External code should not normally call this.
+    #[doc(hidden)]
+    pub fn set_component_handle(&mut self, handle: Option<ComponentHandle>) {
+        self.component_handle = handle;
+    }
+
+    /// Check if Component Model engine is configured.
+    ///
+    /// Returns true if `with_component_engine()` was called to configure
+    /// the Component Model architecture. When true, Child::start() will use
+    /// `WasmEngine::load_component()` instead of legacy `wasmtime::Module`.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// if actor.uses_component_model() {
+    ///     println!("Using Component Model API (correct architecture)");
+    /// } else {
+    ///     println!("Using legacy core WASM API (deprecated)");
+    /// }
+    /// ```
+    pub fn uses_component_model(&self) -> bool {
+        self.component_engine.is_some()
+    }
+
     /// Load WASM component bytes from storage.
     ///
     /// # TODO(Block 6 - Component Storage System)
@@ -1560,16 +1163,22 @@ where
     /// - IoError: Filesystem read error
     /// - SerializationError: Component manifest parse error
     pub(crate) async fn load_component_bytes(&self) -> Result<Vec<u8>, WasmError> {
-        // Test mode: Return minimal valid WASM module for testing
+        // Test mode: Return valid Component Model bytes from fixture
+        // This is required because Component Model (wasmtime::component::Component) 
+        // requires valid component format, not core WASM format.
         #[cfg(test)]
         {
-            // Minimal valid WASM module (empty module with correct magic/version)
-            // Magic: \0asm
-            // Version: 0x01 0x00 0x00 0x00
-            Ok(vec![
-                0x00, 0x61, 0x73, 0x6D, // Magic number: \0asm
-                0x01, 0x00, 0x00, 0x00, // Version: 1
-            ])
+            // Minimal valid Component Model binary (component format, not core WASM)
+            // This is the binary from tests/fixtures/handle-message-component.wasm
+            // which implements a basic component with handle-message export.
+            //
+            // Note: We inline the bytes here because:
+            // 1. Tests run from any directory, making relative paths unreliable
+            // 2. The fixture is small (493 bytes)
+            // 3. This ensures tests always work regardless of CWD
+            //
+            // The component was built with: wasm-tools component new
+            Ok(include_bytes!("../../../tests/fixtures/handle-message-component.wasm").to_vec())
         }
 
         // Production mode: Return error until Block 6 is implemented
@@ -1592,30 +1201,10 @@ where
         &self.metadata
     }
 
-    /// Set the WASM runtime (internal use by Child::start()).
-    ///
-    /// This method is public but primarily for internal use by the Child trait
-    /// implementation. External code should not normally call this.
-    #[doc(hidden)]
-    pub fn set_wasm_runtime(&mut self, runtime: Option<WasmRuntime>) {
-        self.wasm_runtime = runtime;
-    }
-
-    /// Get mutable reference to WASM runtime (internal use).
-    ///
-    /// This method is public but primarily for internal use by trait implementations.
-    #[doc(hidden)]
-    pub fn wasm_runtime_mut(&mut self) -> Option<&mut WasmRuntime> {
-        self.wasm_runtime.as_mut()
-    }
-
-    /// Get reference to WASM runtime (internal use).
-    ///
-    /// This method is public but primarily for internal use by trait implementations.
-    #[doc(hidden)]
-    pub fn wasm_runtime(&self) -> Option<&WasmRuntime> {
-        self.wasm_runtime.as_ref()
-    }
+    // NOTE: Legacy accessor methods removed in WASM-TASK-006-HOTFIX Phase 2 Task 2.1:
+    // - set_wasm_runtime() - Use set_component_handle() instead
+    // - wasm_runtime_mut() - Use component_engine() + component_handle() instead
+    // - wasm_runtime() - Use component_engine() + component_handle() instead
 
     /// Set MessageBroker bridge (called by ComponentSpawner).
     ///
@@ -1952,6 +1541,21 @@ where
     /// - Timeouts (component processing takes too long)
     /// - Type conversion errors
     ///
+    /// # Component Model Migration (WASM-TASK-006-HOTFIX Phase 2 Task 2.4)
+    ///
+    /// This method supports two execution paths:
+    ///
+    /// 1. **Component Model path** (when `uses_component_model()` returns true):
+    ///    - Uses `WasmEngine` for typed function calls
+    ///    - No manual memory marshalling required
+    ///    - WIT interfaces are fully functional
+    ///    - This is the **CORRECT** architecture per ADR-WASM-002
+    ///
+    /// 2. **Legacy path** (when `component_engine` is not set):
+    ///    - Uses `WasmBumpAllocator` for manual memory management
+    ///    - Uses `HandleMessageParams` for parameter marshalling
+    ///    - This path is **DEPRECATED** and logs a warning
+    ///
     /// # Parameters
     ///
     /// * `sender` - ComponentId of the message sender
@@ -1999,6 +1603,7 @@ where
     /// # References
     ///
     /// - WASM-TASK-006 Phase 1 Task 1.2: Message reception infrastructure
+    /// - WASM-TASK-006-HOTFIX Phase 2 Task 2.4: Component Model handle-message path
     /// - ADR-WASM-001: Inter-component communication design
     /// - wit/core/component-lifecycle.wit: handle-message export specification
     #[doc(hidden)]
@@ -2007,67 +1612,102 @@ where
         sender: crate::core::ComponentId,
         payload: Vec<u8>,
     ) -> Result<(), WasmError> {
+        // =============================================================================
+        // COMPONENT MODEL PATH (WASM-TASK-006-HOTFIX Phase 2 Task 2.1)
+        // =============================================================================
+        // After Task 2.1, ONLY the Component Model path exists. The legacy path
+        // (which used WasmBumpAllocator, HandleMessageParams, HandleMessageResult)
+        // has been completely deleted.
+        //
+        // This method now ALWAYS uses WasmEngine::call_handle_message() for typed
+        // function calls with automatic parameter marshalling via Canonical ABI.
+        // =============================================================================
+        
+        // Delegate to the Component Model implementation
+        self.invoke_handle_message_component_model(sender, payload).await
+    }
+    
+    /// Invoke handle-message using Component Model API.
+    ///
+    /// Uses WasmEngine for type-safe invocation with automatic parameter marshalling
+    /// via the Canonical ABI. This is the **ONLY** implementation after WASM-TASK-006-HOTFIX
+    /// Task 2.1 deleted the legacy workaround code.
+    ///
+    /// # Architecture
+    ///
+    /// This Component Model implementation uses:
+    /// - `WasmEngine` for typed function calls
+    /// - Canonical ABI for automatic serialization/deserialization
+    /// - Generated bindings from WIT interfaces
+    ///
+    /// The legacy workaround code (WasmBumpAllocator, HandleMessageParams, HandleMessageResult)
+    /// was deleted in WASM-TASK-006-HOTFIX Phase 2 Task 2.1.
+    ///
+    /// # Parameters
+    ///
+    /// * `sender` - ComponentId of the message sender
+    /// * `payload` - Multicodec-encoded message payload
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(())`: Message delivered successfully
+    /// - `Err(WasmError)`: Delivery failed
+    ///
+    /// # Errors
+    ///
+    /// - `WasmError::Internal`: Component Model engine not configured
+    /// - `WasmError::ComponentNotFound`: Component not loaded
+    /// - `WasmError::ExecutionTimeout`: Processing exceeded timeout
+    /// - `WasmError::ExecutionFailed`: WASM trap or invocation failure
+    ///
+    /// # Implementation
+    ///
+    /// This method uses `WasmEngine::call_handle_message()` which was added
+    /// in WASM-TASK-006-HOTFIX Task 2.5. The call is wrapped with timeout
+    /// for reliability.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// // Called via invoke_handle_message_with_timeout()
+    /// actor.invoke_handle_message_with_timeout(sender, payload).await?;
+    /// ```
+    async fn invoke_handle_message_component_model(
+        &mut self,
+        sender: crate::core::ComponentId,
+        payload: Vec<u8>,
+    ) -> Result<(), WasmError> {
         let component_id_str = self.component_id().as_str().to_string();
         let sender_str = sender.as_str().to_string();
-        
-        // Get timeout and config before mut borrows
         let timeout = self.message_config().delivery_timeout();
         let delivery_timeout_ms = self.message_config().delivery_timeout_ms;
         
-        // Get WASM runtime
-        let runtime = self
-            .wasm_runtime_mut()
-            .ok_or_else(|| WasmError::component_not_found(format!(
-                "Component {component_id_str} not ready (WASM not loaded)"
-            )))?;
+        // Get Component Model engine
+        let engine = self.component_engine.as_ref()
+            .ok_or_else(|| WasmError::internal(
+                "Component Model engine not configured (uses_component_model() should have prevented this)"
+            ))?;
         
-        // Get handle-message export
-        let handle_fn = runtime.exports().handle_message.ok_or_else(|| {
-            WasmError::execution_failed(format!(
-                "Component {} has no handle-message export",
+        // Get Component Model handle
+        let handle = self.component_handle.as_ref()
+            .ok_or_else(|| WasmError::component_not_found(format!(
+                "Component {} not loaded (no ComponentHandle)",
                 component_id_str
-            ))
-        })?;
+            )))?;
         
         trace!(
             component_id = %component_id_str,
             sender = %sender_str,
             payload_len = payload.len(),
             timeout_ms = delivery_timeout_ms,
-            "Invoking handle-message export with timeout"
+            "Invoking handle-message via Component Model API"
         );
         
-        // Wrap WASM invocation with timeout
+        // Call handle-message via WasmEngine::call_handle_message()
+        // Wrap with timeout for consistency with legacy path
         let result = tokio::time::timeout(
             timeout,
-            async {
-                // Note: handle-message WIT signature is:
-                // handle-message: func(sender: component-id, message: list<u8>) -> result<_, component-error>
-                //
-                // For current fixtures, handle-message is a simple parameterless function
-                // that returns i32 (0 = success, non-zero = error). The sender and payload
-                // parameters will be passed once proper WIT bindings are generated.
-                //
-                // TODO(WASM-TASK-006 Phase 2 Task 2.2): Implement proper parameter
-                // marshalling using wasmtime component model bindings once generated.
-                //
-                // Pre-allocate result slot for i32 return value
-                let mut results = vec![wasmtime::Val::I32(0)];
-                handle_fn
-                    .call_async(&mut *runtime.store_mut(), &[], &mut results)
-                    .await
-                    .map_err(|e| {
-                        WasmError::execution_failed(format!(
-                            "handle-message trapped in component {} (from {}): {}",
-                            component_id_str, sender_str, e
-                        ))
-                    })?;
-                
-                // Check result value (0 = success, non-zero = error)
-                // For now, we treat all non-trapping execution as success.
-                // Result interpretation will be enhanced with WIT bindings.
-                Ok(())
-            }
+            engine.call_handle_message(handle, &sender, &payload)
         )
         .await;
         
@@ -2076,19 +1716,19 @@ where
                 debug!(
                     component_id = %component_id_str,
                     sender = %sender_str,
-                    "handle-message export completed successfully"
+                    "handle-message export completed successfully (Component Model)"
                 );
                 Ok(())
             }
             Ok(Err(e)) => {
-                // WASM trap or execution error
+                // WasmEngine invocation error
                 Err(e)
             }
             Err(_) => {
                 // Timeout exceeded
                 Err(WasmError::execution_timeout(
                     delivery_timeout_ms,
-                    None, // No fuel consumed info for message delivery timeouts
+                    None,
                 ))
             }
         }
@@ -3050,12 +2690,14 @@ mod tests {
 
     /// Test that invoke_handle_message_with_timeout returns error without WASM
     ///
-    /// This test verifies error handling when WASM runtime is not loaded.
+    /// This test verifies error handling when Component Model engine is not configured.
+    /// After WASM-TASK-006-HOTFIX, the legacy path is removed and engine is mandatory.
     #[tokio::test]
-    async fn test_invoke_handle_message_returns_error_without_wasm() {
+    async fn test_invoke_handle_message_returns_error_without_engine() {
         let mut actor = create_test_actor();
 
-        // WASM is not loaded
+        // Component Model engine is not configured
+        assert!(!actor.uses_component_model());
         assert!(!actor.is_wasm_loaded());
 
         let sender = ComponentId::new("sender");
@@ -3065,13 +2707,373 @@ mod tests {
             .invoke_handle_message_with_timeout(sender, payload)
             .await;
 
-        // Should fail with ComponentNotFound (WASM not loaded)
+        // Should fail with Internal error (engine not configured)
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            matches!(err, WasmError::Internal { .. }),
+            "Error should be Internal (engine not configured): {:?}",
+            err
+        );
+    }
+
+    // ========================================================================
+    // LEGACY TESTS DELETED (WASM-TASK-006-HOTFIX Phase 2 Task 2.1)
+    // ========================================================================
+    // Tests for the following deleted types were removed:
+    // - HandleMessageParams tests
+    // - HandleMessageResult tests
+    // - BUMP_ALLOCATOR_BASE, MAX_SENDER_SIZE, MAX_MESSAGE_SIZE constant tests
+    // ========================================================================
+
+    // ========================================================================
+    // WASM-TASK-006-HOTFIX Phase 2: Component Model Architecture Tests
+    // ========================================================================
+    
+    /// Test that new ComponentActor has no Component Model engine by default
+    #[test]
+    fn test_component_model_engine_not_set_by_default() {
+        let actor = create_test_actor();
+        
+        assert!(actor.component_engine().is_none());
+        assert!(!actor.uses_component_model());
+    }
+
+    /// Test that Component Model engine can be set via builder
+    #[test]
+    fn test_with_component_engine_builder() {
+        use crate::runtime::WasmEngine;
+        
+        let engine = Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
+        
+        let actor = ComponentActor::new(
+            ComponentId::new("test"),
+            create_test_metadata(),
+            CapabilitySet::new(),
+            (),
+        )
+        .with_component_engine(engine.clone());
+        
+        assert!(actor.component_engine().is_some());
+        assert!(actor.uses_component_model());
+    }
+
+    /// Test that component_handle is None by default
+    #[test]
+    fn test_component_handle_not_loaded_by_default() {
+        let actor = create_test_actor();
+        
+        assert!(actor.component_handle().is_none());
+    }
+
+    /// Test that set_component_handle works
+    #[test]
+    fn test_set_component_handle() {
+        let mut actor = create_test_actor();
+        
+        // Verify the method signature compiles and the None case works
+        assert!(actor.component_handle().is_none());
+        
+        // Clear the handle (already None)
+        actor.set_component_handle(None);
+        assert!(actor.component_handle().is_none());
+    }
+
+    /// Test uses_component_model reflects engine state
+    #[test]
+    fn test_uses_component_model_reflects_engine() {
+        use crate::runtime::WasmEngine;
+        
+        // Without engine
+        let actor1 = create_test_actor();
+        assert!(!actor1.uses_component_model());
+        
+        // With engine
+        let engine = Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
+        let actor2 = ComponentActor::new(
+            ComponentId::new("test"),
+            create_test_metadata(),
+            CapabilitySet::new(),
+            (),
+        )
+        .with_component_engine(engine);
+        
+        assert!(actor2.uses_component_model());
+    }
+
+    /// Test that both legacy and Component Model fields can coexist
+    #[test]
+    fn test_legacy_and_component_model_coexistence() {
+        use crate::runtime::WasmEngine;
+        
+        let engine = Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
+        
+        let actor = ComponentActor::new(
+            ComponentId::new("test"),
+            create_test_metadata(),
+            CapabilitySet::new(),
+            (),
+        )
+        .with_component_engine(engine);
+        
+        // Component Model engine set
+        assert!(actor.uses_component_model());
+        
+        // Legacy WASM runtime not set (they're independent during migration)
+        assert!(!actor.is_wasm_loaded());
+    }
+
+    // ========================================================================
+    // WASM-TASK-006-HOTFIX Phase 2 Task 2.4: Component Model handle-message Tests
+    // ========================================================================
+
+    /// Test that invoke_handle_message fails with Internal error when engine not configured
+    /// (Legacy path removed in WASM-TASK-006-HOTFIX Phase 2 Task 2.1)
+    #[tokio::test]
+    async fn test_invoke_handle_message_fails_without_engine() {
+        let mut actor = create_test_actor();
+        
+        // Verify no Component Model engine
+        assert!(!actor.uses_component_model());
+        
+        let sender = ComponentId::new("sender");
+        let payload = vec![1, 2, 3];
+        
+        // This should fail because engine is not configured (legacy path removed)
+        let result = actor
+            .invoke_handle_message_with_timeout(sender, payload)
+            .await;
+        
+        // Should fail with Internal (engine not configured)
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            matches!(err, WasmError::Internal { .. }),
+            "Expected Internal error (engine not configured), got: {:?}",
+            err
+        );
+    }
+
+    /// Test that Component Model path is used when engine is configured
+    #[tokio::test]
+    async fn test_invoke_handle_message_uses_component_model_path_with_engine() {
+        use crate::runtime::WasmEngine;
+        
+        let engine = Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
+        
+        let mut actor = ComponentActor::new(
+            ComponentId::new("test-component"),
+            create_test_metadata(),
+            CapabilitySet::new(),
+            (),
+        )
+        .with_component_engine(engine);
+        
+        // Verify Component Model engine is configured
+        assert!(actor.uses_component_model());
+        
+        let sender = ComponentId::new("sender");
+        let payload = vec![1, 2, 3];
+        
+        // This should use Component Model path
+        // Since component_handle is not set, it should fail with ComponentNotFound
+        let result = actor
+            .invoke_handle_message_with_timeout(sender, payload)
+            .await;
+        
+        // Should fail because component_handle is None
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert!(
             matches!(err, WasmError::ComponentNotFound { .. }),
-            "Error should be ComponentNotFound: {:?}",
+            "Expected ComponentNotFound (no handle), got: {:?}",
             err
+        );
+    }
+
+    /// Test that Component Model path fails gracefully when handle is not loaded
+    #[tokio::test]
+    async fn test_component_model_handle_message_fails_without_handle() {
+        use crate::runtime::WasmEngine;
+        
+        let engine = Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
+        
+        let mut actor = ComponentActor::new(
+            ComponentId::new("test-component"),
+            create_test_metadata(),
+            CapabilitySet::new(),
+            (),
+        )
+        .with_component_engine(engine);
+        
+        // Don't set component_handle - it should fail with descriptive error
+        assert!(actor.component_handle().is_none());
+        
+        let sender = ComponentId::new("sender");
+        let payload = vec![1, 2, 3, 4, 5];
+        
+        let result = actor
+            .invoke_handle_message_with_timeout(sender, payload)
+            .await;
+        
+        assert!(result.is_err());
+        
+        let err_str = result.unwrap_err().to_string();
+        // Error should mention component not loaded
+        assert!(
+            err_str.contains("not loaded") || err_str.contains("ComponentHandle"),
+            "Error should mention component not loaded: {}",
+            err_str
+        );
+    }
+
+    /// Test that invoke_handle_message_component_model calls WasmEngine::call_handle_message
+    /// (Task 2.5 implemented WasmEngine::call_handle_message)
+    #[tokio::test]
+    async fn test_component_model_handle_message_invocation() {
+        use crate::runtime::WasmEngine;
+        use crate::core::runtime::RuntimeEngine;
+        
+        let engine = Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
+        
+        // Load handle-message-component.wasm which has handle-message export
+        let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures/handle-message-component.wasm");
+        
+        let wasm_bytes = std::fs::read(&fixture_path).expect("Failed to read fixture");
+        
+        let component_id = ComponentId::new("test-component");
+        
+        // Load the component
+        let handle = engine
+            .load_component(&component_id, &wasm_bytes)
+            .await
+            .expect("Failed to load component");
+        
+        let mut actor = ComponentActor::new(
+            component_id.clone(),
+            create_test_metadata(),
+            CapabilitySet::new(),
+            (),
+        )
+        .with_component_engine(engine.clone());
+        
+        // Set the component handle
+        actor.set_component_handle(Some(handle));
+        
+        let sender = ComponentId::new("sender");
+        let payload = vec![1, 2, 3];
+        
+        let result = actor
+            .invoke_handle_message_with_timeout(sender, payload)
+            .await;
+        
+        // Should succeed - Task 2.5 implemented WasmEngine::call_handle_message()
+        assert!(
+            result.is_ok(),
+            "Expected success with handle-message-component fixture: {:?}",
+            result.err()
+        );
+    }
+
+    /// Test Component Model path fails gracefully when component lacks handle-message export
+    #[tokio::test]
+    async fn test_component_model_handle_message_no_export() {
+        use crate::runtime::WasmEngine;
+        use crate::core::runtime::RuntimeEngine;
+        
+        let engine = Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
+        
+        // Load hello_world.wasm which does NOT have handle-message export
+        let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures/hello_world.wasm");
+        
+        let wasm_bytes = std::fs::read(&fixture_path).expect("Failed to read fixture");
+        
+        let component_id = ComponentId::new("test-component");
+        
+        // Load the component
+        let handle = engine
+            .load_component(&component_id, &wasm_bytes)
+            .await
+            .expect("Failed to load component");
+        
+        let mut actor = ComponentActor::new(
+            component_id.clone(),
+            create_test_metadata(),
+            CapabilitySet::new(),
+            (),
+        )
+        .with_component_engine(engine.clone());
+        
+        // Set the component handle
+        actor.set_component_handle(Some(handle));
+        
+        let sender = ComponentId::new("sender");
+        let payload = vec![1, 2, 3];
+        
+        let result = actor
+            .invoke_handle_message_with_timeout(sender, payload)
+            .await;
+        
+        // Should fail - component doesn't have handle-message export
+        assert!(result.is_err());
+        
+        let err_str = result.unwrap_err().to_string();
+        // Error should mention handle-message export
+        assert!(
+            err_str.contains("handle-message") || err_str.contains("type mismatch"),
+            "Error should mention handle-message export: {}",
+            err_str
+        );
+    }
+
+    /// Test that Component Model is REQUIRED (legacy path removed)
+    /// After WASM-TASK-006-HOTFIX, invoking handle_message without engine fails
+    #[tokio::test]
+    async fn test_handle_message_requires_component_model_engine() {
+        use crate::runtime::WasmEngine;
+        
+        // Test 1: Without engine - fails with Internal error (engine not configured)
+        let mut actor_no_engine = create_test_actor();
+        assert!(!actor_no_engine.uses_component_model());
+        
+        let result_no_engine = actor_no_engine
+            .invoke_handle_message_with_timeout(
+                ComponentId::new("sender"),
+                vec![1, 2, 3],
+            )
+            .await;
+        
+        // Should fail with Internal (engine not configured - legacy path removed)
+        assert!(
+            matches!(result_no_engine.unwrap_err(), WasmError::Internal { .. }),
+            "Without engine should fail with Internal error"
+        );
+        
+        // Test 2: With engine - uses Component Model path (fails with ComponentNotFound because no handle)
+        let engine = Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
+        let mut actor_cm = ComponentActor::new(
+            ComponentId::new("test"),
+            create_test_metadata(),
+            CapabilitySet::new(),
+            (),
+        )
+        .with_component_engine(engine);
+        
+        assert!(actor_cm.uses_component_model());
+        
+        let result_cm = actor_cm
+            .invoke_handle_message_with_timeout(
+                ComponentId::new("sender"),
+                vec![1, 2, 3],
+            )
+            .await;
+        
+        // Component Model path should fail with ComponentNotFound (no handle loaded)
+        assert!(
+            matches!(result_cm.unwrap_err(), WasmError::ComponentNotFound { .. }),
+            "Component Model path should fail with ComponentNotFound (no handle)"
         );
     }
 }

@@ -73,7 +73,7 @@ use serde::{Deserialize, Serialize};
 use airssys_rt::broker::InMemoryMessageBroker;
 
 // Layer 4: Internal module imports
-use crate::actor::ComponentMessage;
+use crate::core::ComponentMessage;
 
 /// Service managing MessageBroker integration for inter-component communication.
 ///

@@ -58,3 +58,7 @@ pub use subscriber_manager::{SubHandle, SubscriberManager};
 pub use timeout_handler::TimeoutHandler;
 #[doc(inline)]
 pub use unified_router::{RoutingStats, UnifiedRouter};
+// ADR-WASM-022: Moved from runtime/ to prevent circular dependency
+pub mod messaging_subscription;
+#[doc(inline)]
+pub use messaging_subscription::{MessagingSubscriptionService, SubscriptionStatus};
