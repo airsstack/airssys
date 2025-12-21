@@ -149,6 +149,7 @@ The verifier will return one of:
 | `@memorybank-verifier` | Verify subagent reports | ❌ NO (it IS the verifier) |
 | `@memorybank-archivist` | Save/restore snapshots | ❌ NO |
 | `@memorybank-tasks` | List remaining tasks | ❌ NO |
+| `@memorybank-completer` | Update docs for task completion | ❌ NO (post-verification) |
 
 ---
 
@@ -307,3 +308,68 @@ Manager:
 5. You present both the original report and verification result to the user
 
 **An unverified acceptance is a failure. Always verify.**
+
+---
+
+# TASK COMPLETION WORKFLOW (NEW)
+
+## When to Use @memorybank-completer
+
+**Trigger**: After a task has been:
+1. ✅ Audited by `@memorybank-auditor` (APPROVED)
+2. ✅ Verified by `@memorybank-verifier` (VERIFIED)
+
+**Purpose**: Update ALL Memory Bank files to reflect task completion.
+
+## Complete Task Workflow
+
+```
+User: "complete task 2.1" or "update memory bank for task 2.1"
+
+Manager:
+1. Verify task was audited (APPROVED) and verified (VERIFIED)
+2. If NOT verified: Run audit + verification first
+3. If VERIFIED: Trigger @memorybank-completer with:
+   - Project name
+   - Task ID
+   - Task name
+   - Audit summary
+   - Test counts
+   - Completion date
+4. Receive completer report
+5. Present summary of Memory Bank updates to user
+```
+
+## Example: Complete Task Completion Flow
+
+```
+User: "mark task 2.1 as complete"
+
+Manager:
+1. Check if task 2.1 was audited → YES (APPROVED)
+2. Check if audit was verified → YES (VERIFIED)
+3. Trigger @memorybank-completer:
+   "Update Memory Bank for task completion:
+   
+   ## Task Details
+   - Project: airssys-wasm
+   - Task ID: WASM-TASK-006 Phase 2 Task 2.1
+   - Task Name: send-message Host Function
+   - Completion Date: 2025-12-21
+   
+   ## Audit Summary
+   - Status: APPROVED
+   - 8 unit tests + 18 integration tests
+   - All REAL tests, all passing
+   - Zero clippy warnings
+   
+   ## Update all 4 Memory Bank files"
+4. Receive completer report
+5. Present: "Memory Bank updated for Task 2.1 completion"
+```
+
+## @memorybank-completer in Subagent Table
+
+| Agent | Purpose | Requires Verification? |
+|-------|---------|----------------------|
+| `@memorybank-completer` | Update docs for task completion | ❌ NO (post-verification) |
