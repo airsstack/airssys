@@ -110,5 +110,9 @@ harness = false
 name = "security_benchmarks"
 harness = false
 
+[[bench]]
+name = "fire_and_forget_benchmarks"
+harness = false
+
 [lints]
 workspace = true
