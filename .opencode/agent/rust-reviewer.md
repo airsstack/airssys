@@ -133,6 +133,65 @@ Review the changes and check for:
    - ❌ Compiler warnings present
    - ❌ Clippy warnings present
 
+
+## Test Code Inspection (CRITICAL)
+
+**Before approving any code with tests:**
+
+### Step 1: Locate integration tests
+```bash
+find tests -name "*-integration-tests.rs" -type f
+```
+
+### Step 2: Analyze test code
+For EACH integration test file:
+- [ ] Read test code (not just check file exists)
+- [ ] For EACH test, check:
+  - Does it create REAL components? (grep for actual types)
+  - Does it perform ACTUAL operations? (grep for real method calls)
+  - Does it verify REAL behavior? (grep for state/behavior assertions)
+- [ ] Count:
+  - Lines that instantiate real types
+  - Lines that perform real operations
+  - Lines that verify actual behavior
+  - Lines that only validate helper APIs
+
+If helper API validations > 50% → Test is stub test, **REJECT**
+
+### Step 3: Stub Test Detection
+
+Run this analysis:
+```bash
+# Count metrics/API lines vs real functionality lines
+HELPER_LINES=$(grep -cE "metrics\.|snapshot\(\)|config\.|Arc::strong_count|\.new\(\)" tests/*-integration-tests.rs 2>/dev/null || echo 0)
+REAL_LINES=$(grep -cE "invoke_|\.send\(|\.handle_|message\(|publish\(|subscribe\(" tests/*-integration-tests.rs 2>/dev/null || echo 0)
+
+echo "Helper API lines: $HELPER_LINES"
+echo "Real functionality lines: $REAL_LINES"
+
+if [ "$REAL_LINES" -eq 0 ] || [ "$HELPER_LINES" -gt "$REAL_LINES" ]; then
+    echo "❌ Tests are mostly stub tests (only API validation)"
+else
+    echo "✅ Tests appear to be real functionality tests"
+fi
+```
+
+**Interpretation:**
+- Real > Helper: Tests are likely real ✅
+- Helper ≥ Real: Tests are likely stub tests ❌
+- Real = 0: Tests don't test actual functionality ❌
+
+### Step 4: Rejection Criteria for Tests
+- ❌ Integration test file is empty
+- ❌ Integration tests only call helper/metrics APIs
+- ❌ Tests don't instantiate real components
+- ❌ Tests don't send real messages/data
+- ❌ Tests don't verify state changes
+- ❌ Missing fixtures referenced by tests
+
+**If any of these are true → REJECT code**
+
+### Testing Red Flags
 ### Testing Red Flags (AUTOMATIC REJECTION):
 
 ```

@@ -349,6 +349,176 @@ Your job is to be objective and thorough. If the task is truly done (and matches
 - **Build fails**: 🛑 HALT - Output: "❌ **Build failing**. Cannot mark as complete until build succeeds."
 - **Warnings present**: 🛑 HALT - Output: "❌ **Warnings present**. Cannot mark as complete until 0 warnings achieved."
 
+## 5a. Integration Test Code Inspection (MANDATORY)
+
+**Before marking task complete, AUDITOR MUST READ TEST CODE**
+
+### Step 1: Locate integration tests
+```bash
+ls tests/*-integration-tests.rs 2>/dev/null
+```
+
+### Step 2: Inspect each test function
+For EVERY integration test in tests/:
+- [ ] Read the entire test function code
+- [ ] Verify real components are instantiated (grep for ComponentActor, WasmEngine, ActorSystem, etc.)
+- [ ] Verify real operations are performed (grep for .invoke_, .send, .handle_, actual method calls)
+- [ ] Verify state changes are verified (grep for assertions on actual behavior, not mocks)
+- [ ] Ask: "If the feature was broken, would this test fail?"
+
+### Step 3: Reject if ANY of these are true
+- [ ] Test only calls .snapshot() on metrics
+- [ ] Test only calls .record_*() on metrics
+- [ ] Test only validates configuration structs
+- [ ] Test only instantiates types without using them
+- [ ] Test doesn't demonstrate actual functionality
+- [ ] Test would still pass if feature was broken
+
+**If any test fails these checks → Test is incomplete, add more tests or HALT completion**
+
+## 5b. Stub Test Detection (Automated Check)
+
+**Run this analysis before marking complete:**
+
+```bash
+# Count helper API lines vs real functionality lines
+HELPER_LINES=$(grep -cE "metrics\.|snapshot\(\)|config\.|Arc::strong_count|\.new\(\)" tests/*-integration-tests.rs 2>/dev/null || echo 0)
+REAL_LINES=$(grep -cE "invoke_|\.send\(|\.handle_|message\(|publish\(|subscribe\(" tests/*-integration-tests.rs 2>/dev/null || echo 0)
+
+echo "Helper API lines: $HELPER_LINES"
+echo "Real functionality lines: $REAL_LINES"
+
+if [ "$REAL_LINES" -eq 0 ] || [ "$HELPER_LINES" -gt "$REAL_LINES" ]; then
+    echo "❌ REJECT: Tests appear to be stub tests (only API validation)"
+    exit 1
+fi
+echo "✅ Tests appear to be real functionality tests"
+```
+
+**Interpretation:**
+- Real > Helper: Tests are likely real ✅
+- Helper > Real: Tests are likely stub tests ❌
+- Real = 0: Tests don't test actual functionality ❌
+
+**If this check fails → HALT task completion, tests are stub tests**
+
+## 5c. Real vs Stub Test Examples
+
+### STUB TEST EXAMPLES (REJECT THESE)
+
+```rust
+// ❌ STUB: Only tests metrics initialization
+#[test]
+fn test_message_metrics_initialization() {
+    let metrics = MessageReceptionMetrics::new();
+    let snapshot = metrics.snapshot();
+    assert_eq!(snapshot.messages_received, 0);  // Only tests API
+}
+
+// ❌ STUB: Only tests atomic increment
+#[test]
+fn test_record_message_received() {
+    let metrics = MessageReceptionMetrics::new();
+    metrics.record_received();
+    assert_eq!(metrics.snapshot().messages_received, 1);  // Only tests counter
+}
+
+// ❌ STUB: Only tests that Arc can be cloned
+#[test]
+fn test_messaging_service_clone() {
+    let service = MessagingService::new();
+    let cloned = service.clone();
+    assert_eq!(Arc::strong_count(&service.broker), 2);  // Only tests Arc
+}
+
+// ❌ STUB: Creates actor but never invokes functionality
+#[test]
+fn test_create_component_actor() {
+    let actor = ComponentActor::new(
+        ComponentId::new("test"),
+        metadata,
+        capabilities,
+        runtime,  // Never loaded with WASM
+    );
+    assert!(actor.is_valid());  // Only tests initialization
+}
+```
+
+### REAL TEST EXAMPLES (ACCEPT THESE)
+
+```rust
+// ✅ REAL: Loads WASM and verifies export is called
+#[tokio::test]
+async fn test_actor_invokes_wasm_handle_message_export() {
+    let wasm_bytes = load_fixture("basic-handle-message.wasm");
+    let mut engine = WasmEngine::new().unwrap();
+    let runtime = engine.load_component(&wasm_bytes).unwrap();
+    
+    let mut actor = ComponentActor::new(
+        ComponentId::new("receiver"),
+        metadata,
+        capabilities,
+        runtime,  // Real WASM loaded
+    );
+    
+    // Real operation: invoke handle-message with actual message
+    let result = actor.invoke_handle_message_with_timeout(
+        ComponentId::new("sender"),
+        vec![1, 2, 3],  // Real payload
+    ).await;
+    
+    // Real behavior verification
+    assert!(result.is_ok());  // Proves WASM was invoked
+    assert_eq!(actor.message_metrics().snapshot().messages_received, 1);  // Proves it was processed
+}
+
+// ✅ REAL: Publishes to broker and verifies subscriber receives
+#[tokio::test]
+async fn test_broker_publishes_to_subscribers() {
+    let service = MessagingService::new();
+    let broker = service.broker();
+    
+    // Real operation: subscribe to broker
+    let mut subscriber = broker.subscribe().await.unwrap();
+    
+    // Real operation: publish message
+    broker.publish(ComponentMessage::InterComponent {
+        sender: ComponentId::new("sender"),
+        to: ComponentId::new("receiver"),
+        payload: vec![1, 2, 3],  // Real payload
+    }).await.unwrap();
+    
+    // Real behavior verification: message actually delivered
+    let received = tokio::time::timeout(
+        Duration::from_secs(1),
+        subscriber.recv()
+    ).await.unwrap().unwrap();
+    
+    assert_eq!(received.payload, vec![1, 2, 3]);  // Proves message flowed through
+}
+
+// ✅ REAL: Tests timeout actually fires
+#[tokio::test]
+async fn test_timeout_enforced_on_slow_wasm() {
+    let wasm_bytes = load_fixture("slow-handler.wasm");  // ~500ms delay
+    let mut engine = WasmEngine::new().unwrap();
+    let runtime = engine.load_component(&wasm_bytes).unwrap();
+    
+    let mut actor = ComponentActor::new(..., runtime);
+    
+    // Real operation with short timeout
+    let result = actor.invoke_handle_message_with_timeout_ms(
+        ComponentId::new("sender"),
+        vec![],
+        100,  // 100ms timeout, WASM takes 500ms
+    ).await;
+    
+    // Real behavior: timeout actually fires
+    assert!(matches!(result, Err(WasmError::ExecutionTimeout)));
+    assert_eq!(actor.message_metrics().snapshot().delivery_timeouts, 1);  // Timeout was recorded
+}
+```
+
 # Important Behavior
 - **Plan Verification**: Always verify implementation against plan FIRST
 - **Objective Verification**: Be thorough but objective. Don't block completion if truly done.

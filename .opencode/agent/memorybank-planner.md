@@ -122,6 +122,61 @@ Every Action Plan MUST have these sections:
 3. **Tests must be Functional**: Tests must verify REAL behavior, not just APIs
 4. **Verification is Explicit**: Plan must include specific cargo commands to verify success
 
+
+## 3e. Fixture Verification (CRITICAL)
+
+**Before presenting plan for approval, verify fixtures:**
+
+For each integration test in the plan:
+- [ ] Identify what fixtures are needed (WASM modules, test data, config files, etc.)
+- [ ] Check if each fixture exists in the project
+- [ ] If ANY fixture is missing:
+  - Mark as "BLOCKER: Requires [fixture-name] to exist"
+  - Plan says: "Cannot write real tests without fixture"
+  - Create prerequisite fixture task
+
+**If Fixtures Are Missing:**
+
+Do NOT proceed with plan that requires non-existent fixtures.
+
+Instead:
+1. Identify what fixtures are needed
+2. Create task: "Create [fixture-name] test fixture" as PREREQUISITE
+3. List that task as BLOCKER to current task
+4. Plan says: "BLOCKED: Awaiting fixture creation"
+5. When fixtures are created, update plan to remove BLOCKER
+
+**Fixture Check Before Approval:**
+- [ ] All fixtures needed by tests are identified
+- [ ] All fixtures either exist OR have creation task
+- [ ] No test plan requires non-existent fixtures
+- [ ] If new fixtures needed, creation task exists as prerequisite
+- [ ] Integration test specifications mention which fixture each test uses
+
+**Example - BLOCKED Plan:**
+```
+## Integration Testing Plan
+**STATUS: BLOCKED** - Awaiting fixture creation
+
+- [ ] Test: test_wasm_message_reception
+  Proves: WASM handle-message export invoked
+  Fixture: basic-handle-message.wasm (MISSING - see task-XXX)
+  Status: Blocked until fixture created
+```
+
+**Example - READY Plan:**
+```
+## Integration Testing Plan
+**STATUS: READY** - All fixtures available
+
+- [ ] Test: test_wasm_message_reception
+  Proves: WASM handle-message export invoked
+  Fixture: basic-handle-message.wasm (EXISTS in tests/fixtures/)
+  Status: Ready to implement
+```
+
+---
+
 ## 4. Plan Review & Approval
 
 - **Output**: Present the plan.

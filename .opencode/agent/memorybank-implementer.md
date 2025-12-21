@@ -45,6 +45,55 @@ Your goal is to execute the "Action Plan" of a task with REAL implementations on
 
 **If plan is missing any of these, HALT and ask for clarification before starting.**
 
+
+## 1b. Identify Required Fixtures - ALWAYS (CRITICAL)
+
+**Before writing ANY integration tests:**
+
+- [ ] Read plan and identify what fixtures/test data is needed
+- [ ] For EACH fixture:
+  - [ ] Check if it exists in the project
+  - [ ] If MISSING:
+    - ❌ DO NOT write stub tests as a workaround
+    - ✅ CREATE the fixture FIRST
+    - ✅ Verify fixture works before writing tests
+    - Then proceed to write real integration tests
+
+**If any required fixture is missing:**
+- 🛑 HALT implementation
+- Create prerequisite task to build fixture
+- Write in plan: "BLOCKER: Awaiting [fixture-name] fixture creation"
+- Do NOT proceed with stub tests
+
+**Fixture Verification Example:**
+```bash
+# For WASM fixtures, verify they're real binaries
+file airssys-wasm/tests/fixtures/*.wasm
+# Should output: "WebAssembly (wasm) module"
+
+# For other fixtures
+ls -lh tests/fixtures/
+# Should show actual files, not placeholders
+```
+
+**Common mistake (DO NOT DO THIS):**
+```
+Plan says: "test_wasm_message_reception needs basic-handle-message.wasm"
+Fixture doesn't exist
+Agent thinks: "I'll write metrics API tests instead"
+Result: Stub test marked complete (WRONG!)
+```
+
+**Right approach:**
+```
+Plan says: "test_wasm_message_reception needs basic-handle-message.wasm"
+Fixture doesn't exist
+Agent creates: Prerequisite task for fixture
+Agent creates: basic-handle-message.wasm
+Agent writes: Real test that loads actual WASM
+Result: Real test proves WASM works (RIGHT!)
+```
+
 ---
 
 ## CRITICAL: ALL IMPLEMENTATIONS MUST INCLUDE BOTH UNIT AND INTEGRATION TESTS
@@ -111,6 +160,19 @@ Your goal is to execute the "Action Plan" of a task with REAL implementations on
 - **Identify test requirements in plan**
 
 ## 4. Implementation with MANDATORY TESTING
+
+
+### Pre-Test Fixture Check (BEFORE writing integration tests)
+
+Before writing ANY integration test:
+1. [ ] Identify all fixtures referenced in plan
+2. [ ] Verify each fixture exists
+3. [ ] Test that fixture can be loaded
+4. [ ] If ANY fixture is missing:
+   - ❌ Do NOT write stub tests as placeholder
+   - ✅ Create it FIRST
+   - ✅ Verify it works
+   - ✅ THEN write real integration tests
 
 ### Step Structure (FOLLOW PLAN EXACTLY):
 ```

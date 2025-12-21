@@ -145,19 +145,44 @@ The memory bank includes a comprehensive technical documentation framework to ca
 - **Index**: Each sub-project maintains `docs/adr/_index.md` for chronological decision tracking
 - **Lifecycle**: Tracks decision status (Proposed/Accepted/Deprecated/Superseded)
 
-### Documentation Guidelines
+### Documentation Triggers (MANDATORY)
 
-**Documentation Triggers**
-- **Technical Debt**: Required for any `TODO(DEBT)` comments or architectural shortcuts
-- **Knowledge Docs**: Required for complex algorithms, reusable patterns, external integrations, or performance-critical code
-- **ADRs**: Required for technology selections, architectural patterns, or decisions affecting system scalability/performance
+**Technical Debt MUST be documented for:**
+- Any `TODO(DEBT)` comments in code
+- Any architectural shortcuts or compromises
+- Any known limitations or incomplete features
+- Any deferred functionality with intended resolution
 
-**Quality Standards**
+**Knowledge Docs MUST be created for:**
+- Any new architectural pattern or boundary (module, subsystem)
+- Any non-obvious algorithm choice with justification
+- Any external system integration with interaction patterns
+- Any performance optimization with trade-off analysis
+- Any security-critical code paths
+- Any concurrent/async complexity with flow explanation
+
+**Examples of when to create:**
+- ✅ Implementing new actor communication pattern → Create knowledge doc
+- ✅ Choosing between two async strategies → Create ADR + knowledge doc
+- ✅ Integrating with WASM runtime → Create knowledge doc + ADR
+- ❌ Adding a simple utility function → No doc required
+- ❌ Updating error message → No doc required
+
+**ADRs MUST be created for:**
+- Technology selection decisions with rationale
+- Architectural pattern choices and justification
+- Decisions affecting scalability, security, or performance
+- Decisions with significant trade-off implications
+- Changes to core system design patterns
+
+### Quality Standards
+
 - All code examples must compile and run correctly
 - Maintain cross-references between related documentation
 - Regular maintenance and review schedules (see `templates/docs/documentation-guidelines.md`)
 
-**Workflow Integration**
+### Workflow Integration
+
 - Documentation creation integrated into task planning and completion
 - Code review verification of documentation completeness
 - Quarterly documentation review for accuracy and relevance
@@ -172,6 +197,101 @@ All technical documentation MUST follow the standardized templates:
 
 This framework ensures consistent, high-quality technical documentation that supports long-term maintainability and knowledge transfer across all sub-projects in the workspace.
 
+---
+
+## Test Quality Standards (MANDATORY)
+
+### Comprehensive Testing Requirement
+
+All implementations MUST include BOTH unit tests AND integration tests. This is a non-negotiable requirement for any code to be considered complete.
+
+### What Counts as "Complete Testing"
+
+**UNIT TESTS (in src/ modules with #[cfg(test)])**
+- Test individual functions/structures
+- Test success paths, error cases, and edge cases
+- Located in the same file as implementation
+- Verify code compiles and functions work as designed
+- Run with: `cargo test --lib`
+
+**INTEGRATION TESTS (in tests/ directory)**
+- Test real end-to-end workflows
+- Test interaction between components/modules
+- Test actual message/data flow
+- Verify feature works from user perspective
+- Demonstrate the feature actually accomplishes its goal
+- File naming: `tests/[module-name]-integration-tests.rs`
+- Run with: `cargo test --test [module-name]-integration-tests`
+
+### What Does NOT Count as "Complete Testing"
+
+❌ Tests that only validate configuration/metrics/helper APIs  
+❌ Tests that don't instantiate real components  
+❌ Tests that don't prove the feature works  
+❌ Missing unit tests OR missing integration tests (BOTH required)  
+❌ Tests that are failing  
+❌ Any code with compiler or clippy warnings  
+
+### Test Fixture Verification Requirement
+
+Test fixtures MUST exist BEFORE writing integration tests:
+- Identify all fixtures needed by tests before implementation
+- Verify fixture files exist in `tests/fixtures/`
+- If fixture missing: Create blocker task to build fixture first
+- Implement feature and tests ONLY after fixtures are ready
+- Do NOT write stub tests as a workaround for missing fixtures
+
+---
+
+## Fixture Management for Testing
+
+### Fixture Inventory Requirement
+
+Every sub-project's `tests/` folder MUST maintain a `fixtures/` directory with:
+- All test fixtures required by integration tests
+- A `README.md` listing what each fixture is and why it exists
+- Fixture creation/update documentation
+- All fixtures under version control (not generated at test time)
+
+### Fixture Verification in Planning
+
+When planning tasks with integration tests:
+1. Identify all fixtures required by planned tests
+2. Check if fixture files exist in `tests/fixtures/`
+3. If fixture missing: Add blocker task to create it
+4. Mark plan as "BLOCKED" if critical fixtures missing
+5. Document all fixture dependencies explicitly in task file
+
+### Fixture Verification in Implementation
+
+Before writing integration tests:
+1. Verify all required fixtures exist and are loadable
+2. Test that fixtures load/work correctly in your code
+3. If fixture issue found: Fix fixture first, THEN write tests
+4. Document fixture usage in test comments (what fixture is used and why)
+5. Never skip fixture verification by writing stub tests
+
+### Example: WASM Fixture Verification
+
+```bash
+# Before writing WASM integration tests:
+
+# 1. Check fixture exists
+if [ ! -f "tests/fixtures/basic-handle-message.wasm" ]; then
+    echo "ERROR: Required fixture missing"
+    exit 1
+fi
+
+# 2. Verify fixture is valid WASM
+file tests/fixtures/basic-handle-message.wasm
+# Should show: WebAssembly (wasm) binary module
+
+# 3. Load fixture in test setup
+let component = Component::from_file("tests/fixtures/basic-handle-message.wasm")?;
+// Only proceed with test if fixture loads successfully
+```
+
+---
 
 ## Workspace-Aware Workflows
 
@@ -442,6 +562,32 @@ Each sub-project's `tasks/` folder contains:
 ### [YYYY-MM-DD] - Subtask 1.2
 ...
 
+## Standards Compliance Checklist
+
+**Workspace Standards Applied** (Reference: `PROJECTS_STANDARD.md`):
+- [ ] **§2.1 3-Layer Import Organization** - Evidence: [example lines from code]
+- [ ] **§3.2 chrono DateTime<Utc> Standard** - Evidence: All time operations use Utc
+- [ ] **§4.3 Module Architecture Patterns** - Evidence: mod.rs contains only declarations/re-exports
+- [ ] **§5.1 Dependency Management** - Evidence: Dependencies ordered by layer
+- [ ] **§6.1 YAGNI Principles** - Evidence: Only necessary features implemented
+- [ ] **§6.2 Avoid `dyn` Patterns** - Evidence: Used generics instead of trait objects
+- [ ] **§6.4 Implementation Quality Gates** - Evidence: Zero warnings, >90% test coverage
+
+## Compliance Evidence
+
+[Document proof of standards application with code examples and test results]
+
+Example format:
+```
+### §2.1 3-Layer Import Organization
+✅ COMPLIANT
+Location: src/actor/component_actor.rs
+Evidence:
+- Layer 1 (std): Lines 1-3
+- Layer 2 (external): Lines 5-8
+- Layer 3 (internal): Lines 10-15
+```
+
 ## Completion Summary (When Task Complete)
 
 **Completion Date:** [YYYY-MM-DD]  
@@ -462,12 +608,47 @@ Each sub-project's `tasks/` folder contains:
 - **Downstream:** [Tasks that depend on this]
 
 ## Definition of Done
-- [ ] All subtasks complete
-- [ ] All acceptance criteria met
-- [ ] Tests passing
-- [ ] Documentation complete
-- [ ] Code reviewed
-- [ ] Standards compliance verified
+
+### Mandatory Criteria (ALL must be true to mark complete)
+
+- [ ] **All subtasks complete**
+- [ ] **All acceptance criteria met**
+- [ ] **Code Quality (Zero Warnings)**
+  - [ ] `cargo build` completes cleanly
+  - [ ] `cargo clippy --all-targets --all-features -- -D warnings` passes
+  - [ ] No compiler warnings
+  - [ ] No clippy warnings
+
+- [ ] **Testing (BOTH required)**
+  - [ ] Unit tests exist in src/ modules
+  - [ ] Unit tests pass: `cargo test --lib`
+  - [ ] Integration tests exist in tests/
+  - [ ] Integration tests pass: `cargo test --test '*'`
+  - [ ] Tests use real fixtures/components
+  - [ ] Tests prove functionality (not just API validity)
+  - [ ] Code coverage > 90%
+
+- [ ] **Documentation (Per PROJECTS_STANDARD.md)**
+  - [ ] Standards compliance verified (checked above)
+  - [ ] Technical debt documented (if created)
+  - [ ] Knowledge docs created (if complex patterns)
+  - [ ] ADRs created (if significant decisions)
+  - [ ] Code comments explain why, not what
+
+- [ ] **Code Review**
+  - [ ] Code reviewed (check completion summary)
+  - [ ] Test code quality verified
+  - [ ] Security implications reviewed
+  - [ ] Performance implications documented (if applicable)
+
+- [ ] **Standards Compliance (Per PROJECTS_STANDARD.md)**
+  - [ ] §2.1 3-Layer Import Organization
+  - [ ] §3.2 chrono DateTime<Utc> Standard  
+  - [ ] §4.3 Module Architecture
+  - [ ] §5.1 Dependency Management
+  - [ ] §6.1 YAGNI Principles
+  - [ ] §6.2 Avoid `dyn` Patterns
+  - [ ] §6.4 Implementation Quality Gates
 ```
 
 **For Complex Tasks (With Phases):**
@@ -575,6 +756,21 @@ Each sub-project's `tasks/` folder contains:
 ### [YYYY-MM-DD] - Phase 2, Subtask 2.1
 ...
 
+## Standards Compliance Checklist
+
+**Workspace Standards Applied** (Reference: `PROJECTS_STANDARD.md`):
+- [ ] **§2.1 3-Layer Import Organization** - Evidence: [example lines from code]
+- [ ] **§3.2 chrono DateTime<Utc> Standard** - Evidence: All time operations use Utc
+- [ ] **§4.3 Module Architecture Patterns** - Evidence: mod.rs contains only declarations/re-exports
+- [ ] **§5.1 Dependency Management** - Evidence: Dependencies ordered by layer
+- [ ] **§6.1 YAGNI Principles** - Evidence: Only necessary features implemented
+- [ ] **§6.2 Avoid `dyn` Patterns** - Evidence: Used generics instead of trait objects
+- [ ] **§6.4 Implementation Quality Gates** - Evidence: Zero warnings, >90% test coverage
+
+## Compliance Evidence
+
+[Document proof of standards application with code examples and test results]
+
 ## Task Completion Summary (When All Phases Complete)
 
 **Completion Date:** [YYYY-MM-DD]  
@@ -601,14 +797,33 @@ Each sub-project's `tasks/` folder contains:
 - **Downstream:** [Tasks that depend on this]
 
 ## Definition of Done
-- [ ] All phases complete
-- [ ] All subtasks complete
-- [ ] All acceptance criteria met
-- [ ] Tests passing (specify coverage)
-- [ ] Documentation complete
-- [ ] Code reviewed
-- [ ] Performance validated
-- [ ] Standards compliance verified
+
+### Mandatory Criteria (ALL must be true to mark complete)
+
+- [ ] **All phases complete**
+- [ ] **All subtasks complete**
+- [ ] **All acceptance criteria met**
+- [ ] **Code Quality (Zero Warnings)**
+  - [ ] `cargo build` completes cleanly
+  - [ ] `cargo clippy --all-targets --all-features -- -D warnings` passes
+
+- [ ] **Testing (BOTH required)**
+  - [ ] Unit tests exist and pass
+  - [ ] Integration tests exist and pass
+  - [ ] Tests use real fixtures/components
+  - [ ] Tests prove functionality (not just API validity)
+  - [ ] Code coverage > 90%
+
+- [ ] **Documentation (Per PROJECTS_STANDARD.md)**
+  - [ ] Standards compliance verified
+  - [ ] Technical debt documented (if created)
+  - [ ] Knowledge docs created (if complex patterns)
+  - [ ] ADRs created (if significant decisions)
+
+- [ ] **Code Reviewed**
+  - [ ] Code review completed
+  - [ ] Performance validated
+  - [ ] Standards compliance verified
 ```
 
 ### Critical Formatting Rules
@@ -624,6 +839,7 @@ Each sub-project's `tasks/` folder contains:
    - **Pending** tasks stale for 7+ days: Review priority and dependencies, consider if abandoned or blocked
    - **Update Required**: When updating stale tasks, provide clear reason for delay and realistic next steps
    - **Status Change**: If task is no longer viable, mark as abandoned with explanation
+   - **Test Quality Check**: When reviewing tasks with testing work, inspect test code for stub test patterns (metrics API calls, no real operations). If stub tests detected, update task status to "in_progress" and create plan for real test implementation.
 
 ### Task Update Protocol
 
@@ -637,6 +853,60 @@ Each sub-project's `tasks/` folder contains:
 6. **Update _index.md**: Sync task status in index file
 
 **Important**: Update both the subtask status table AND the progress log when making progress on a task. Always update the overall task status and completion percentage, subtask statuses, and the `_index.md` file.
+
+### Progress Log Entry Quality Standards
+
+**MANDATORY fields in every entry:**
+- Date (YYYY-MM-DD)
+- Subtask ID being worked on
+- What was accomplished (specific, not vague)
+- What blocks were encountered (if any)
+- How blocks were resolved (if any)
+- Next action
+
+**MANDATORY notes for test/fixture work:**
+- Fixture status: "Created", "Fixed", "Found working", "Found broken", "Missing", etc.
+- Test status: "Written", "Passing", "Failing", "Quality issue discovered", etc.
+- Issues found: Document red flags about test quality or fixture problems
+- Fixture verification: Note if fixtures verified to exist and load correctly
+
+**OPTIONAL but RECOMMENDED:**
+- Standards compliance issues discovered
+- Performance measurements if applicable
+- Security implications if applicable
+- Documentation created (Knowledge docs, ADRs, Debt records)
+
+**Example entry:**
+
+```
+### [2025-12-21] - Subtask 1.2: Write integration tests
+
+**What was accomplished:**
+- Created integration test for invoke_handle_message
+- Tests use actual WASM fixture (basic-handle-message.wasm)
+- Test verifies message is received and handled
+- Added test for error case (invalid message format)
+
+**Blocks encountered:**
+- Fixture was missing initially
+
+**How resolved:**
+- Created basic-handle-message.wasm fixture using build process
+
+**Fixture verification notes:**
+- Verified fixture file exists at tests/fixtures/basic-handle-message.wasm
+- Tested that fixture loads correctly with Component::from_file()
+- Confirmed fixture is valid WASM binary
+
+**Test quality notes:**
+- Both tests use real component instantiation (not mocks)
+- Both tests send actual messages (not just config API calls)
+- Both tests verify actual behavior changes (not just function existence)
+- Integration test passes: `cargo test --test actor-invoke-integration-tests` ✅
+- Code coverage: 92%
+
+**Next:** Subtask 1.3 - Write performance benchmarks
+```
 
 ### Task Commands
 
