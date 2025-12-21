@@ -165,6 +165,7 @@ pub mod component;
 pub mod config;
 pub mod error;
 pub mod multicodec; // Phase 1 Task 1.3: Multicodec support for message serialization
+pub mod multicodec_prefix; // WASM-TASK-006 Phase 2: ADR-WASM-001 multicodec prefix validation
 pub mod rate_limiter; // DEBT-WASM-004 Item #3: Rate limiting for message security
 
 // Permission System (WASM-TASK-003 Phase 3 Task 3.2: Complete)
@@ -207,6 +208,7 @@ pub use management::{ComponentQuery, ComponentRegistry, InstallationMetadata, Re
 pub use manifest::{ComponentManifest, PackageInfo, RuntimeConfig as ManifestRuntimeConfig};
 pub use messaging::{DeliveryGuarantee, MessageEnvelope, MessageType};
 pub use multicodec::{decode_multicodec, encode_multicodec, Codec};
+pub use multicodec_prefix::{MulticodecPrefix, MulticodecPrefixError};
 pub use observability::{
     EventSeverity, HealthStatus, Metric, MetricType, MetricsCollector, MetricsSnapshot,
     ObservabilityEvent,

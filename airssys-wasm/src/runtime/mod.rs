@@ -77,8 +77,8 @@ pub mod store_manager;
 
 // Public re-exports for ergonomic imports
 pub use async_host::{
-    create_host_context, AsyncFileReadFunction, AsyncHostRegistry, AsyncHttpFetchFunction,
-    AsyncSleepFunction,
+    create_host_context, AsyncFileReadFunction, AsyncHostRegistry, AsyncHostRegistryBuilder,
+    AsyncHttpFetchFunction, AsyncSleepFunction, SendMessageHostFunction,
 };
 pub use engine::WasmEngine;
 pub use limits::{
