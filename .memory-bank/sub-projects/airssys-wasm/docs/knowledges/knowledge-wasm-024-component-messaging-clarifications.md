@@ -233,7 +233,7 @@ interface component-lifecycle {
 
 **Implementation Location:**
 - `airssys-wasm/wit/messaging.wit` (WIT definitions)
-- `airssys-wasm/src/runtime/host_functions.rs` (host function implementations)
+- `airssys-wasm/src/runtime/async_host.rs` (host function implementations)
 
 **Phase 2+ Focus:**
 Implement host functions that use Layer 1 infrastructure.
@@ -310,6 +310,79 @@ match message_type {
 4. **Actor Model Alignment:**
    - Matches Erlang gen_server behavior
    - Single message handler per actor
+
+---
+
+### 6. Multicodec Serialization (REQUIRED, Not Optional)
+
+**Clarification:** Multicodec prefix validation is **REQUIRED** for all inter-component messages. This is NOT optional.
+
+#### What the Host Runtime MUST Do
+
+From **ADR-WASM-001** (Multicodec Compatibility Strategy):
+
+```
+Host Responsibilities:
+1. ✅ Parse multicodec prefixes (detect codec from message bytes)
+2. ✅ Maintain multicodec ID registry (known codec identifiers)
+3. ✅ Validate component codec declarations (from Component.toml manifests)
+4. ✅ Check compatibility at message send time (fail fast if incompatible)
+5. ✅ Provide clear error messages (indicate supported codecs)
+6. ✅ Route messages as opaque bytes (no decoding/encoding)
+```
+
+#### What the Host Runtime Does NOT Do
+
+```
+Host Does NOT:
+1. ❌ Translate between codecs (no MessagePack → borsh conversion)
+2. ❌ Implement codec serialization/deserialization
+3. ❌ Depend on codec libraries (borsh, bincode, etc.)
+```
+
+#### Common Misconception
+
+**Misconception:**
+> "Multicodec is optional because the payload is already bytes from WASM"
+
+**Reality:**
+> "Multicodec prefix validation is REQUIRED. The host parses the prefix to validate codec compatibility between sender and receiver. No translation occurs, but validation does."
+
+#### Why This Matters for Task 2.1
+
+When implementing `send-message` host function:
+
+1. **Parse** the multicodec prefix from the message bytes (first 2 bytes typically)
+2. **Validate** that the target component supports this codec
+3. **Fail fast** with clear error if codec incompatible
+4. **Route** message as opaque bytes (no decode/encode)
+
+```rust
+// Example: send-message host function validation
+pub async fn send_message(target: ComponentId, message: Vec<u8>) -> Result<(), MessagingError> {
+    // 1. Parse multicodec prefix (REQUIRED)
+    let (codec, _prefix_len) = Multicodec::from_prefix(&message)
+        .map_err(|_| MessagingError::InvalidMessage)?;
+    
+    // 2. Validate receiver supports this codec (REQUIRED)
+    let receiver_codecs = get_component_supported_codecs(&target)?;
+    if !receiver_codecs.contains(&codec) {
+        return Err(MessagingError::InvalidMessage); // Fail fast
+    }
+    
+    // 3. Route as opaque bytes (no translation)
+    broker.publish(target, message).await
+}
+```
+
+#### Performance Impact
+
+Multicodec validation adds minimal overhead:
+- Prefix parsing: ~10ns (read 2 bytes, match enum)
+- Compatibility check: ~50ns (HashSet lookup)
+- Total: ~60ns additional latency
+
+This fits within the ~280ns total target (211ns routing + 69ns overhead).
 
 ---
 
@@ -604,6 +677,7 @@ If Component B takes >5000ms:
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2025-12-21 | 1.1 | Added Section 6 (Multicodec Serialization), fixed stale host_functions.rs reference to async_host.rs |
 | 2025-12-21 | 1.0 | Initial document capturing Block 5 Phase 1 planning clarifications |
 
 ---
