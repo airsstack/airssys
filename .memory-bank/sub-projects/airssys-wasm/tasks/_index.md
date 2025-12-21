@@ -571,3 +571,94 @@ See [Task 3.3 Plan](./wasm-task-004-phase-3-task-3.3-plan.md) for detailed imple
 - Nice-to-have: 5-10 integration tests (end-to-end logging flow)
 - Nice-to-have: Performance benchmarks (validate <100ns target)
 - Nice-to-have: Troubleshooting documentation
+
+---
+
+## WASM-TASK-006: Block 5 - Inter-Component Communication
+
+**Status:** ⚠️ IN PROGRESS - Phase 1 Task 1.1 ✅ COMPLETE, Task 1.2 REMEDIATION REQUIRED  
+**Priority:** 🔗 CRITICAL PATH  
+**Estimated Effort:** 5-6 weeks  
+**Started:** 2025-12-20
+
+### Overview
+
+Block 5 implements the actor-based inter-component messaging system enabling secure, high-performance communication between WASM components through MessageBroker integration.
+
+**Key Features:**
+- Fire-and-forget and request-response patterns
+- Direct ComponentId addressing (Phase 1)
+- Multicodec self-describing serialization
+- Capability-based security
+- Push-based event delivery (~260ns messaging overhead target)
+
+### Phase 1: MessageBroker Integration Foundation (in-progress)
+
+| Task | Description | Status | Updated | Notes |
+|------|-------------|--------|---------|-------|
+| 1.1 | MessageBroker Setup for Components | ✅ **COMPLETE** | 2025-12-21 | Remediation complete - actual delivery working |
+| 1.2 | ComponentActor Message Reception | ⚠️ **REMEDIATION REQUIRED** | 2025-12-21 | Tests validate APIs only, NOT actual WASM invocation |
+| 1.3 | ActorSystem Event Subscription Infrastructure | ⏳ Not started | - | Internal subscription (12 hours) |
+
+**Phase 1 Progress:** 1/3 tasks complete (33%)
+
+### Task 1.1 Completion Summary (2025-12-21)
+
+**Status:** ✅ COMPLETE (Remediation successful)
+
+**What Was Done:**
+- `mailbox_senders` field added to `ActorSystemSubscriber` (line 186)
+- `register_mailbox()` method implemented (lines 247-268)
+- `unregister_mailbox()` method implemented (lines 297-317)
+- `route_message_to_subscribers()` fixed - actual delivery via `sender.send(envelope.payload)` (line 454)
+
+**Test Results:**
+- 15 unit tests in `actor_system_subscriber.rs` #[cfg(test)] block
+- 7 integration tests in `tests/message_delivery_integration_tests.rs`
+- All 22 tests passing (REAL tests, not stubs)
+- ADR-WASM-020 compliant
+
+**Verification:**
+- ✅ Verified by @memorybank-verifier
+- ✅ Audited and APPROVED by @memorybank-auditor
+
+### Task 1.2 Remediation Required (2025-12-21)
+
+**Status:** ⚠️ REMEDIATION REQUIRED
+
+**Issue:** Post-completion review revealed tests do NOT prove functionality:
+- 41 tests only validate `AtomicU64` counters and config structs
+- **ZERO** tests send/receive actual messages through ComponentActor
+- **ZERO** tests invoke WASM `handle-message` export
+- Parameter marshalling TODO exists at `component_actor.rs:2051-2052`
+
+**Remediation Required (per AGENTS.md Section 8):**
+- Fix parameter marshalling TODO (pass sender and payload to WASM)
+- Add real integration tests with WASM fixtures
+- Prove WASM `handle-message` export is actually invoked
+
+**Key Documentation:**
+- **ADR-WASM-020:** Message Delivery Ownership Architecture (Accepted 2025-12-21)
+- **KNOWLEDGE-WASM-026:** Message Delivery Architecture - Final Decision
+- ~~KNOWLEDGE-WASM-025:~~ SUPERSEDED (do not use)
+
+### Available Task Documentation
+
+| File | Purpose | Status |
+|------|---------|--------|
+| `task-006-block-5-inter-component-communication.md` | Master task plan (6 phases) | ✅ Updated 2025-12-21 |
+| `task-006-phase-1-task-1.1-plan.md` | Task 1.1 implementation plan | ✅ COMPLETE |
+| `task-006-phase-1-task-1.1-remediation-plan.md` | Task 1.1 remediation plan | ✅ COMPLETE 2025-12-21 |
+| `task-006-phase-1-task-1.2-plan.md` | Task 1.2 implementation plan | ⚠️ Remediation required |
+| `task-006-phase-1-task-1.2-remediation-plan.md` | Task 1.2 remediation plan | ✅ Created 2025-12-21 |
+
+### Next Actions
+
+1. ✅ **DONE** Task 1.1 remediation complete
+2. **Review and approve** Task 1.2 remediation plan (`task-006-phase-1-task-1.2-remediation-plan.md`)
+3. **Implement Task 1.2 remediation** (reception side)
+4. **Verify end-to-end** message delivery with integration tests
+5. **Proceed to Task 1.3** (ActorSystem Event Subscription Infrastructure)
+
+**Reference:** See `task-006-block-5-inter-component-communication.md` for complete task specification
+

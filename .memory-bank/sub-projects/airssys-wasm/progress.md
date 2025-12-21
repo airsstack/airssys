@@ -1,9 +1,17 @@
 # airssys-wasm Progress
 
 ## Current Status
-**Phase:** Block 4 (Security & Isolation Layer) - ✅ **100% COMPLETE** (Dec 20, 2025) 🎉  
-**Overall Progress:** Block 3 100% COMPLETE (18/18 tasks) | Block 4 ✅ **100% COMPLETE** (15/15 tasks)  
-**Last Updated:** 2025-12-20 (WASM-TASK-005 Phase 5 Task 5.3 ✅ COMPLETE - Production Readiness Verification | Block 4 AUTHORIZED FOR PRODUCTION)  
+**Phase:** Block 5 (Inter-Component Communication) - ⚠️ **Task 1.2 REMEDIATION REQUIRED**  
+**Overall Progress:** Block 3 100% COMPLETE (18/18 tasks) | Block 4 ✅ **100% COMPLETE** (15/15 tasks) | Block 5 Phase 1 in-progress (1/3 tasks)  
+**Last Updated:** 2025-12-21 (WASM-TASK-006 Phase 1 Task 1.1 ✅ COMPLETE, Task 1.2 ⚠️ REMEDIATION REQUIRED)
+
+**✅ Task 1.1 COMPLETE (2025-12-21):**
+- ✅ **Task 1.1:** MessageBroker Setup - Remediation complete, actual message delivery working
+- ⚠️ **Task 1.2:** ComponentActor Message Reception - Tests validate metrics/config only, NOT actual message flow
+- ⏳ **Task 1.3:** ActorSystem Event Subscription - Not started (blocked by 1.2)
+- **Phase 1 Progress:** 1/3 tasks complete
+
+See **ADR-WASM-020** for architectural fix applied to Task 1.1.  
 
 **🎉 MILESTONE ACHIEVED (2025-12-20):**
 Block 4 (Security & Isolation Layer) is **100% COMPLETE** and **AUTHORIZED FOR PRODUCTION**:
@@ -252,15 +260,78 @@ Implementation finished (2,214 lines WIT + 176 lines build system + permission p
 
 ## Next Steps
 
-**Immediate:** Begin Block 5 - Inter-Component Communication  
-**Status:** Block 4 100% COMPLETE ✅ (15/15 tasks complete, authorized for production)  
-**Next Block:**
-- Block 5: Inter-Component Communication (message capabilities, cross-component authorization)
-- Reference Block 4 security patterns for component messaging
-- Extend capability model to inter-component communication
-- Maintain security standards established in Block 4
+**Immediate:** Complete Task 1.2 Remediation  
+**Status:** Block 5 Phase 1 in-progress (1/3 tasks complete)  
+**Blockers:**
+- ⚠️ Task 1.2: Tests validate metrics/config only (don't prove message flow works)
+
+**Remediation Plan:**
+1. ✅ Task 1.1: COMPLETE - Actual mailbox delivery working per ADR-WASM-020
+2. Task 1.2: Add real integration tests proving WASM handle-message export is invoked
+3. Task 1.2: Fix parameter marshalling TODO in component_actor.rs (lines 2051-2052)
+4. Task 1.3: Can begin after Task 1.2 remediation complete
 
 See `active-context.md` for current focus and task references.
+
+---
+
+## Progress Log
+
+### 2025-12-21: Task 1.1 Remediation COMPLETE ✅
+
+**Status:** ✅ COMPLETE  
+**Completion Date:** 2025-12-21
+
+**What Was Done:**
+- `mailbox_senders` field added to `ActorSystemSubscriber` (line 186)
+- `register_mailbox()` method implemented (lines 247-268)
+- `unregister_mailbox()` method implemented (lines 297-317)
+- `route_message_to_subscribers()` fixed - actual delivery via `sender.send(envelope.payload)` (line 454)
+
+**Test Results:**
+- 15 unit tests in `actor_system_subscriber.rs` #[cfg(test)] block
+- 7 integration tests in `tests/message_delivery_integration_tests.rs`
+- All 22 tests passing (REAL tests, not stubs)
+
+**Quality:**
+- Zero clippy warnings
+- Clean build
+- ADR-WASM-020 compliant
+
+**Verification:**
+- ✅ Verified by @memorybank-verifier
+- ✅ Audited and APPROVED by @memorybank-auditor
+- ✅ Audit verified by @memorybank-verifier
+
+---
+
+### 2025-12-21: Task 1.2 Status Corrected to ⚠️ REMEDIATION REQUIRED
+
+**Discovery:** Post-completion review revealed that Task 1.2 tests do NOT test actual message functionality.
+
+**Evidence:**
+1. From `messaging_reception_tests.rs` (lines 271-306):
+   > "Note: Testing actual WASM invocation requires instantiating a real WASM module...
+   > These tests focus on the message reception logic and metrics tracking."
+
+2. From `component_actor.rs` (lines 2051-2052):
+   > "TODO(WASM-TASK-006 Task 1.2 Follow-up): Implement proper parameter
+   > marshalling using wasmtime component model bindings once generated."
+
+**Impact:**
+- Task 1.2 status changed from ✅ COMPLETE to ⚠️ REMEDIATION REQUIRED
+- Phase 1 progress changed from 2/3 (67%) to 0/3 (0%)
+- Both Task 1.1 AND Task 1.2 now require remediation
+
+**Remediation Requirements:**
+1. Add real integration tests proving message flow works
+2. Fix parameter marshalling TODO in component_actor.rs
+3. Verify WASM handle-message export is actually invoked
+4. Tests must prove end-to-end functionality per AGENTS.md Section 8
+
+**Reference:** ADR-WASM-020 for architectural fix that applies to both tasks
+
+---
 
 **Block 4 Completion Summary (✅ COMPLETE - Dec 20):**
 - ✅ Phase 1-5: All 15 tasks complete

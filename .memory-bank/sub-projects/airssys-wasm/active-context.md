@@ -1,130 +1,113 @@
 # airssys-wasm Active Context
 
 **Last Verified:** 2025-12-21  
-**Current Phase:** 🚨 **CRITICAL AUDIT HALT** - All work BLOCKED  
-**Overall Progress:** Block 3 100% ✅ | Block 4 100% ✅ | Block 5 PHASE 1 BLOCKED 🚨
+**Current Phase:** ⚠️ **Task 1.2 REMEDIATION REQUIRED** - Task 1.1 Complete, Task 1.2 needs fixes  
+**Overall Progress:** Block 3 100% ✅ | Block 4 100% ✅ | Block 5 PHASE 1 in-progress (1/3 tasks)
 
-## 🚨 CRITICAL STATUS UPDATE (2025-12-21)
+## ✅ STATUS UPDATE (2025-12-21)
 
-**DEVELOPMENT HALTED - ALL WASM-TASK-006 WORK BLOCKED**
+**Task 1.1 COMPLETE - Task 1.2 Remediation Required**
 
-During comprehensive audit, discovered FUNDAMENTAL PROBLEMS:
-- ❌ WASM-TASK-006 Phase 1 Task 1.2 tests are 95% FAKE (only test metrics/config APIs)
-- ❌ NO PROOF that messages actually reach WASM components
-- ❌ 0 of 6 promised real integration tests exist
-- 🚨 This raises questions about ALL previous task completions
+### Task 1.1: MessageBroker Setup
+**Status:** ✅ COMPLETE (2025-12-21)  
+**Remediation Successful:**
+- `mailbox_senders` field added (line 186)
+- `register_mailbox()` method (lines 247-268)
+- `unregister_mailbox()` method (lines 297-317)
+- `route_message_to_subscribers()` fixed - actual delivery via `sender.send(envelope.payload)` (line 454)
+- 15 unit tests + 7 integration tests = 22 tests passing
+- All tests are REAL (verified by auditor)
+- ADR-WASM-020 compliant
 
-**Current Tasks Blocked:**
-- ❌ **WASM-TASK-006 Phase 1 Task 1.1:** MessageBroker Setup → **ABORT COMPLETION** ⏹️
-- ❌ **WASM-TASK-006 Phase 1 Task 1.2:** ComponentActor Message Reception → **ABORT COMPLETION** ⏹️
-- ❌ **WASM-TASK-006 Phase 2+:** All subsequent work → **BLOCKED**
+### Task 1.2: ComponentActor Message Reception
+**Status:** ⚠️ REMEDIATION REQUIRED (corrected from ✅ COMPLETE on 2025-12-21)  
+**Issue:** Tests validate metrics/config only, NOT actual message flow
+- 41 tests exist but NONE test actual message delivery to WASM
+- Tests explicitly admit: "These tests focus on metrics tracking"
+- Code has TODO for parameter marshalling (component_actor.rs lines 2051-2052)
 
-**Action Required:**
-🚨 **MANDATORY RE-AUDIT** of WASM-TASK-001 through WASM-TASK-005 before any further development
+**Evidence:**
+From `messaging_reception_tests.rs` (lines 271-306):
+```
+// Note: Testing actual WASM invocation requires instantiating a real WASM module,
+// which needs the full WasmEngine infrastructure. These tests focus on the
+// message reception logic and metrics tracking.
+```
 
-See: `CRITICAL-AUDIT-HALT.md` for complete details and required re-audit actions.
+**Remediation Required:**
+1. Add real integration tests proving message flow works
+2. Fix parameter marshalling TODO
+3. Verify WASM handle-message export is actually invoked
+
+### Task 1.3: ActorSystem Event Subscription
+**Status:** ⏳ Not started  
+**Blocker:** Depends on Task 1.2 remediation
+
+---
+
+## Phase 1 Progress
+
+| Task | Description | Status | Notes |
+|------|-------------|--------|-------|
+| 1.1 | MessageBroker Setup | ✅ COMPLETE | Remediation successful - delivery working |
+| 1.2 | ComponentActor Message Reception | ⚠️ REMEDIATION | Tests don't prove functionality |
+| 1.3 | ActorSystem Event Subscription | ⏳ Not started | Blocked by 1.2 |
+
+**Phase 1 Progress:** 1/3 tasks complete (33%)
 
 ---
 
 ## Current Focus
-**Task:** CRITICAL AUDIT HALT - Development Blocked  
-**Status:** ⏹️ HALTED (User approved, 2025-12-21)  
-**Priority:** 🔴 CRITICAL - Must re-audit all previous tasks
 
-## Task Status Overview
+**Task:** Block 5 Phase 1 Task 1.2 Remediation  
+**Priority:** 🔴 HIGH - Tests need to prove actual functionality  
+**Reference:** ADR-WASM-020, AGENTS.md Section 8
 
-### WASM-TASK-006 Phase 1 (BLOCKED 🚨)
-
-#### Task 1.1: MessageBroker Setup
-**Status:** ⏹️ **ABORT COMPLETION** (was in progress)  
-**Blocker:** Task 1.2 has fake tests, can't verify Phase 1 works
-**Action:** Do NOT mark as complete
-
-#### Task 1.2: ComponentActor Message Reception
-**Status:** ⏹️ **ABORT COMPLETION** (was in progress)  
-**Issue:** Tests are 95% FAKE
-- ✅ Code looks complete (41 tests exist)
-- ❌ Tests only validate metrics/config APIs, NOT message delivery
-- ❌ 0 of 6 promised real integration tests
-- ❌ Flaky test found: `test_queue_depth_tracking_performance`
-**Action:** Do NOT mark as complete
-
-### WASM-TASK-006 Phase 2+ (BLOCKED 🚨)
-**Status:** ⏹️ BLOCKED  
-**Reason:** Depends on Phase 1 being proven to work
-**Action:** Do not start until Phase 1 issues resolved
+**Remediation Steps:**
+1. ✅ Task 1.1: COMPLETE - Actual mailbox delivery working
+2. Task 1.2: Fix parameter marshalling TODO
+3. Task 1.2: Add real integration tests with WASM fixtures
+4. Verify end-to-end message flow works
+5. Proceed to Task 1.3
 
 ---
 
-## Re-Audit Required
+## Quality Standards Reference
 
-**MANDATORY QUESTIONS TO ANSWER:**
-
-For each task WASM-TASK-001 through WASM-TASK-005:
-
-1. **WASM-TASK-002:** Does it actually load and run WASM with real modules?
-2. **WASM-TASK-003:** Do WIT interfaces actually work with real component.toml?
-3. **WASM-TASK-004 (589 tests):** How many test REAL functionality vs. just APIs?
-4. **WASM-TASK-005 (388 tests):** Are capabilities actually preventing unauthorized access?
-5. **Overall:** What percentage of all 976 tests are FAKE?
-
-**Expected Outcome:**
-- Identify all fake/incomplete tests
-- Document gaps between plans and reality
-- Create fix plan or formally acknowledge incomplete features
-- Resume WASM-TASK-006 only after full verification
-
----
-
-## Quality Standards Violated
-
-**TESTING MANDATE FAILED:**
-- ❌ Tests that only validate helper APIs don't count (AGENTS.md Section 8)
+**TESTING MANDATE (AGENTS.md Section 8):**
+- ❌ Tests that only validate helper APIs don't count
 - ❌ Tests must prove actual functionality, not just config
 - ❌ Missing integration tests is UNACCEPTABLE
-- ❌ 95% fake tests is a fundamental quality failure
-
-**WHO IS RESPONSIBLE:**
-🤖 AI Agent failure to:
-- Enforce testing mandate strictly
-- Verify tests test real functionality
-- Mark tasks complete prematurely
-- Focus on deliverable counts over quality
-
----
-
-## Next Session Requirements
-
-When resuming:
-1. ✅ Read `CRITICAL-AUDIT-HALT.md` completely
-2. ✅ Understand why development is halted
-3. ✅ Accept that previous completions may be premature
-4. ✅ Commit to full re-audit
-5. ✅ Do NOT resume WASM-TASK-006 until re-audit complete
+- ✅ Every task requires BOTH unit AND integration tests
+- ✅ Tests must verify REAL behavior
 
 ---
 
 ## Quick Reference
 
 📖 **Critical Documents:**
-- `CRITICAL-AUDIT-HALT.md` - Complete halt details
-- `tasks/task-006-block-5-inter-component-communication.md` - Phase 1 planning (now blocked)
-- `tasks/task-006-phase-1-task-1.2-plan.md` - Task 1.2 plan vs reality analysis
+- `tasks/task-006-block-5-inter-component-communication.md` - Main task file
+- `tasks/task-006-phase-1-task-1.1-plan.md` - Task 1.1 plan (✅ COMPLETE)
+- `tasks/task-006-phase-1-task-1.1-remediation-plan.md` - Task 1.1 remediation (✅ COMPLETE)
+- `tasks/task-006-phase-1-task-1.2-plan.md` - Task 1.2 plan (status needs update)
+- `tasks/task-006-phase-1-task-1.2-remediation-plan.md` - Task 1.2 remediation plan
+- `docs/adr/adr-wasm-020-message-delivery-ownership-architecture.md` - Architectural fix
+- `docs/knowledges/knowledge-wasm-026-message-delivery-architecture.md` - Implementation details
 
-📋 **Test Files Under Question:**
-- `airssys-wasm/tests/messaging_reception_tests.rs` - 22 fake tests
-- `airssys-wasm/tests/messaging_backpressure_tests.rs` - 19 fake tests
-- `airssys-wasm/tests/messaging_integration_tests.rs` - NEED TO CHECK if real tests exist
+📋 **Test Files Under Review:**
+- `airssys-wasm/tests/messaging_reception_tests.rs` - 22 tests (metrics only)
+- `airssys-wasm/tests/messaging_backpressure_tests.rs` - 19 tests (config only)
 
 🔧 **Implementation Files:**
-- `airssys-wasm/src/actor/component/component_actor.rs` - Real implementation (untested)
-- `airssys-wasm/src/runtime/messaging.rs` - MessagingService (untested)
+- `airssys-wasm/src/actor/component/component_actor.rs` - Has TODO at lines 2051-2052
+- `airssys-wasm/src/actor/message/actor_system_subscriber.rs` - Delivery STUBBED
+- `airssys-wasm/src/runtime/messaging.rs` - MessagingService
 
 ---
 
-## Phase 4 Status (Background)
+## Block 4 Status (Complete)
 
-✅ **WASM-TASK-005 Block 4 - 100% COMPLETE (but now under review)**
+✅ **WASM-TASK-005 Block 4 - 100% COMPLETE**
 
 - Phase 1: WASM-OSL Security Bridge ✅
 - Phase 2: Trust-Level System ✅  
@@ -132,29 +115,10 @@ When resuming:
 - Phase 4: ComponentActor Security Integration ✅
 - Phase 5: Testing & Documentation ✅
 
-**NOTE:** These completions may be premature if underlying message delivery is not actually proven to work.
-
 ---
 
-## Phase 3 Status (Background)
+## Block 3 Status (Complete)
 
-✅ **WASM-TASK-004 Block 3 - 100% COMPLETE (but now under review)**
+✅ **WASM-TASK-004 Block 3 - 100% COMPLETE**
 
-All 6 phases and 18 tasks complete. But:
-- 589 tests exist
-- ❓ How many test REAL message delivery vs. just APIs?
-- ❓ Is message delivery to WASM actually proven?
-
----
-
-## HALT STATUS
-
-**🚨 This project is in CRITICAL HALT status.**
-
-No new work should begin until:
-1. Re-audit of WASM-TASK-001 through WASM-TASK-005 complete
-2. All fake/incomplete tests identified
-3. Fix plan created or gaps formally acknowledged
-4. User approves resuming development
-
-**Estimated time to resolve:** 2-3 days for full re-audit and assessment
+All 6 phases and 18 tasks complete.

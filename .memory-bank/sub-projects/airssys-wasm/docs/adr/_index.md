@@ -1,9 +1,9 @@
 # airssys-wasm Architecture Decision Records Index
 
 **Sub-Project:** airssys-wasm  
-**Last Updated:** 2025-12-14  
-**Total ADRs:** 15  
-**Active ADRs:** 14  
+**Last Updated:** 2025-12-21  
+**Total ADRs:** 16  
+**Active ADRs:** 15  
 
 ## Active ADRs
 
@@ -224,7 +224,7 @@
 
 **Note:** ADRs and Knowledge documents are maintained during active development. New ADRs created as architectural decisions are made during implementation phases.
 
-**Last Updated:** 2025-12-14  
+**Last Updated:** 2025-12-21  
 **Total Decision Records:** 15 ADRs + 18 Knowledge Documents
 
 ## ADR-WASM-019: Runtime Dependency Management
@@ -262,3 +262,44 @@
 - ADR-WASM-009 (Component Communication Model)
 
 **File:** `docs/adr/adr-wasm-019-runtime-dependency-management.md`
+
+## ADR-WASM-020: Message Delivery Ownership Architecture
+
+**Status:** Accepted  
+**Date:** 2025-12-21  
+**Category:** Communication Architecture / Message Routing
+
+**Decision:** `ActorSystemSubscriber` owns message delivery. `ComponentRegistry` stays pure (identity lookup only).
+
+**Context:** WASM-TASK-006 Task 1.1 revealed that `route_message_to_subscribers()` was stubbed because `ActorAddress` is an identifier, not a sender. The architectural question was where to store `MailboxSender` for actual message delivery.
+
+**Options Considered:**
+1. **Extend ComponentRegistry** (REJECTED) - Violates single responsibility, mixes concerns
+2. **Create MailboxRegistry** (CONSIDERED) - Adds unnecessary complexity
+3. **ActorSystemSubscriber owns mailbox_senders** (ACCEPTED) - Best alignment with ADR-WASM-009/018
+
+**Key Design:**
+```
+ComponentRegistry (UNCHANGED)
+    └── ComponentId → ActorAddress (identity only)
+
+ActorSystemSubscriber (ENHANCED)
+    └── mailbox_senders: HashMap<ComponentId, MailboxSender>
+    └── register_mailbox() / unregister_mailbox()
+    └── route_message_to_subscribers() → uses mailbox_senders for delivery
+```
+
+**Rationale:**
+- Single Responsibility: Registry = identity, Subscriber = delivery
+- ADR-WASM-009 Alignment: Subscriber handles routing AND delivery
+- ADR-WASM-018 Compliance: Clear layer boundaries maintained
+- No changes to existing ComponentRegistry API
+
+**Related:**
+- KNOWLEDGE-WASM-026 (Detailed implementation reference)
+- ADR-WASM-009 (Component Communication Model)
+- ADR-WASM-018 (Three-Layer Architecture)
+- WASM-TASK-006 (Block 5 implementation)
+
+**File:** `adr-wasm-020-message-delivery-ownership.md`
+

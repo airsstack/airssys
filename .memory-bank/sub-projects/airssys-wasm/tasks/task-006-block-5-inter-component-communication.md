@@ -1,8 +1,8 @@
 # [WASM-TASK-006] - Block 5: Inter-Component Communication
 
-**Status:** not-started  
+**Status:** in-progress  
 **Added:** 2025-10-20  
-**Updated:** 2025-10-20  
+**Updated:** 2025-12-21  
 **Priority:** Critical Path - Core Services Layer  
 **Layer:** 2 - Core Services  
 **Block:** 5 of 11  
@@ -85,56 +85,91 @@ Implement actor-based inter-component messaging with MessageBroker integration, 
 
 ### Phase 1: MessageBroker Integration Foundation (Week 1-2)
 
+> ⚠️ **WASM FIXTURE WORKFLOW NOTE:**
+> - Source files (`.wat`) are committed to git
+> - Compiled files (`.wasm`) are NOT committed - they are gitignored
+> - **Before running integration tests:** `cd airssys-wasm/tests/fixtures && ./build.sh`
+> - This compiles all `.wat` files to `.wasm` using `wasm-tools parse`
+
 #### Task 1.1: MessageBroker Setup for Components
-**Status:** ✅ COMPLETE (2025-12-20)
+**Status:** ✅ COMPLETE (2025-12-21)
+
+> **⚠️ CRITICAL DISCOVERY (2025-12-21):** Architectural review revealed that message routing is **STUBBED**. The infrastructure exists but `ActorSystemSubscriber::route_message_to_subscribers()` extracts the target ComponentId but **NEVER DELIVERS** to the mailbox. Root cause: `ActorAddress` is an identifier, not a sender - it has no `send()` method.
+>
+> **Resolution:** Per **ADR-WASM-020**, `ActorSystemSubscriber` will own `MailboxSender` references for actual delivery. See **KNOWLEDGE-WASM-026** for implementation details.
+>
+> **Remediation Plan:** See `task-006-phase-1-task-1.1-remediation-plan.md` (revised 2025-12-21)
 
 **Deliverables:**
-- MessageBroker instance initialization in WasmRuntime
-- ActorSystem event-driven subscription (runtime-level)
-- ComponentId-based message routing infrastructure
-- ActorSystemSubscriber for routing to ComponentActor mailboxes
-- Performance validation (≤220ns total routing)
+- ✅ MessageBroker instance initialization in WasmRuntime
+- ✅ ActorSystem event-driven subscription (runtime-level)
+- ✅ ComponentId-based message routing infrastructure
+- ✅ ActorSystemSubscriber for routing to ComponentActor mailboxes
+- ✅ Actual message delivery to mailboxes (remediation complete 2025-12-21)
+- ✅ Performance validation (≤220ns total routing) - design validated
 
 **Success Criteria:**
-- MessageBroker routes component messages
-- ActorSystem subscribes to MessageBroker event stream (runtime-level)
-- Messages route to ComponentActor mailboxes by ComponentId
-- Direct ComponentId addressing functional
-- Routing performance: ~211ns (airssys-rt baseline)
-- Performance validated with benchmarks
+- ✅ MessageBroker routes component messages
+- ✅ ActorSystem subscribes to MessageBroker event stream (runtime-level)
+- ✅ Messages route to ComponentActor mailboxes by ComponentId (remediation complete)
+- ✅ Direct ComponentId addressing functional (target resolution works)
+- ✅ Routing performance: ~211ns (airssys-rt baseline)
+- ✅ Performance validated with benchmarks (routing layer only)
 
 #### Task 1.2: ComponentActor Message Reception
-**Status:** ✅ COMPLETE (2025-12-21)
-**Quality Score:** 9.5/10 (Production Ready)
+**Status:** ⚠️ REMEDIATION REQUIRED (2025-12-21)
+
+> **⚠️ CRITICAL DISCOVERY (2025-12-21):** Post-completion review revealed that the 41 tests do **NOT** test actual message functionality. Tests only validate AtomicU64 counters and config structs - they do NOT test actual message flow or WASM invocation.
+>
+> **Evidence from tests (messaging_reception_tests.rs lines 271-306):**
+> ```
+> // Note: Testing actual WASM invocation requires instantiating a real WASM module,
+> // which needs the full WasmEngine infrastructure. These tests focus on the
+> // message reception logic and metrics tracking. Full integration tests with
+> // real WASM modules are in the main test suite.
+> ```
+>
+> **Evidence from implementation (component_actor.rs lines 2051-2052):**
+> ```
+> // TODO(WASM-TASK-006 Task 1.2 Follow-up): Implement proper parameter
+> // marshalling using wasmtime component model bindings once generated.
+> ```
+>
+> **Resolution:** Per **ADR-WASM-020**, remediation requires:
+> 1. Add real integration tests proving message flow works
+> 2. Fix parameter marshalling TODO in component_actor.rs
+> 3. Verify WASM handle-message export is actually invoked
+>
+> **Remediation Plan:** See `task-006-phase-1-task-1.2-remediation-plan.md` (created 2025-12-21)
 
 **Deliverables:**
 - ✅ Actor mailbox integration (enhanced handle_message method)
 - ✅ Message queue management per component (MessageReceptionMetrics with AtomicU64)
 - ✅ Backpressure handling (configurable limits, automatic detection)
-- ✅ Message delivery to WASM handle-message export (invoke_handle_message_with_timeout)
-- ✅ Message reception tests (41 tests: 22 reception + 19 backpressure, 100% pass rate)
+- ⚠️ **INCOMPLETE:** Message delivery to WASM handle-message export (parameter marshalling TODO exists)
+- ⚠️ **INCOMPLETE:** Message reception tests (41 tests validate metrics/config only, NOT actual message flow)
 
 **Success Criteria:**
-- ✅ Messages delivered to ComponentActor mailbox
-- ✅ WASM handle-message invoked with push delivery (100ms timeout enforced)
+- ✅ Messages delivered to ComponentActor mailbox (infrastructure exists)
+- ⚠️ **NOT VERIFIED:** WASM handle-message invoked with push delivery (no tests prove this)
 - ✅ Backpressure prevents mailbox overflow (1000 message default limit)
-- ✅ Failed delivery handled gracefully (traps, timeouts, missing exports)
-- ✅ Comprehensive test coverage (894/894 tests passing, 100% stability)
+- ⚠️ **NOT VERIFIED:** Failed delivery handled gracefully (no tests with real WASM)
+- ⚠️ **NOT VERIFIED:** Comprehensive test coverage (tests only validate APIs, not functionality)
 
 **Implementation Highlights:**
 - Lock-free metrics: 20-25ns overhead (target: <50ns) - EXCEEDS by 2x ⭐
 - Architecture correction: Enhanced handle_message() vs continuous loop (implementer fix) ⭐
 - Code: +632 lines implementation, +1,111 lines tests
 - Time: ~4 hours (plan: 16 hours / 2 days - 75% under budget)
-- Quality: 9.5/10 code review score (matches Task 1.1)
+- ⚠️ **Quality Issue:** Tests don't prove actual functionality works
 
 **Files Modified:**
 - src/runtime/messaging.rs (+206 lines): MessageReceptionMetrics
-- src/actor/component/component_actor.rs (+375 lines): Config + timeout method
+- src/actor/component/component_actor.rs (+375 lines): Config + timeout method + **TODO at lines 2051-2052**
 - src/actor/component/actor_impl.rs (+118/-51 lines): Enhanced message handling
 - src/core/error.rs (+21 lines): Backpressure error helpers
-- tests/messaging_reception_tests.rs (+594 lines, 22 tests)
-- tests/messaging_backpressure_tests.rs (+517 lines, 19 tests)
+- tests/messaging_reception_tests.rs (+594 lines, 22 tests) - **Tests metrics, not message flow**
+- tests/messaging_backpressure_tests.rs (+517 lines, 19 tests) - **Tests backpressure APIs, not real messages**
 
 #### Task 1.3: ActorSystem Event Subscription Infrastructure
 **Deliverables:**
@@ -518,12 +553,12 @@ This task is complete when:
 
 ## Progress Tracking
 
-**Overall Status:** not-started - 0%
+**Overall Status:** in-progress - Task 1.1 ✅ COMPLETE, Task 1.2 ⚠️ REMEDIATION REQUIRED
 
 ### Phase Breakdown
 | Phase | Description | Status | Estimated Duration | Notes |
 |-------|-------------|--------|-------------------|-------|
-| 1 | MessageBroker Integration Foundation | not-started | Week 1-2 (44 hours) | Routing foundation |
+| 1 | MessageBroker Integration Foundation | in-progress | Week 1-2 (44 hours) | Task 1.1 ✅ COMPLETE, Task 1.2 needs remediation |
 | 2 | Fire-and-Forget Messaging | not-started | Week 2-3 | Core pattern |
 | 3 | Request-Response Pattern | not-started | Week 3-4 | RPC pattern |
 | 4 | Multicodec Serialization | not-started | Week 4 | Language-agnostic |
@@ -533,8 +568,8 @@ This task is complete when:
 ### Subtasks
 | ID | Description | Status | Updated | Notes |
 |----|-------------|--------|---------|-------|
-| 1.1 | MessageBroker Setup for Components | ✅ complete | 2025-12-20 | Foundation - 9.5/10 quality |
-| 1.2 | ComponentActor Message Reception | ✅ complete | 2025-12-21 | Mailbox integration - 9.5/10 quality |
+| 1.1 | MessageBroker Setup for Components | ✅ complete | 2025-12-21 | Remediation complete - mailbox delivery working |
+| 1.2 | ComponentActor Message Reception | ⚠️ remediation-required | 2025-12-21 | Tests validate metrics only, NOT actual message flow - see ADR-WASM-020 |
 | 1.3 | ActorSystem Event Subscription Infrastructure | not-started | - | Internal subscription (12 hours) |
 | 2.1 | send-message Host Function | not-started | - | Fire-and-forget |
 | 2.2 | handle-message Component Export | not-started | - | Push delivery |
@@ -554,7 +589,72 @@ This task is complete when:
 
 ## Progress Log
 
-### Phase 1 Progress: Tasks 1.1 & 1.2 Complete (2/3 tasks - 67%)
+### Phase 1 Progress: Task 1.1 Complete, Task 1.2 Requires Remediation (1/3 tasks complete - 33%)
+
+### 2025-12-21: Task 1.1 Remediation COMPLETE - Actual Message Delivery Working
+
+**Status:** ✅ COMPLETE  
+**Completion Date:** 2025-12-21
+
+**Remediation Implemented (per ADR-WASM-020):**
+- ✅ `mailbox_senders` field added to `ActorSystemSubscriber` (line 186)
+- ✅ `register_mailbox()` method implemented (lines 247-268)
+- ✅ `unregister_mailbox()` method implemented (lines 297-317)
+- ✅ `route_message_to_subscribers()` fixed - actual delivery via `sender.send(envelope.payload)` (line 454)
+
+**Test Results:**
+- ✅ 15 unit tests in `actor_system_subscriber.rs` #[cfg(test)] block
+- ✅ 7 integration tests in `tests/message_delivery_integration_tests.rs`
+- ✅ All 22 tests passing (REAL tests, not stubs)
+- ✅ Tests prove end-to-end message delivery works
+
+**Quality:**
+- ✅ Zero clippy warnings
+- ✅ Clean build
+- ✅ ADR-WASM-020 compliant
+- ✅ Verified by @memorybank-verifier
+- ✅ Audited and APPROVED by @memorybank-auditor
+
+**Files Modified:**
+- `src/actor/message/actor_system_subscriber.rs` - Main implementation
+- `tests/message_delivery_integration_tests.rs` - Integration tests
+
+---
+
+### 2025-12-21: Task 1.2 Remediation Required - Tests Don't Prove Functionality
+
+**Status:** ⚠️ REMEDIATION REQUIRED  
+**Discovery:** Post-completion review revealed tests validate metrics/config only
+
+**Problem Identified:**
+- 41 tests exist but **NONE** test actual message flow to WASM components
+- Tests in `messaging_reception_tests.rs` (lines 271-306) explicitly admit:
+  > "Testing actual WASM invocation requires instantiating a real WASM module...
+  > These tests focus on the message reception logic and metrics tracking."
+- Implementation has **TODO** at `component_actor.rs` lines 2051-2052:
+  > "TODO(WASM-TASK-006 Task 1.2 Follow-up): Implement proper parameter
+  > marshalling using wasmtime component model bindings once generated."
+- This means WASM `handle-message` export is **NOT ACTUALLY INVOKED** with real messages
+
+**Evidence Summary:**
+1. Tests validate AtomicU64 counters and config structs
+2. Tests don't send/receive messages through ComponentActor
+3. Tests don't invoke WASM handle-message export
+4. Code has unresolved TODO for parameter marshalling
+
+**Remediation Requirements (aligned with ADR-WASM-020):**
+1. Add real integration tests proving message flow works
+2. Fix parameter marshalling TODO in component_actor.rs
+3. Verify WASM handle-message export is actually invoked
+4. Ensure tests prove end-to-end functionality, not just APIs
+
+**Impact:**
+- **Task 1.1:** Already ⚠️ REMEDIATION REQUIRED (delivery stubbed)
+- **Task 1.2:** Now ⚠️ REMEDIATION REQUIRED (tests don't prove functionality)
+- **Phase 1:** 0/3 tasks complete (was incorrectly reported as 2/3)
+- **Block 5:** Cannot proceed until remediation complete
+
+**Remediation Plan:** See `task-006-phase-1-task-1.2-plan.md` (status updated 2025-12-21)
 
 ## Related Documentation
 
@@ -563,9 +663,12 @@ This task is complete when:
 - **ADR-WASM-001: Multicodec Compatibility Strategy** - Serialization strategy
 - **ADR-WASM-006: Component Isolation and Sandboxing** - Actor-based architecture
 - **ADR-WASM-005: Capability-Based Security Model** - Message permissions
+- **ADR-WASM-020: Message Delivery Ownership Architecture** - ⭐ NEW (2025-12-21) - `ActorSystemSubscriber` owns delivery, `ComponentRegistry` stays pure
 
 ### Knowledge Documentation
+- **KNOWLEDGE-WASM-026: Message Delivery Architecture - Final Decision** - ⭐ CRITICAL (2025-12-21) - Definitive architecture for Block 5 message delivery
 - **KNOWLEDGE-WASM-024: Component Messaging Clarifications** - Critical clarifications for Block 5 implementation (created 2025-12-21)
+- **KNOWLEDGE-WASM-025: Message Delivery Mechanism** - ⚠️ SUPERSEDED by KNOWLEDGE-WASM-026 (do not use)
 - **KNOWLEDGE-WASM-005: Inter-Component Messaging Architecture** - Complete messaging specification
 - **KNOWLEDGE-WASM-006: Multiformat Strategy** - Multicodec integration
 - **KNOWLEDGE-WASM-004: WIT Management Architecture** - Messaging WIT interfaces
@@ -731,4 +834,63 @@ Timeout errors delivered to handle-callback with error status.
 - ✅ Phase 1 progress: 2/3 tasks complete (67%)
 
 **Next:** Ready to plan Task 1.3 (ActorSystem Event Subscription Infrastructure)
+
+
+### 2025-12-21: Task 1.1 Remediation Required - Message Delivery Stubbed
+
+**Status:** ⚠️ REMEDIATION REQUIRED  
+**Discovery:** Architectural review revealed message routing is STUBBED
+
+**Problem Identified:**
+- `ActorSystemSubscriber::route_message_to_subscribers()` (lines 272-290) is **STUBBED**
+- It extracts target ComponentId correctly but **NEVER DELIVERS** to mailbox
+- Root cause: `ActorAddress` is an **identifier**, not a sender (no `send()` method)
+- The original implementation assumed `ActorAddress` had send capability - it does NOT
+
+**Architectural Decision (ADR-WASM-020 - Accepted 2025-12-21):**
+
+| Option | Decision |
+|--------|----------|
+| Extend ComponentRegistry | ❌ REJECTED - Violates Single Responsibility Principle |
+| Create MailboxRegistry | ❌ CONSIDERED - Adds unnecessary complexity |
+| **ActorSystemSubscriber owns MailboxSenders** | ✅ **ACCEPTED** - Best alignment with ADR-WASM-009/018 |
+
+**Chosen Architecture:**
+- `ComponentRegistry` stays **PURE** (identity lookup only: `ComponentId → ActorAddress`)
+- `ActorSystemSubscriber` owns message delivery (stores `mailbox_senders: HashMap<ComponentId, MailboxSender>`)
+- See **ADR-WASM-020** and **KNOWLEDGE-WASM-026** for complete details
+
+**Implementation Plan (from KNOWLEDGE-WASM-026):**
+
+1. Add `mailbox_senders: Arc<RwLock<HashMap<ComponentId, MailboxSender<ComponentMessage>>>>` to `ActorSystemSubscriber`
+2. Add `register_mailbox(component_id, sender)` method
+3. Add `unregister_mailbox(component_id)` method
+4. Fix `route_message_to_subscribers()` to use `mailbox_senders` for actual delivery
+5. Update `ComponentSpawner` to register `MailboxSender` on spawn
+6. Update component shutdown to unregister from `ActorSystemSubscriber`
+7. Add unit tests for mailbox registration/unregistration
+8. Add unit tests for message delivery
+9. Add integration tests for end-to-end message flow
+
+**Files to Modify:**
+- `airssys-wasm/src/actor/message/actor_system_subscriber.rs` - Main implementation
+- `ComponentSpawner` (wherever component spawn logic lives) - Registration point
+
+**Impact:**
+- **Task 1.1:** Requires remediation (infrastructure exists, delivery stubbed)
+- **Task 1.2:** Unaffected (reception side is complete, waiting for messages to arrive)
+- **Task 1.3:** Must integrate with new mailbox registration
+
+**Superseded Documentation:**
+- ~~KNOWLEDGE-WASM-025~~ → **SUPERSEDED** by KNOWLEDGE-WASM-026
+  - KNOWLEDGE-WASM-025 proposed extending ComponentRegistry (REJECTED)
+  - KNOWLEDGE-WASM-026 documents the correct architecture
+
+**Remediation Plan:** See `task-006-phase-1-task-1.1-remediation-plan.md` (revised 2025-12-21)
+
+**Next Steps:**
+1. Review and approve revised remediation plan
+2. Implement remediation per KNOWLEDGE-WASM-026 checklist
+3. Verify end-to-end message delivery with integration tests
+4. Proceed to Task 1.3
 

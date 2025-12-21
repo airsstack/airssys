@@ -2,8 +2,8 @@
 
 **Sub-Project:** airssys-wasm  
 **Last Updated:** 2025-12-21  
-**Total Knowledge Docs:** 17  
-**Active Knowledge Docs:** 17
+**Total Knowledge Docs:** 19  
+**Active Knowledge Docs:** 18
 
 ## Current Knowledge Documentation
 
@@ -322,3 +322,21 @@
   - **Impact**: Critical - prevents implementation mistakes in Block 5, clarifies component developer experience
   - **Audience**: All Block 5 implementers, component developers, architects
   - **Related**: ADR-WASM-009, KNOWLEDGE-WASM-005, WASM-TASK-006
+
+- **[KNOWLEDGE-WASM-025: Message Delivery Mechanism](knowledge-wasm-025-message-delivery-mechanism.md)** ⚠️ **SUPERSEDED**
+  - **Purpose**: (SUPERSEDED) Originally proposed extending ComponentRegistry for message delivery
+  - **Status**: SUPERSEDED by KNOWLEDGE-WASM-026 (2025-12-21)
+  - **Note**: The solution proposed in this document (ComponentRegistry extension) was REJECTED. See KNOWLEDGE-WASM-026 for the correct architecture.
+  - **Related**: KNOWLEDGE-WASM-026 (replacement)
+
+- **[KNOWLEDGE-WASM-026: Message Delivery Architecture - Final Decision](knowledge-wasm-026-message-delivery-architecture-final.md)** ✅ **CRITICAL**
+  - **Purpose**: Final architectural decision for message delivery - ActorSystemSubscriber owns delivery, ComponentRegistry stays pure
+  - **Scope**: Complete message flow from WASM send to handle_message invocation, architecture decision rationale, implementation design
+  - **Key Content**: Complete 10-step message flow diagram, ActorSystemSubscriber enhancement with `mailbox_senders` HashMap, ComponentSpawner integration, responsibility matrix (Registry=identity, Subscriber=delivery), testing requirements, implementation checklist
+  - **Status**: Active reference (Created 2025-12-21) - **SUPERSEDES KNOWLEDGE-WASM-025**
+  - **Impact**: Critical - definitive architecture for Block 5 message delivery
+  - **Audience**: All Block 5 implementers, message routing developers, architects
+  - **Key Decision**: `ActorSystemSubscriber` owns `mailbox_senders` for delivery; `ComponentRegistry` stays pure (identity lookup only)
+  - **Related**: ADR-WASM-009, KNOWLEDGE-WASM-024, KNOWLEDGE-WASM-018, WASM-TASK-006
+  - **Note**: This document supersedes KNOWLEDGE-WASM-025 which proposed extending ComponentRegistry (rejected)
+

@@ -1,12 +1,83 @@
 # Implementation Plan: WASM-TASK-006 Phase 1 Task 1.2 - ComponentActor Message Reception
 
-**Status:** completed  
+**Status:** ⚠️ remediation-required  
 **Created:** 2025-12-21  
+**Updated:** 2025-12-21 (Status corrected from completed)  
 **Task ID:** WASM-TASK-006-1.2  
 **Phase:** Phase 1 - MessageBroker Integration Foundation  
 **Estimated Effort:** 16 hours (2 days)  
 **Priority:** Critical - Core messaging delivery mechanism  
-**Dependency:** Task 1.1 COMPLETE ✅
+**Dependency:** Task 1.1 ⚠️ REMEDIATION REQUIRED
+
+---
+
+## ⚠️ POST-COMPLETION DISCOVERY (2025-12-21)
+
+### Issue Summary
+
+Post-completion review discovered that the 41 tests do **NOT** test actual message functionality:
+
+1. **Tests validate APIs, not functionality:**
+   - All 22 reception tests validate `MessageReceptionMetrics` (AtomicU64 counters)
+   - All 19 backpressure tests validate `BackpressureConfig` structs
+   - **ZERO** tests send/receive actual messages through ComponentActor
+   - **ZERO** tests invoke WASM `handle-message` export
+
+2. **Tests explicitly acknowledge limitation:**
+   From `messaging_reception_tests.rs` (lines 271-306):
+   ```rust
+   // Note: Testing actual WASM invocation requires instantiating a real WASM module,
+   // which needs the full WasmEngine infrastructure. These tests focus on the
+   // message reception logic and metrics tracking. Full integration tests with
+   // real WASM modules are in the main test suite.
+   ```
+
+3. **Implementation has unresolved TODO:**
+   From `component_actor.rs` (lines 2051-2052):
+   ```rust
+   // TODO(WASM-TASK-006 Task 1.2 Follow-up): Implement proper parameter
+   // marshalling using wasmtime component model bindings once generated.
+   ```
+
+### What Was Actually Delivered
+
+| Deliverable | Plan Status | Actual Status |
+|------------|-------------|---------------|
+| Actor mailbox integration | ✅ | ✅ Code exists |
+| Message queue management | ✅ | ✅ Metrics exist |
+| Backpressure handling | ✅ | ✅ Config exists |
+| WASM handle-message invocation | ✅ | ⚠️ **TODO exists, not proven to work** |
+| Message reception tests | ✅ | ⚠️ **Tests validate APIs only** |
+
+### Root Cause
+
+The implementation focused on **infrastructure** (metrics, config, APIs) but deferred **actual functionality** (WASM invocation, message flow). Tests were written to validate the infrastructure without proving the functionality works.
+
+### Remediation Requirements
+
+Per **ADR-WASM-020** and testing mandate from **AGENTS.md Section 8**:
+
+1. **Fix parameter marshalling TODO:**
+   - Location: `component_actor.rs` lines 2051-2052
+   - Requirement: Implement proper wasmtime component model parameter marshalling
+   - Verification: WASM `handle-message` export must be actually invoked
+
+2. **Add real integration tests:**
+   - Create WASM test fixture with `handle-message` export
+   - Send actual `ComponentMessage` to `ComponentActor`
+   - Verify message arrives at WASM component
+   - Verify response handling works
+
+3. **Prove end-to-end message flow:**
+   - Test: Message sent → MessageBroker → ActorSystem → ComponentActor → WASM
+   - Verify: WASM export receives correct `from`, `data` parameters
+   - Verify: Error handling with real WASM traps/timeouts
+
+### Dependencies
+
+- **Task 1.1 Remediation:** Must be complete first (delivery side)
+- **ADR-WASM-020:** Defines correct architecture for message delivery
+- **KNOWLEDGE-WASM-026:** Implementation details for remediation
 
 ---
 
