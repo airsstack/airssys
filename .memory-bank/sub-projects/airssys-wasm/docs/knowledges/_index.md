@@ -1,9 +1,9 @@
 # airssys-wasm Knowledge Documentation Index
 
 **Sub-Project:** airssys-wasm  
-**Last Updated:** 2025-12-21  
-**Total Knowledge Docs:** 19  
-**Active Knowledge Docs:** 18
+**Last Updated:** 2025-12-22  
+**Total Knowledge Docs:** 20  
+**Active Knowledge Docs:** 19
 
 ## Current Knowledge Documentation
 
@@ -403,3 +403,30 @@
 - KNOWLEDGE-WASM-027 (related duplicate runtime issue)
 
 **Audience:** All developers - MUST understand correct layer dependencies
+
+## KNOWLEDGE-WASM-029: Messaging Patterns - Fire-and-Forget vs Request-Response
+
+**File:** `knowledge-wasm-029-messaging-patterns-fire-and-forget-vs-request-response.md`  
+**Status:** Active  
+**Created:** 2025-12-22  
+**Category:** Architecture / Patterns / Messaging  
+**Maturity:** Stable
+
+**Summary:** Comprehensive explanation of the two messaging patterns in airssys-wasm. Documents the critical insight that there is NO `send-response` host function - the response IS the return value from `handle-message`. Runtime decides what to do with the return value based on whether the message has a correlation_id (request-response) or not (fire-and-forget).
+
+**Key Points:**
+- Fire-and-forget: `send-message()` → return value IGNORED
+- Request-response: `send-request()` → return value CAPTURED and routed to `handle-callback`
+- Same `handle-message` export handles BOTH patterns
+- Component B doesn't know which pattern is being used - runtime decides
+- NO `send-response` host function needed
+
+**Impact:** Critical for Task 3.2 implementation - clarifies that response routing captures `handle-message` return value, not a separate host call.
+
+**Related:**
+- KNOWLEDGE-WASM-005 (Messaging Architecture)
+- KNOWLEDGE-WASM-024 (Component Messaging Clarifications)  
+- ADR-WASM-009 (Component Communication Model)
+- WASM-TASK-006 (Block 5 - Inter-Component Communication)
+
+**Audience:** Block 5 implementers, component developers, architects

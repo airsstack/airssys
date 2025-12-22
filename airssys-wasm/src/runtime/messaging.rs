@@ -72,7 +72,8 @@ use serde::{Deserialize, Serialize};
 // Layer 3: airssys-rt imports
 use airssys_rt::broker::InMemoryMessageBroker;
 
-// Layer 4: Internal module imports
+// Layer 3: Internal crate imports
+use crate::actor::message::CorrelationTracker;
 use crate::core::ComponentMessage;
 
 /// Service managing MessageBroker integration for inter-component communication.
@@ -125,6 +126,9 @@ pub struct MessagingService {
     /// Shared MessageBroker instance for all components
     broker: Arc<InMemoryMessageBroker<ComponentMessage>>,
     
+    /// Correlation tracker for request-response patterns
+    correlation_tracker: Arc<CorrelationTracker>,
+    
     /// Metrics for monitoring messaging activity
     metrics: Arc<MessagingMetrics>,
 }
@@ -156,6 +160,7 @@ impl MessagingService {
     pub fn new() -> Self {
         Self {
             broker: Arc::new(InMemoryMessageBroker::new()),
+            correlation_tracker: Arc::new(CorrelationTracker::new()),
             metrics: Arc::new(MessagingMetrics::default()),
         }
     }
@@ -193,6 +198,45 @@ impl MessagingService {
         Arc::clone(&self.broker)
     }
     
+    /// Get reference to the CorrelationTracker.
+    ///
+    /// Returns an Arc-wrapped CorrelationTracker for request-response correlation
+    /// tracking. Used by the `send-request` host function to register pending
+    /// requests with automatic timeout handling.
+    ///
+    /// # Usage Pattern
+    ///
+    /// ```text
+    /// 1. SendRequestHostFunction calls correlation_tracker()
+    /// 2. Registers PendingRequest with oneshot response channel
+    /// 3. Publishes request message via broker
+    /// 4. Waits for response or timeout
+    /// 5. Response delivered via oneshot channel
+    /// ```
+    ///
+    /// # Thread Safety
+    ///
+    /// The returned Arc can be cloned and passed to multiple threads. All clones
+    /// reference the same CorrelationTracker instance.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// let service = MessagingService::new();
+    /// let tracker = service.correlation_tracker();
+    ///
+    /// // Register pending request
+    /// tracker.register_pending(pending).await?;
+    /// ```
+    ///
+    /// # References
+    ///
+    /// - ADR-WASM-009 (Pattern 2): Request-Response with correlation tracking
+    /// - WASM-TASK-006 Phase 3 Task 3.1: send-request Host Function
+    pub fn correlation_tracker(&self) -> Arc<CorrelationTracker> {
+        Arc::clone(&self.correlation_tracker)
+    }
+    
     /// Get current messaging statistics.
     ///
     /// Returns a snapshot of messaging metrics including messages published,
@@ -224,6 +268,8 @@ impl MessagingService {
             messages_published: self.metrics.messages_published.load(Ordering::Relaxed),
             active_subscribers: self.broker.subscriber_count().await,
             routing_failures: self.metrics.routing_failures.load(Ordering::Relaxed),
+            requests_sent: self.metrics.requests_sent.load(Ordering::Relaxed),
+            requests_pending: self.metrics.requests_pending.load(Ordering::Relaxed),
         }
     }
     
@@ -253,6 +299,45 @@ impl MessagingService {
     #[allow(dead_code)] // Phase 2: Will be used by UnifiedRouter
     pub(crate) fn record_routing_failure(&self) {
         self.metrics.routing_failures.fetch_add(1, Ordering::Relaxed);
+    }
+    
+    /// Record a request sent (internal use by SendRequestHostFunction).
+    ///
+    /// Increments requests_sent counter and pending requests count.
+    ///
+    /// # Thread Safety
+    ///
+    /// Uses atomic operations for lock-free metric updates.
+    #[doc(hidden)]
+    pub(crate) fn record_request_sent(&self) {
+        self.metrics.requests_sent.fetch_add(1, Ordering::Relaxed);
+        self.metrics.requests_pending.fetch_add(1, Ordering::Relaxed);
+    }
+    
+    /// Record a request completed (response received or timeout).
+    ///
+    /// Decrements pending requests count.
+    ///
+    /// # Thread Safety
+    ///
+    /// Uses atomic operations for lock-free metric updates.
+    #[doc(hidden)]
+    #[allow(dead_code)] // Phase 3 Task 3.2: Will be used by response handler
+    pub(crate) fn record_request_completed(&self) {
+        // Saturating sub to prevent underflow
+        let current = self.metrics.requests_pending.load(Ordering::Relaxed);
+        if current > 0 {
+            self.metrics.requests_pending.fetch_sub(1, Ordering::Relaxed);
+        }
+    }
+    
+    /// Get count of pending requests.
+    ///
+    /// Returns current number of requests awaiting responses.
+    #[doc(hidden)]
+    #[allow(dead_code)] // Phase 3: Will be used by monitoring
+    pub(crate) fn pending_requests(&self) -> u64 {
+        self.metrics.requests_pending.load(Ordering::Relaxed)
     }
 }
 
@@ -292,6 +377,12 @@ struct MessagingMetrics {
     
     /// Total routing failures (component not found, mailbox full, etc.)
     routing_failures: AtomicU64,
+    
+    /// Total request-response messages sent (Phase 3 Task 3.1)
+    requests_sent: AtomicU64,
+    
+    /// Current number of pending requests awaiting responses
+    requests_pending: AtomicU64,
 }
 
 /// Snapshot of messaging statistics.
@@ -319,6 +410,12 @@ pub struct MessagingStats {
     
     /// Total routing failures
     pub routing_failures: u64,
+    
+    /// Total request-response messages sent (Phase 3 Task 3.1)
+    pub requests_sent: u64,
+    
+    /// Current number of pending requests awaiting responses
+    pub requests_pending: u64,
 }
 
 /// Message reception metrics for ComponentActor (WASM-TASK-006 Task 1.2).
@@ -615,5 +712,109 @@ mod tests {
         // Both should be initialized correctly
         assert_eq!(service1.metrics.messages_published.load(Ordering::Relaxed), 0);
         assert_eq!(service2.metrics.messages_published.load(Ordering::Relaxed), 0);
+    }
+    
+    // ============================================================================
+    // Phase 3 Task 3.1 Tests - CorrelationTracker and Request Metrics
+    // ============================================================================
+    
+    #[test]
+    fn test_correlation_tracker_access() {
+        let service = MessagingService::new();
+        let tracker = service.correlation_tracker();
+        
+        // Tracker should be initialized
+        assert_eq!(tracker.pending_count(), 0);
+        
+        // Multiple calls should return the same tracker
+        let tracker2 = service.correlation_tracker();
+        assert_eq!(Arc::strong_count(&service.correlation_tracker), 3); // service + tracker + tracker2
+        
+        drop(tracker);
+        drop(tracker2);
+        assert_eq!(Arc::strong_count(&service.correlation_tracker), 1);
+    }
+    
+    #[test]
+    fn test_record_request_sent() {
+        let service = MessagingService::new();
+        
+        // Initial values
+        assert_eq!(service.metrics.requests_sent.load(Ordering::Relaxed), 0);
+        assert_eq!(service.metrics.requests_pending.load(Ordering::Relaxed), 0);
+        
+        // Record first request
+        service.record_request_sent();
+        assert_eq!(service.metrics.requests_sent.load(Ordering::Relaxed), 1);
+        assert_eq!(service.metrics.requests_pending.load(Ordering::Relaxed), 1);
+        
+        // Record second request
+        service.record_request_sent();
+        assert_eq!(service.metrics.requests_sent.load(Ordering::Relaxed), 2);
+        assert_eq!(service.metrics.requests_pending.load(Ordering::Relaxed), 2);
+    }
+    
+    #[test]
+    fn test_record_request_completed() {
+        let service = MessagingService::new();
+        
+        // Send 2 requests
+        service.record_request_sent();
+        service.record_request_sent();
+        assert_eq!(service.metrics.requests_pending.load(Ordering::Relaxed), 2);
+        
+        // Complete 1 request
+        service.record_request_completed();
+        assert_eq!(service.metrics.requests_pending.load(Ordering::Relaxed), 1);
+        assert_eq!(service.metrics.requests_sent.load(Ordering::Relaxed), 2); // Unchanged
+        
+        // Complete remaining request
+        service.record_request_completed();
+        assert_eq!(service.metrics.requests_pending.load(Ordering::Relaxed), 0);
+        
+        // Don't go negative
+        service.record_request_completed();
+        assert_eq!(service.metrics.requests_pending.load(Ordering::Relaxed), 0);
+    }
+    
+    #[test]
+    fn test_pending_requests() {
+        let service = MessagingService::new();
+        
+        assert_eq!(service.pending_requests(), 0);
+        
+        service.record_request_sent();
+        assert_eq!(service.pending_requests(), 1);
+        
+        service.record_request_sent();
+        assert_eq!(service.pending_requests(), 2);
+        
+        service.record_request_completed();
+        assert_eq!(service.pending_requests(), 1);
+    }
+    
+    #[tokio::test]
+    async fn test_get_stats_includes_request_metrics() {
+        let service = MessagingService::new();
+        
+        // Initial stats
+        let stats = service.get_stats().await;
+        assert_eq!(stats.requests_sent, 0);
+        assert_eq!(stats.requests_pending, 0);
+        
+        // After sending requests
+        service.record_request_sent();
+        service.record_request_sent();
+        
+        let stats = service.get_stats().await;
+        assert_eq!(stats.requests_sent, 2);
+        assert_eq!(stats.requests_pending, 2);
+        
+        // After completing one
+        service.record_request_completed();
+        
+        let stats = service.get_stats().await;
+        assert_eq!(stats.requests_sent, 2);
+        assert_eq!(stats.requests_pending, 1);
     }
 }

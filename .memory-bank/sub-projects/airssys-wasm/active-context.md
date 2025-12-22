@@ -1,8 +1,8 @@
 # airssys-wasm Active Context
 
 **Last Verified:** 2025-12-22  
-**Current Phase:** Block 5 Phase 2 - ✅ COMPLETE (3/3 tasks complete) | Architecture Hotfix ✅ COMPLETE  
-**Overall Progress:** Block 3 100% ✅ | Block 4 100% ✅ | Block 5 Phase 1 100% ✅ | Phase 2 100% ✅ | Hotfix Phase 1 ✅ | Hotfix Phase 2 ✅
+**Current Phase:** Block 5 Phase 3 - 🚀 IN PROGRESS (1/3 tasks complete) | Architecture Hotfix ✅ COMPLETE  
+**Overall Progress:** Block 3 100% ✅ | Block 4 100% ✅ | Block 5 Phase 1 100% ✅ | Phase 2 100% ✅ | Phase 3 33% (1/3) | Hotfix Phase 1 ✅ | Hotfix Phase 2 ✅
 
 ## 🔧 Architecture Hotfix Status ✅ COMPLETE
 
@@ -45,6 +45,55 @@
 4. Type Safety Restored - Automatic marshalling via Canonical ABI
 5. Zero circular dependencies
 6. No flaky tests in test suite
+
+---
+
+## 🚀 Phase 3 IN PROGRESS: Request-Response Pattern
+
+**Block 5 Phase 3 - Task 3.1 COMPLETE (1/3 tasks)**
+
+| Task | Description | Status | Tests | Review |
+|------|-------------|--------|-------|--------|
+| 3.1 | send-request Host Function | ✅ COMPLETE | 15 unit + 14 integration | 9.0/10 (Approved) |
+| 3.2 | Response Routing and Callbacks | ⏳ Not started | - | - |
+| 3.3 | Timeout and Cancellation | ⏳ Not started | - | - |
+
+**Phase 3 Progress:** 1/3 tasks complete (33%)
+
+---
+
+## Task 3.1 Completion Details
+
+**Status:** ✅ COMPLETE (2025-12-22)  
+**Audit:** APPROVED by @memorybank-auditor  
+**Verification:** VERIFIED by @memorybank-verifier  
+**Code Review:** 9.0/10 by @rust-reviewer (APPROVED WITH COMMENTS)
+
+### Implementation Summary
+- ✅ `SendRequestHostFunction` struct implementing request-response pattern
+- ✅ Correlation tracker integration for request tracking
+- ✅ Request ID generation using UUID v4
+- ✅ Timeout management via existing TimeoutHandler
+- ✅ O(1) request tracking via DashMap-based CorrelationTracker
+
+### Files Changed
+| File | Changes |
+|------|---------|
+| `src/runtime/messaging.rs` | + CorrelationTracker field, accessor, request metrics, 5 unit tests |
+| `src/runtime/async_host.rs` | + SendRequestHostFunction (~200 lines), imports, 10 unit tests |
+| `src/runtime/mod.rs` | + SendRequestHostFunction export |
+| `tests/send_request_host_function_tests.rs` | **NEW**: 14 integration tests (~540 lines) |
+
+### Test Results
+- 15 unit tests (10 in async_host.rs + 5 in messaging.rs)
+- 14 integration tests in send_request_host_function_tests.rs
+- All 29 tests passing
+- 970 total lib tests passing
+
+### Code Review Issues Fixed
+1. ✅ Added clarifying comment for unused oneshot receiver (Task 3.2 scope)
+2. ✅ Removed dead code `register()` method per YAGNI
+3. ✅ Fixed "Layer 4" comment to "Layer 3"
 
 ---
 
@@ -129,7 +178,7 @@
 
 ## Current Focus
 
-**Active Task:** Block 5 Phase 3 - Task 3.1: send-request Host Function  
+**Active Task:** Block 5 Phase 3 - Task 3.2: Response Routing and Callbacks  
 **Priority:** 🟢 READY TO START  
 **Reference:** task-006-block-5-inter-component-communication.md
 
@@ -137,16 +186,16 @@
 
 | Task | Description | Status |
 |------|-------------|--------|
-| 3.1 | send-request Host Function | ⏳ Not started |
+| 3.1 | send-request Host Function | ✅ COMPLETE |
 | 3.2 | Response Routing and Callbacks | ⏳ Not started |
 | 3.3 | Timeout and Cancellation | ⏳ Not started |
 
-**Next Task Requirements:**
-- Implement `send-request` WIT interface
-- Request ID generation (UUID v4)
-- Callback registration system
-- Timeout management (tokio::time::timeout)
-- Request tracking data structure
+**Next Task Requirements (Task 3.2):**
+- Response correlation by request ID
+- Callback invocation (handle-callback export)
+- Success and error response handling
+- Callback cleanup after invocation
+- Response routing tests
 
 ---
 
@@ -163,6 +212,9 @@
 - `tests/wasm_engine_call_handle_message_tests.rs` - Task 2.2 (8 integration tests)
 - `tests/fire_and_forget_performance_tests.rs` - Task 2.3 (8 integration tests)
 
+📋 **Test Files (Phase 3):**
+- `tests/send_request_host_function_tests.rs` - Task 3.1 (14 integration tests)
+
 📋 **Benchmark Files (Phase 2):**
 - `benches/fire_and_forget_benchmarks.rs` - Task 2.3 (5 benchmarks)
 
@@ -174,8 +226,12 @@
 - `tests/messaging_subscription_integration_tests.rs` - Task 1.3 (10 tests)
 
 🔧 **Implementation Files (Phase 2):**
-- `src/runtime/async_host.rs` - SendMessageHostFunction (Task 2.1)
+- `src/runtime/async_host.rs` - SendMessageHostFunction (Task 2.1), SendRequestHostFunction (Task 3.1)
 - `src/runtime/engine.rs` - WasmEngine::call_handle_message() (Hotfix Task 2.5)
+
+🔧 **Implementation Files (Phase 3):**
+- `src/runtime/async_host.rs` - SendRequestHostFunction (~200 lines)
+- `src/runtime/messaging.rs` - CorrelationTracker integration, request metrics
 
 🔧 **Implementation Files (Phase 1):**
 - `src/actor/message/actor_system_subscriber.rs` - Message delivery
@@ -191,7 +247,8 @@
 | Block 3 | ✅ COMPLETE | 18/18 tasks |
 | Block 4 | ✅ COMPLETE | 15/15 tasks |
 | Block 5 Phase 1 | ✅ COMPLETE | 3/3 tasks |
-| Block 5 Phase 2 | ✅ COMPLETE | 3/3 tasks (Task 2.1 ✅, Task 2.2 ✅, Task 2.3 ✅) |
-| Block 5 Phase 3-6 | ⏳ Not Started | 0/12 tasks |
+| Block 5 Phase 2 | ✅ COMPLETE | 3/3 tasks |
+| Block 5 Phase 3 | 🚀 IN PROGRESS | 1/3 tasks (Task 3.1 ✅ COMPLETE, Task 3.2 next) |
+| Block 5 Phase 4-6 | ⏳ Not Started | 0/9 tasks |
 | **Architecture Hotfix Phase 1** | ✅ COMPLETE | All tasks done |
 | **Architecture Hotfix Phase 2** | ✅ COMPLETE | All 6 tasks done |

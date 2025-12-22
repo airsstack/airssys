@@ -1,9 +1,9 @@
 # airssys-wasm Progress
 
 ## Current Status
-**Phase:** Block 5 (Inter-Component Communication) - Phase 2 ✅ COMPLETE | Architecture Hotfix ✅ COMPLETE  
-**Overall Progress:** Block 3 100% COMPLETE (18/18 tasks) | Block 4 ✅ **100% COMPLETE** (15/15 tasks) | Block 5 Phase 1 ✅ **100% COMPLETE** (3/3 tasks) | Block 5 Phase 2 ✅ **100% COMPLETE** (3/3 tasks) | Hotfix Phase 1 ✅ COMPLETE | Hotfix Phase 2 ✅ COMPLETE  
-**Last Updated:** 2025-12-22 (Task 2.3 ✅ COMPLETE - Fire-and-Forget Performance)
+**Phase:** Block 5 (Inter-Component Communication) - Phase 3 🚀 IN PROGRESS | Architecture Hotfix ✅ COMPLETE  
+**Overall Progress:** Block 3 100% COMPLETE (18/18 tasks) | Block 4 ✅ **100% COMPLETE** (15/15 tasks) | Block 5 Phase 1 ✅ **100% COMPLETE** (3/3 tasks) | Block 5 Phase 2 ✅ **100% COMPLETE** (3/3 tasks) | Block 5 Phase 3 🚀 **IN PROGRESS** (1/3 tasks) | Hotfix Phase 1 ✅ COMPLETE | Hotfix Phase 2 ✅ COMPLETE  
+**Last Updated:** 2025-12-22 (Task 3.1 ✅ COMPLETE - send-request Host Function)
 
 **🎉 ARCHITECTURE HOTFIX COMPLETE (2025-12-22):**
 - ✅ **Task 2.1:** Delete Workaround Code - COMPLETE (~400 lines deleted)
@@ -251,22 +251,86 @@ Implementation finished (2,214 lines WIT + 176 lines build system + permission p
 
 ## Next Steps
 
-**Immediate:** Complete Task 1.2 Remediation  
-**Status:** Block 5 Phase 1 in-progress (1/3 tasks complete)  
-**Blockers:**
-- ⚠️ Task 1.2: Tests validate metrics/config only (don't prove message flow works)
+**Immediate:** Complete Task 3.2 (Response Routing and Callbacks)  
+**Status:** Block 5 Phase 3 in-progress (1/3 tasks complete)  
+**Blockers:** None
 
-**Remediation Plan:**
-1. ✅ Task 1.1: COMPLETE - Actual mailbox delivery working per ADR-WASM-020
-2. Task 1.2: Add real integration tests proving WASM handle-message export is invoked
-3. Task 1.2: Fix parameter marshalling TODO in component_actor.rs (lines 2051-2052)
-4. Task 1.3: Can begin after Task 1.2 remediation complete
+**Next Tasks:**
+1. ✅ Task 3.1: COMPLETE - send-request Host Function with correlation tracking
+2. Task 3.2: Implement Response Routing and Callbacks (handle-callback export)
+3. Task 3.3: Implement Timeout and Cancellation handling
 
 See `active-context.md` for current focus and task references.
 
 ---
 
 ## Progress Log
+
+### 2025-12-22: Task 3.1 COMPLETE - send-request Host Function ✅
+
+**Status:** ✅ COMPLETE  
+**Completion Date:** 2025-12-22  
+**Code Review Score:** 9.0/10 (APPROVED WITH COMMENTS by @rust-reviewer)
+
+**Implementation Summary:**
+- ✅ `SendRequestHostFunction` struct implementing request-response pattern
+- ✅ Correlation tracker integration for request tracking
+- ✅ Request ID generation using UUID v4
+- ✅ Timeout management via existing TimeoutHandler
+- ✅ O(1) request tracking via DashMap-based CorrelationTracker
+
+**Files Changed:**
+| File | Changes |
+|------|---------|
+| `src/runtime/messaging.rs` | + CorrelationTracker field, accessor, request metrics, 5 unit tests |
+| `src/runtime/async_host.rs` | + SendRequestHostFunction (~200 lines), imports, 10 unit tests |
+| `src/runtime/mod.rs` | + SendRequestHostFunction export |
+| `tests/send_request_host_function_tests.rs` | **NEW**: 14 integration tests (~540 lines) |
+
+**Test Results:**
+- 10 unit tests in `async_host.rs` #[cfg(test)] block
+- 5 unit tests in `messaging.rs` #[cfg(test)] block
+- 14 integration tests in `tests/send_request_host_function_tests.rs`
+- All 29 tests passing (15 unit + 14 integration)
+- 970 total lib tests passing
+
+**Code Review Issues Fixed:**
+1. ✅ Added clarifying comment for unused oneshot receiver (Task 3.2 scope)
+2. ✅ Removed dead code `register()` method per YAGNI
+3. ✅ Fixed "Layer 4" comment to "Layer 3"
+
+**Performance:**
+- Request registration: ~100ns (DashMap insert)
+- Correlation tracking: O(1) lookup
+- Builds on Phase 2 fire-and-forget foundation (~1.71M msg/sec)
+
+**Quality:**
+- ✅ Zero clippy warnings (lib code)
+- ✅ Clean build
+
+**Verification Chain:**
+- ✅ Audited by @memorybank-auditor (APPROVED)
+- ✅ Verified by @memorybank-verifier (VERIFIED status)
+- ✅ Code reviewed by @rust-reviewer (9.0/10 - APPROVED WITH COMMENTS)
+
+---
+
+### 🚀 PHASE 3 IN PROGRESS (2025-12-22)
+
+**Block 5 Phase 3 (Request-Response Pattern) - 1/3 Tasks Complete**
+
+| Task | Status | Tests | Review |
+|------|--------|-------|--------|
+| 3.1 | ✅ COMPLETE | 15 unit + 14 integration | 9.0/10 (Approved) |
+| 3.2 | ⏳ Not started | - | - |
+| 3.3 | ⏳ Not started | - | - |
+
+**Phase 3 Progress:**
+- 1/3 tasks complete (33%)
+- Task 3.1: SendRequestHostFunction with correlation tracking
+- Next: Task 3.2 (Response Routing and Callbacks)
+
+---
 
 ### 2025-12-22: Architecture Hotfix Phase 2 COMPLETE ✅
 

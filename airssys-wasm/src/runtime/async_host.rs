@@ -47,8 +47,12 @@ use std::sync::Arc;
 use airssys_rt::broker::MessageBroker;
 use airssys_rt::message::MessageEnvelope;
 use async_trait::async_trait;
+use tokio::sync::oneshot;
+use tokio::time::{Duration, Instant};
+use uuid::Uuid;
 
 // Layer 3: Internal module imports
+use crate::actor::message::{PendingRequest, ResponseMessage};
 use crate::core::ComponentMessage;
 use crate::core::{
     bridge::{CapabilityMapping, HostCallContext, HostFunction},
@@ -544,6 +548,188 @@ impl HostFunction for SendMessageHostFunction {
     }
 }
 
+/// Host function for request-response messaging.
+///
+/// Implements `send-request` WIT interface for RPC-style component communication
+/// with automatic correlation tracking and timeout management.
+///
+/// # WIT Interface
+///
+/// ```wit
+/// send-request: func(
+///     target: component-id,
+///     request: list<u8>,
+///     timeout-ms: u64
+/// ) -> result<request-id, messaging-error>;
+/// ```
+///
+/// # Security (Block 4 Integration)
+///
+/// - Validates sender has `Messaging` capability for target
+/// - Uses existing `CapabilitySet::can_send_to()` method
+/// - Logs all send attempts for audit trail
+/// - Validates multicodec prefix per ADR-WASM-001
+///
+/// # Argument Format
+///
+/// Arguments are encoded as: `[target_len: u32 LE][target_bytes][timeout_ms: u64 LE][request_bytes]`
+/// - `target_len` - 4 bytes, little-endian u32, length of target ComponentId
+/// - `target_bytes` - UTF-8 encoded target ComponentId string
+/// - `timeout_ms` - 8 bytes, little-endian u64, timeout in milliseconds
+/// - `request_bytes` - Request with multicodec prefix + payload
+///
+/// # Return Value
+///
+/// On success, returns the correlation ID (UUID v4) as UTF-8 string bytes.
+/// The caller can use this ID to match responses via `handle-response` callback.
+///
+/// # Performance
+///
+/// Target: ~350ns total latency
+/// - Multicodec validation: ~10ns
+/// - Capability check: ~50ns
+/// - Correlation registration: ~100ns
+/// - Broker publish: ~211ns
+///
+/// # References
+///
+/// - **ADR-WASM-001**: Multicodec Compatibility Strategy
+/// - **ADR-WASM-009**: Component Communication Model (Pattern 2: Request-Response)
+/// - **WASM-TASK-006 Phase 3 Task 3.1**: send-request Host Function
+pub struct SendRequestHostFunction {
+    /// Reference to MessagingService for broker and correlation tracker access
+    messaging_service: Arc<MessagingService>,
+}
+
+impl SendRequestHostFunction {
+    /// Create a new SendRequestHostFunction.
+    ///
+    /// # Arguments
+    ///
+    /// * `messaging_service` - Arc-wrapped MessagingService for broker and tracker access
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// use airssys_wasm::runtime::{SendRequestHostFunction, MessagingService};
+    /// use std::sync::Arc;
+    ///
+    /// let messaging = Arc::new(MessagingService::new());
+    /// let request_fn = SendRequestHostFunction::new(messaging);
+    /// ```
+    pub fn new(messaging_service: Arc<MessagingService>) -> Self {
+        Self { messaging_service }
+    }
+}
+
+#[async_trait]
+impl HostFunction for SendRequestHostFunction {
+    fn name(&self) -> &str {
+        "messaging::send_request"
+    }
+
+    fn required_capability(&self) -> Capability {
+        // Base messaging capability - specific target checked in execute()
+        Capability::Messaging(TopicPattern::new("*"))
+    }
+
+    async fn execute(&self, context: &HostCallContext, args: Vec<u8>) -> WasmResult<Vec<u8>> {
+        // 1. Parse arguments: [target_len: u32 LE][target_bytes][timeout_ms: u64 LE][request_bytes]
+        if args.len() < 12 {
+            // 4 (target_len) + minimum for timeout (8 bytes)
+            return Err(WasmError::messaging_error(
+                "Invalid send-request args: too short",
+            ));
+        }
+
+        let target_len = u32::from_le_bytes([args[0], args[1], args[2], args[3]]) as usize;
+        let target_end = 4 + target_len;
+
+        if args.len() < target_end + 8 {
+            return Err(WasmError::messaging_error(format!(
+                "Invalid send-request args: missing timeout or request data (got {} bytes, need at least {})",
+                args.len(),
+                target_end + 8
+            )));
+        }
+
+        let target_str = String::from_utf8(args[4..target_end].to_vec())
+            .map_err(|e| WasmError::messaging_error(format!("Invalid target UTF-8: {e}")))?;
+
+        let timeout_bytes: [u8; 8] = args[target_end..target_end + 8]
+            .try_into()
+            .map_err(|_| WasmError::messaging_error("Invalid timeout bytes"))?;
+        let timeout_ms = u64::from_le_bytes(timeout_bytes);
+
+        let request_bytes = args[target_end + 8..].to_vec();
+
+        // 2. Validate multicodec prefix (REQUIRED per ADR-WASM-001)
+        let (codec, _prefix_len) = MulticodecPrefix::from_prefix(&request_bytes)
+            .map_err(|e| WasmError::messaging_error(format!("Invalid multicodec: {e}")))?;
+
+        // 3. Check capability
+        let target_id = ComponentId::new(&target_str);
+        if !context.capabilities.can_send_to(&target_id, Some(codec.name())) {
+            return Err(WasmError::capability_denied(
+                Capability::Messaging(TopicPattern::new(codec.name())),
+                format!(
+                    "Component '{}' cannot send {} requests to '{}'",
+                    context.component_id.as_str(),
+                    codec.name(),
+                    target_id.as_str()
+                ),
+            ));
+        }
+
+        // 4. Generate correlation ID (UUID v4)
+        let correlation_id = Uuid::new_v4();
+
+        // 5. Create oneshot channel for response
+        // NOTE: _response_rx is intentionally unused in Task 3.1. Response delivery
+        // to WASM components via handle-response callback is implemented in Task 3.2.
+        // The CorrelationTracker stores response_tx; Task 3.2 will resolve it when
+        // the target component sends a response.
+        let (response_tx, _response_rx) = oneshot::channel::<ResponseMessage>();
+
+        // 6. Register pending request with correlation tracker
+        let pending = PendingRequest {
+            correlation_id,
+            response_tx,
+            requested_at: Instant::now(),
+            timeout: Duration::from_millis(timeout_ms),
+            from: context.component_id.clone(),
+            to: target_id.clone(),
+        };
+
+        self.messaging_service
+            .correlation_tracker()
+            .register_pending(pending)
+            .await
+            .map_err(|e| WasmError::messaging_error(format!("Failed to register request: {e}")))?;
+
+        // 7. Create message and publish to broker
+        let component_message = ComponentMessage::InterComponent {
+            sender: context.component_id.clone(),
+            to: target_id,
+            payload: request_bytes,
+        };
+
+        let envelope = MessageEnvelope::new(component_message);
+        self.messaging_service
+            .broker()
+            .publish(envelope)
+            .await
+            .map_err(|e| WasmError::messaging_error(format!("Broker publish failed: {e}")))?;
+
+        // 8. Record metrics
+        self.messaging_service.record_publish();
+        self.messaging_service.record_request_sent();
+
+        // 9. Return request_id (correlation ID) as UTF-8 string bytes
+        Ok(correlation_id.to_string().into_bytes())
+    }
+}
+
 /// Builder for AsyncHostRegistry.
 ///
 /// Provides a mutable interface for registering host functions before
@@ -580,8 +766,9 @@ impl AsyncHostRegistryBuilder {
 
     /// Register messaging host functions.
     ///
-    /// Adds the `send-message` host function for inter-component messaging.
-    /// This should be called during WasmRuntime initialization.
+    /// Adds both `send-message` (fire-and-forget) and `send-request` (request-response)
+    /// host functions for inter-component messaging. This should be called during
+    /// WasmRuntime initialization.
     ///
     /// # Arguments
     ///
@@ -598,9 +785,16 @@ impl AsyncHostRegistryBuilder {
     ///     .with_messaging_functions(messaging);
     /// ```
     pub fn with_messaging_functions(mut self, messaging_service: Arc<MessagingService>) -> Self {
-        let send_fn = SendMessageHostFunction::new(messaging_service);
+        // Fire-and-forget messaging
+        let send_fn = SendMessageHostFunction::new(Arc::clone(&messaging_service));
         self.functions
             .insert(send_fn.name().to_string(), Box::new(send_fn));
+        
+        // Request-response messaging (Phase 3 Task 3.1)
+        let request_fn = SendRequestHostFunction::new(messaging_service);
+        self.functions
+            .insert(request_fn.name().to_string(), Box::new(request_fn));
+        
         self
     }
 
@@ -637,6 +831,7 @@ impl AsyncHostRegistryBuilder {
         self.functions.insert(func.name().to_string(), Box::new(func));
         self
     }
+    
 
     /// Build the immutable AsyncHostRegistry.
     pub fn build(self) -> AsyncHostRegistry {
@@ -1089,7 +1284,8 @@ mod tests {
             .build();
 
         assert!(registry.has_function("messaging::send"));
-        assert_eq!(registry.function_count(), 1);
+        assert!(registry.has_function("messaging::send_request"));
+        assert_eq!(registry.function_count(), 2);
     }
 
     #[test]
@@ -1132,8 +1328,9 @@ mod tests {
             .with_time_functions()
             .build();
 
-        assert_eq!(registry.function_count(), 4);
+        assert_eq!(registry.function_count(), 5); // 2 messaging + 3 others
         assert!(registry.has_function("messaging::send"));
+        assert!(registry.has_function("messaging::send_request"));
         assert!(registry.has_function("filesystem::read"));
         assert!(registry.has_function("network::http_fetch"));
         assert!(registry.has_function("time::sleep"));
@@ -1152,5 +1349,249 @@ mod tests {
 
         let missing = registry.get_function("nonexistent");
         assert!(missing.is_none());
+    }
+
+    // ============================================================================
+    // SendRequestHostFunction Tests (WASM-TASK-006 Phase 3 Task 3.1)
+    // ============================================================================
+
+    #[test]
+    fn test_send_request_function_name() {
+        let messaging = Arc::new(MessagingService::new());
+        let func = SendRequestHostFunction::new(messaging);
+        assert_eq!(func.name(), "messaging::send_request");
+    }
+
+    #[test]
+    fn test_send_request_required_capability() {
+        let messaging = Arc::new(MessagingService::new());
+        let func = SendRequestHostFunction::new(messaging);
+        let cap = func.required_capability();
+
+        assert!(matches!(cap, Capability::Messaging(_)));
+    }
+
+    /// Helper to create encoded args for send-request host function.
+    ///
+    /// Format: `[target_len: u32 LE][target_bytes][timeout_ms: u64 LE][request_bytes]`
+    fn encode_request_args(target: &str, timeout_ms: u64, request: &[u8]) -> Vec<u8> {
+        let mut args = (target.len() as u32).to_le_bytes().to_vec();
+        args.extend_from_slice(target.as_bytes());
+        args.extend_from_slice(&timeout_ms.to_le_bytes());
+        args.extend_from_slice(request);
+        args
+    }
+
+    #[tokio::test]
+    async fn test_send_request_parses_args_correctly() {
+        let messaging = Arc::new(MessagingService::new());
+        let func = SendRequestHostFunction::new(messaging.clone());
+
+        let mut caps = CapabilitySet::new();
+        caps.grant(Capability::Messaging(TopicPattern::new("*")));
+        let context = create_host_context(ComponentId::new("sender"), caps);
+
+        // Create request with borsh prefix
+        let mut request = MulticodecPrefix::Borsh.prefix_bytes().to_vec();
+        request.extend_from_slice(b"test request payload");
+
+        let args = encode_request_args("target-component", 5000, &request);
+
+        let result = func.execute(&context, args).await;
+
+        // Should succeed and return correlation ID
+        assert!(result.is_ok(), "Execute should succeed: {:?}", result.err());
+        
+        // Verify returned correlation ID is a valid UUID string (36 chars)
+        let response = result.unwrap();
+        let request_id = String::from_utf8(response).unwrap();
+        assert_eq!(request_id.len(), 36, "Request ID should be UUID format");
+        assert!(Uuid::parse_str(&request_id).is_ok(), "Should be valid UUID");
+    }
+
+    #[tokio::test]
+    async fn test_send_request_validates_multicodec() {
+        let messaging = Arc::new(MessagingService::new());
+        let func = SendRequestHostFunction::new(messaging);
+
+        let mut caps = CapabilitySet::new();
+        caps.grant(Capability::Messaging(TopicPattern::new("*")));
+        let context = create_host_context(ComponentId::new("sender"), caps);
+
+        // Create request with INVALID prefix
+        let invalid_request = vec![0xFF, 0xFF, 0xDE, 0xAD];
+        let args = encode_request_args("target", 5000, &invalid_request);
+
+        let result = func.execute(&context, args).await;
+
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(
+            error.to_string().contains("multicodec") || error.to_string().contains("Multicodec"),
+            "Expected multicodec error, got: {error}"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_send_request_generates_uuid_v4() {
+        let messaging = Arc::new(MessagingService::new());
+        let func = SendRequestHostFunction::new(messaging.clone());
+
+        let mut caps = CapabilitySet::new();
+        caps.grant(Capability::Messaging(TopicPattern::new("*")));
+        let context = create_host_context(ComponentId::new("sender"), caps);
+
+        let mut request = MulticodecPrefix::Borsh.prefix_bytes().to_vec();
+        request.extend_from_slice(b"payload");
+        let args = encode_request_args("target", 5000, &request);
+
+        // Execute twice to verify unique IDs
+        let result1 = func.execute(&context, args.clone()).await.unwrap();
+        let result2 = func.execute(&context, args).await.unwrap();
+
+        let id1 = String::from_utf8(result1).unwrap();
+        let id2 = String::from_utf8(result2).unwrap();
+
+        // Verify both are valid UUIDs
+        let uuid1 = Uuid::parse_str(&id1).expect("Should be valid UUID");
+        let uuid2 = Uuid::parse_str(&id2).expect("Should be valid UUID");
+
+        // Verify they are different (UUID v4 uniqueness)
+        assert_ne!(uuid1, uuid2, "Each request should generate unique ID");
+    }
+
+    #[tokio::test]
+    async fn test_send_request_returns_request_id() {
+        let messaging = Arc::new(MessagingService::new());
+        let func = SendRequestHostFunction::new(messaging.clone());
+
+        let mut caps = CapabilitySet::new();
+        caps.grant(Capability::Messaging(TopicPattern::new("*")));
+        let context = create_host_context(ComponentId::new("sender"), caps);
+
+        let mut request = MulticodecPrefix::Borsh.prefix_bytes().to_vec();
+        request.extend_from_slice(b"payload");
+        let args = encode_request_args("target", 5000, &request);
+
+        let result = func.execute(&context, args).await;
+
+        assert!(result.is_ok());
+        let request_id_bytes = result.unwrap();
+        
+        // Should return non-empty bytes
+        assert!(!request_id_bytes.is_empty(), "Should return request ID");
+        
+        // Should be valid UTF-8
+        let request_id = String::from_utf8(request_id_bytes).expect("Should be valid UTF-8");
+        
+        // Should be valid UUID format (36 chars: 8-4-4-4-12)
+        assert_eq!(request_id.len(), 36);
+        assert!(request_id.chars().nth(8) == Some('-'));
+        assert!(request_id.chars().nth(13) == Some('-'));
+        assert!(request_id.chars().nth(18) == Some('-'));
+        assert!(request_id.chars().nth(23) == Some('-'));
+    }
+
+    #[tokio::test]
+    async fn test_send_request_no_capability() {
+        let messaging = Arc::new(MessagingService::new());
+        let func = SendRequestHostFunction::new(messaging);
+
+        // Create context WITHOUT messaging capability
+        let context = create_host_context(ComponentId::new("sender"), CapabilitySet::new());
+
+        let mut request = MulticodecPrefix::Borsh.prefix_bytes().to_vec();
+        request.extend_from_slice(b"payload");
+        let args = encode_request_args("target", 5000, &request);
+
+        let result = func.execute(&context, args).await;
+
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(
+            matches!(error, WasmError::CapabilityDenied { .. }),
+            "Expected CapabilityDenied, got: {error:?}"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_send_request_args_too_short() {
+        let messaging = Arc::new(MessagingService::new());
+        let func = SendRequestHostFunction::new(messaging);
+
+        let mut caps = CapabilitySet::new();
+        caps.grant(Capability::Messaging(TopicPattern::new("*")));
+        let context = create_host_context(ComponentId::new("sender"), caps);
+
+        // Only 8 bytes - need at least 12 (4 for target_len + 8 for timeout)
+        let short_args = vec![0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+
+        let result = func.execute(&context, short_args).await;
+
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(
+            error.to_string().contains("too short"),
+            "Expected 'too short' error, got: {error}"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_send_request_records_metrics() {
+        let messaging = Arc::new(MessagingService::new());
+        let func = SendRequestHostFunction::new(messaging.clone());
+
+        let mut caps = CapabilitySet::new();
+        caps.grant(Capability::Messaging(TopicPattern::new("*")));
+        let context = create_host_context(ComponentId::new("sender"), caps);
+
+        let mut request = MulticodecPrefix::Borsh.prefix_bytes().to_vec();
+        request.extend_from_slice(b"payload");
+        let args = encode_request_args("target", 5000, &request);
+
+        // Initial stats
+        let stats_before = messaging.get_stats().await;
+        assert_eq!(stats_before.requests_sent, 0);
+        assert_eq!(stats_before.requests_pending, 0);
+
+        // Execute request
+        let result = func.execute(&context, args).await;
+        assert!(result.is_ok());
+
+        // Verify metrics updated
+        let stats_after = messaging.get_stats().await;
+        assert_eq!(stats_after.requests_sent, 1);
+        assert_eq!(stats_after.requests_pending, 1);
+        assert_eq!(stats_after.messages_published, 1);
+    }
+
+    #[tokio::test]
+    async fn test_send_request_registers_pending() {
+        let messaging = Arc::new(MessagingService::new());
+        let func = SendRequestHostFunction::new(messaging.clone());
+
+        let mut caps = CapabilitySet::new();
+        caps.grant(Capability::Messaging(TopicPattern::new("*")));
+        let context = create_host_context(ComponentId::new("sender"), caps);
+
+        let mut request = MulticodecPrefix::Borsh.prefix_bytes().to_vec();
+        request.extend_from_slice(b"payload");
+        let args = encode_request_args("target", 5000, &request);
+
+        // Verify tracker is empty before
+        let tracker = messaging.correlation_tracker();
+        assert_eq!(tracker.pending_count(), 0);
+
+        // Execute request
+        let result = func.execute(&context, args).await;
+        assert!(result.is_ok());
+
+        // Get the correlation ID from result
+        let request_id_str = String::from_utf8(result.unwrap()).unwrap();
+        let correlation_id = Uuid::parse_str(&request_id_str).unwrap();
+
+        // Verify request is now pending in tracker
+        assert_eq!(tracker.pending_count(), 1);
+        assert!(tracker.contains(&correlation_id));
     }
 }

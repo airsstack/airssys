@@ -380,7 +380,8 @@ async fn test_send_message_registered_in_registry() {
         .build();
 
     assert!(registry.has_function("messaging::send"));
-    assert_eq!(registry.function_count(), 1);
+    assert!(registry.has_function("messaging::send_request")); // Phase 3 Task 3.1
+    assert_eq!(registry.function_count(), 2); // Both messaging functions
 
     let func = registry.get_function("messaging::send");
     assert!(func.is_some());
@@ -398,8 +399,9 @@ async fn test_registry_builder_all_functions() {
         .with_time_functions()
         .build();
 
-    assert_eq!(registry.function_count(), 4);
+    assert_eq!(registry.function_count(), 5); // 2 messaging + 3 others
     assert!(registry.has_function("messaging::send"));
+    assert!(registry.has_function("messaging::send_request"));
     assert!(registry.has_function("filesystem::read"));
     assert!(registry.has_function("network::http_fetch"));
     assert!(registry.has_function("time::sleep"));
