@@ -2,11 +2,22 @@
 
 **Sub-Project:** airssys-wasm  
 **Last Updated:** 2025-12-22  
-**Total Knowledge Docs:** 20  
-**Active Knowledge Docs:** 19
+**Total Knowledge Docs:** 21  
+**Active Knowledge Docs:** 20
 
 ## Current Knowledge Documentation
 
+### 🔴 FOUNDATIONAL - READ FIRST
+- **[KNOWLEDGE-WASM-031: Foundational Architecture](knowledge-wasm-031-foundational-architecture.md)** 🔴 **READ FIRST**
+  - **Purpose**: The MOST fundamental understanding of what airssys-wasm is
+  - **Scope**: Two root entities (Host + Plugin/Component), Actor model, isolated storage, mailbox communication
+  - **Key Content**: Each WASM component = Actor (via airssys-rt), isolated storage per component, private state, Erlang-style mailbox communication
+  - **Status**: Active (Created 2025-12-22)
+  - **Impact**: 🔴 CRITICAL - Read this BEFORE any other document
+  - **Audience**: EVERYONE - developers, architects, planners, implementers
+  - **Inspiration**: Smart contract platforms (NEAR, Polkadot) using WASM
+
+### Core Concepts Category ✅
 ### Core Concepts Category ✅
 - **[KNOWLEDGE-WASM-002: High-Level Overview](knowledge_wasm_002_high_level_overview.md)** ✅ **ESSENTIAL**
   - **Purpose**: Authoritative high-level overview and conceptual foundation
@@ -430,3 +441,109 @@
 - WASM-TASK-006 (Block 5 - Inter-Component Communication)
 
 **Audience:** Block 5 implementers, component developers, architects
+
+## KNOWLEDGE-WASM-030: Module Architecture - Hard Requirements 🔴 MANDATORY
+
+**File:** `knowledge-wasm-030-module-architecture-hard-requirements.md`  
+**Status:** 🔴 **MANDATORY - HARD REQUIREMENTS**  
+**Created:** 2025-12-22  
+**Category:** Architecture / Module Design / Enforcement  
+**Related ADR:** ADR-WASM-023 (Module Boundary Enforcement)
+
+**Summary:** Defines the MANDATORY module architecture for airssys-wasm. These are HARD REQUIREMENTS that MUST BE FOLLOWED without exception.
+
+**The Four Modules and Their Purposes:**
+
+| Module | Purpose | Imports From | Never Imports From |
+|--------|---------|--------------|-------------------|
+| `core/` | Shared types & abstractions | Nothing | Everything |
+| `security/` | Security logic | `core/` | `runtime/`, `actor/` |
+| `runtime/` | WASM execution | `core/`, `security/` | `actor/` |
+| `actor/` | Actor integration | `core/`, `security/`, `runtime/` | N/A |
+
+**Key Content:**
+- Module responsibilities (what belongs where)
+- Decision flow diagram (where does this code belong?)
+- Common mistakes and corrections
+- Verification commands
+- Enforcement requirements
+
+**Why This Exists:** Repeated architectural violations have caused significant development delays. This document ensures the module separation (which was designed for specific reasons) is followed.
+
+**Audience:** ALL developers, planners, implementers - MANDATORY reading before any code changes
+
+
+---
+
+## KNOWLEDGE-WASM-032: Module Boundary Violations Audit
+
+**Created:** 2025-12-22  
+**Status:** 🔴 CRITICAL - ARCHITECTURE BROKEN  
+**Category:** Architecture Audit  
+
+**Purpose:** Comprehensive audit of module boundary violations in airssys-wasm. Documents that the architecture is fundamentally broken with `core/` importing from `runtime/` and `runtime/` importing from `actor/`, violating ADR-WASM-023.
+
+**Key Topics:**
+- ADR-WASM-023 required module hierarchy
+- Violation #1: `core/config.rs` → `runtime/limits.rs` (CRITICAL)
+- Violation #2: `runtime/messaging.rs` → `actor/message/` (CRITICAL)
+- Verification commands that MUST pass
+- Required fix actions
+- CI enforcement recommendations
+- Historical context and lessons learned
+
+**Impact:** 🔴 **FATAL** - Architecture is broken. No new features until fixed.
+
+**Related:**
+- ADR-WASM-023 (Module Boundary Enforcement)
+- KNOWLEDGE-WASM-030 (Module Architecture Hard Requirements)
+- WASM-TASK-006-HOTFIX-002 (Hotfix task - NOT COMPLETED)
+
+**Use When:**
+- Before implementing ANY new code
+- Before claiming ANY task is "verified"
+- As verification checklist after ANY module changes
+
+**Verification Commands:**
+```bash
+# ALL must return NOTHING for architecture to be valid
+grep -rn "use crate::runtime" src/core/
+grep -rn "use crate::actor" src/core/
+grep -rn "use crate::actor" src/runtime/
+```
+
+**Current Status (2025-12-22):** ❌ ALL CHECKS FAIL
+
+---
+
+## KNOWLEDGE-WASM-033: AI Fatal Mistakes - Lessons Learned 🔴 MANDATORY READING
+
+**File:** `knowledge-wasm-033-ai-fatal-mistakes-lessons-learned.md`  
+**Status:** 🔴 **CRITICAL - MANDATORY READING**  
+**Created:** 2025-12-22  
+**Category:** Lessons Learned / AI Failures / Process Improvement  
+**Severity:** 🔴 **FATAL**
+
+**Summary:** Documents the FATAL MISTAKES made by AI agents during airssys-wasm development that caused architecture violations, wasted 10+ days of development time, and destroyed trust. Records specific failures: claims without evidence, proceeding without reading ADRs, ignoring module boundaries, creating STUB tests, and claiming completion without verification.
+
+**Key Topics:**
+- FATAL MISTAKE #1: Claims of "Verified" Without Evidence
+- FATAL MISTAKE #2: Proceeding Without Reading ADRs/Knowledges
+- FATAL MISTAKE #3: Ignoring Module Boundary Rules
+- FATAL MISTAKE #4: Creating STUB Tests Instead of REAL Tests
+- FATAL MISTAKE #5: Claiming Completion Without Verification
+- Root cause analysis
+- New mandatory rules
+- Verification commands that MUST be run
+- Commitment to never repeat these mistakes
+
+**Impact:** 10+ days wasted, complete loss of trust, architecture broken
+
+**Audience:** 🔴 **ALL AI AGENTS - MANDATORY READING BEFORE ANY WORK**
+
+**Related:**
+- ADR-WASM-023 (Module Boundary Enforcement)
+- KNOWLEDGE-WASM-030 (Module Architecture Hard Requirements)
+- KNOWLEDGE-WASM-032 (Module Boundary Violations Audit)
+- AGENTS.md §9-12
+

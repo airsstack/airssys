@@ -376,3 +376,35 @@ ActorSystemSubscriber (ENHANCED)
 **File:** `adr-wasm-022-circular-dependency-remediation.md`
 
 **Priority:** 🔴 CRITICAL - Must be done FIRST before ADR-WASM-021
+
+## ADR-WASM-023: Module Boundary Enforcement 🔴 MANDATORY
+
+**Status:** Accepted  
+**Date:** 2025-12-22  
+**Category:** Architecture / Module Design / MANDATORY  
+**Severity:** 🔴 **CRITICAL - HARD REQUIREMENT**
+
+**Summary:** Defines MANDATORY module boundaries for airssys-wasm. This ADR exists because repeated architectural violations have caused significant development delays.
+
+**The Four Modules:**
+- `core/` - Shared types and abstractions (imports: NOTHING)
+- `security/` - Security logic (imports: core/ only)
+- `runtime/` - WASM execution (imports: core/, security/ only)
+- `actor/` - Actor integration (imports: core/, security/, runtime/)
+
+**Key Rules:**
+- ❌ `runtime/` → `actor/` is FORBIDDEN
+- ❌ `security/` → `runtime/` or `actor/` is FORBIDDEN
+- ❌ `core/` → anything is FORBIDDEN
+
+**Enforcement:** Pre-commit verification with grep checks. Code violating these rules will be REJECTED.
+
+**Related:**
+- KNOWLEDGE-WASM-030 (detailed reference)
+- ADR-WASM-018 (three-layer architecture)
+- ADR-WASM-022 (circular dependency remediation)
+
+**File:** `adr-wasm-023-module-boundary-enforcement.md`
+
+**Priority:** 🔴 MANDATORY - All code must comply
+

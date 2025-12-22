@@ -345,6 +345,291 @@ cargo clippy --all-targets --all-features -- -D warnings
 
 ---
 
+## 9. Project High-Level Overview (CRITICAL - MUST UNDERSTAND)
+
+### ⚠️ MANDATORY: Understand What Each Project IS Before Any Work
+
+**Every agent MUST understand the high-level purpose of each sub-project BEFORE planning, implementing, reviewing, or auditing any task.**
+
+---
+
+### 9.1 airssys-wasm: WASM Plugin/Extension Platform
+
+**What It Is:**
+A WebAssembly-based plugin/extension platform similar to smart contracts on NEAR or Polkadot. It allows third-party developers to write sandboxed, secure extensions that run within a host application.
+
+**Core Concept - The Two Entities:**
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                         HOST APPLICATION                         │
+│  (Your Rust application using airssys-wasm as a library)        │
+│                                                                  │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐           │
+│  │  Component A │  │  Component B │  │  Component C │           │
+│  │  (WASM)      │  │  (WASM)      │  │  (WASM)      │           │
+│  │  = 1 Actor   │  │  = 1 Actor   │  │  = 1 Actor   │           │
+│  │              │  │              │  │              │           │
+│  │ ┌──────────┐ │  │ ┌──────────┐ │  │ ┌──────────┐ │           │
+│  │ │ Mailbox  │ │  │ │ Mailbox  │ │  │ │ Mailbox  │ │           │
+│  │ └──────────┘ │  │ └──────────┘ │  │ └──────────┘ │           │
+│  │ ┌──────────┐ │  │ ┌──────────┐ │  │ ┌──────────┐ │           │
+│  │ │ Storage  │ │  │ │ Storage  │ │  │ │ Storage  │ │           │
+│  │ │(isolated)│ │  │ │(isolated)│ │  │ │(isolated)│ │           │
+│  │ └──────────┘ │  │ └──────────┘ │  │ └──────────┘ │           │
+│  └──────────────┘  └──────────────┘  └──────────────┘           │
+│                                                                  │
+│  Communication: Erlang-style mailbox messaging (via airssys-rt) │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+**Key Architectural Principles:**
+1. **Each WASM Component = One Actor** (managed by airssys-rt)
+2. **Isolated Storage** - Each component has its own persistent storage namespace
+3. **Mailbox Communication** - Components communicate via async message passing
+4. **Deny-by-Default Security** - Components have NO capabilities until explicitly granted
+5. **WIT Interfaces** - Components interact with host via WebAssembly Interface Types
+
+**Inspiration:** Smart contract platforms (NEAR, Polkadot, Solana)
+
+**Reference Documents:**
+- `KNOWLEDGE-WASM-031`: Foundational Architecture (READ FIRST)
+- `KNOWLEDGE-WASM-002`: High-Level Overview
+- `ADR-WASM-018`: Three-Layer Architecture
+
+---
+
+### 9.2 airssys-rt: Erlang-Actor Model Runtime
+
+**What It Is:**
+A lightweight actor system inspired by Erlang/BEAM. Provides the foundation for concurrent, fault-tolerant applications.
+
+**Core Concepts:**
+- **Actors**: Lightweight processes with private state
+- **Messages**: Immutable, async communication between actors
+- **Mailboxes**: Queue of messages processed one at a time
+- **Supervisors**: Manage actor lifecycle and restart on failure
+
+**Why airssys-wasm Uses It:**
+- Each WASM component is wrapped in an actor (ComponentActor)
+- Message routing between components uses the MessageBroker
+- Supervision provides fault tolerance for component crashes
+
+---
+
+### 9.3 airssys-osl: OS Layer Framework
+
+**What It Is:**
+Operating system abstraction layer providing secure access to filesystem, network, and process management with comprehensive audit logging.
+
+**Why airssys-wasm Uses It:**
+- Security policies (ACL, RBAC)
+- Capability validation
+- Audit logging for all component operations
+- Filesystem access mediation
+
+---
+
+## 10. Module Responsibility Maps (CRITICAL - MUST FOLLOW)
+
+### ⚠️ MANDATORY: Know Module Boundaries Before Writing ANY Code
+
+---
+
+### 10.1 airssys-wasm Module Architecture
+
+**The Four Root Modules:**
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  DEPENDENCY DIRECTION (ONE WAY ONLY - NO REVERSE IMPORTS)          │
+│                                                                     │
+│   actor/  ───────►  runtime/  ───────►  security/  ───────►  core/ │
+│     │                  │                    │                  │    │
+│     │                  │                    │                  │    │
+│     └──────────────────┴────────────────────┴──────────────────┘    │
+│                         ALL can import from core/                   │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Module Responsibilities:**
+
+| Module | Purpose | OWNS | DOES NOT OWN |
+|--------|---------|------|--------------|
+| `core/` | Shared types & abstractions | ComponentId, ComponentMessage, traits, errors, configs | Any implementation logic |
+| `security/` | Security logic | Capabilities, permissions, policies, validation | WASM execution, messaging |
+| `runtime/` | WASM execution engine | WasmEngine, ComponentLoader, host functions | Message routing, actor lifecycle |
+| `actor/` | Actor system integration | ComponentActor, ComponentRegistry, MessagePublisher, CorrelationTracker | WASM internals |
+
+**FORBIDDEN IMPORTS (ADR-WASM-023):**
+
+| ❌ FORBIDDEN | Reason |
+|--------------|--------|
+| `runtime/` → `actor/` | Runtime is lower level than actor |
+| `security/` → `runtime/` | Security is lower level than runtime |
+| `security/` → `actor/` | Security is lower level than actor |
+| `core/` → anything | Core is the foundation, imports nothing |
+
+**Verification Commands:**
+```bash
+# ALL MUST RETURN NOTHING for valid architecture
+grep -rn "use crate::runtime" airssys-wasm/src/core/
+grep -rn "use crate::actor" airssys-wasm/src/core/
+grep -rn "use crate::security" airssys-wasm/src/core/
+grep -rn "use crate::actor" airssys-wasm/src/runtime/
+grep -rn "use crate::actor" airssys-wasm/src/security/
+grep -rn "use crate::runtime" airssys-wasm/src/security/
+```
+
+**Reference Documents:**
+- `ADR-WASM-023`: Module Boundary Enforcement (MANDATORY)
+- `KNOWLEDGE-WASM-030`: Module Architecture Hard Requirements
+- `KNOWLEDGE-WASM-032`: Module Boundary Violations Audit
+
+---
+
+## 11. MANDATORY ADR/Knowledge Reference Requirement (CRITICAL - NO ASSUMPTIONS)
+
+### ⚠️ THE GOLDEN RULE: NO ADR/KNOWLEDGE = NO ASSUMPTIONS = ASK USER
+
+**BEFORE planning, implementing, reviewing, or auditing ANY task:**
+
+1. ✅ **IDENTIFY** relevant ADRs in `.memory-bank/sub-projects/[project]/docs/adr/`
+2. ✅ **IDENTIFY** relevant Knowledges in `.memory-bank/sub-projects/[project]/docs/knowledges/`
+3. ✅ **READ** all relevant documents COMPLETELY
+4. ✅ **EXTRACT** architectural constraints and requirements
+5. ✅ **VERIFY** your understanding matches documented architecture
+
+### IF NO RELEVANT ADRs OR KNOWLEDGES EXIST:
+
+```
+🛑 STOP - DO NOT PROCEED WITH ASSUMPTIONS
+
+❓ ASK: "I cannot find ADRs or Knowledges for [topic]. 
+   Should I proceed with assumptions, or do you want to 
+   create these references first?"
+```
+
+### Key Reference Documents by Topic:
+
+**Module Architecture:**
+- `ADR-WASM-023`: Module Boundary Enforcement
+- `KNOWLEDGE-WASM-030`: Module Architecture Hard Requirements
+
+**Three-Layer Architecture:**
+- `ADR-WASM-018`: Three-Layer Architecture
+- `KNOWLEDGE-WASM-018`: Component Definitions
+
+**Messaging:**
+- `ADR-WASM-009`: Component Communication Model
+- `KNOWLEDGE-WASM-005`: Messaging Architecture
+- `KNOWLEDGE-WASM-024`: Component Messaging Clarifications
+- `KNOWLEDGE-WASM-029`: Messaging Patterns
+
+**Security:**
+- `ADR-WASM-005`: Capability-Based Security Model
+- `KNOWLEDGE-WASM-020`: airssys-osl Security Integration
+
+**Runtime Dependencies:**
+- `ADR-WASM-019`: Runtime Dependency Management
+- `KNOWLEDGE-WASM-019`: Runtime Dependency Architecture
+
+### Index Files for Quick Lookup:
+
+- **ADR Index**: `.memory-bank/sub-projects/[project]/docs/adr/_index.md`
+- **Knowledge Index**: `.memory-bank/sub-projects/[project]/docs/knowledges/_index.md`
+
+### Example Workflow:
+
+```
+Task: "Implement message routing in runtime/"
+
+Step 1: Check ADR index for messaging-related ADRs
+  → Found: ADR-WASM-009, ADR-WASM-020
+
+Step 2: Check Knowledge index for messaging-related docs
+  → Found: KNOWLEDGE-WASM-005, KNOWLEDGE-WASM-024, KNOWLEDGE-WASM-026
+
+Step 3: Read ADR-WASM-009
+  → Learn: Messages route through MessageBroker
+  → Learn: ActorSystemSubscriber handles delivery
+
+Step 4: Check module boundaries (ADR-WASM-023)
+  → Learn: runtime/ CANNOT import from actor/
+  → Realize: Message routing belongs in actor/, NOT runtime/
+
+Step 5: Ask user if unclear
+  → "ADR-WASM-023 says runtime/ cannot import from actor/. 
+     This means message routing should be in actor/. 
+     Should I implement there instead?"
+
+Result: Correct implementation, no architecture violations
+```
+
+### NEVER DO THIS:
+
+```
+❌ "I'll implement message routing in runtime/ because it seems logical"
+   → Wrong! Violates ADR-WASM-023
+
+❌ "I don't see an ADR for this, so I'll make my own design decisions"
+   → Wrong! Should ask user first
+
+❌ "The ADR says X but I think Y is better"
+   → Wrong! ADRs are authoritative unless user explicitly overrides
+```
+
+---
+
+## 12. Architecture Verification Requirements (CRITICAL - MANDATORY FOR ALL CODE)
+
+### ⚠️ EVERY Code Change MUST Pass Architecture Verification
+
+**Before ANY code is considered complete, run these verification commands:**
+
+### 12.1 airssys-wasm Architecture Verification
+
+```bash
+# Module Boundary Check (ADR-WASM-023)
+# ALL MUST RETURN NOTHING
+
+# Check 1: core/ has no forbidden imports
+grep -rn "use crate::runtime" airssys-wasm/src/core/
+grep -rn "use crate::actor" airssys-wasm/src/core/
+grep -rn "use crate::security" airssys-wasm/src/core/
+
+# Check 2: security/ has no forbidden imports
+grep -rn "use crate::runtime" airssys-wasm/src/security/
+grep -rn "use crate::actor" airssys-wasm/src/security/
+
+# Check 3: runtime/ has no forbidden imports
+grep -rn "use crate::actor" airssys-wasm/src/runtime/
+```
+
+**If ANY command returns results → CODE IS REJECTED**
+
+### 12.2 Enforcement at Each Stage
+
+**PLANNING** (@memorybank-planner):
+- ❌ REJECT plans that would create forbidden imports
+- ✅ Verify planned code locations match module responsibilities
+- ✅ Reference ADR-WASM-023 in plan
+
+**IMPLEMENTATION** (@memorybank-implementer):
+- 🛑 HALT if about to create forbidden import
+- ✅ Run architecture verification after each step
+- ✅ Show grep output as proof
+
+**REVIEW** (@rust-reviewer):
+- 🛑 REJECT code with architecture violations
+- ✅ Run all verification commands
+- ✅ Include verification output in review
+
+**AUDIT** (@memorybank-auditor):
+- 🛑 HALT audit if architecture violations exist
+- ✅ Run verification commands and include output
+- ✅ Architecture verification = mandatory section in audit report
+
+---
 
 **Reference:** `.aiassisted/instructions/multi-project-memory-bank.instructions.md` (lines 11-822)
 

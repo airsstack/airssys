@@ -14,89 +14,82 @@ Your goal is to execute the "Action Plan" of a task with REAL implementations on
 
 **CRITICAL RULE: ALWAYS READ AND FOLLOW TASK PLANS**
 
-## MANDATORY PRE-FLIGHT REQUIREMENTS
+---
 
-**BEFORE ANY IMPLEMENTATION STARTS:**
+# ⚠️ CRITICAL: MANDATORY PRE-IMPLEMENTATION REQUIREMENTS
 
-1. ✅ **Read Task Plan File** - ALWAYS
-   - Locate task file: `.memory-bank/sub-projects/[project]/tasks/task-[id]-[name].md`
-   - Read the ENTIRE task file
-   - Find the "Implementation Plan" or "Action Plan" section
-   - Extract EVERY requirement, step, and specification
+## THE GOLDEN RULE: NO ADR/KNOWLEDGE = NO ASSUMPTIONS = ASK USER
 
-2. ✅ **Read PROJECTS_STANDARD.md** - ALWAYS
-   - Reference: `@PROJECTS_STANDARD.md`
-   - Verify all patterns (§2.1-§6.4) before coding
-   - EVERY implementation must follow these standards
-   - No exceptions, no deviations
+**BEFORE writing ANY code, you MUST complete ALL of these steps:**
 
-3. ✅ **Verify Plan Completeness**
-   - Does the plan specify what to implement?
-   - Does the plan specify testing requirements?
-   - Does the plan specify documentation requirements?
-   - Are all acceptance criteria listed?
-   - Are all deliverables specified?
+### Step 1: Read and Understand the Plan (MANDATORY)
 
-4. ✅ **Understand Constraints**
-   - What are the hard requirements?
-   - What dependencies exist?
-   - What are the quality gates?
-   - What testing is mandatory?
+1. ✅ **Locate task file**: `.memory-bank/sub-projects/[project]/tasks/task-[id]-[name].md`
+2. ✅ **Read the ENTIRE task file**
+3. ✅ **Find the "Implementation Plan" or "Action Plan" section**
+4. ✅ **Extract EVERY requirement, step, and specification**
 
-**If plan is missing any of these, HALT and ask for clarification before starting.**
+### Step 2: Read Referenced ADRs and Knowledges (MANDATORY)
 
+1. ✅ **Check plan's ADR/Knowledge References section**
+2. ✅ **Read EACH referenced ADR completely**
+3. ✅ **Read EACH referenced Knowledge document completely**
+4. ✅ **Extract constraints and requirements that apply**
 
-## 1b. Identify Required Fixtures - ALWAYS (CRITICAL)
+**IF PLAN HAS NO ADR/KNOWLEDGE REFERENCES:**
+- 🛑 **HALT** - This is a defective plan
+- ❓ **ASK**: "The plan has no ADR/Knowledge references. Should I identify relevant ones, or is this intentional?"
 
-**Before writing ANY integration tests:**
+### Step 3: Understand Project High-Level (MANDATORY)
 
-- [ ] Read plan and identify what fixtures/test data is needed
-- [ ] For EACH fixture:
-  - [ ] Check if it exists in the project
-  - [ ] If MISSING:
-    - ❌ DO NOT write stub tests as a workaround
-    - ✅ CREATE the fixture FIRST
-    - ✅ Verify fixture works before writing tests
-    - Then proceed to write real integration tests
+1. ✅ **Read AGENTS.md Section 9** - What is this project?
+2. ✅ **Read AGENTS.md Section 10** - Module responsibilities
+3. ✅ **Read AGENTS.md Section 11** - ADR/Knowledge requirements
 
-**If any required fixture is missing:**
-- 🛑 HALT implementation
-- Create prerequisite task to build fixture
-- Write in plan: "BLOCKER: Awaiting [fixture-name] fixture creation"
-- Do NOT proceed with stub tests
+### Step 4: Verify Module Architecture (MANDATORY for airssys-wasm)
 
-**Fixture Verification Example:**
+1. ✅ **Read ADR-WASM-023** - Module Boundary Enforcement
+2. ✅ **Read KNOWLEDGE-WASM-030** - Module Architecture Hard Requirements
+3. ✅ **Confirm where code will be placed**
+4. ✅ **Run verification commands BEFORE writing code**:
+
 ```bash
-# For WASM fixtures, verify they're real binaries
-file airssys-wasm/tests/fixtures/*.wasm
-# Should output: "WebAssembly (wasm) module"
+# Verify current state is clean
+grep -rn "use crate::runtime" airssys-wasm/src/core/
+grep -rn "use crate::actor" airssys-wasm/src/core/
+grep -rn "use crate::actor" airssys-wasm/src/runtime/
 
-# For other fixtures
-ls -lh tests/fixtures/
-# Should show actual files, not placeholders
-```
-
-**Common mistake (DO NOT DO THIS):**
-```
-Plan says: "test_wasm_message_reception needs basic-handle-message.wasm"
-Fixture doesn't exist
-Agent thinks: "I'll write metrics API tests instead"
-Result: Stub test marked complete (WRONG!)
+# All must return NOTHING before proceeding
 ```
 
-**Right approach:**
-```
-Plan says: "test_wasm_message_reception needs basic-handle-message.wasm"
-Fixture doesn't exist
-Agent creates: Prerequisite task for fixture
-Agent creates: basic-handle-message.wasm
-Agent writes: Real test that loads actual WASM
-Result: Real test proves WASM works (RIGHT!)
-```
+### Step 5: Read PROJECTS_STANDARD.md (MANDATORY)
+
+1. ✅ **Reference**: `@PROJECTS_STANDARD.md`
+2. ✅ **Verify all patterns (§2.1-§6.4) before coding**
+3. ✅ **EVERY implementation must follow these standards**
 
 ---
 
-## CRITICAL: ALL IMPLEMENTATIONS MUST INCLUDE BOTH UNIT AND INTEGRATION TESTS
+# ⚠️ CRITICAL: FIXTURE VERIFICATION (BEFORE Integration Tests)
+
+**BEFORE writing ANY integration test:**
+
+1. ✅ **Identify all fixtures referenced in plan**
+2. ✅ **Verify each fixture exists**:
+   ```bash
+   ls -la airssys-wasm/tests/fixtures/
+   file airssys-wasm/tests/fixtures/*.wasm
+   ```
+3. ✅ **Test that fixture can be loaded**
+4. ✅ **If ANY fixture is missing**:
+   - ❌ Do NOT write stub tests as placeholder
+   - ✅ Create the fixture FIRST
+   - ✅ Verify it works
+   - ✅ THEN write real integration tests
+
+---
+
+# ⚠️ CRITICAL: ALL IMPLEMENTATIONS MUST INCLUDE BOTH UNIT AND INTEGRATION TESTS
 
 **EVERY implementation task MUST include:**
 
@@ -121,77 +114,67 @@ Result: Real test proves WASM works (RIGHT!)
 # Workflow (Standard Implementation Procedure)
 
 ## 1. Pre-flight Check (CRITICAL)
-- **Locate Task/Plan** - Find the task file
-- **Read Full Plan** - Read ENTIRE task file from beginning to end
-- **Extract Requirements** - List ALL explicit requirements from plan
-- **Read PROJECTS_STANDARD.md** - Verify pattern compliance
-- **Verify Plan Completeness** - Does it specify testing and documentation?
-- **Extract Constraints** - Note all limitations and dependencies
+
+```
+MANDATORY CHECKLIST:
+[ ] Task plan file located and read completely
+[ ] All ADR references from plan read completely
+[ ] All Knowledge references from plan read completely
+[ ] AGENTS.md Section 9-12 understood
+[ ] ADR-WASM-023 read (module boundaries)
+[ ] KNOWLEDGE-WASM-030 read (module architecture)
+[ ] PROJECTS_STANDARD.md patterns verified
+[ ] Architecture verification commands run (all return nothing)
+[ ] Fixture existence verified (for integration tests)
+```
 
 **HALT if:**
 - Plan doesn't exist
 - Plan is incomplete
+- Plan has no ADR/Knowledge references (ask user)
 - Plan doesn't specify testing requirements
 - Plan doesn't specify deliverables clearly
+- Architecture verification fails (forbidden imports exist)
+- Required fixtures don't exist
 
 ## 2. Analyze Plan & Extract Specifications
 
 **MANDATORY ANALYSIS:**
 - What specific code changes does plan require?
+- What module(s) will contain the code?
 - What are the exact acceptance criteria?
 - What tests does plan specify?
 - What documentation does plan require?
-- What is the implementation checklist?
+- What ADR constraints apply?
+- What module boundaries must be respected?
 
 **Create a mapping of:**
 - Plan step → Implementation task
+- Plan step → Module location
 - Plan requirement → Test case
 - Plan deliverable → Code location
 - Plan constraint → Pattern/standard to follow
+- ADR constraint → Verification command
 
-## 3. Initialize Implementation
-
-- Read Context files from `.memory-bank/sub-projects/[project]/`
-  - `active-context.md`
-  - `tech-context.md`
-  - `system-patterns.md`
-- Analyze existing code structure
-- Identify where new code goes
-- **Identify test requirements in plan**
-
-## 4. Implementation with MANDATORY TESTING
-
-
-### Pre-Test Fixture Check (BEFORE writing integration tests)
-
-Before writing ANY integration test:
-1. [ ] Identify all fixtures referenced in plan
-2. [ ] Verify each fixture exists
-3. [ ] Test that fixture can be loaded
-4. [ ] If ANY fixture is missing:
-   - ❌ Do NOT write stub tests as placeholder
-   - ✅ Create it FIRST
-   - ✅ Verify it works
-   - ✅ THEN write real integration tests
+## 3. Implementation with MANDATORY TESTING
 
 ### Step Structure (FOLLOW PLAN EXACTLY):
+
 ```
 FOR EACH STEP IN PLAN:
   1. READ what the plan says to implement
-  2. Implement exactly what plan specifies (no more, no less)
-  3. Write UNIT TESTS in module #[cfg(test)]
-  4. Write INTEGRATION TESTS in tests/
-  5. Run: cargo test --lib
-  6. Run: cargo test --test [test-file]
-  7. Verify: 0 warnings, 100% tests passing
-  8. Verify: Implementation matches plan specification
-  9. Mark step [x] ONLY if:
-     - Tests pass
-     - Code follows PROJECTS_STANDARD.md
-     - Implementation matches plan exactly
+  2. VERIFY module location per ADR-WASM-023
+  3. Implement exactly what plan specifies (no more, no less)
+  4. Write UNIT TESTS in module #[cfg(test)]
+  5. Write INTEGRATION TESTS in tests/
+  6. Run: cargo test --lib
+  7. Run: cargo test --test [test-file]
+  8. Run: Architecture verification commands
+  9. Verify: 0 warnings, 100% tests passing, no forbidden imports
+  10. Mark step [x] ONLY if ALL verifications pass
 ```
 
-### CRITICAL RULE: Code + Tests + Plan Adherence are INSEPARABLE
+### CRITICAL RULE: Code + Tests + Plan + Architecture = INSEPARABLE
 
 **YOU MUST NOT:**
 - ❌ Complete code without unit tests
@@ -202,9 +185,14 @@ FOR EACH STEP IN PLAN:
 - ❌ Deviate from plan specifications
 - ❌ Implement features plan doesn't require
 - ❌ Skip features plan requires
+- ❌ Create forbidden imports (violate ADR-WASM-023)
+- ❌ Place code in wrong module
+- ❌ Proceed with assumptions when ADRs should be consulted
 
 **YOU MUST:**
 - ✅ Follow plan exactly - implement what plan says, nothing more/less
+- ✅ Verify module boundaries before writing code
+- ✅ Run architecture verification after each step
 - ✅ Write unit tests in module #[cfg(test)]
 - ✅ Write integration tests in tests/
 - ✅ Test both success and error paths
@@ -213,19 +201,49 @@ FOR EACH STEP IN PLAN:
 - ✅ Ensure 0 compiler/clippy warnings
 - ✅ Follow PROJECTS_STANDARD.md patterns exactly
 - ✅ Document implementation matches plan
+- ✅ Show architecture verification output as proof
 
-### Implementation Standards:
-- Real, working implementations
-- Proper error handling
-- Production-ready code
-- Microsoft Rust Guidelines compliance
-- PROJECTS_STANDARD.md compliance
-- Plan specification compliance
+---
+
+## 4. Architecture Verification (MANDATORY - AFTER EACH STEP)
+
+**For airssys-wasm, run these commands after EVERY code change:**
+
+```bash
+# Check 1: core/ has no forbidden imports
+grep -rn "use crate::runtime" airssys-wasm/src/core/
+grep -rn "use crate::actor" airssys-wasm/src/core/
+grep -rn "use crate::security" airssys-wasm/src/core/
+
+# Check 2: security/ has no forbidden imports
+grep -rn "use crate::runtime" airssys-wasm/src/security/
+grep -rn "use crate::actor" airssys-wasm/src/security/
+
+# Check 3: runtime/ has no forbidden imports
+grep -rn "use crate::actor" airssys-wasm/src/runtime/
+```
+
+**ALL MUST RETURN NOTHING.**
+
+**If ANY command returns results:**
+- 🛑 **HALT IMMEDIATELY**
+- ❌ Do NOT proceed to next step
+- 🔧 Fix the architecture violation
+- ✅ Re-run verification
+- ✅ Continue only when all pass
+
+---
 
 ## 5. Testing Checklist (BEFORE marking step complete)
 
 ```
-VERIFY PLAN REQUIREMENTS FIRST:
+ARCHITECTURE VERIFICATION:
+  [ ] grep core/ for forbidden imports - NOTHING returned
+  [ ] grep security/ for forbidden imports - NOTHING returned  
+  [ ] grep runtime/ for forbidden imports - NOTHING returned
+  [ ] Show actual grep output as proof
+
+VERIFY PLAN REQUIREMENTS:
   [ ] Understand what plan specifies
   [ ] Confirm implementation matches plan
   [ ] Check all acceptance criteria met
@@ -266,16 +284,21 @@ Plan Compliance:
   [ ] All deliverables present
 ```
 
+---
+
 ## 6. Progress Tracking
 
-After each completed step WITH PASSING TESTS AND PLAN COMPLIANCE:
+After each completed step WITH PASSING TESTS, ARCHITECTURE VERIFICATION, AND PLAN COMPLIANCE:
 - Update Checklist: Mark step as `[x]`
 - Document: What was implemented
+- Document: Which module contains the code
 - Document: How it matches plan
 - Document: What tests were added
 - Document: Test results (all passing)
-- Document: Pattern compliance verified
+- Document: Architecture verification output (all empty)
 - Continue to next step
+
+---
 
 ## 7. Error Handling
 
@@ -286,9 +309,45 @@ After each completed step WITH PASSING TESTS AND PLAN COMPLIANCE:
 - **Deviation from Plan**: 🛑 HALT - Implementation must match plan exactly
 - **Pattern Violation**: 🛑 HALT - Fix PROJECTS_STANDARD.md violations
 - **Missing Deliverables**: 🛑 HALT - Plan specifies what must be delivered
+- **Architecture Violation**: 🛑 HALT - Fix forbidden imports immediately
+- **Missing ADR Reference**: 🛑 HALT - Ask user before proceeding
+
+---
+
+# ANTI-PATTERNS TO AVOID
+
+## ❌ DON'T: Write code without checking module boundaries first
+**Bad**: "I'll add CorrelationTracker to runtime/ since host functions need it"
+**Good**: "ADR-WASM-023 says runtime/ cannot import from actor/. CorrelationTracker must go in actor/ or core/."
+
+## ❌ DON'T: Skip architecture verification
+**Bad**: "This is a small change, no need to run grep"
+**Good**: "Per ADR-WASM-023, every code change must verify module boundaries. Running verification... [output]"
+
+## ❌ DON'T: Proceed when verification fails
+**Bad**: "grep found some imports but they're probably fine"
+**Good**: "grep found forbidden imports. HALTING. Fixing architecture before proceeding."
+
+## ❌ DON'T: Make assumptions without ADR references
+**Bad**: "I'll design this message routing myself since the plan didn't specify"
+**Good**: "The plan references ADR-WASM-009 for messaging. Reading that first..."
+
+## ❌ DON'T: Claim verification without showing output
+**Bad**: "Architecture verified ✅"
+**Good**: "Architecture verified ✅. Output:
+```
+$ grep -rn 'use crate::actor' airssys-wasm/src/runtime/
+[no output - clean]
+```"
+
+---
 
 # Important Behavior
 
+- **ADR/Knowledge First**: Always read referenced documents before coding
+- **Ask, Don't Assume**: If uncertain, ask user
+- **Module Architecture Aware**: Always verify boundaries before and after coding
+- **Show Verification Output**: Always include actual grep output as proof
 - **Plan-Driven Development**: Never deviate from plan specifications
 - **Code + Tests Together**: Never separate implementation from testing
 - **100% Test Pass Rate**: All tests must pass before step complete
@@ -299,3 +358,12 @@ After each completed step WITH PASSING TESTS AND PLAN COMPLIANCE:
 - **Pattern Compliance**: All code must follow PROJECTS_STANDARD.md
 - **Plan Compliance**: Implementation must match plan exactly
 - **Quality First**: Quality gates are not optional
+
+---
+
+**REMEMBER**: 
+- Architecture verification is MANDATORY - show the grep output
+- Tests are MANDATORY - no code without tests
+- ADR compliance is MANDATORY - read referenced documents
+- Plan compliance is MANDATORY - implement exactly what's specified
+

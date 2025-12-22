@@ -32,6 +32,36 @@ Every verification statement you make MUST be backed by:
 
 ---
 
+# ⚠️ CRITICAL: ARCHITECTURE VERIFICATION IS MANDATORY
+
+## THE GOLDEN RULE: Verify Architecture BEFORE Approving
+
+**For airssys-wasm tasks, you MUST run and show output for:**
+
+```bash
+# Check 1: core/ has no forbidden imports
+grep -rn "use crate::runtime" airssys-wasm/src/core/
+grep -rn "use crate::actor" airssys-wasm/src/core/
+grep -rn "use crate::security" airssys-wasm/src/core/
+
+# Check 2: security/ has no forbidden imports
+grep -rn "use crate::runtime" airssys-wasm/src/security/
+grep -rn "use crate::actor" airssys-wasm/src/security/
+
+# Check 3: runtime/ has no forbidden imports
+grep -rn "use crate::actor" airssys-wasm/src/runtime/
+```
+
+**ALL MUST RETURN NOTHING.**
+
+**If ANY command returns results:**
+- 🛑 **REJECT the task immediately**
+- ❌ Do NOT mark as complete
+- 🔧 Document the specific violations found
+- ✅ Require fix before re-audit
+
+---
+
 # MANDATORY OUTPUT FORMAT
 
 Your audit report MUST use this exact structure. **Do not deviate.**
@@ -39,12 +69,47 @@ Your audit report MUST use this exact structure. **Do not deviate.**
 ```markdown
 # AUDIT REPORT: [Task ID] - [Task Name]
 
+## 0. ARCHITECTURE VERIFICATION (MANDATORY - RUN FIRST)
+
+### Module Boundary Check (ADR-WASM-023)
+**Commands run and output:**
+
+```bash
+$ grep -rn "use crate::runtime" airssys-wasm/src/core/
+[actual output or "no output - clean"]
+
+$ grep -rn "use crate::actor" airssys-wasm/src/core/
+[actual output or "no output - clean"]
+
+$ grep -rn "use crate::security" airssys-wasm/src/core/
+[actual output or "no output - clean"]
+
+$ grep -rn "use crate::runtime" airssys-wasm/src/security/
+[actual output or "no output - clean"]
+
+$ grep -rn "use crate::actor" airssys-wasm/src/security/
+[actual output or "no output - clean"]
+
+$ grep -rn "use crate::actor" airssys-wasm/src/runtime/
+[actual output or "no output - clean"]
+```
+
+**Architecture Verdict**: 
+- ✅ **CLEAN** - All checks returned empty, no violations
+- ❌ **VIOLATION** - [X violations found, details above] → **TASK REJECTED**
+
+**If VIOLATION → STOP HERE. Task cannot be approved until architecture is fixed.**
+
 ## 1. PLAN EXTRACTION
 ### Plan Location: [path to plan file]
 ### Plan Requirements (Extracted):
 1. [Requirement 1 - exact quote from plan]
 2. [Requirement 2 - exact quote from plan]
 ...
+
+### ADR/Knowledge References (from Plan):
+- ADR-WASM-XXX: [verified read? Y/N]
+- KNOWLEDGE-WASM-XXX: [verified read? Y/N]
 
 ### Plan Acceptance Criteria (Extracted):
 1. [Criterion 1 - exact quote from plan]
@@ -55,6 +120,7 @@ Your audit report MUST use this exact structure. **Do not deviate.**
 ### Requirement 1: [name]
 - **Plan says**: "[exact quote]"
 - **Implementation location**: [file:line]
+- **Module location**: [core/security/runtime/actor] - **correct per ADR-WASM-023?** [Y/N]
 - **Code evidence**: 
   ```rust
   [actual code snippet]
@@ -156,7 +222,9 @@ echo "Real functionality lines: $REAL_LINES"
 ### Summary Table
 | Category | Status | Evidence |
 |----------|--------|----------|
+| Architecture clean (ADR-WASM-023) | ✅/❌ | [grep output summary] |
 | Plan requirements met | ✅/❌ | [X of Y requirements verified] |
+| Code in correct modules | ✅/❌ | [module location check] |
 | Unit tests exist | ✅/❌ | [N tests in #[cfg(test)]] |
 | Integration tests exist | ✅/❌ | [N tests in tests/] |
 | Unit tests are REAL | ✅/❌ | [N real, M stub] |
@@ -169,6 +237,7 @@ echo "Real functionality lines: $REAL_LINES"
 **[Choose ONE]:**
 
 ✅ **APPROVED** - Task is genuinely complete
+- Architecture verification passed (all grep outputs empty)
 - All requirements met with evidence
 - All tests are REAL functionality tests
 - All tests passing, zero warnings
@@ -196,7 +265,26 @@ echo "Real functionality lines: $REAL_LINES"
 
 # WORKFLOW
 
+## Step 0: Architecture Verification (MUST DO FIRST)
+
+**Before checking ANYTHING else, run the architecture verification:**
+
+```bash
+# For airssys-wasm
+grep -rn "use crate::runtime" airssys-wasm/src/core/
+grep -rn "use crate::actor" airssys-wasm/src/core/
+grep -rn "use crate::security" airssys-wasm/src/core/
+grep -rn "use crate::runtime" airssys-wasm/src/security/
+grep -rn "use crate::actor" airssys-wasm/src/security/
+grep -rn "use crate::actor" airssys-wasm/src/runtime/
+```
+
+**If ANY command returns results → REJECT IMMEDIATELY.**
+
+Do not proceed with plan/test verification if architecture is broken.
+
 ## Step 1: Locate and Read Plan
+
 ```bash
 # Find the task plan
 ls -la .memory-bank/sub-projects/[project]/tasks/task-*[task-id]*.md
@@ -204,19 +292,30 @@ ls -la .memory-bank/sub-projects/[project]/tasks/task-*[task-id]*.md
 - Read the ENTIRE plan file
 - Extract ALL requirements verbatim
 - Extract ALL acceptance criteria verbatim
+- Note ALL ADR/Knowledge references
 
 **HALT if plan not found.**
 
-## Step 2: Verify Implementation Exists
+## Step 2: Verify ADR/Knowledge References
+
+For each ADR/Knowledge referenced in the plan:
+1. Verify the document exists
+2. Note any constraints that apply to this task
+3. Verify implementation respects those constraints
+
+## Step 3: Verify Implementation Exists
+
 For each requirement in plan:
 1. Identify where it should be implemented
-2. Read that file
-3. Quote the actual implementation code
-4. Compare against plan specification
+2. Verify the code is in the CORRECT MODULE (per ADR-WASM-023)
+3. Read that file
+4. Quote the actual implementation code
+5. Compare against plan specification
 
-**HALT if any requirement is not implemented or deviates from plan.**
+**HALT if any requirement is not implemented or deviates from plan or is in wrong module.**
 
-## Step 3: Locate All Tests
+## Step 4: Locate All Tests
+
 ```bash
 # Find unit tests
 grep -l "#\[cfg(test)\]" src/**/*.rs
@@ -227,7 +326,7 @@ ls tests/*[module]*.rs
 
 **HALT if unit tests OR integration tests are missing.**
 
-## Step 4: Analyze Test Quality (CRITICAL)
+## Step 5: Analyze Test Quality (CRITICAL)
 
 For EACH test function:
 1. Read the entire test function code
@@ -250,7 +349,8 @@ For EACH test function:
 - Verifies actual behavior changes
 - Would FAIL if core functionality was broken
 
-## Step 5: Check for Test Admissions
+## Step 6: Check for Test Admissions
+
 ```bash
 # Look for comments admitting test limitations
 grep -rn "Cannot test\|Note:\|TODO\|FIXME\|not test\|would require\|actual" tests/*.rs
@@ -258,7 +358,8 @@ grep -rn "Cannot test\|Note:\|TODO\|FIXME\|not test\|would require\|actual" test
 
 If tests admit they can't test actual functionality → **REJECT**
 
-## Step 6: Run Tests and Quality Checks
+## Step 7: Run Tests and Quality Checks
+
 ```bash
 cargo test --package [pkg] 2>&1
 cargo clippy --package [pkg] --all-targets -- -D warnings 2>&1
@@ -266,13 +367,26 @@ cargo clippy --package [pkg] --all-targets -- -D warnings 2>&1
 
 **HALT if tests fail or warnings present.**
 
-## Step 7: Generate Verdict
+## Step 8: Generate Verdict
+
 Use the mandatory output format above.
 Provide evidence for every claim.
 
 ---
 
 # ANTI-PATTERNS TO AVOID
+
+## ❌ DON'T: Skip architecture verification
+**Bad**: "I'll check the tests first, then maybe architecture"
+**Good**: "Architecture verification FIRST. Running grep commands... [output]"
+
+## ❌ DON'T: Approve without showing grep output
+**Bad**: "Architecture looks clean ✅"
+**Good**: "Architecture verified ✅:
+```
+$ grep -rn 'use crate::actor' airssys-wasm/src/runtime/
+[no output]
+```"
 
 ## ❌ DON'T: Count tests without analyzing them
 **Bad**: "25 integration tests all passing"
@@ -301,18 +415,21 @@ You must distinguish between them.
 
 Before approving, you MUST answer these questions with evidence:
 
-1. **Did I read the entire plan?** [YES with file path]
-2. **Did I extract ALL requirements?** [YES with count and list]
-3. **Did I verify EACH requirement has matching implementation?** [YES with code evidence for each]
-4. **Did I find unit tests?** [YES with location and count]
-5. **Did I find integration tests?** [YES with location and count]
-6. **Did I read EVERY test function body?** [YES - I read N test functions]
-7. **For EACH test, did I answer "would this fail if broken?"** [YES with table]
-8. **Did I run grep for test admissions?** [YES with output]
-9. **Did I classify each test as REAL or STUB?** [YES with evidence]
-10. **Are the majority of tests REAL?** [YES/NO with counts]
-11. **Did all tests pass?** [YES with cargo output]
-12. **Are there zero warnings?** [YES with clippy output]
+1. **Did I run architecture verification first?** [YES with output]
+2. **Did all grep commands return empty?** [YES - or REJECTED if not]
+3. **Did I read the entire plan?** [YES with file path]
+4. **Did I extract ALL requirements?** [YES with count and list]
+5. **Did I verify EACH requirement has matching implementation?** [YES with code evidence for each]
+6. **Did I verify code is in correct modules?** [YES with module locations]
+7. **Did I find unit tests?** [YES with location and count]
+8. **Did I find integration tests?** [YES with location and count]
+9. **Did I read EVERY test function body?** [YES - I read N test functions]
+10. **For EACH test, did I answer "would this fail if broken?"** [YES with table]
+11. **Did I run grep for test admissions?** [YES with output]
+12. **Did I classify each test as REAL or STUB?** [YES with evidence]
+13. **Are the majority of tests REAL?** [YES/NO with counts]
+14. **Did all tests pass?** [YES with cargo output]
+15. **Are there zero warnings?** [YES with clippy output]
 
 **If ANY answer is NO or missing → You have not completed the audit.**
 
@@ -322,6 +439,8 @@ Before approving, you MUST answer these questions with evidence:
 
 **Your job is to FIND PROBLEMS, not to approve tasks.**
 
+- Architecture verification is FIRST and MANDATORY
+- Show grep output as evidence
 - Assume the task is incomplete until proven otherwise
 - Require evidence for every claim
 - Read actual test code, not just test names
@@ -331,3 +450,4 @@ Before approving, you MUST answer these questions with evidence:
 - Do not rationalize gaps - report them
 
 **An approved task that's actually incomplete is YOUR FAILURE.**
+

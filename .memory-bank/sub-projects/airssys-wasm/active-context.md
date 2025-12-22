@@ -1,291 +1,157 @@
 # airssys-wasm Active Context
 
-**Last Verified:** 2025-12-22  
-**Current Phase:** Block 5 Phase 3 - 🚀 IN PROGRESS (2/3 tasks complete) | Architecture Hotfix ✅ COMPLETE  
-**Overall Progress:** Block 3 100% ✅ | Block 4 100% ✅ | Block 5 Phase 1 100% ✅ | Phase 2 100% ✅ | Phase 3 67% (2/3) | Hotfix Phase 1 ✅ | Hotfix Phase 2 ✅
-
-## 🔧 Architecture Hotfix Status ✅ COMPLETE
-
-### Phase 1 (Circular Dependency) ✅ COMPLETE (2025-12-21)
-
-**What Was Fixed:**
-- ✅ ComponentMessage and ComponentHealthStatus moved to `core/component_message.rs`
-- ✅ `messaging_subscription.rs` moved from `runtime/` to `actor/message/`
-- ✅ All imports updated across 10+ files
-- ✅ Zero `runtime/ → actor/` imports verified
-
-### Phase 2 (Duplicate Runtime) ✅ COMPLETE (2025-12-22)
-
-**What Was Fixed:**
-- ✅ Task 2.1: Deleted ~400 lines of legacy workaround code (WasmRuntime, WasmExports, WasmBumpAllocator, HandleMessageParams, HandleMessageResult)
-- ✅ Task 2.2: Added `component_engine: Option<Arc<WasmEngine>>` and `component_handle: Option<ComponentHandle>` to ComponentActor
-- ✅ Task 2.3: Rewrote Child::start() to use `WasmEngine::load_component()` instead of core WASM API
-- ✅ Task 2.4: Rewrote Actor::handle() to use Component Model for message handling
-- ✅ Task 2.5: Added `WasmEngine::call_handle_message()` method (+127 lines)
-- ✅ Task 2.6: Updated all tests - deleted obsolete tests, fixed error expectations
-
-**Test Cleanup (2025-12-22):**
-- ✅ Deleted `message_reception_integration_tests.rs` (433 lines) - used deleted legacy APIs
-- ✅ Deleted `handle_message_export_integration_tests.rs` (556 lines) - used deleted legacy APIs
-- ✅ Fixed `messaging_reception_tests.rs` - updated error type expectation (`Internal` instead of `ComponentNotFound`)
-- ✅ Removed 2 flaky performance tests from `messaging_backpressure_tests.rs` (30ns/50ns timing assertions)
-- ✅ Updated stale file references in comments
-- ✅ Fixed `Arc::clone()` style issue
-
-**Verification Results:**
-- 955 lib tests passing
-- All integration tests passing (0 failures)
-- Zero clippy warnings
-- Clean build
-
-**What's Now True:**
-1. Component Model is **MANDATORY** - ComponentActor requires `with_component_engine(engine)`
-2. WIT Interfaces are **ACTIVE** - Previously 100% bypassed, now used
-3. Generated Bindings are **USED** - Via `WasmEngine::call_handle_message()`
-4. Type Safety Restored - Automatic marshalling via Canonical ABI
-5. Zero circular dependencies
-6. No flaky tests in test suite
+**Last Updated:** 2025-12-22  
+**Current Status:** 🔴 **ARCHITECTURE BROKEN - ALL WORK BLOCKED**  
+**Blocking Issue:** Module boundary violations per ADR-WASM-023
 
 ---
 
-## 🚀 Phase 3 IN PROGRESS: Request-Response Pattern
+## 🔴 CRITICAL: ARCHITECTURE IS BROKEN
 
-**Block 5 Phase 3 - Task 3.2 COMPLETE (2/3 tasks)**
+### The Truth (Verified 2025-12-22)
 
-| Task | Description | Status | Tests | Review |
-|------|-------------|--------|-------|--------|
-| 3.1 | send-request Host Function | ✅ COMPLETE | 15 unit + 14 integration | 9.0/10 (Approved) |
-| 3.2 | Response Routing and Callbacks | ✅ COMPLETE | 21 unit + 8 integration | 9.2/10 (Approved) |
-| 3.3 | Timeout and Cancellation | ⏳ Not started | - | - |
+**The airssys-wasm module architecture violates its own rules (ADR-WASM-023).**
 
-**Phase 3 Progress:** 2/3 tasks complete (67%)
+Despite multiple previous claims of "fixes" and "verification," the following violations exist:
 
----
+### Violation #1: `core/` → `runtime/` ❌
 
-## Task 3.2 Completion Details
+**File:** `src/core/config.rs:82`
+```rust
+use crate::runtime::limits::{CpuConfig, MemoryConfig, ResourceConfig, ResourceLimits};
+```
 
-**Status:** ✅ COMPLETE (2025-12-22)  
-**Audit:** APPROVED by @memorybank-auditor  
-**Verification:** VERIFIED by @memorybank-verifier  
-**Code Review:** 9.2/10 by @rust-reviewer (APPROVED)
+**Why This Is Fatal:**
+- `core/` is the foundation - NOTHING should be imported from other modules
+- Every module depends on `core/`, so this creates implicit transitive dependencies
+- This inverts the entire dependency hierarchy
 
-### Implementation Summary
-- ✅ `ResponseRouter` struct for routing responses via CorrelationTracker::resolve()
-- ✅ `ResponseRouterStats` for metrics tracking
-- ✅ `call_handle_callback()` method in WasmEngine
-- ✅ Cleanup tracking in CorrelationTracker (completed_count, timeout_count)
-- ✅ KNOWLEDGE-WASM-029 pattern followed
+### Violation #2: `runtime/` → `actor/` ❌
 
-### Files Created
-| File | Lines | Purpose |
-|------|-------|---------|
-| `tests/fixtures/callback-receiver-component.wat` | 122 | WASM callback fixture |
-| `tests/response_routing_integration_tests.rs` | ~362 | 8 integration tests |
+**File:** `src/runtime/messaging.rs:78`
+```rust
+use crate::actor::message::CorrelationTracker;
+```
 
-### Files Modified
-| File | Changes |
-|------|---------|
-| `src/runtime/messaging.rs` | + ResponseRouter (~155 lines) |
-| `src/runtime/engine.rs` | + call_handle_callback (~80 lines) |
-| `src/actor/message/correlation_tracker.rs` | + cleanup tracking (~40 lines) |
-
-### Test Results
-- 21 unit tests (10 messaging + 6 correlation_tracker + 5 engine)
-- 8 integration tests
-- All 29 tests passing
+**Why This Is Fatal:**
+- `runtime/` should only import from `core/` and `security/`
+- `actor/` is meant to depend on `runtime/`, not the other way around
+- This creates potential circular dependency issues
 
 ---
 
-## Task 3.1 Completion Details
+## Required Module Hierarchy (ADR-WASM-023)
 
-**Status:** ✅ COMPLETE (2025-12-22)  
-**Audit:** APPROVED by @memorybank-auditor  
-**Verification:** VERIFIED by @memorybank-verifier  
-**Code Review:** 9.0/10 by @rust-reviewer (APPROVED WITH COMMENTS)
+```
+core/     → imports NOTHING from crate
+security/ → imports core/ only  
+runtime/  → imports core/, security/ only
+actor/    → imports core/, security/, runtime/
+```
 
-### Implementation Summary
-- ✅ `SendRequestHostFunction` struct implementing request-response pattern
-- ✅ Correlation tracker integration for request tracking
-- ✅ Request ID generation using UUID v4
-- ✅ Timeout management via existing TimeoutHandler
-- ✅ O(1) request tracking via DashMap-based CorrelationTracker
-
-### Files Changed
-| File | Changes |
-|------|---------|
-| `src/runtime/messaging.rs` | + CorrelationTracker field, accessor, request metrics, 5 unit tests |
-| `src/runtime/async_host.rs` | + SendRequestHostFunction (~200 lines), imports, 10 unit tests |
-| `src/runtime/mod.rs` | + SendRequestHostFunction export |
-| `tests/send_request_host_function_tests.rs` | **NEW**: 14 integration tests (~540 lines) |
-
-### Test Results
-- 15 unit tests (10 in async_host.rs + 5 in messaging.rs)
-- 14 integration tests in send_request_host_function_tests.rs
-- All 29 tests passing
-- 970 total lib tests passing
-
-### Code Review Issues Fixed
-1. ✅ Added clarifying comment for unused oneshot receiver (Task 3.2 scope)
-2. ✅ Removed dead code `register()` method per YAGNI
-3. ✅ Fixed "Layer 4" comment to "Layer 3"
+**Current Reality:**
+```
+core/     → imports runtime/ ❌ VIOLATION
+runtime/  → imports actor/ ❌ VIOLATION
+```
 
 ---
 
-## 🎉 Phase 2 COMPLETE: Fire-and-Forget Messaging
+## Verification Commands (Run These Before ANY Work)
 
-**Block 5 Phase 2 is 100% COMPLETE with all 3 tasks verified!**
+```bash
+# ALL must return NOTHING for architecture to be valid
 
-| Task | Description | Status | Tests | Review |
-|------|-------------|--------|-------|--------|
-| 2.1 | send-message Host Function | ✅ COMPLETE | 26 tests | ✅ Verified |
-| 2.2 | handle-message Component Export | ✅ COMPLETE | 12 tests | ✅ Verified |
-| 2.3 | Fire-and-Forget Performance | ✅ COMPLETE | 5 benchmarks + 8 tests | ✅ Verified |
+# Check 1: core/ should NEVER import from crate modules
+grep -rn "use crate::runtime" airssys-wasm/src/core/
+grep -rn "use crate::actor" airssys-wasm/src/core/
+grep -rn "use crate::security" airssys-wasm/src/core/
 
-**Phase 2 Progress:** 3/3 tasks complete (100%) 🎉
+# Check 2: runtime/ should NEVER import from actor/
+grep -rn "use crate::actor" airssys-wasm/src/runtime/
+```
 
-**Performance Results:**
-- Single Sender Throughput: **1.71M msg/sec** (171x over 10k target)
-- Sustained Throughput: **1.87M msg/sec** (187x over 10k target)
+**Current Results (2025-12-22):**
+```
+$ grep -rn "use crate::runtime" airssys-wasm/src/core/
+src/core/config.rs:82:use crate::runtime::limits::{...}  ← VIOLATION
 
----
-
-## Task 2.3 Completion Details
-
-**Status:** ✅ COMPLETE (2025-12-22)  
-**Audit:** APPROVED by @memorybank-auditor  
-**Verification:** VERIFIED by @memorybank-verifier
-
-### Implementation Summary
-- ✅ 5 benchmarks in `benches/fire_and_forget_benchmarks.rs` (280 lines)
-- ✅ 8 integration tests in `tests/fire_and_forget_performance_tests.rs` (441 lines)
-- ✅ Resource-optimized: 10 samples, 1s measurement, ~15-20s total runtime
-- ✅ Flaky-free: NO timing assertions (correctness-only)
-
-### Files Created
-| File | Lines | Purpose |
-|------|-------|---------|
-| `benches/fire_and_forget_benchmarks.rs` | 280 | Lightweight performance benchmarks |
-| `tests/fire_and_forget_performance_tests.rs` | 441 | Correctness integration tests |
-
-### Benchmarks (5)
-1. `fire_and_forget_host_validation` - Host validation overhead
-2. `fire_and_forget_broker_publish` - Broker publish latency
-3. `fire_and_forget_total_latency` - End-to-end latency
-4. `fire_and_forget_throughput/single_sender_50_msgs` - Single sender throughput
-5. `fire_and_forget_sustained/sustained_100_msgs` - Sustained throughput
-
-### Test Results
-- 955 unit tests passing (lib)
-- 8 integration tests passing
-- 5 benchmarks passing (test mode)
-- All tests are REAL (correctness-only, no timing assertions)
+$ grep -rn "use crate::actor" airssys-wasm/src/runtime/
+src/runtime/messaging.rs:78:use crate::actor::message::CorrelationTracker;  ← VIOLATION
+```
 
 ---
 
-## Task 2.2 Completion Details
+## What Must Be Fixed (BEFORE Any Other Work)
 
-**Status:** ✅ COMPLETE (2025-12-22)  
-**Implementation:** Architecture Hotfix Phase 2 + Example Creation
+### Fix #1: Move Resource Types to `core/`
 
-### Implementation Summary
-- ✅ `handle-message` WIT interface at `wit/core/component-lifecycle.wit:86-89`
-- ✅ `WasmEngine::call_handle_message()` at `src/runtime/engine.rs:455-531`
-- ✅ Push-based message delivery to WASM components
-- ✅ Sender metadata (component ID as string)
-- ✅ Message payload as `list<u8>` via Component Model
-- ✅ Error propagation from component to host
-- ✅ Example: `examples/fire_and_forget_messaging.rs`
+**Move from `runtime/limits.rs` to `core/config.rs`:**
+- `CpuConfig`
+- `MemoryConfig`  
+- `ResourceConfig`
+- `ResourceLimits`
 
-### Test Results
-- 4 unit tests in `engine.rs` #[cfg(test)] block
-- 8 integration tests in `tests/wasm_engine_call_handle_message_tests.rs`
-- All 12 tests are REAL (verify actual WASM invocation)
-- All tests passing
+Then update `runtime/` to import these from `core/`.
 
-### Example Demonstrates
-- WasmEngine creation with Component Model support
-- Loading components with handle-message export
-- Delivering messages with various payloads (text, binary, empty, large)
-- Error handling for components without handle-message export
+### Fix #2: Move `CorrelationTracker` to `core/` OR Move `MessagingService` to `actor/`
+
+**Option A:** Move `CorrelationTracker` to `core/` (simpler)
+- It's a data structure, shared types belong in `core/`
+
+**Option B:** Move `MessagingService` to `actor/` (per HOTFIX-002 plan)
+- MessagingService is messaging orchestration, belongs with actor system
 
 ---
 
-## Current Focus
+## What's NOT True (Despite Previous Claims)
 
-**Active Task:** Block 5 Phase 3 - Task 3.3: Timeout and Cancellation  
-**Priority:** ⏳ Not Started - Ready for Planning  
-**Reference:** task-006-block-5-inter-component-communication.md
-
-**Phase 3 Overview (Request-Response Pattern):**
-
-| Task | Description | Status |
-|------|-------------|--------|
-| 3.1 | send-request Host Function | ✅ COMPLETE |
-| 3.2 | Response Routing and Callbacks | ✅ COMPLETE |
-| 3.3 | Timeout and Cancellation | ⏳ Not started |
-
-**Next Task Requirements (Task 3.3):**
-- Request timeout enforcement
-- Timeout error delivery to callback
-- Cancel-request API
-- Timeout cleanup (remove stale callbacks)
-- Edge case handling (component crash mid-request)
+| Previous Claim | Reality |
+|----------------|---------|
+| "Hotfix Phase 1 COMPLETE" | ❌ `runtime/` still imports from `actor/` |
+| "Hotfix Phase 2 COMPLETE" | ❌ `core/` imports from `runtime/` |
+| "Zero circular dependencies" | ❌ Violations create circular potential |
+| "Architecture verified" | ❌ Never actually verified with grep |
 
 ---
 
-## Quick Reference
+## Block Status (CORRECTED)
 
-📖 **Critical Documents:**
-- `tasks/task-006-block-5-inter-component-communication.md` - Main task file
-- `tasks/task-006-architecture-remediation-phase-2-duplicate-runtime.md` - Hotfix Phase 2
-- `docs/adr/adr-wasm-020-message-delivery-ownership-architecture.md` - Architecture
-- `docs/adr/adr-wasm-001-multicodec-compatibility.md` - Multicodec strategy
-
-📋 **Test Files (Phase 2):**
-- `tests/send_message_host_function_tests.rs` - Task 2.1 (18 integration tests)
-- `tests/wasm_engine_call_handle_message_tests.rs` - Task 2.2 (8 integration tests)
-- `tests/fire_and_forget_performance_tests.rs` - Task 2.3 (8 integration tests)
-
-📋 **Test Files (Phase 3):**
-- `tests/send_request_host_function_tests.rs` - Task 3.1 (14 integration tests)
-- `tests/response_routing_integration_tests.rs` - Task 3.2 (8 integration tests)
-
-📋 **Benchmark Files (Phase 2):**
-- `benches/fire_and_forget_benchmarks.rs` - Task 2.3 (5 benchmarks)
-
-📋 **Example Files (Phase 2):**
-- `examples/fire_and_forget_messaging.rs` - Task 2.2 demonstration
-
-📋 **Test Files (Phase 1):**
-- `tests/message_delivery_integration_tests.rs` - Task 1.1 (7 tests)
-- `tests/messaging_subscription_integration_tests.rs` - Task 1.3 (10 tests)
-
-🔧 **Implementation Files (Phase 2):**
-- `src/runtime/async_host.rs` - SendMessageHostFunction (Task 2.1), SendRequestHostFunction (Task 3.1)
-- `src/runtime/engine.rs` - WasmEngine::call_handle_message() (Hotfix Task 2.5)
-
-🔧 **Implementation Files (Phase 3):**
-- `src/runtime/async_host.rs` - SendRequestHostFunction (~200 lines)
-- `src/runtime/messaging.rs` - CorrelationTracker integration, ResponseRouter (~155 lines)
-- `src/runtime/engine.rs` - call_handle_callback() (~80 lines)
-- `src/actor/message/correlation_tracker.rs` - Cleanup tracking (~40 lines)
-
-🔧 **Implementation Files (Phase 1):**
-- `src/actor/message/actor_system_subscriber.rs` - Message delivery
-- `src/actor/component/component_actor.rs` - Message reception (updated in Hotfix)
-- `src/actor/message/messaging_subscription.rs` - Subscription service
+| Block | Claimed Status | Actual Status |
+|-------|---------------|---------------|
+| Block 3 | ✅ COMPLETE | ⚠️ Works but on broken foundation |
+| Block 4 | ✅ COMPLETE | ⚠️ Works but on broken foundation |
+| Block 5 | 🚀 IN PROGRESS | 🔴 BLOCKED by architecture violations |
+| **HOTFIX-002** | "COMPLETE" | ❌ **NOT COMPLETE** |
 
 ---
 
-## Block Status Summary
+## Required Actions (In Order)
 
-| Block | Status | Progress |
-|-------|--------|----------|
-| Block 3 | ✅ COMPLETE | 18/18 tasks |
-| Block 4 | ✅ COMPLETE | 15/15 tasks |
-| Block 5 Phase 1 | ✅ COMPLETE | 3/3 tasks |
-| Block 5 Phase 2 | ✅ COMPLETE | 3/3 tasks |
-| Block 5 Phase 3 | 🚀 IN PROGRESS | 2/3 tasks (Task 3.1 ✅, Task 3.2 ✅, Task 3.3 next) |
-| Block 5 Phase 4-6 | ⏳ Not Started | 0/9 tasks |
-| **Architecture Hotfix Phase 1** | ✅ COMPLETE | All tasks done |
-| **Architecture Hotfix Phase 2** | ✅ COMPLETE | All 6 tasks done |
+1. **STOP** all feature work
+2. **FIX** `core/` → `runtime/` violation (highest priority)
+3. **FIX** `runtime/` → `actor/` violation
+4. **VERIFY** with grep commands (show actual output)
+5. **ADD** CI enforcement to prevent regression
+6. **THEN** resume Block 5 Phase 3 Task 3.3
+
+---
+
+## Reference Documents
+
+- **[KNOWLEDGE-WASM-032](docs/knowledges/knowledge-wasm-032-module-boundary-violations-audit.md)** - Full audit
+- **[ADR-WASM-023](docs/adr/adr-wasm-023-module-boundary-enforcement.md)** - Module rules
+- **[WASM-TASK-006-HOTFIX-002](tasks/task-006-hotfix-module-boundary-violations.md)** - Incomplete hotfix
+
+---
+
+## Lessons Learned
+
+1. **Never trust "verified" without seeing grep output**
+2. **Automated CI checks are essential**
+3. **"Compiles successfully" ≠ "Architecture is correct"**
+4. **Trust but verify - always run the checks yourself**
+
+---
+
+**This document reflects the true state as of 2025-12-22.**
