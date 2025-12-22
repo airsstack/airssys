@@ -3,22 +3,22 @@
 **Last Updated:** 2025-12-22
 
 **Active Sub-Project:** airssys-wasm  
-**Status:** 🚀 **PHASE 3 IN PROGRESS - Task 3.1 COMPLETE**  
-**Current Phase:** WASM-TASK-006 Phase 3 (Request-Response Pattern) - 1/3 tasks complete
+**Status:** 🚀 **PHASE 3 IN PROGRESS - Task 3.2 COMPLETE**  
+**Current Phase:** WASM-TASK-006 Phase 3 (Request-Response Pattern) - 2/3 tasks complete
 
 ---
 
 ## 🚀 Current State (2025-12-22)
 
-**Phase 3 IN PROGRESS - Task 3.1 COMPLETE!**
+**Phase 3 IN PROGRESS - Task 3.2 COMPLETE!**
 
-### Task 3.1: send-request Host Function ✅ (LATEST)
-- `SendRequestHostFunction` at `src/runtime/async_host.rs` (~200 lines)
-- CorrelationTracker integration for request tracking
-- Request ID generation using UUID v4
-- O(1) request tracking via DashMap-based CorrelationTracker
-- 15 unit tests + 14 integration tests - ALL PASSING
-- Code review: 9.0/10 (APPROVED WITH COMMENTS)
+### Task 3.2: Response Routing and Callbacks ✅ (LATEST)
+- `ResponseRouter` at `src/runtime/messaging.rs` (~155 lines)
+- `call_handle_callback()` at `src/runtime/engine.rs` (~80 lines)
+- Cleanup tracking in CorrelationTracker (completed_count, timeout_count)
+- KNOWLEDGE-WASM-029 pattern followed
+- 21 unit tests + 8 integration tests - ALL PASSING
+- Code review: 9.2/10 (APPROVED)
 - Audited by @memorybank-auditor (APPROVED)
 - Verified by @memorybank-verifier (VERIFIED)
 
@@ -27,10 +27,10 @@
 | Task | Status | Notes |
 |------|--------|-------|
 | 3.1 | ✅ **COMPLETE** | send-request Host Function - 29 tests, verified |
-| 3.2 | ⏳ Not started | Response Routing and Callbacks |
+| 3.2 | ✅ **COMPLETE** | Response Routing and Callbacks - 29 tests, verified |
 | 3.3 | ⏳ Not started | Timeout and Cancellation |
 
-### Phase 3 Progress: 1/3 tasks (33%)
+### Phase 3 Progress: 2/3 tasks (67%)
 
 ---
 
@@ -70,8 +70,8 @@
 
 ## Next Actions
 
-1. **Plan Phase 3 Task 3.2** (Response Routing and Callbacks)
-2. **Implement Phase 3 Tasks 3.2-3.3** (Complete Request-Response Pattern)
+1. **Plan Phase 3 Task 3.3** (Timeout and Cancellation)
+2. **Implement Phase 3 Task 3.3** (Complete Request-Response Pattern)
 3. **Complete Phases 4-6** (Multicodec, Security, Advanced Features - 9 tasks)
 4. **Complete Block 5** (Inter-Component Communication)
 
@@ -93,7 +93,7 @@ Implements the actor-based inter-component messaging system enabling secure, hig
 **Progress:**
 - Phase 1: ✅ 3/3 tasks COMPLETE (100%)
 - Phase 2: ✅ 3/3 tasks COMPLETE (100%)
-- Phase 3: 🚀 1/3 tasks COMPLETE (33%) - Task 3.1 done
+- Phase 3: 🚀 2/3 tasks COMPLETE (67%) - Tasks 3.1 & 3.2 done
 - Phases 4-6: ⏳ Not started (9 tasks remaining)
 
 ---
@@ -125,28 +125,28 @@ Implements the actor-based inter-component messaging system enabling secure, hig
 
 ## Session Summary (2025-12-22)
 
-1. **Task 3.1 Planned and Implemented**
-   - Created comprehensive implementation plan for send-request Host Function
-   - Corrected file paths (message/ not lifecycle/)
-   - Implemented SendRequestHostFunction with full test coverage
+1. **Task 3.2 Implemented**
+   - Created ResponseRouter for routing responses via CorrelationTracker
+   - Added call_handle_callback() method in WasmEngine
+   - Implemented cleanup tracking (completed_count, timeout_count)
+   - Created callback-receiver-component.wat fixture
 
-2. **Task 3.1 Verified and Reviewed**
+2. **Task 3.2 Verified and Reviewed**
    - @memorybank-auditor: APPROVED
    - @memorybank-verifier: VERIFIED
-   - @rust-reviewer: 9.0/10 (APPROVED WITH COMMENTS)
-   - 3 minor issues fixed (comment, dead code, layer comment)
+   - @rust-reviewer: 9.2/10 (APPROVED)
+   - 21 unit tests + 8 integration tests - ALL PASSING
 
-3. **Task 3.1 Implementation Summary**
-   - SendRequestHostFunction (~200 lines) in async_host.rs
-   - CorrelationTracker integration for request tracking
-   - Request ID generation using UUID v4
-   - O(1) request tracking via DashMap
-   - 15 unit tests + 14 integration tests
+3. **Task 3.2 Implementation Summary**
+   - ResponseRouter (~155 lines) in messaging.rs
+   - call_handle_callback (~80 lines) in engine.rs
+   - Cleanup tracking (~40 lines) in correlation_tracker.rs
+   - KNOWLEDGE-WASM-029 architecture compliance
 
 4. **Memory Bank Updated**
-   - Main task file updated with Task 3.1 completion and Phase 3 progress
-   - progress.md updated with Task 3.1 progress log
-   - active-context.md updated with Task 3.2 as next focus
+   - Main task file updated with Task 3.2 completion and Phase 3 progress (2/3)
+   - progress.md updated with Task 3.2 progress log
+   - active-context.md updated with Task 3.3 as next focus
    - current-context.md updated with session summary
 
 ---
@@ -154,6 +154,6 @@ Implements the actor-based inter-component messaging system enabling secure, hig
 ## Sign-Off
 
 **Status:** 🚀 **PHASE 3 IN PROGRESS**  
-**Next Task:** WASM-TASK-006 Phase 3 Task 3.2 (Response Routing and Callbacks)  
+**Next Task:** WASM-TASK-006 Phase 3 Task 3.3 (Timeout and Cancellation)  
 **Documented By:** Memory Bank Completer  
 **Date:** 2025-12-22

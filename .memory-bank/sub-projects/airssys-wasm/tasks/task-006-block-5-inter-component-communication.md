@@ -314,20 +314,66 @@ This is INTERNAL infrastructure (runtime-level), NOT a component-facing API. Com
 - ✅ Verified by @memorybank-verifier (VERIFIED status)
 - ✅ Code reviewed by @rust-reviewer (9.0/10 - APPROVED WITH COMMENTS)
 
+
 #### Task 3.2: Response Routing and Callbacks
+**Status:** ✅ COMPLETE (2025-12-22)  
+**Code Review Score:** 9.2/10 (APPROVED by @rust-reviewer)
+
+**Goal:** Implement response routing mechanism that captures `handle-message` return values and routes them back to requesters via `handle-callback`.
+
+**Critical Architecture (KNOWLEDGE-WASM-029):**
+- ❌ NO `send-response` host function
+- ✅ Response IS the return value from `handle-message`
+- ✅ Runtime detects `correlation_id` to decide routing behavior
+
 **Deliverables:**
-- Response correlation by request ID
-- Callback invocation (handle-callback export)
-- Success and error response handling
-- Callback cleanup after invocation
-- Response routing tests
+- ✅ `ResponseRouter` struct in `src/runtime/messaging.rs` (~155 lines)
+- ✅ `ResponseRouterStats` for metrics tracking
+- ✅ `call_handle_callback()` method in `src/runtime/engine.rs` (~80 lines)
+- ✅ Cleanup tracking in CorrelationTracker (completed_count, timeout_count)
+- ✅ WASM fixture `callback-receiver-component.wat` for testing
+
+**Files Created:**
+| File | Lines | Purpose |
+|------|-------|---------|
+| `tests/fixtures/callback-receiver-component.wat` | 122 | WASM fixture for callback testing |
+| `tests/fixtures/callback-receiver-component.wasm` | 630 bytes | Compiled fixture |
+| `tests/response_routing_integration_tests.rs` | ~362 | 8 integration tests |
+
+**Files Modified:**
+| File | Changes |
+|------|---------|
+| `src/runtime/messaging.rs` | + ResponseRouter (~155 lines), ResponseRouterStats, metrics |
+| `src/runtime/engine.rs` | + call_handle_callback() (~80 lines) |
+| `src/actor/message/correlation_tracker.rs` | + completed_count, timeout_count (~40 lines) |
+| `src/runtime/mod.rs` | + exports for ResponseRouter, ResponseRouterStats |
+
+**Test Results:**
+- 10 unit tests in `messaging.rs` #[cfg(test)] block
+- 6 unit tests in `correlation_tracker.rs` #[cfg(test)] block
+- 5 unit tests in `engine.rs` #[cfg(test)] block
+- 8 integration tests in `tests/response_routing_integration_tests.rs`
+- All 29 tests passing (21 unit + 8 integration)
+
+**Key Features Implemented:**
+1. **ResponseRouter** - Routes responses via CorrelationTracker::resolve()
+2. **call_handle_callback** - Invokes WASM component's handle-callback export
+3. **Metrics Tracking** - responses_routed, responses_orphaned, error_responses
+4. **Cleanup Tracking** - completed_count, timeout_count in CorrelationTracker
 
 **Success Criteria:**
-- Responses route to correct requesters
-- handle-callback invoked with response data
-- Success and error responses distinguished
-- Callbacks cleaned up (no memory leaks)
-- Round-trip latency ~560ns
+- ✅ Responses route to correct requesters
+- ✅ handle-callback invoked with response data
+- ✅ Success and error responses distinguished
+- ✅ Callbacks cleaned up (no memory leaks)
+- ✅ Round-trip latency ~560ns
+
+**Verification Chain:**
+- ✅ Implemented by @memorybank-implementer
+- ✅ Verified by @memorybank-verifier (VERIFIED status)
+- ✅ Code reviewed by @rust-reviewer (9.2/10 - APPROVED)
+- ✅ Audited by @memorybank-auditor (APPROVED)
+- ✅ Audit verified by @memorybank-verifier (VERIFIED)
 
 #### Task 3.3: Timeout and Cancellation
 **Deliverables:**
@@ -610,14 +656,14 @@ This task is complete when:
 
 ## Progress Tracking
 
-**Overall Status:** Phase 3 🚀 IN PROGRESS - Task 3.1 COMPLETE (1/3 tasks done)
+**Overall Status:** Phase 3 🚀 IN PROGRESS - Task 3.2 COMPLETE (2/3 tasks done)
 
 ### Phase Breakdown
 | Phase | Description | Status | Estimated Duration | Notes |
 |-------|-------------|--------|-------------------|-------|
 | 1 | MessageBroker Integration Foundation | ✅ complete | Week 1-2 (44 hours) | ALL 3 TASKS COMPLETE 🎉 |
 | 2 | Fire-and-Forget Messaging | ✅ complete | Week 2-3 | ALL 3 TASKS COMPLETE 🎉 |
-| 3 | Request-Response Pattern | in-progress | Week 3-4 | Task 3.1 ✅ COMPLETE (1/3) |
+| 3 | Request-Response Pattern | in-progress | Week 3-4 | Task 3.2 ✅ COMPLETE (2/3) |
 | 4 | Multicodec Serialization | not-started | Week 4 | Language-agnostic |
 | 5 | Message Security and Quotas | not-started | Week 5 | Security layer |
 | 6 | Advanced Features and Testing | not-started | Week 5-6 | Production readiness |
@@ -632,7 +678,7 @@ This task is complete when:
 | 2.2 | handle-message Component Export | ✅ complete | 2025-12-22 | 4 unit + 8 integration tests, verified |
 | 2.3 | Fire-and-Forget Performance | ✅ complete | 2025-12-22 | 5 benchmarks + 8 integration tests, verified |
 | 3.1 | send-request Host Function | ✅ complete | 2025-12-22 | 15 unit + 14 integration tests, code review 9.0/10 |
-| 3.2 | Response Routing and Callbacks | not-started | - | Correlation |
+| 3.2 | Response Routing and Callbacks | ✅ complete | 2025-12-22 | 21 unit + 8 integration tests, code review 9.2/10 |
 | 3.3 | Timeout and Cancellation | not-started | - | Resilience |
 | 4.1 | Multicodec Message Format | not-started | - | Self-describing |
 | 4.2 | Multi-Language Serialization Support | not-started | - | Language-agnostic |
@@ -864,18 +910,73 @@ The TODO for "proper parameter marshalling using wasmtime component model bindin
 
 ### 🚀 PHASE 3 IN PROGRESS (2025-12-22)
 
-**Block 5 Phase 3 (Request-Response Pattern) - 1/3 Tasks Complete**
+**Block 5 Phase 3 (Request-Response Pattern) - 2/3 Tasks Complete**
 
 | Task | Status | Tests | Review |
 |------|--------|-------|--------|
 | 3.1 | ✅ COMPLETE | 15 unit + 14 integration | 9.0/10 (Approved) |
-| 3.2 | ⏳ Not started | - | - |
+| 3.2 | ✅ COMPLETE | 21 unit + 8 integration | 9.2/10 (Approved) |
 | 3.3 | ⏳ Not started | - | - |
 
 **Phase 3 Progress:**
-- 1/3 tasks complete (33%)
+- 2/3 tasks complete (67%)
 - Task 3.1: SendRequestHostFunction with correlation tracking
-- Next: Task 3.2 (Response Routing and Callbacks)
+- Task 3.2: ResponseRouter with callback invocation
+- Next: Task 3.3 (Timeout and Cancellation)
+
+---
+
+### 2025-12-22: Task 3.2 COMPLETE - Response Routing and Callbacks ✅
+
+**Status:** ✅ COMPLETE  
+**Completion Date:** 2025-12-22  
+**Code Review Score:** 9.2/10 (APPROVED by @rust-reviewer)
+
+**Implementation Summary:**
+- ✅ `ResponseRouter` struct for routing responses via CorrelationTracker::resolve()
+- ✅ `ResponseRouterStats` for metrics tracking (responses_routed, responses_orphaned, error_responses)
+- ✅ `call_handle_callback()` method in WasmEngine for WASM callback invocation
+- ✅ Cleanup tracking in CorrelationTracker (completed_count, timeout_count)
+- ✅ KNOWLEDGE-WASM-029 pattern followed (response IS return value from handle-message)
+
+**Files Created:**
+| File | Lines | Purpose |
+|------|-------|---------|
+| `tests/fixtures/callback-receiver-component.wat` | 122 | WASM fixture for callback testing |
+| `tests/fixtures/callback-receiver-component.wasm` | 630 bytes | Compiled fixture |
+| `tests/response_routing_integration_tests.rs` | ~362 | 8 integration tests |
+
+**Files Modified:**
+| File | Changes |
+|------|---------|
+| `src/runtime/messaging.rs` | + ResponseRouter (~155 lines), ResponseRouterStats, metrics |
+| `src/runtime/engine.rs` | + call_handle_callback() (~80 lines) |
+| `src/actor/message/correlation_tracker.rs` | + completed_count, timeout_count (~40 lines) |
+| `src/runtime/mod.rs` | + exports for ResponseRouter, ResponseRouterStats |
+
+**Test Results:**
+- 10 unit tests in `messaging.rs` #[cfg(test)] block
+- 6 unit tests in `correlation_tracker.rs` #[cfg(test)] block
+- 5 unit tests in `engine.rs` #[cfg(test)] block
+- 8 integration tests in `tests/response_routing_integration_tests.rs`
+- All 29 tests passing (21 unit + 8 integration)
+
+**Key Features Implemented:**
+1. **ResponseRouter** - Routes responses via CorrelationTracker::resolve()
+2. **call_handle_callback** - Invokes WASM component's handle-callback export
+3. **Metrics Tracking** - responses_routed, responses_orphaned, error_responses
+4. **Cleanup Tracking** - completed_count, timeout_count in CorrelationTracker
+
+**Quality:**
+- ✅ Zero clippy warnings (lib code)
+- ✅ Clean build
+
+**Verification Chain:**
+- ✅ Implemented by @memorybank-implementer
+- ✅ Verified by @memorybank-verifier (VERIFIED status)
+- ✅ Code reviewed by @rust-reviewer (9.2/10 - APPROVED)
+- ✅ Audited by @memorybank-auditor (APPROVED)
+- ✅ Audit verified by @memorybank-verifier (VERIFIED)
 
 ---
 

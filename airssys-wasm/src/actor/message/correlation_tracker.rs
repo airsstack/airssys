@@ -52,6 +52,7 @@
 
 // Layer 1: Standard library imports
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 // Layer 2: Third-party crate imports
 use chrono::Utc;
@@ -149,6 +150,10 @@ pub struct CorrelationTracker {
     pending: Arc<DashMap<CorrelationId, PendingRequest>>,
     /// Timeout handler for automatic cleanup
     timeout_handler: Arc<TimeoutHandler>,
+    /// Counter for completed (resolved) requests (Phase 3 Task 3.2)
+    completed_count: Arc<AtomicU64>,
+    /// Counter for timed out requests
+    timeout_count: Arc<AtomicU64>,
 }
 
 impl CorrelationTracker {
@@ -165,6 +170,8 @@ impl CorrelationTracker {
         Self {
             pending: Arc::new(DashMap::new()),
             timeout_handler: Arc::new(TimeoutHandler::new()),
+            completed_count: Arc::new(AtomicU64::new(0)),
+            timeout_count: Arc::new(AtomicU64::new(0)),
         }
     }
 
@@ -271,6 +278,9 @@ impl CorrelationTracker {
         // Ignore send error (receiver may have been dropped)
         let _ = pending.response_tx.send(response);
 
+        // Increment completed count (Phase 3 Task 3.2)
+        self.completed_count.fetch_add(1, Ordering::Relaxed);
+
         Ok(())
     }
 
@@ -363,6 +373,8 @@ impl CorrelationTracker {
         for corr_id in expired_ids {
             if let Some((_, pending)) = self.pending.remove(&corr_id) {
                 expired_count += 1;
+                // Increment timeout count (Phase 3 Task 3.2)
+                self.timeout_count.fetch_add(1, Ordering::Relaxed);
                 // Send timeout error before removing
                 let _ = pending.response_tx.send(ResponseMessage {
                     correlation_id: pending.correlation_id,
@@ -410,6 +422,46 @@ impl CorrelationTracker {
     /// ```
     pub fn contains(&self, correlation_id: &CorrelationId) -> bool {
         self.pending.contains_key(correlation_id)
+    }
+
+    /// Get the number of completed (resolved) requests.
+    ///
+    /// Returns the total count of requests that were successfully resolved
+    /// with a response. This counter is incremented by `resolve()`.
+    ///
+    /// # Performance
+    ///
+    /// ~3ns overhead (single atomic load)
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// let completed = tracker.completed_count();
+    /// println!("Requests completed: {}", completed);
+    /// ```
+    pub fn completed_count(&self) -> u64 {
+        self.completed_count.load(Ordering::Relaxed)
+    }
+
+    /// Get the number of timed out requests.
+    ///
+    /// Returns the total count of requests that expired before receiving
+    /// a response. This counter is incremented by `cleanup_expired()`.
+    ///
+    /// # Performance
+    ///
+    /// ~3ns overhead (single atomic load)
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// let timeouts = tracker.timeout_count();
+    /// if timeouts > 0 {
+    ///     tracing::warn!("Requests timed out: {}", timeouts);
+    /// }
+    /// ```
+    pub fn timeout_count(&self) -> u64 {
+        self.timeout_count.load(Ordering::Relaxed)
     }
 }
 
@@ -581,5 +633,158 @@ mod tests {
 
         tracker.register_pending(request).await.unwrap();
         assert!(tracker.contains(&corr_id));
+    }
+
+    // ============================================================================
+    // Phase 3 Task 3.2 Tests - completed_count and timeout_count
+    // ============================================================================
+
+    #[tokio::test]
+    async fn test_completed_count_initial() {
+        let tracker = CorrelationTracker::new();
+        assert_eq!(tracker.completed_count(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_completed_count_after_resolve() {
+        let tracker = CorrelationTracker::new();
+        let (tx, _rx) = oneshot::channel();
+        let corr_id = Uuid::new_v4();
+
+        let request = PendingRequest {
+            correlation_id: corr_id,
+            response_tx: tx,
+            requested_at: Instant::now(),
+            timeout: Duration::from_secs(5),
+            from: ComponentId::new("comp-a"),
+            to: ComponentId::new("comp-b"),
+        };
+
+        tracker.register_pending(request).await.unwrap();
+        assert_eq!(tracker.completed_count(), 0);
+
+        let response = ResponseMessage {
+            correlation_id: corr_id,
+            from: ComponentId::new("comp-b"),
+            to: ComponentId::new("comp-a"),
+            result: Ok(vec![1, 2, 3]),
+            timestamp: Utc::now(),
+        };
+
+        tracker.resolve(corr_id, response).await.unwrap();
+        assert_eq!(tracker.completed_count(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_completed_count_multiple_resolves() {
+        let tracker = CorrelationTracker::new();
+        
+        // Register and resolve 3 requests
+        for i in 0..3 {
+            let (tx, _rx) = oneshot::channel();
+            let corr_id = Uuid::new_v4();
+
+            let request = PendingRequest {
+                correlation_id: corr_id,
+                response_tx: tx,
+                requested_at: Instant::now(),
+                timeout: Duration::from_secs(5),
+                from: ComponentId::new("comp-a"),
+                to: ComponentId::new("comp-b"),
+            };
+
+            tracker.register_pending(request).await.unwrap();
+
+            let response = ResponseMessage {
+                correlation_id: corr_id,
+                from: ComponentId::new("comp-b"),
+                to: ComponentId::new("comp-a"),
+                result: Ok(vec![i as u8]),
+                timestamp: Utc::now(),
+            };
+
+            tracker.resolve(corr_id, response).await.unwrap();
+        }
+
+        assert_eq!(tracker.completed_count(), 3);
+    }
+
+    #[tokio::test]
+    async fn test_timeout_count_initial() {
+        let tracker = CorrelationTracker::new();
+        assert_eq!(tracker.timeout_count(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_timeout_count_after_cleanup() {
+        let tracker = CorrelationTracker::new();
+        let (tx, _rx) = oneshot::channel();
+        let corr_id = Uuid::new_v4();
+
+        // Create request with very short timeout (0ms)
+        let request = PendingRequest {
+            correlation_id: corr_id,
+            response_tx: tx,
+            requested_at: Instant::now() - Duration::from_secs(10), // Already expired
+            timeout: Duration::from_millis(1),
+            from: ComponentId::new("comp-a"),
+            to: ComponentId::new("comp-b"),
+        };
+
+        tracker.register_pending(request).await.unwrap();
+        assert_eq!(tracker.timeout_count(), 0);
+
+        // Cleanup should find the expired request
+        let cleaned = tracker.cleanup_expired().await;
+        assert_eq!(cleaned, 1);
+        assert_eq!(tracker.timeout_count(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_counts_are_independent() {
+        let tracker = CorrelationTracker::new();
+        
+        // Register request 1 (will be resolved)
+        let (tx1, _rx1) = oneshot::channel();
+        let corr_id1 = Uuid::new_v4();
+        let request1 = PendingRequest {
+            correlation_id: corr_id1,
+            response_tx: tx1,
+            requested_at: Instant::now(),
+            timeout: Duration::from_secs(30),
+            from: ComponentId::new("comp-a"),
+            to: ComponentId::new("comp-b"),
+        };
+        tracker.register_pending(request1).await.unwrap();
+
+        // Register request 2 (will timeout)
+        let (tx2, _rx2) = oneshot::channel();
+        let corr_id2 = Uuid::new_v4();
+        let request2 = PendingRequest {
+            correlation_id: corr_id2,
+            response_tx: tx2,
+            requested_at: Instant::now() - Duration::from_secs(10), // Already expired
+            timeout: Duration::from_millis(1),
+            from: ComponentId::new("comp-a"),
+            to: ComponentId::new("comp-b"),
+        };
+        tracker.register_pending(request2).await.unwrap();
+
+        // Resolve request 1
+        let response = ResponseMessage {
+            correlation_id: corr_id1,
+            from: ComponentId::new("comp-b"),
+            to: ComponentId::new("comp-a"),
+            result: Ok(vec![1, 2, 3]),
+            timestamp: Utc::now(),
+        };
+        tracker.resolve(corr_id1, response).await.unwrap();
+
+        // Cleanup request 2
+        tracker.cleanup_expired().await;
+
+        // Both counts should be independent
+        assert_eq!(tracker.completed_count(), 1);
+        assert_eq!(tracker.timeout_count(), 1);
     }
 }

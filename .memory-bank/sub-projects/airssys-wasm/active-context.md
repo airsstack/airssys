@@ -1,8 +1,8 @@
 # airssys-wasm Active Context
 
 **Last Verified:** 2025-12-22  
-**Current Phase:** Block 5 Phase 3 - 🚀 IN PROGRESS (1/3 tasks complete) | Architecture Hotfix ✅ COMPLETE  
-**Overall Progress:** Block 3 100% ✅ | Block 4 100% ✅ | Block 5 Phase 1 100% ✅ | Phase 2 100% ✅ | Phase 3 33% (1/3) | Hotfix Phase 1 ✅ | Hotfix Phase 2 ✅
+**Current Phase:** Block 5 Phase 3 - 🚀 IN PROGRESS (2/3 tasks complete) | Architecture Hotfix ✅ COMPLETE  
+**Overall Progress:** Block 3 100% ✅ | Block 4 100% ✅ | Block 5 Phase 1 100% ✅ | Phase 2 100% ✅ | Phase 3 67% (2/3) | Hotfix Phase 1 ✅ | Hotfix Phase 2 ✅
 
 ## 🔧 Architecture Hotfix Status ✅ COMPLETE
 
@@ -50,15 +50,49 @@
 
 ## 🚀 Phase 3 IN PROGRESS: Request-Response Pattern
 
-**Block 5 Phase 3 - Task 3.1 COMPLETE (1/3 tasks)**
+**Block 5 Phase 3 - Task 3.2 COMPLETE (2/3 tasks)**
 
 | Task | Description | Status | Tests | Review |
 |------|-------------|--------|-------|--------|
 | 3.1 | send-request Host Function | ✅ COMPLETE | 15 unit + 14 integration | 9.0/10 (Approved) |
-| 3.2 | Response Routing and Callbacks | ⏳ Not started | - | - |
+| 3.2 | Response Routing and Callbacks | ✅ COMPLETE | 21 unit + 8 integration | 9.2/10 (Approved) |
 | 3.3 | Timeout and Cancellation | ⏳ Not started | - | - |
 
-**Phase 3 Progress:** 1/3 tasks complete (33%)
+**Phase 3 Progress:** 2/3 tasks complete (67%)
+
+---
+
+## Task 3.2 Completion Details
+
+**Status:** ✅ COMPLETE (2025-12-22)  
+**Audit:** APPROVED by @memorybank-auditor  
+**Verification:** VERIFIED by @memorybank-verifier  
+**Code Review:** 9.2/10 by @rust-reviewer (APPROVED)
+
+### Implementation Summary
+- ✅ `ResponseRouter` struct for routing responses via CorrelationTracker::resolve()
+- ✅ `ResponseRouterStats` for metrics tracking
+- ✅ `call_handle_callback()` method in WasmEngine
+- ✅ Cleanup tracking in CorrelationTracker (completed_count, timeout_count)
+- ✅ KNOWLEDGE-WASM-029 pattern followed
+
+### Files Created
+| File | Lines | Purpose |
+|------|-------|---------|
+| `tests/fixtures/callback-receiver-component.wat` | 122 | WASM callback fixture |
+| `tests/response_routing_integration_tests.rs` | ~362 | 8 integration tests |
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `src/runtime/messaging.rs` | + ResponseRouter (~155 lines) |
+| `src/runtime/engine.rs` | + call_handle_callback (~80 lines) |
+| `src/actor/message/correlation_tracker.rs` | + cleanup tracking (~40 lines) |
+
+### Test Results
+- 21 unit tests (10 messaging + 6 correlation_tracker + 5 engine)
+- 8 integration tests
+- All 29 tests passing
 
 ---
 
@@ -178,8 +212,8 @@
 
 ## Current Focus
 
-**Active Task:** Block 5 Phase 3 - Task 3.2: Response Routing and Callbacks  
-**Priority:** 🟢 READY TO START  
+**Active Task:** Block 5 Phase 3 - Task 3.3: Timeout and Cancellation  
+**Priority:** ⏳ Not Started - Ready for Planning  
 **Reference:** task-006-block-5-inter-component-communication.md
 
 **Phase 3 Overview (Request-Response Pattern):**
@@ -187,15 +221,15 @@
 | Task | Description | Status |
 |------|-------------|--------|
 | 3.1 | send-request Host Function | ✅ COMPLETE |
-| 3.2 | Response Routing and Callbacks | ⏳ Not started |
+| 3.2 | Response Routing and Callbacks | ✅ COMPLETE |
 | 3.3 | Timeout and Cancellation | ⏳ Not started |
 
-**Next Task Requirements (Task 3.2):**
-- Response correlation by request ID
-- Callback invocation (handle-callback export)
-- Success and error response handling
-- Callback cleanup after invocation
-- Response routing tests
+**Next Task Requirements (Task 3.3):**
+- Request timeout enforcement
+- Timeout error delivery to callback
+- Cancel-request API
+- Timeout cleanup (remove stale callbacks)
+- Edge case handling (component crash mid-request)
 
 ---
 
@@ -214,6 +248,7 @@
 
 📋 **Test Files (Phase 3):**
 - `tests/send_request_host_function_tests.rs` - Task 3.1 (14 integration tests)
+- `tests/response_routing_integration_tests.rs` - Task 3.2 (8 integration tests)
 
 📋 **Benchmark Files (Phase 2):**
 - `benches/fire_and_forget_benchmarks.rs` - Task 2.3 (5 benchmarks)
@@ -231,7 +266,9 @@
 
 🔧 **Implementation Files (Phase 3):**
 - `src/runtime/async_host.rs` - SendRequestHostFunction (~200 lines)
-- `src/runtime/messaging.rs` - CorrelationTracker integration, request metrics
+- `src/runtime/messaging.rs` - CorrelationTracker integration, ResponseRouter (~155 lines)
+- `src/runtime/engine.rs` - call_handle_callback() (~80 lines)
+- `src/actor/message/correlation_tracker.rs` - Cleanup tracking (~40 lines)
 
 🔧 **Implementation Files (Phase 1):**
 - `src/actor/message/actor_system_subscriber.rs` - Message delivery
@@ -248,7 +285,7 @@
 | Block 4 | ✅ COMPLETE | 15/15 tasks |
 | Block 5 Phase 1 | ✅ COMPLETE | 3/3 tasks |
 | Block 5 Phase 2 | ✅ COMPLETE | 3/3 tasks |
-| Block 5 Phase 3 | 🚀 IN PROGRESS | 1/3 tasks (Task 3.1 ✅ COMPLETE, Task 3.2 next) |
+| Block 5 Phase 3 | 🚀 IN PROGRESS | 2/3 tasks (Task 3.1 ✅, Task 3.2 ✅, Task 3.3 next) |
 | Block 5 Phase 4-6 | ⏳ Not Started | 0/9 tasks |
 | **Architecture Hotfix Phase 1** | ✅ COMPLETE | All tasks done |
 | **Architecture Hotfix Phase 2** | ✅ COMPLETE | All 6 tasks done |

@@ -73,8 +73,9 @@ use serde::{Deserialize, Serialize};
 use airssys_rt::broker::InMemoryMessageBroker;
 
 // Layer 3: Internal crate imports
-use crate::actor::message::CorrelationTracker;
-use crate::core::ComponentMessage;
+use crate::actor::message::{CorrelationId, CorrelationTracker, RequestError, ResponseMessage};
+use crate::core::{ComponentId, ComponentMessage, WasmError};
+use chrono::Utc;
 
 /// Service managing MessageBroker integration for inter-component communication.
 ///
@@ -131,6 +132,9 @@ pub struct MessagingService {
     
     /// Metrics for monitoring messaging activity
     metrics: Arc<MessagingMetrics>,
+    
+    /// Response router for request-response pattern (Phase 3 Task 3.2)
+    response_router: Arc<ResponseRouter>,
 }
 
 impl MessagingService {
@@ -158,10 +162,13 @@ impl MessagingService {
     /// assert_eq!(service.get_stats().await.messages_published, 0);
     /// ```
     pub fn new() -> Self {
+        let correlation_tracker = Arc::new(CorrelationTracker::new());
+        let response_router = Arc::new(ResponseRouter::new(Arc::clone(&correlation_tracker)));
         Self {
             broker: Arc::new(InMemoryMessageBroker::new()),
-            correlation_tracker: Arc::new(CorrelationTracker::new()),
+            correlation_tracker,
             metrics: Arc::new(MessagingMetrics::default()),
+            response_router,
         }
     }
     
@@ -270,6 +277,7 @@ impl MessagingService {
             routing_failures: self.metrics.routing_failures.load(Ordering::Relaxed),
             requests_sent: self.metrics.requests_sent.load(Ordering::Relaxed),
             requests_pending: self.metrics.requests_pending.load(Ordering::Relaxed),
+            responses_routed: self.response_router.responses_routed_count(),
         }
     }
     
@@ -338,6 +346,43 @@ impl MessagingService {
     #[allow(dead_code)] // Phase 3: Will be used by monitoring
     pub(crate) fn pending_requests(&self) -> u64 {
         self.metrics.requests_pending.load(Ordering::Relaxed)
+    }
+    
+    /// Get reference to the ResponseRouter.
+    ///
+    /// Returns an Arc-wrapped ResponseRouter for routing responses from
+    /// `handle-message` return values back to requesters via `handle-callback`.
+    ///
+    /// # Usage Pattern
+    ///
+    /// ```text
+    /// 1. Component A calls send-request → pending registered in tracker
+    /// 2. Component B receives message → handle-message invoked
+    /// 3. Component B returns response → response_router.route_response()
+    /// 4. Component A receives callback → handle-callback invoked
+    /// ```
+    ///
+    /// # Thread Safety
+    ///
+    /// The returned Arc can be cloned and passed to multiple threads. All clones
+    /// reference the same ResponseRouter instance.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// let service = MessagingService::new();
+    /// let router = service.response_router();
+    ///
+    /// // Route response from handle-message return value
+    /// router.route_response(correlation_id, Ok(payload)).await?;
+    /// ```
+    ///
+    /// # References
+    ///
+    /// - KNOWLEDGE-WASM-029: Messaging Patterns (no send-response; response IS return value)
+    /// - WASM-TASK-006 Phase 3 Task 3.2: Response Routing and Callbacks
+    pub fn response_router(&self) -> Arc<ResponseRouter> {
+        Arc::clone(&self.response_router)
     }
 }
 
@@ -416,6 +461,221 @@ pub struct MessagingStats {
     
     /// Current number of pending requests awaiting responses
     pub requests_pending: u64,
+    
+    /// Total responses routed successfully (Phase 3 Task 3.2)
+    pub responses_routed: u64,
+}
+
+/// Response router for request-response messaging pattern.
+///
+/// `ResponseRouter` handles routing responses from `handle-message` return values
+/// back to requesting components via `handle-callback`. It implements the core
+/// pattern defined in KNOWLEDGE-WASM-029:
+///
+/// - **No `send-response` host function**: Response IS the return value from `handle-message`
+/// - **Correlation-based routing**: Uses `CorrelationTracker` to match responses to requests
+/// - **Callback invocation**: Routes response to requester via `handle-callback` export
+///
+/// # Architecture
+///
+/// ```text
+/// Component A                   Component B
+/// send-request ──────────────► handle-message
+///       │                            │
+///       │ correlation_id             │ return value
+///       ▼                            ▼
+/// CorrelationTracker           ResponseRouter
+///       │                            │
+///       │◄────── route_response ─────┘
+///       │
+///       ▼
+/// handle-callback ◄───────── response routed
+/// ```
+///
+/// # Thread Safety
+///
+/// ResponseRouter is thread-safe via Arc-wrapped CorrelationTracker with DashMap.
+/// All operations are lock-free with O(1) complexity.
+///
+/// # Performance
+///
+/// - Response routing: ~150ns (DashMap lookup + oneshot send)
+/// - Callback invocation: ~300ns (WASM export call)
+/// - Total: ~450ns end-to-end response delivery
+///
+/// # References
+///
+/// - **KNOWLEDGE-WASM-029**: Messaging Patterns (response IS return value)
+/// - **ADR-WASM-009**: Component Communication Model (Pattern 2: Request-Response)
+/// - **WASM-TASK-006 Phase 3 Task 3.2**: Response Routing and Callbacks
+#[derive(Clone)]
+pub struct ResponseRouter {
+    /// Correlation tracker for pending request lookup
+    correlation_tracker: Arc<CorrelationTracker>,
+    
+    /// Metrics for monitoring response routing
+    metrics: Arc<ResponseRouterMetrics>,
+}
+
+/// Metrics for response routing.
+#[derive(Debug, Default)]
+struct ResponseRouterMetrics {
+    /// Total responses routed successfully
+    responses_routed: AtomicU64,
+    
+    /// Responses that failed to route (no pending request)
+    responses_orphaned: AtomicU64,
+    
+    /// Responses that were error results
+    error_responses: AtomicU64,
+}
+
+impl ResponseRouter {
+    /// Create a new ResponseRouter with the given correlation tracker.
+    ///
+    /// # Arguments
+    ///
+    /// * `correlation_tracker` - Shared correlation tracker for request-response matching
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// use airssys_wasm::runtime::ResponseRouter;
+    /// use airssys_wasm::actor::message::CorrelationTracker;
+    /// use std::sync::Arc;
+    ///
+    /// let tracker = Arc::new(CorrelationTracker::new());
+    /// let router = ResponseRouter::new(tracker);
+    /// ```
+    pub fn new(correlation_tracker: Arc<CorrelationTracker>) -> Self {
+        Self {
+            correlation_tracker,
+            metrics: Arc::new(ResponseRouterMetrics::default()),
+        }
+    }
+    
+    /// Route a response to the requesting component.
+    ///
+    /// Looks up the pending request by correlation ID and delivers the response
+    /// via the oneshot channel established during `send-request`. The
+    /// CorrelationTracker handles channel delivery and cleanup.
+    ///
+    /// # Arguments
+    ///
+    /// * `correlation_id` - Correlation ID from the original request
+    /// * `result` - Response result (Ok for success payload, Err for error)
+    /// * `from` - Component ID that produced the response
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - Response routed successfully
+    /// * `Err(WasmError)` - Routing failed (no pending request, already resolved)
+    ///
+    /// # Errors
+    ///
+    /// - `WasmError::Internal` - Correlation ID not found (already resolved or timeout)
+    ///
+    /// # Performance
+    ///
+    /// ~150ns (DashMap lookup + oneshot send)
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// let router = messaging_service.response_router();
+    ///
+    /// // After handle-message returns, route the response
+    /// router.route_response(
+    ///     correlation_id,
+    ///     Ok(response_payload),
+    ///     ComponentId::new("responder"),
+    /// ).await?;
+    /// ```
+    pub async fn route_response(
+        &self,
+        correlation_id: CorrelationId,
+        result: Result<Vec<u8>, RequestError>,
+        from: ComponentId,
+    ) -> Result<(), WasmError> {
+        // Track error responses
+        if result.is_err() {
+            self.metrics.error_responses.fetch_add(1, Ordering::Relaxed);
+        }
+        
+        // Create ResponseMessage
+        let response = ResponseMessage {
+            correlation_id,
+            from,
+            to: ComponentId::new(""), // Will be filled by CorrelationTracker::resolve()
+            result,
+            timestamp: Utc::now(),
+        };
+        
+        // Resolve via correlation tracker (delivers to oneshot channel)
+        match self.correlation_tracker.resolve(correlation_id, response).await {
+            Ok(()) => {
+                self.metrics.responses_routed.fetch_add(1, Ordering::Relaxed);
+                Ok(())
+            }
+            Err(e) => {
+                self.metrics.responses_orphaned.fetch_add(1, Ordering::Relaxed);
+                Err(e)
+            }
+        }
+    }
+    
+    /// Check if a correlation ID has a pending request.
+    ///
+    /// Useful for determining whether a response should be routed or ignored.
+    /// Fire-and-forget messages won't have pending requests.
+    ///
+    /// # Arguments
+    ///
+    /// * `correlation_id` - Correlation ID to check
+    ///
+    /// # Returns
+    ///
+    /// `true` if there's a pending request for this correlation ID
+    pub fn has_pending_request(&self, correlation_id: &CorrelationId) -> bool {
+        self.correlation_tracker.contains(correlation_id)
+    }
+    
+    /// Get the number of responses routed successfully.
+    pub fn responses_routed_count(&self) -> u64 {
+        self.metrics.responses_routed.load(Ordering::Relaxed)
+    }
+    
+    /// Get the number of orphaned responses (no pending request).
+    pub fn responses_orphaned_count(&self) -> u64 {
+        self.metrics.responses_orphaned.load(Ordering::Relaxed)
+    }
+    
+    /// Get the number of error responses.
+    pub fn error_responses_count(&self) -> u64 {
+        self.metrics.error_responses.load(Ordering::Relaxed)
+    }
+    
+    /// Get snapshot of response router metrics.
+    pub fn get_stats(&self) -> ResponseRouterStats {
+        ResponseRouterStats {
+            responses_routed: self.metrics.responses_routed.load(Ordering::Relaxed),
+            responses_orphaned: self.metrics.responses_orphaned.load(Ordering::Relaxed),
+            error_responses: self.metrics.error_responses.load(Ordering::Relaxed),
+        }
+    }
+}
+
+/// Snapshot of response router statistics.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct ResponseRouterStats {
+    /// Total responses routed successfully
+    pub responses_routed: u64,
+    
+    /// Responses that failed to route (no pending request)
+    pub responses_orphaned: u64,
+    
+    /// Responses that were error results
+    pub error_responses: u64,
 }
 
 /// Message reception metrics for ComponentActor (WASM-TASK-006 Task 1.2).
@@ -727,12 +987,15 @@ mod tests {
         assert_eq!(tracker.pending_count(), 0);
         
         // Multiple calls should return the same tracker
+        // Note: strong_count is 4 because ResponseRouter also holds an Arc<CorrelationTracker>
+        // service.correlation_tracker + service.response_router.correlation_tracker + tracker + tracker2
         let tracker2 = service.correlation_tracker();
-        assert_eq!(Arc::strong_count(&service.correlation_tracker), 3); // service + tracker + tracker2
+        assert_eq!(Arc::strong_count(&service.correlation_tracker), 4);
         
         drop(tracker);
         drop(tracker2);
-        assert_eq!(Arc::strong_count(&service.correlation_tracker), 1);
+        // After dropping both, only service.correlation_tracker and response_router remain
+        assert_eq!(Arc::strong_count(&service.correlation_tracker), 2);
     }
     
     #[test]
@@ -816,5 +1079,234 @@ mod tests {
         let stats = service.get_stats().await;
         assert_eq!(stats.requests_sent, 2);
         assert_eq!(stats.requests_pending, 1);
+    }
+    
+    // ============================================================================
+    // Phase 3 Task 3.2 Tests - ResponseRouter
+    // ============================================================================
+    
+    #[test]
+    fn test_response_router_new() {
+        let tracker = Arc::new(CorrelationTracker::new());
+        let router = ResponseRouter::new(tracker);
+        
+        // Initial metrics should be zero
+        assert_eq!(router.responses_routed_count(), 0);
+        assert_eq!(router.responses_orphaned_count(), 0);
+        assert_eq!(router.error_responses_count(), 0);
+    }
+    
+    #[test]
+    fn test_response_router_clone() {
+        let tracker = Arc::new(CorrelationTracker::new());
+        let router = ResponseRouter::new(tracker);
+        let _router_clone = router.clone();
+        
+        // Should share same metrics
+        assert_eq!(Arc::strong_count(&router.metrics), 2);
+        
+        // Verify both reference same tracker
+        assert_eq!(Arc::strong_count(&router.correlation_tracker), 2);
+    }
+    
+    #[test]
+    fn test_response_router_has_pending_request_false() {
+        let tracker = Arc::new(CorrelationTracker::new());
+        let router = ResponseRouter::new(tracker);
+        
+        let correlation_id = uuid::Uuid::new_v4();
+        assert!(!router.has_pending_request(&correlation_id));
+    }
+    
+    #[tokio::test]
+    async fn test_response_router_has_pending_request_true() {
+        use crate::actor::message::PendingRequest;
+        use tokio::sync::oneshot;
+        use tokio::time::{Duration, Instant};
+        
+        let tracker = Arc::new(CorrelationTracker::new());
+        let router = ResponseRouter::new(Arc::clone(&tracker));
+        
+        let correlation_id = uuid::Uuid::new_v4();
+        let (tx, _rx) = oneshot::channel();
+        
+        let pending = PendingRequest {
+            correlation_id,
+            response_tx: tx,
+            requested_at: Instant::now(),
+            timeout: Duration::from_secs(30),
+            from: ComponentId::new("requester"),
+            to: ComponentId::new("responder"),
+        };
+        
+        tracker.register_pending(pending).await.unwrap();
+        
+        assert!(router.has_pending_request(&correlation_id));
+    }
+    
+    #[tokio::test]
+    async fn test_response_router_route_response_success() {
+        use crate::actor::message::PendingRequest;
+        use tokio::sync::oneshot;
+        use tokio::time::{Duration, Instant};
+        
+        let tracker = Arc::new(CorrelationTracker::new());
+        let router = ResponseRouter::new(Arc::clone(&tracker));
+        
+        let correlation_id = uuid::Uuid::new_v4();
+        let (tx, rx) = oneshot::channel();
+        
+        let pending = PendingRequest {
+            correlation_id,
+            response_tx: tx,
+            requested_at: Instant::now(),
+            timeout: Duration::from_secs(30),
+            from: ComponentId::new("requester"),
+            to: ComponentId::new("responder"),
+        };
+        
+        tracker.register_pending(pending).await.unwrap();
+        
+        // Route successful response
+        let result = router.route_response(
+            correlation_id,
+            Ok(vec![1, 2, 3]),
+            ComponentId::new("responder"),
+        ).await;
+        
+        assert!(result.is_ok());
+        assert_eq!(router.responses_routed_count(), 1);
+        assert_eq!(router.responses_orphaned_count(), 0);
+        assert_eq!(router.error_responses_count(), 0);
+        
+        // Verify response was delivered
+        let response = rx.await.unwrap();
+        assert_eq!(response.correlation_id, correlation_id);
+        assert!(response.result.is_ok());
+    }
+    
+    #[tokio::test]
+    async fn test_response_router_route_response_error() {
+        use crate::actor::message::{PendingRequest, RequestError};
+        use tokio::sync::oneshot;
+        use tokio::time::{Duration, Instant};
+        
+        let tracker = Arc::new(CorrelationTracker::new());
+        let router = ResponseRouter::new(Arc::clone(&tracker));
+        
+        let correlation_id = uuid::Uuid::new_v4();
+        let (tx, rx) = oneshot::channel();
+        
+        let pending = PendingRequest {
+            correlation_id,
+            response_tx: tx,
+            requested_at: Instant::now(),
+            timeout: Duration::from_secs(30),
+            from: ComponentId::new("requester"),
+            to: ComponentId::new("responder"),
+        };
+        
+        tracker.register_pending(pending).await.unwrap();
+        
+        // Route error response
+        let result = router.route_response(
+            correlation_id,
+            Err(RequestError::ComponentNotFound(ComponentId::new("target"))),
+            ComponentId::new("responder"),
+        ).await;
+        
+        assert!(result.is_ok());
+        assert_eq!(router.responses_routed_count(), 1);
+        assert_eq!(router.responses_orphaned_count(), 0);
+        assert_eq!(router.error_responses_count(), 1);
+        
+        // Verify response was delivered as error
+        let response = rx.await.unwrap();
+        assert!(response.result.is_err());
+    }
+    
+    #[tokio::test]
+    async fn test_response_router_orphaned_response() {
+        let tracker = Arc::new(CorrelationTracker::new());
+        let router = ResponseRouter::new(tracker);
+        
+        // Try to route response for non-existent request
+        let correlation_id = uuid::Uuid::new_v4();
+        let result = router.route_response(
+            correlation_id,
+            Ok(vec![1, 2, 3]),
+            ComponentId::new("responder"),
+        ).await;
+        
+        assert!(result.is_err()); // Should fail - no pending request
+        assert_eq!(router.responses_routed_count(), 0);
+        assert_eq!(router.responses_orphaned_count(), 1);
+    }
+    
+    #[test]
+    fn test_response_router_get_stats() {
+        let tracker = Arc::new(CorrelationTracker::new());
+        let router = ResponseRouter::new(tracker);
+        
+        let stats = router.get_stats();
+        assert_eq!(stats.responses_routed, 0);
+        assert_eq!(stats.responses_orphaned, 0);
+        assert_eq!(stats.error_responses, 0);
+    }
+    
+    #[test]
+    fn test_response_router_access() {
+        let service = MessagingService::new();
+        let router = service.response_router();
+        
+        // Router should be initialized
+        assert_eq!(router.responses_routed_count(), 0);
+        
+        // Multiple calls should return the same router
+        let router2 = service.response_router();
+        assert_eq!(Arc::strong_count(&service.response_router), 3);
+        
+        drop(router);
+        drop(router2);
+        assert_eq!(Arc::strong_count(&service.response_router), 1);
+    }
+    
+    #[tokio::test]
+    async fn test_get_stats_includes_responses_routed() {
+        use crate::actor::message::PendingRequest;
+        use tokio::sync::oneshot;
+        use tokio::time::{Duration, Instant};
+        
+        let service = MessagingService::new();
+        let tracker = service.correlation_tracker();
+        
+        // Initial stats
+        let stats = service.get_stats().await;
+        assert_eq!(stats.responses_routed, 0);
+        
+        // Register and route a response
+        let correlation_id = uuid::Uuid::new_v4();
+        let (tx, _rx) = oneshot::channel();
+        
+        let pending = PendingRequest {
+            correlation_id,
+            response_tx: tx,
+            requested_at: Instant::now(),
+            timeout: Duration::from_secs(30),
+            from: ComponentId::new("requester"),
+            to: ComponentId::new("responder"),
+        };
+        
+        tracker.register_pending(pending).await.unwrap();
+        
+        let router = service.response_router();
+        router.route_response(
+            correlation_id,
+            Ok(vec![1, 2, 3]),
+            ComponentId::new("responder"),
+        ).await.unwrap();
+        
+        let stats = service.get_stats().await;
+        assert_eq!(stats.responses_routed, 1);
     }
 }

@@ -529,6 +529,148 @@ impl WasmEngine {
             ))
         })
     }
+
+    /// Call the handle-callback export on a component.
+    ///
+    /// Uses Component Model API to invoke the callback handler when a response
+    /// is received for a previous `send-request` call. This implements the
+    /// response delivery mechanism defined in KNOWLEDGE-WASM-029.
+    ///
+    /// # Arguments
+    ///
+    /// * `handle` - Component handle from `load_component()`
+    /// * `request_id` - Correlation ID from the original request (UUID string)
+    /// * `payload` - Response payload bytes
+    /// * `is_error` - Whether the response is an error (1) or success (0)
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - Callback handled successfully
+    /// * `Err(WasmError)` - Execution failed
+    ///
+    /// # WIT Interface
+    ///
+    /// The handle-callback export follows a similar pattern to handle-message:
+    /// ```wit
+    /// handle-callback: func(request-id: string, payload: list<u8>, is-error: s32) -> result<_, component-error>;
+    /// ```
+    ///
+    /// # Implementation Notes
+    ///
+    /// This method follows the same pattern as `call_handle_message`:
+    /// 1. Creates a Store with fuel metering for CPU limiting
+    /// 2. Creates a Linker for component instantiation
+    /// 3. Instantiates the component
+    /// 4. Gets the typed handle-callback function export
+    /// 5. Calls the function with request_id, payload, and is_error parameters
+    /// 6. Handles success/error results
+    ///
+    /// # Component Interface
+    ///
+    /// Components receiving callbacks should export:
+    /// - `handle-callback(request_id_ptr, request_id_len, result_ptr, result_len) -> i32`
+    /// - First byte of result indicates: 0=success, 1=error
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// use airssys_wasm::runtime::WasmEngine;
+    /// use airssys_wasm::core::ComponentId;
+    ///
+    /// async fn deliver_callback(engine: &WasmEngine, handle: &ComponentHandle) {
+    ///     let request_id = "550e8400-e29b-41d4-a716-446655440000";
+    ///     let payload = b"response data";
+    ///     let is_error = 0; // success
+    ///     
+    ///     engine.call_handle_callback(handle, request_id, payload, is_error).await?;
+    /// }
+    /// ```
+    ///
+    /// # References
+    ///
+    /// - **KNOWLEDGE-WASM-029**: Messaging Patterns (response routing)
+    /// - **WASM-TASK-006 Phase 3 Task 3.2**: Response Routing and Callbacks
+    pub async fn call_handle_callback(
+        &self,
+        handle: &ComponentHandle,
+        request_id: &str,
+        payload: &[u8],
+        is_error: i32,
+    ) -> WasmResult<()> {
+        // Default fuel limit for callback handling operations
+        const DEFAULT_FUEL: u64 = 10_000_000;
+
+        // 1. Create Store with fuel metering for CPU limiting
+        let mut store = StoreWrapper::new(&self.inner.engine, (), DEFAULT_FUEL)?;
+        store.set_component_id(handle.id().to_string());
+
+        // 2. Create Linker for component instantiation
+        let linker = Linker::new(&self.inner.engine);
+
+        // 3. Instantiate component
+        let instance = linker
+            .instantiate_async(&mut store, handle.component())
+            .await
+            .map_err(|e| {
+                WasmError::execution_failed(format!(
+                    "Failed to instantiate component '{}' for handle-callback: {e}",
+                    handle.id()
+                ))
+            })?;
+
+        // 4. Get typed function for handle-callback export
+        //
+        // For callback-receiver.wat, the signature is:
+        //   handle-callback(request_id_ptr, request_id_len, result_ptr, result_len) -> i32
+        //
+        // In Wasmtime typed functions, this maps to:
+        //   - Input: (&str, &[u8]) - request_id as string, result (with is_error prefix) as slice
+        //   - Output: (i32,) - 0 for success, non-zero for error
+        //
+        // We prepend is_error byte to payload for the component to distinguish success/error.
+        let func = instance
+            .get_typed_func::<(&str, &[u8]), (i32,)>(&mut store, "handle-callback")
+            .map_err(|e| {
+                WasmError::execution_failed(format!(
+                    "Component '{}' has no handle-callback export or type mismatch. \
+                     Expected signature: (string, list<u8>) -> s32. Error: {e}",
+                    handle.id()
+                ))
+            })?;
+
+        // 5. Prepare result payload with is_error prefix
+        // First byte: 0 = success, 1 = error
+        // Remaining bytes: actual payload
+        let mut result_with_prefix = Vec::with_capacity(1 + payload.len());
+        result_with_prefix.push(if is_error != 0 { 1 } else { 0 });
+        result_with_prefix.extend_from_slice(payload);
+
+        // 6. Call the handle-callback function
+        let (result,) = func
+            .call_async(&mut store, (request_id, result_with_prefix.as_slice()))
+            .await
+            .map_err(|e| {
+                // Collect fuel consumed for diagnostics
+                let fuel_consumed = store.fuel_consumed();
+                Self::categorize_wasmtime_error_with_fuel(
+                    &e,
+                    &ComponentId::new(handle.id()),
+                    "handle-callback",
+                    fuel_consumed,
+                )
+            })?;
+
+        // 7. Handle result (0 = success, non-zero = error)
+        if result != 0 {
+            Err(WasmError::execution_failed(format!(
+                "Component '{}' handle-callback returned error code {} (component-side failure)",
+                handle.id(),
+                result
+            )))
+        } else {
+            Ok(())
+        }
+    }
 }
 
 // Implement RuntimeEngine trait for WasmEngine
@@ -774,6 +916,168 @@ mod tests {
                 result.is_ok(),
                 "Expected success with sender '{}': {:?}",
                 sender.as_str(),
+                result.err()
+            );
+        }
+    }
+
+    // ============================================================================
+    // call_handle_callback Tests (Task 3.2)
+    // ============================================================================
+
+    /// Test that call_handle_callback returns error when component has no handle-callback export.
+    ///
+    /// Uses hello_world.wasm which only exports "hello", not "handle-callback".
+    #[tokio::test]
+    async fn test_call_handle_callback_no_export() {
+        // Load hello_world.wasm which doesn't have handle-callback export
+        let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures/hello_world.wasm");
+        let bytes = std::fs::read(&fixture_path).expect("Failed to read fixture");
+
+        let engine = WasmEngine::new().unwrap();
+        let component_id = ComponentId::new("test-component");
+        let handle = engine
+            .load_component(&component_id, &bytes)
+            .await
+            .expect("Failed to load component");
+
+        // Attempt to call handle-callback (should fail - no export)
+        let request_id = "550e8400-e29b-41d4-a716-446655440000";
+        let payload = b"test response";
+        let is_error = 0;
+
+        let result = engine.call_handle_callback(&handle, request_id, payload, is_error).await;
+
+        // Should fail with execution error (no handle-callback export)
+        assert!(result.is_err(), "Expected error when no handle-callback export");
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("handle-callback") || err_msg.contains("no handle-callback"),
+            "Error should mention handle-callback export: {err_msg}"
+        );
+    }
+
+    /// Test successful call_handle_callback with a component that has handle-callback export.
+    ///
+    /// Uses callback-receiver-component.wasm which exports:
+    ///   handle-callback: func(request_id: string, result: list<u8>) -> s32
+    #[tokio::test]
+    async fn test_call_handle_callback_success() {
+        // Load callback-receiver-component.wasm which has handle-callback export
+        let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures/callback-receiver-component.wasm");
+        let bytes = std::fs::read(&fixture_path).expect("Failed to read fixture");
+
+        let engine = WasmEngine::new().unwrap();
+        let component_id = ComponentId::new("test-callback-receiver");
+        let handle = engine
+            .load_component(&component_id, &bytes)
+            .await
+            .expect("Failed to load component");
+
+        // Call handle-callback (should succeed)
+        let request_id = "550e8400-e29b-41d4-a716-446655440000";
+        let payload = b"response data";
+        let is_error = 0;
+
+        let result = engine.call_handle_callback(&handle, request_id, payload, is_error).await;
+
+        // Should succeed
+        assert!(
+            result.is_ok(),
+            "Expected success when component has handle-callback export: {:?}",
+            result.err()
+        );
+    }
+
+    /// Test call_handle_callback with error response.
+    #[tokio::test]
+    async fn test_call_handle_callback_error_response() {
+        let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures/callback-receiver-component.wasm");
+        let bytes = std::fs::read(&fixture_path).expect("Failed to read fixture");
+
+        let engine = WasmEngine::new().unwrap();
+        let component_id = ComponentId::new("test-callback-receiver");
+        let handle = engine
+            .load_component(&component_id, &bytes)
+            .await
+            .expect("Failed to load component");
+
+        // Call with is_error = 1 (error response)
+        let request_id = "550e8400-e29b-41d4-a716-446655440000";
+        let payload = b"error message";
+        let is_error = 1;
+
+        let result = engine.call_handle_callback(&handle, request_id, payload, is_error).await;
+
+        // Should succeed (component handles error responses)
+        assert!(
+            result.is_ok(),
+            "Expected success with error response: {:?}",
+            result.err()
+        );
+    }
+
+    /// Test call_handle_callback with empty payload.
+    #[tokio::test]
+    async fn test_call_handle_callback_empty_payload() {
+        let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures/callback-receiver-component.wasm");
+        let bytes = std::fs::read(&fixture_path).expect("Failed to read fixture");
+
+        let engine = WasmEngine::new().unwrap();
+        let component_id = ComponentId::new("test-callback-receiver");
+        let handle = engine
+            .load_component(&component_id, &bytes)
+            .await
+            .expect("Failed to load component");
+
+        // Call with empty payload
+        let request_id = "550e8400-e29b-41d4-a716-446655440000";
+        let payload: &[u8] = &[];
+        let is_error = 0;
+
+        let result = engine.call_handle_callback(&handle, request_id, payload, is_error).await;
+
+        // Should succeed with empty payload
+        assert!(
+            result.is_ok(),
+            "Expected success with empty payload: {:?}",
+            result.err()
+        );
+    }
+
+    /// Test call_handle_callback with various request IDs.
+    #[tokio::test]
+    async fn test_call_handle_callback_various_request_ids() {
+        let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures/callback-receiver-component.wasm");
+        let bytes = std::fs::read(&fixture_path).expect("Failed to read fixture");
+
+        let engine = WasmEngine::new().unwrap();
+        let component_id = ComponentId::new("test-callback-receiver");
+        let handle = engine
+            .load_component(&component_id, &bytes)
+            .await
+            .expect("Failed to load component");
+
+        // Test with various request IDs
+        let request_ids = [
+            "550e8400-e29b-41d4-a716-446655440000",
+            "short",
+            "a-very-long-request-identifier-for-testing",
+        ];
+
+        for request_id in &request_ids {
+            let result = engine
+                .call_handle_callback(&handle, request_id, b"test", 0)
+                .await;
+            assert!(
+                result.is_ok(),
+                "Expected success with request_id '{}': {:?}",
+                request_id,
                 result.err()
             );
         }

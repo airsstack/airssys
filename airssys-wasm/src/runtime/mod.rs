@@ -84,5 +84,5 @@ pub use limits::{
     ComponentResourceLimiter, MemoryConfig, MemoryMetrics, ResourceLimits, ResourceLimitsBuilder,
 };
 pub use loader::ComponentLoader;
-pub use messaging::{MessageReceptionMetrics, MessageReceptionStats, MessagingService, MessagingStats};
+pub use messaging::{MessageReceptionMetrics, MessageReceptionStats, MessagingService, MessagingStats, ResponseRouter, ResponseRouterStats};
 pub use store_manager::StoreWrapper;
