@@ -57,39 +57,12 @@ use std::sync::atomic::{AtomicU64, Ordering};
 // Layer 2: Third-party crate imports
 use chrono::Utc;
 use dashmap::DashMap;
-use tokio::sync::oneshot;
-use tokio::time::{Duration, Instant};
-use uuid::Uuid;
+use tokio::time::Instant;
 
 // Layer 3: Internal module imports
-use super::request_response::{RequestError, ResponseMessage};
 use super::timeout_handler::TimeoutHandler;
-use crate::core::{ComponentId, WasmError};
-
-/// Correlation ID type (UUID v4).
-///
-/// UUIDs provide 122-bit entropy with collision probability of 1 in 10^36,
-/// ensuring globally unique correlation tracking across distributed components.
-pub type CorrelationId = Uuid;
-
-/// Pending request state for correlation tracking.
-///
-/// Stores all metadata needed to match a response to its originating request
-/// and deliver the response via oneshot channel.
-pub struct PendingRequest {
-    /// Unique correlation ID
-    pub correlation_id: CorrelationId,
-    /// Response channel sender (oneshot for single response)
-    pub response_tx: oneshot::Sender<ResponseMessage>,
-    /// Request timestamp (for timeout tracking)
-    pub requested_at: Instant,
-    /// Timeout duration
-    pub timeout: Duration,
-    /// Source component ID
-    pub from: ComponentId,
-    /// Target component ID
-    pub to: ComponentId,
-}
+use crate::core::messaging::{CorrelationId, PendingRequest, RequestError, ResponseMessage};
+use crate::core::WasmError;
 
 /// High-performance correlation tracker for request-response patterns.
 ///
@@ -476,6 +449,9 @@ impl Default for CorrelationTracker {
 mod tests {
     use super::*;
     use crate::core::ComponentId;
+    use tokio::sync::oneshot;
+    use tokio::time::Duration;
+    use uuid::Uuid;
 
     #[tokio::test]
     async fn test_new_tracker() {

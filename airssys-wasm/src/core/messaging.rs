@@ -38,6 +38,10 @@
 // Layer 2: External crates
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::fmt;
+use tokio::sync::oneshot;
+use tokio::time::{Duration, Instant};
+use uuid::Uuid;
 
 // Layer 3: Internal (core only)
 use crate::core::component::ComponentId;
@@ -616,6 +620,89 @@ impl DeliveryGuarantee {
     }
 }
 
+/// Correlation ID type (UUID v4).
+///
+/// UUIDs provide 122-bit entropy with collision probability of 1 in 10^36,
+/// ensuring globally unique correlation tracking across distributed components.
+pub type CorrelationId = Uuid;
+
+/// Pending request state for correlation tracking.
+///
+/// Stores all metadata needed to match a response to its originating request
+/// and deliver the response via oneshot channel.
+#[derive(Debug)]
+pub struct PendingRequest {
+    /// Unique correlation ID
+    pub correlation_id: CorrelationId,
+    /// Response channel sender (oneshot for single response)
+    pub response_tx: oneshot::Sender<ResponseMessage>,
+    /// Request timestamp (for timeout tracking)
+    pub requested_at: Instant,
+    /// Timeout duration
+    pub timeout: Duration,
+    /// Source component ID
+    pub from: ComponentId,
+    /// Target component ID
+    pub to: ComponentId,
+}
+
+/// Response message for request-response pattern.
+///
+/// Wraps the result of a request with metadata for correlation tracking.
+/// Results can be either a successful response payload or a RequestError.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResponseMessage {
+    /// Correlation ID linking to original request
+    pub correlation_id: CorrelationId,
+    /// Component that sent the response
+    pub from: ComponentId,
+    /// Component that should receive the response
+    pub to: ComponentId,
+    /// Result (success payload or error)
+    pub result: Result<Vec<u8>, RequestError>,
+    /// Response timestamp
+    pub timestamp: DateTime<Utc>,
+}
+
+/// Error types for request-response messaging.
+///
+/// Represents various failure modes in request-response patterns.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum RequestError {
+    /// Request timed out before response arrived.
+    Timeout,
+
+    /// Target component not found.
+    ComponentNotFound(String),
+
+    /// Component failed to process the request.
+    ProcessingFailed(String),
+
+    /// Component is not in a valid state to handle requests.
+    InvalidState(String),
+
+    /// Request payload was invalid or could not be decoded.
+    InvalidPayload(String),
+
+    /// Generic internal error.
+    Internal(String),
+}
+
+impl fmt::Display for RequestError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Timeout => write!(f, "Request timed out"),
+            Self::ComponentNotFound(id) => write!(f, "Component not found: {}", id),
+            Self::ProcessingFailed(msg) => write!(f, "Processing failed: {}", msg),
+            Self::InvalidState(msg) => write!(f, "Invalid state: {}", msg),
+            Self::InvalidPayload(msg) => write!(f, "Invalid payload: {}", msg),
+            Self::Internal(msg) => write!(f, "Internal error: {}", msg),
+        }
+    }
+}
+
+impl std::error::Error for RequestError {}
+
 #[cfg(test)]
 #[allow(clippy::panic)]
 #[allow(clippy::unwrap_used)]
@@ -811,5 +898,115 @@ mod tests {
     fn test_delivery_guarantee_expected_latency() {
         assert_eq!(DeliveryGuarantee::AtMostOnce.expected_latency_ns(), 280);
         assert_eq!(DeliveryGuarantee::AtLeastOnce.expected_latency_ns(), 560);
+    }
+
+    #[test]
+    fn test_correlation_id_is_uuid() {
+        let id: CorrelationId = Uuid::new_v4();
+        assert_ne!(id, Uuid::nil());
+    }
+
+    #[test]
+    fn test_request_error_timeout_display() {
+        let error = RequestError::Timeout;
+        assert_eq!(error.to_string(), "Request timed out");
+    }
+
+    #[test]
+    fn test_request_error_component_not_found_display() {
+        let error = RequestError::ComponentNotFound("comp-a".to_string());
+        assert_eq!(error.to_string(), "Component not found: comp-a");
+    }
+
+    #[test]
+    fn test_request_error_processing_failed_display() {
+        let error = RequestError::ProcessingFailed("Invalid input".to_string());
+        assert_eq!(error.to_string(), "Processing failed: Invalid input");
+    }
+
+    #[test]
+    fn test_request_error_invalid_state_display() {
+        let error = RequestError::InvalidState("Not initialized".to_string());
+        assert_eq!(error.to_string(), "Invalid state: Not initialized");
+    }
+
+    #[test]
+    fn test_request_error_invalid_payload_display() {
+        let error = RequestError::InvalidPayload("Bad JSON".to_string());
+        assert_eq!(error.to_string(), "Invalid payload: Bad JSON");
+    }
+
+    #[test]
+    fn test_request_error_internal_display() {
+        let error = RequestError::Internal("Something went wrong".to_string());
+        assert_eq!(error.to_string(), "Internal error: Something went wrong");
+    }
+
+    #[test]
+    fn test_request_error_serialization() {
+        let error = RequestError::Timeout;
+
+        let json = serde_json::to_value(&error)
+            .unwrap_or_else(|e| panic!("serialization should succeed: {e}"));
+
+        let deserialized: RequestError = serde_json::from_value(json)
+            .unwrap_or_else(|e| panic!("deserialization should succeed: {e}"));
+
+        assert_eq!(deserialized, RequestError::Timeout);
+    }
+
+    #[test]
+    fn test_response_message_success() {
+        let corr_id = Uuid::new_v4();
+        let response = ResponseMessage {
+            correlation_id: corr_id,
+            from: ComponentId::new("server"),
+            to: ComponentId::new("client"),
+            result: Ok(vec![1, 2, 3, 4]),
+            timestamp: Utc::now(),
+        };
+
+        assert_eq!(response.correlation_id, corr_id);
+        assert_eq!(response.from.as_str(), "server");
+        assert_eq!(response.to.as_str(), "client");
+        assert!(response.result.is_ok());
+        assert_eq!(response.result.unwrap(), vec![1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn test_response_message_error() {
+        let corr_id = Uuid::new_v4();
+        let response = ResponseMessage {
+            correlation_id: corr_id,
+            from: ComponentId::new("server"),
+            to: ComponentId::new("client"),
+            result: Err(RequestError::Timeout),
+            timestamp: Utc::now(),
+        };
+
+        assert_eq!(response.correlation_id, corr_id);
+        assert!(response.result.is_err());
+        assert_eq!(response.result.unwrap_err(), RequestError::Timeout);
+    }
+
+    #[test]
+    fn test_response_message_serialization() {
+        let response = ResponseMessage {
+            correlation_id: Uuid::new_v4(),
+            from: ComponentId::new("server"),
+            to: ComponentId::new("client"),
+            result: Ok(vec![1, 2, 3]),
+            timestamp: Utc::now(),
+        };
+
+        let json = serde_json::to_value(&response)
+            .unwrap_or_else(|e| panic!("serialization should succeed: {e}"));
+
+        let deserialized: ResponseMessage = serde_json::from_value(json)
+            .unwrap_or_else(|e| panic!("deserialization should succeed: {e}"));
+
+        assert_eq!(deserialized.from.as_str(), "server");
+        assert_eq!(deserialized.to.as_str(), "client");
+        assert!(deserialized.result.is_ok());
     }
 }

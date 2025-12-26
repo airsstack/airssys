@@ -1404,9 +1404,10 @@ where
         target: &ComponentId,
         payload: Vec<u8>,
         timeout: std::time::Duration,
-    ) -> Result<tokio::sync::oneshot::Receiver<crate::actor::message::ResponseMessage>, WasmError>
+    ) -> Result<tokio::sync::oneshot::Receiver<crate::core::messaging::ResponseMessage>, WasmError>
     {
-        use crate::actor::message::{CorrelationId, RequestMessage};
+        use crate::actor::message::RequestMessage;
+        use crate::core::messaging::{CorrelationId, PendingRequest};
         use tokio::sync::oneshot;
         use tokio::time::Instant;
 
@@ -1423,13 +1424,12 @@ where
         // Create oneshot channel for response
         let (response_tx, response_rx) = oneshot::channel();
 
-        // Register pending request (this is an internal type, we need to make it public or use a builder pattern)
-        // For now, we'll register directly with the internal struct
-        let pending_request = crate::actor::message::correlation_tracker::PendingRequest {
+        // Register pending request
+        let pending_request = PendingRequest {
             correlation_id,
             response_tx,
             requested_at: Instant::now(),
-            timeout: tokio::time::Duration::from_millis(timeout.as_millis() as u64),
+            timeout,
             from: self.component_id.clone(),
             to: target.clone(),
         };
@@ -1498,9 +1498,9 @@ where
     pub async fn send_response(
         &self,
         correlation_id: uuid::Uuid,
-        result: Result<Vec<u8>, crate::actor::message::RequestError>,
+        result: Result<Vec<u8>, crate::core::messaging::RequestError>,
     ) -> Result<(), WasmError> {
-        use crate::actor::message::ResponseMessage;
+        use crate::core::messaging::ResponseMessage;
         use chrono::Utc;
 
         // Verify correlation tracker configured

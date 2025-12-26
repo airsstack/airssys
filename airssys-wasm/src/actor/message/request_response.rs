@@ -58,7 +58,6 @@
 //! - **WASM-TASK-004 Phase 5 Task 5.1**: Message Correlation Implementation
 
 // Layer 1: Standard library imports
-use std::fmt;
 
 // Layer 2: Third-party crate imports
 use chrono::{DateTime, Utc};
@@ -66,13 +65,8 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 // Layer 3: Internal module imports
+use crate::core::messaging::CorrelationId;
 use crate::core::ComponentId;
-
-/// Correlation ID type (UUID v4).
-///
-/// UUIDs provide 122-bit entropy with collision probability of 1 in 10^36,
-/// ensuring globally unique correlation tracking across distributed components.
-pub type CorrelationId = Uuid;
 
 /// Request message with correlation tracking.
 ///
@@ -147,165 +141,6 @@ impl RequestMessage {
     }
 }
 
-/// Response message with correlation tracking.
-///
-/// Wraps a response payload or error with correlation metadata,
-/// matching the original request for callback delivery.
-///
-/// # Examples
-///
-/// ```rust,ignore
-/// let response = ResponseMessage::success(
-///     request.correlation_id,
-///     ComponentId::new("responder"),
-///     request.from,
-///     response_payload,
-/// );
-/// ```
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ResponseMessage {
-    /// Correlation ID matching the original request
-    pub correlation_id: CorrelationId,
-
-    /// Responder component ID
-    pub from: ComponentId,
-
-    /// Original requester component ID
-    pub to: ComponentId,
-
-    /// Response payload (multicodec-encoded) or error
-    pub result: Result<Vec<u8>, RequestError>,
-
-    /// Response timestamp
-    pub timestamp: DateTime<Utc>,
-}
-
-impl ResponseMessage {
-    /// Create success response.
-    ///
-    /// # Arguments
-    ///
-    /// * `correlation_id` - Correlation ID from original request
-    /// * `from` - Responder component ID
-    /// * `to` - Original requester component ID
-    /// * `payload` - Response payload (multicodec-encoded)
-    ///
-    /// # Examples
-    ///
-    /// ```rust,ignore
-    /// let response = ResponseMessage::success(
-    ///     request.correlation_id,
-    ///     component_b,
-    ///     request.from,
-    ///     response_payload,
-    /// );
-    /// ```
-    pub fn success(
-        correlation_id: CorrelationId,
-        from: ComponentId,
-        to: ComponentId,
-        payload: Vec<u8>,
-    ) -> Self {
-        Self {
-            correlation_id,
-            from,
-            to,
-            result: Ok(payload),
-            timestamp: Utc::now(),
-        }
-    }
-
-    /// Create error response.
-    ///
-    /// # Arguments
-    ///
-    /// * `correlation_id` - Correlation ID from original request
-    /// * `from` - Responder component ID
-    /// * `to` - Original requester component ID
-    /// * `error` - Request error
-    ///
-    /// # Examples
-    ///
-    /// ```rust,ignore
-    /// let response = ResponseMessage::error(
-    ///     request.correlation_id,
-    ///     component_b,
-    ///     request.from,
-    ///     RequestError::ProcessingFailed("Invalid input".into()),
-    /// );
-    /// ```
-    pub fn error(
-        correlation_id: CorrelationId,
-        from: ComponentId,
-        to: ComponentId,
-        error: RequestError,
-    ) -> Self {
-        Self {
-            correlation_id,
-            from,
-            to,
-            result: Err(error),
-            timestamp: Utc::now(),
-        }
-    }
-}
-
-/// Request-response error types.
-///
-/// Represents failure modes in request-response communication:
-/// - Timeout: Request exceeded timeout duration
-/// - ComponentNotFound: Target component not registered
-/// - ProcessingFailed: Target component returned error
-/// - InvalidPayload: Malformed request payload
-///
-/// # Stability
-///
-/// This enum is marked `#[non_exhaustive]` to allow adding new error
-/// variants in the future without breaking changes. Always use a wildcard
-/// pattern when matching:
-///
-/// ```rust,ignore
-/// match error {
-///     RequestError::Timeout => { /* handle timeout */ },
-///     RequestError::ComponentNotFound(id) => { /* handle not found */ },
-///     _ => { /* handle unknown errors */ },
-/// }
-/// ```
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[non_exhaustive]
-pub enum RequestError {
-    /// Request timed out before response arrived
-    Timeout,
-
-    /// Target component not found in registry
-    ComponentNotFound(ComponentId),
-
-    /// Target component failed to process request
-    ProcessingFailed(String),
-
-    /// Invalid request payload (deserialization failed)
-    InvalidPayload(String),
-}
-
-impl fmt::Display for RequestError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            RequestError::Timeout => write!(f, "Request timed out"),
-            RequestError::ComponentNotFound(id) => {
-                write!(f, "Component not found: {}", id.as_str())
-            }
-            RequestError::ProcessingFailed(msg) => {
-                write!(f, "Processing failed: {}", msg)
-            }
-            RequestError::InvalidPayload(msg) => {
-                write!(f, "Invalid payload: {}", msg)
-            }
-        }
-    }
-}
-
-impl std::error::Error for RequestError {}
-
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "unwrap acceptable in test code")]
 mod tests {
@@ -328,55 +163,6 @@ mod tests {
     }
 
     #[test]
-    fn test_response_message_success() {
-        let corr_id = Uuid::new_v4();
-        let from = ComponentId::new("comp-b");
-        let to = ComponentId::new("comp-a");
-        let payload = vec![5, 6, 7, 8];
-
-        let response = ResponseMessage::success(corr_id, from.clone(), to.clone(), payload.clone());
-
-        assert_eq!(response.correlation_id, corr_id);
-        assert_eq!(response.from, from);
-        assert_eq!(response.to, to);
-        assert!(response.result.is_ok());
-        assert_eq!(response.result.unwrap(), payload);
-    }
-
-    #[test]
-    fn test_response_message_error() {
-        let corr_id = Uuid::new_v4();
-        let from = ComponentId::new("comp-b");
-        let to = ComponentId::new("comp-a");
-        let error = RequestError::Timeout;
-
-        let response = ResponseMessage::error(corr_id, from.clone(), to.clone(), error.clone());
-
-        assert_eq!(response.correlation_id, corr_id);
-        assert_eq!(response.from, from);
-        assert_eq!(response.to, to);
-        assert!(response.result.is_err());
-        assert_eq!(response.result.unwrap_err(), error);
-    }
-
-    #[test]
-    fn test_request_error_display() {
-        assert_eq!(RequestError::Timeout.to_string(), "Request timed out");
-        assert_eq!(
-            RequestError::ComponentNotFound(ComponentId::new("test")).to_string(),
-            "Component not found: test"
-        );
-        assert_eq!(
-            RequestError::ProcessingFailed("test error".into()).to_string(),
-            "Processing failed: test error"
-        );
-        assert_eq!(
-            RequestError::InvalidPayload("bad data".into()).to_string(),
-            "Invalid payload: bad data"
-        );
-    }
-
-    #[test]
     fn test_request_message_serialization() {
         let request = RequestMessage::new(
             ComponentId::new("comp-a"),
@@ -394,40 +180,5 @@ mod tests {
         assert_eq!(deserialized.to, request.to);
         assert_eq!(deserialized.payload, request.payload);
         assert_eq!(deserialized.timeout_ms, request.timeout_ms);
-    }
-
-    #[test]
-    fn test_response_message_serialization() {
-        let response = ResponseMessage::success(
-            Uuid::new_v4(),
-            ComponentId::new("comp-b"),
-            ComponentId::new("comp-a"),
-            vec![4, 5, 6],
-        );
-
-        // Test JSON serialization round-trip
-        let json = serde_json::to_string(&response).unwrap();
-        let deserialized: ResponseMessage = serde_json::from_str(&json).unwrap();
-
-        assert_eq!(deserialized.correlation_id, response.correlation_id);
-        assert_eq!(deserialized.from, response.from);
-        assert_eq!(deserialized.to, response.to);
-        assert!(deserialized.result.is_ok());
-    }
-
-    #[test]
-    fn test_request_error_serialization() {
-        let errors = vec![
-            RequestError::Timeout,
-            RequestError::ComponentNotFound(ComponentId::new("test")),
-            RequestError::ProcessingFailed("error".into()),
-            RequestError::InvalidPayload("bad".into()),
-        ];
-
-        for error in errors {
-            let json = serde_json::to_string(&error).unwrap();
-            let deserialized: RequestError = serde_json::from_str(&json).unwrap();
-            assert_eq!(deserialized, error);
-        }
     }
 }

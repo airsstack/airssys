@@ -73,8 +73,8 @@ use serde::{Deserialize, Serialize};
 use airssys_rt::broker::InMemoryMessageBroker;
 
 // Layer 3: Internal crate imports
-use crate::actor::message::{CorrelationId, CorrelationTracker, RequestError, ResponseMessage};
-use crate::core::{ComponentId, ComponentMessage, WasmError};
+use crate::actor::message::CorrelationTracker;
+use crate::core::messaging::{CorrelationId, RequestError, ResponseMessage};use crate::core::{ComponentId, ComponentMessage, WasmError};
 use chrono::Utc;
 
 /// Service managing MessageBroker integration for inter-component communication.
@@ -1211,7 +1211,7 @@ mod tests {
         // Route error response
         let result = router.route_response(
             correlation_id,
-            Err(RequestError::ComponentNotFound(ComponentId::new("target"))),
+            Err(RequestError::ComponentNotFound("target".to_string())),
             ComponentId::new("responder"),
         ).await;
         

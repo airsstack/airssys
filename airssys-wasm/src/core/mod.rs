@@ -208,6 +208,7 @@ pub use lifecycle::{LifecycleEvent, LifecycleState, UpdateStrategy, VersionInfo}
 pub use management::{ComponentQuery, ComponentRegistry, InstallationMetadata, RegistryOperation};
 pub use manifest::{ComponentManifest, PackageInfo, RuntimeConfig as ManifestRuntimeConfig};
 pub use messaging::{DeliveryGuarantee, MessageEnvelope, MessageType};
+pub use messaging::{CorrelationId, PendingRequest, RequestError, ResponseMessage};
 pub use multicodec::{decode_multicodec, encode_multicodec, Codec};
 pub use multicodec_prefix::{MulticodecPrefix, MulticodecPrefixError};
 pub use observability::{

@@ -51,8 +51,8 @@ use tokio::task::JoinHandle;
 use tokio::time::{sleep, Duration};
 
 // Layer 3: Internal module imports
-use super::correlation_tracker::{CorrelationId, CorrelationTracker};
-use super::request_response::{RequestError, ResponseMessage};
+use super::correlation_tracker::CorrelationTracker;
+use crate::core::messaging::{CorrelationId, RequestError, ResponseMessage};
 
 /// Timeout handler managing background timeout tasks.
 ///
@@ -220,9 +220,10 @@ impl Default for TimeoutHandler {
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
-    use crate::actor::message::correlation_tracker::PendingRequest;
+    use crate::core::messaging::PendingRequest;
     use crate::core::ComponentId;
     use tokio::sync::oneshot;
+    use tokio::time::Instant;
     use uuid::Uuid;
 
     #[tokio::test]
@@ -244,7 +245,7 @@ mod tests {
         let request = PendingRequest {
             correlation_id: corr_id,
             response_tx: tx,
-            requested_at: tokio::time::Instant::now(),
+            requested_at: Instant::now(),
             timeout: Duration::from_millis(100),
             from: ComponentId::new("comp-a"),
             to: ComponentId::new("comp-b"),
@@ -287,7 +288,7 @@ mod tests {
         let request = PendingRequest {
             correlation_id: corr_id,
             response_tx: tx,
-            requested_at: tokio::time::Instant::now(),
+            requested_at: Instant::now(),
             timeout: Duration::from_secs(10), // Long timeout
             from: ComponentId::new("comp-a"),
             to: ComponentId::new("comp-b"),
@@ -343,7 +344,7 @@ mod tests {
             let request = PendingRequest {
                 correlation_id: corr_id,
                 response_tx: tx,
-                requested_at: tokio::time::Instant::now(),
+                requested_at: Instant::now(),
                 timeout: Duration::from_secs(10),
                 from: ComponentId::new("comp-a"),
                 to: ComponentId::new("comp-b"),

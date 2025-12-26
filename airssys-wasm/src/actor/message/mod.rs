@@ -1,7 +1,7 @@
 //! Message routing and pub/sub system for inter-component communication.
 //!
 //! This module provides message routing, topic filtering, subscription
-//! management, and integration with the airssys-rt message broker.
+//! management, and integration with airssys-rt message broker.
 //!
 //! # Architecture
 //!
@@ -41,7 +41,7 @@ pub mod unified_router;
 #[doc(inline)]
 pub use actor_system_subscriber::ActorSystemSubscriber;
 #[doc(inline)]
-pub use correlation_tracker::{CorrelationId, CorrelationTracker, PendingRequest};
+pub use correlation_tracker::CorrelationTracker;
 #[doc(inline)]
 pub use message_broker_bridge::{MessageBrokerBridge, MessageBrokerWrapper, SubscriptionHandle};
 #[doc(inline)]
@@ -51,13 +51,18 @@ pub use message_publisher::MessagePublisher;
 #[doc(inline)]
 pub use message_router::MessageRouter;
 #[doc(inline)]
-pub use request_response::{RequestError, RequestMessage, ResponseMessage};
+pub use request_response::RequestMessage;
 #[doc(inline)]
 pub use subscriber_manager::{SubHandle, SubscriberManager};
 #[doc(inline)]
 pub use timeout_handler::TimeoutHandler;
 #[doc(inline)]
 pub use unified_router::{RoutingStats, UnifiedRouter};
+
+// Re-export shared messaging types from core/messaging for compatibility
+// (Task 1.1: Moved from actor/message/ to core/messaging/)
+#[doc(inline)]
+pub use crate::core::messaging::{CorrelationId, PendingRequest, RequestError, ResponseMessage};
 // ADR-WASM-022: Moved from runtime/ to prevent circular dependency
 pub mod messaging_subscription;
 #[doc(inline)]

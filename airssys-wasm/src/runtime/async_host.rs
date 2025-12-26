@@ -52,7 +52,7 @@ use tokio::time::{Duration, Instant};
 use uuid::Uuid;
 
 // Layer 3: Internal module imports
-use crate::actor::message::{PendingRequest, ResponseMessage};
+use crate::core::messaging::{PendingRequest, ResponseMessage};
 use crate::core::ComponentMessage;
 use crate::core::{
     bridge::{CapabilityMapping, HostCallContext, HostFunction},
@@ -688,11 +688,26 @@ impl HostFunction for SendRequestHostFunction {
         // NOTE: _response_rx is intentionally unused in Task 3.1. Response delivery
         // to WASM components via handle-response callback is implemented in Task 3.2.
         // The CorrelationTracker stores response_tx; Task 3.2 will resolve it when
-        // the target component sends a response.
+        // target component sends a response.
         let (response_tx, _response_rx) = oneshot::channel::<ResponseMessage>();
 
         // 6. Register pending request with correlation tracker
         let pending = PendingRequest {
+            correlation_id,
+            response_tx,
+            requested_at: Instant::now(),
+            timeout: Duration::from_millis(timeout_ms),
+            from: context.component_id.clone(),
+            to: target_id.clone(),
+        };
+        // NOTE: _response_rx is intentionally unused in Task 3.1. Response delivery
+        // to WASM components via handle-response callback is implemented in Task 3.2.
+        // The CorrelationTracker stores response_tx; Task 3.2 will resolve it when
+        // the target component sends a response.
+        let (response_tx, _response_rx) = oneshot::channel::<ResponseMessage>();
+
+        // 6. Register pending request with correlation tracker
+        let _pending = PendingRequest {
             correlation_id,
             response_tx,
             requested_at: Instant::now(),
