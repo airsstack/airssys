@@ -408,3 +408,14 @@ ActorSystemSubscriber (ENHANCED)
 
 **Priority:** 🔴 MANDATORY - All code must comply
 
+
+### ADR-WASM-024: Refactor Messaging from Runtime to Top-Level Module
+- **Status:** Accepted
+- **Date:** 2025-12-26
+- **Category:** Module Architecture / Remediation
+- **Summary:** Move messaging infrastructure from `src/runtime/messaging.rs` to a new top-level `src/messaging/` module to fix module architecture violation and eliminate circular dependency risk.
+- **Related:** KNOWLEDGE-WASM-012 (Module Structure), KNOWLEDGE-WASM-034 (Architecture Violation Document), ADR-WASM-018 (Three-Layer Architecture), ADR-WASM-023 (Module Boundary Enforcement)
+- **Impact:** Critical - Fixes architectural violation and enables proper Block 5 development
+- **Implementation:** WASM-TASK-HOTFIX-001
+- **File:** `adr-wasm-024-refactor-messaging-from-runtime-to-top-level-module.md`
+

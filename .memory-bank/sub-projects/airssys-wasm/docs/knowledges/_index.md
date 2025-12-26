@@ -547,3 +547,24 @@ grep -rn "use crate::actor" src/runtime/
 - KNOWLEDGE-WASM-032 (Module Boundary Violations Audit)
 - AGENTS.md §9-12
 
+
+### Architecture & Remediation Category 🔴
+- **[KNOWLEDGE-WASM-034: Module Architecture Violation - Messaging in Runtime](knowledge-wasm-034-module-architecture-violation-messaging-in-runtime.md)** 🔴 **CRITICAL FIX**
+  - **Purpose**: Documents critical architectural violation where messaging infrastructure is incorrectly placed in `runtime/` module
+  - **Scope**: Module boundary violations, circular dependency risk, missing top-level messaging/ module
+  - **Key Content**: Current wrong state (runtime/messaging.rs with 1,313 lines), correct architecture (top-level messaging/), one-way dependency chain, violation of ADR-WASM-018 and KNOWLEDGE-WASM-012
+  - **Status**: New document (Created 2025-12-26)
+  - **Impact**: 🔴 CRITICAL - Must fix before Block 5 development
+  - **Audience**: All developers, anyone working on module architecture or refactoring
+  - **Related**: ADR-WASM-024 (decision to refactor messaging to top-level), WASM-TASK-HOTFIX-001 (implementation)
+
+### Module Architecture Reference ✅
+- **[KNOWLEDGE-WASM-012: Module Structure Architecture](knowledge-wasm-012-module-structure-architecture.md)** ✅ **CRITICAL**
+  - **Purpose**: Definitive module organization specification for airssys-wasm
+  - **Scope**: Complete module structure, dependency rules, public API surface
+  - **Key Content**: Three-layer architecture, module responsibility matrix, dependency graph, block alignment, testing organization
+  - **Status**: Complete definitive specification (Updated 2025-10-21)
+  - **Impact**: Critical - defines all module boundaries and rules
+  - **Audience**: All developers, architects, task implementers
+  - **Related**: All tasks and ADRs reference this for module structure compliance
+
