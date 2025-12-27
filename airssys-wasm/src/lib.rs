@@ -66,6 +66,9 @@ pub mod actor;
 // Security and Isolation Layer (Block 4 - WASM-TASK-005)
 pub mod security;
 
+// Inter-Component Communication (Block 5 - WASM-TASK-006)
+pub mod messaging;
+
 // Generated WIT bindings (build.rs output)
 // Note: This module contains auto-generated code from wit-bindgen
 // DO NOT EDIT - Regenerated on every build when WIT files change

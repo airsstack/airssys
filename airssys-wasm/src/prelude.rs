@@ -170,3 +170,11 @@ pub use crate::core::{
 
 // Runtime implementation (Block 1 - WASM-TASK-002)
 pub use crate::runtime::{ComponentLoader, WasmEngine};
+
+// Messaging (Block 5 - WASM-TASK-006)
+pub use crate::messaging::{
+    FireAndForget,
+    MessagingService, MessagingStats, MulticodecCodec,
+    MessageRouter, RequestResponse, RequestError,
+    ResponseRouter, ResponseRouterStats, RoutingStats,
+};
