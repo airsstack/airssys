@@ -2,23 +2,69 @@
 //!
 //! This module provides request-response messaging capabilities
 //! with correlation tracking and response routing.
+//!
+//! # Current Implementation
+//!
+//! RequestError is currently defined here and used throughout the messaging
+//! system. ResponseRouter (in router.rs) handles the actual routing of
+//! request-response messages.
+//!
+//! # Architecture
+//!
+//! ```text
+//! ┌─────────────────────────────────────────┐
+//! │         Request-Response Message     │
+//! │  • Correlation tracking              │
+//! │  • Response expected                │
+//! │  • Timeout handling                 │
+//! └─────────────────────────────────────────┘
+//!           ↓ handled by
+//! ┌─────────────────────────────────────────┐
+//! │        ResponseRouter              │
+//! │  • Matches responses to requests   │
+//! │  • Delivers via CorrelationTracker│
+//! └─────────────────────────────────────────┘
+//! ```
+//!
+//! # Usage Pattern
+//!
+//! ```rust,ignore
+//! use airssys_wasm::messaging::RequestResponse;
+//! use airssys_wasm::messaging::RequestError;
+//!
+//! // Send request with correlation tracking
+//! match RequestResponse::send(
+//!     ComponentId::new("recipient"),
+//!     b"request",
+//! ).await {
+//!     Ok(response) => println!("Response: {:?}", response),
+//!     Err(RequestError::Timeout) => println!("Request timed out"),
+//!     Err(e) => println!("Error: {}", e),
+//! }
+//! ```
+//!
+//! # References
+//!
+//! - **KNOWLEDGE-WASM-005**: Messaging Architecture
+//! - **KNOWLEDGE-WASM-029**: Messaging Patterns (Pattern 2: Request-Response)
 
+// Layer 1: Standard library imports
 use thiserror::Error;
 
 // ============================================================================
 // TESTING STRATEGY
 // ============================================================================
 //
-// This module contains placeholder types for request-response messaging.
-// Full functional testing will be implemented in Task 1.2 when actual
-// implementation is moved from runtime/messaging.rs.
+// This module contains RequestError type and placeholder RequestResponse type.
+// RequestError is actively used throughout the messaging system.
+// RequestResponse is a placeholder for future Phase 2+ work.
 //
 // Current tests verify:
 // - Error types have correct Display impls
 // - Types can be instantiated
 // - Types have Default impls
 //
-// Task 1.2 will add:
+// Phase 2 will add:
 // - Functional tests for RequestResponse
 // - Integration tests with ResponseRouter
 // - Integration tests with MessageBroker
@@ -35,9 +81,7 @@ pub enum RequestError {
     RoutingFailed(String),
 }
 
-// Placeholder type definitions
-
-/// Request-response messaging handler.
+/// Request-response messaging handler (Phase 2+).
 #[derive(Debug, Clone)]
 pub struct RequestResponse {
     _inner: (), // Placeholder
@@ -61,17 +105,15 @@ mod tests {
     use super::*;
 
     #[test]
-    #[ignore = "Placeholder - to be implemented in Task 1.2"]
     fn test_request_response_creation() {
         let _handler = RequestResponse::new();
-        // Functional testing in Task 1.2
+        // Functional testing in Phase 2
     }
 
     #[test]
-    #[ignore = "Placeholder - to be implemented in Task 1.2"]
     fn test_request_response_default() {
         let _handler = RequestResponse::default();
-        // Functional testing in Task 1.2
+        // Functional testing in Phase 2
     }
 
     #[test]

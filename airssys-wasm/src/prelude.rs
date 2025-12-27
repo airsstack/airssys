@@ -175,6 +175,6 @@ pub use crate::runtime::{ComponentLoader, WasmEngine};
 pub use crate::messaging::{
     FireAndForget,
     MessagingService, MessagingStats, MulticodecCodec,
-    MessageRouter, RequestResponse, RequestError,
-    ResponseRouter, ResponseRouterStats, RoutingStats,
+    RequestResponse, RequestError,
+    ResponseRouter, ResponseRouterStats,
 };

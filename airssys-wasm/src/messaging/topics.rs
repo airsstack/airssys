@@ -1,8 +1,57 @@
 //! Topic-based publish-subscribe messaging.
 //!
-//! This module provides topic-based pub-sub messaging capabilities.
-//! This is a stub for Phase 2 implementation.
+//! This module provides topic-based pub-sub messaging capabilities
+//! for inter-component communication.
+//!
+//! # Phase 2 Work
+//!
+//! Topic-based pub-sub messaging infrastructure will be implemented in Phase 2
+//! of the messaging architecture (WASM-TASK-006).
+//!
+//! Current Phase 1 implementation uses direct ComponentId addressing only.
+//!
+//! # Architecture (Planned for Phase 2)
+//!
+//! ```text
+//! ┌─────────────────────────────────────────┐
+//! │         TopicManager               │
+//! │  • Topic subscription management      │
+//! │  • Message routing by topic       │
+//! │  • Multiple subscribers per topic  │
+//! └─────────────────────────────────────────┘
+//!           ↓ works with
+//! ┌─────────────────────────────────────────┐
+//! │         MessageBroker               │
+//! │  • Direct address routing           │
+//! │  • Topic-based routing (Phase 2)  │
+//! └─────────────────────────────────────────┘
+//! ```
+//!
+//! # Usage Pattern (When Implemented)
+//!
+//! ```rust,ignore
+//! use airssys_wasm::messaging::TopicManager;
+//!
+//! // Subscribe to a topic
+//! TopicManager::subscribe(
+//!     ComponentId::new("my-component"),
+//!     "events",
+//! ).await?;
+//!
+//! // Publish to a topic
+//! TopicManager::publish(
+//!     "events",
+//!     b"new-event",
+//! ).await?;
+//! ```
+//!
+//! # References
+//!
+//! - **KNOWLEDGE-WASM-005**: Messaging Architecture
+//! - **KNOWLEDGE-WASM-024**: Component Messaging Clarifications (Phase 2 topics)
+//! - **WASM-TASK-006 Phase 2**: Topic-based pub-sub implementation
 
+// Layer 1: Standard library imports
 use std::sync::Arc;
 
 // ============================================================================
@@ -19,9 +68,8 @@ use std::sync::Arc;
 // Phase 2 will add:
 // - Functional tests for TopicManager
 // - Integration tests with MessageBroker
+// - Topic subscription management tests
 // ============================================================================
-
-// Placeholder type definitions
 
 /// Topic manager for pub-sub messaging (Phase 2).
 #[derive(Debug, Clone)]
@@ -49,14 +97,12 @@ mod tests {
     use super::*;
 
     #[test]
-    #[ignore = "Placeholder - to be implemented in Phase 2"]
     fn test_topic_manager_creation() {
         let _manager = TopicManager::new();
         // Functional testing in Phase 2
     }
 
     #[test]
-    #[ignore = "Placeholder - to be implemented in Phase 2"]
     fn test_topic_manager_default() {
         let _manager = TopicManager::default();
         // Functional testing in Phase 2

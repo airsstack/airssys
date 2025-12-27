@@ -36,8 +36,8 @@ pub mod codec;
 pub mod topics; // Phase 2
 
 // Public re-exports
-pub use messaging_service::{MessagingService, MessagingStats, ResponseRouter, ResponseRouterStats};
-pub use router::{MessageRouter, RoutingStats};
+pub use messaging_service::{MessagingService, MessagingStats};
+pub use router::{ResponseRouter, ResponseRouterStats};
 pub use fire_and_forget::FireAndForget;
 pub use request_response::{RequestResponse, RequestError};
 pub use codec::MulticodecCodec;
