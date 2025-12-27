@@ -31,10 +31,11 @@ use uuid::Uuid;
 use airssys_rt::broker::InMemoryMessageBroker;
 use airssys_rt::system::{ActorSystem, SystemConfig};
 use airssys_wasm::actor::{
-    message::{CorrelationTracker, PendingRequest, RequestError, RequestMessage, ResponseMessage},
+    message::{CorrelationTracker, PendingRequest, RequestError, RequestMessage},
     ComponentRegistry, ComponentSpawner,
 };
-use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits};
+use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits, messaging::ResponseMessage};
+use chrono::Utc;
 
 /// Create test metadata for components.
 fn create_test_metadata(name: &str) -> ComponentMetadata {
@@ -135,12 +136,13 @@ async fn test_end_to_end_request_response_with_component_actor() {
     // Simulate component B processing and responding
     // In real scenario, component B would handle InterComponentWithCorrelation message
     let response_payload = vec![5, 6, 7, 8]; // Response payload
-    let response_msg = ResponseMessage::success(
+    let response_msg = ResponseMessage {
         correlation_id,
-        component_b.clone(),
-        component_a.clone(),
-        response_payload.clone(),
-    );
+        from: component_b.clone(),
+        to: component_a.clone(),
+        result: Ok(response_payload.clone()),
+        timestamp: Utc::now(),
+    };
 
     // Resolve the request with response
     tracker.resolve(correlation_id, response_msg).await.unwrap();
@@ -320,12 +322,13 @@ async fn test_concurrent_requests_between_multiple_components() {
                 tracker_clone.register_pending(pending).await.unwrap();
 
                 // Simulate response (in real scenario, component would respond)
-                let response = ResponseMessage::success(
+                let response = ResponseMessage {
                     correlation_id,
-                    to_component.clone(),
-                    from.clone(),
-                    vec![i as u8, j as u8], // Response payload with indices
-                );
+                    from: to_component.clone(),
+                    to: from.clone(),
+                    result: Ok(vec![i as u8, j as u8]), // Response payload with indices
+                    timestamp: Utc::now(),
+                };
 
                 // Small delay to simulate processing
                 tokio::time::sleep(Duration::from_millis(10)).await;

@@ -7,7 +7,7 @@
 //! **Note:** This is a stub placeholder. Actual benchmarks will be
 //! implemented in Phase 2 when messaging functionality is fully developed.
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+use criterion::{criterion_group, criterion_main, Criterion};
 use airssys_wasm::messaging::{FireAndForget, MessageRouter, MulticodecCodec, RequestResponse};
 
 fn benchmark_fire_and_forget_creation(c: &mut Criterion) {

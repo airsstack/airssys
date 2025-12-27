@@ -21,11 +21,10 @@ use uuid::Uuid;
 // Layer 3: Internal module imports
 use airssys_rt::broker::InMemoryMessageBroker;
 use airssys_rt::util::ActorAddress;
-use airssys_wasm::actor::message::{
-    CorrelationTracker, PendingRequest, RequestMessage, ResponseMessage,
-};
+use airssys_wasm::actor::message::{CorrelationTracker, PendingRequest, RequestMessage};
 use airssys_wasm::actor::{ComponentMessage, ComponentRegistry, MessageRouter};
-use airssys_wasm::core::ComponentId;
+use airssys_wasm::core::{ComponentId, messaging::ResponseMessage};
+use chrono::Utc;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -88,12 +87,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  ✓ Request created (would be sent via MessageRouter)");
 
     // Simulate responder processing and sending response
-    let response = ResponseMessage::success(
-        corr_id,
-        responder_id.clone(),
-        requester_id.clone(),
-        b"PROCESSED: Hello, ComponentActor!".to_vec(),
-    );
+    let response = ResponseMessage {
+        correlation_id: corr_id,
+        from: responder_id.clone(),
+        to: requester_id.clone(),
+        result: Ok(b"PROCESSED: Hello, ComponentActor!".to_vec()),
+        timestamp: Utc::now(),
+    };
 
     println!("\nResponse 1:");
     println!("  Correlation ID: {}", corr_id);
@@ -148,12 +148,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             tracker_clone.register_pending(pending).await.ok();
 
             // Simulate response
-            let response = ResponseMessage::success(
-                corr_id,
-                responder_id_clone,
-                requester_id_clone,
-                format!("Response {}", i).as_bytes().to_vec(),
-            );
+            let response = ResponseMessage {
+                correlation_id: corr_id,
+                from: responder_id_clone,
+                to: requester_id_clone,
+                result: Ok(format!("Response {}", i).as_bytes().to_vec()),
+                timestamp: Utc::now(),
+            };
 
             tracker_clone.resolve(corr_id, response).await.ok();
 

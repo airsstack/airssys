@@ -62,9 +62,10 @@ use airssys_rt::broker::InMemoryMessageBroker;
 use airssys_rt::supervisor::Child;
 use airssys_wasm::actor::{
     ActorState, ComponentActor, ComponentRegistry, CorrelationTracker, MessageBrokerWrapper,
-    MessagePublisher, PendingRequest, ResponseMessage, SubscriberManager,
+    MessagePublisher, PendingRequest, SubscriberManager,
 };
-use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits};
+use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits, messaging::ResponseMessage};
+use chrono::Utc;
 
 // ==============================================================================
 // Test Helpers
@@ -331,12 +332,13 @@ async fn test_request_response_with_correlation_tracking() {
 
     // Simulate component B processing request and generating response
     let response_payload = vec![10, 20, 30, 40, 50];
-    let response_msg = ResponseMessage::success(
+    let response_msg = ResponseMessage {
         correlation_id,
-        component_b_id.clone(),
-        component_a_id.clone(),
-        response_payload.clone(),
-    );
+        from: component_b_id.clone(),
+        to: component_a_id.clone(),
+        result: Ok(response_payload.clone()),
+        timestamp: Utc::now(),
+    };
 
     // Record latency start time
     let latency_start = Instant::now();
@@ -635,12 +637,13 @@ async fn test_chained_request_response_three_components() {
         .await;
 
     let response_c_to_b = vec![100, 200, 255];
-    let response_bc = ResponseMessage::success(
-        correlation_id_bc,
-        component_c_id.clone(),
-        component_b_id.clone(),
-        response_c_to_b.clone(),
-    );
+    let response_bc = ResponseMessage {
+        correlation_id: correlation_id_bc,
+        from: component_c_id.clone(),
+        to: component_b_id.clone(),
+        result: Ok(response_c_to_b.clone()),
+        timestamp: Utc::now(),
+    };
 
     tracker
         .resolve(correlation_id_bc, response_bc)
@@ -678,12 +681,13 @@ async fn test_chained_request_response_three_components() {
 
     // B aggregates and responds to A
     let aggregated_response = vec![1, 2, 3, 100, 200, 255]; // Combine original + C's response
-    let response_ba = ResponseMessage::success(
-        correlation_id_ab,
-        component_b_id.clone(),
-        component_a_id.clone(),
-        aggregated_response.clone(),
-    );
+    let response_ba = ResponseMessage {
+        correlation_id: correlation_id_ab,
+        from: component_b_id.clone(),
+        to: component_a_id.clone(),
+        result: Ok(aggregated_response.clone()),
+        timestamp: Utc::now(),
+    };
 
     tracker
         .resolve(correlation_id_ab, response_ba)
@@ -1355,12 +1359,13 @@ async fn test_concurrent_requests_from_multiple_components() {
 
             // Simulate response
             let response_payload = vec![(i * 10) as u8];
-            let response_msg = ResponseMessage::success(
+            let response_msg = ResponseMessage {
                 correlation_id,
-                responder_id_clone,
-                requester_id,
-                response_payload.clone(),
-            );
+                from: responder_id_clone,
+                to: requester_id,
+                result: Ok(response_payload.clone()),
+                timestamp: Utc::now(),
+            };
 
             tracker_clone
                 .resolve(correlation_id, response_msg)
