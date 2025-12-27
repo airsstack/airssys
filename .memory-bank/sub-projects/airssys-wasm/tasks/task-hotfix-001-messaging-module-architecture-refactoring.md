@@ -328,6 +328,802 @@ pub use codec::MulticodecCodec;
 
 ---
 
+## Implementation Plan for Task 1.2 (CORRECTED)
+
+### ⚠️ CORRECTIONS MADE TO PREVIOUS PLAN
+
+**Previous plan had INCORRECT architectural assumptions:**
+- ❌ Stated "messaging/ MUST NOT import from actor/"
+- ❌ Stated "messaging/ ONLY imports from core/"
+- ❌ Expected `grep -rn "use crate::actor"` to return nothing
+
+**CORRECTED architecture based on KNOWLEDGE-WASM-012 Line 274:**
+```text
+messaging/ → core/, actor/, airssys-rt
+```
+- ✅ **messaging/ CAN import from actor/** (this is ALLOWED!)
+- ✅ **messaging/ CAN import from core/** (types, errors, etc.)
+- ✅ **messaging/ CAN import from airssys-rt** (MessageBroker from runtime)
+- ❌ **messaging/ CANNOT import from runtime/** (only this is forbidden!)
+
+**Why This Correction Matters:**
+- The original plan would have required moving ALL messaging types to core/
+- This would violate single responsibility (CorrelationTracker is actor system logic)
+- KNOWLEDGE-WASM-012 explicitly allows messaging/ → actor/ dependency
+- ADR-WASM-023 forbids runtime/ → actor/ (runtime importing from actor)
+- But messaging/ is ABOVE runtime/ in dependency chain, so it CAN import from actor/
+
+**Key Type Locations:**
+- `core/messaging.rs`: CorrelationId, RequestError, ResponseMessage, MessageEnvelope
+- `actor/message/correlation_tracker.rs`: CorrelationTracker (NOT in core!)
+
+**Correct Import Strategy:**
+```rust
+// Types from core/
+use crate::core::messaging::{CorrelationId, RequestError, ResponseMessage};
+
+// CorrelationTracker from actor/ (ALLOWED per KNOWLEDGE-WASM-012!)
+use crate::actor::message::CorrelationTracker;
+```
+
+---
+
+### Context & References
+
+**ADR References:**
+- **ADR-WASM-018**: Three-Layer Architecture (one-way dependency chain)
+   - Dependencies flow: core → runtime → actor → messaging
+   - **CORRECTED understanding**: messaging/ is at TOP of dependency chain
+   - messaging/ can import from actor/, runtime/, and core/
+   - Higher layers can depend on lower layers, not vice versa
+
+- **ADR-WASM-023**: Module Boundary Enforcement (HARD REQUIREMENT)
+   - **CORRECTED**: messaging/ CANNOT import from runtime/ (WASM execution)
+   - **CORRECTED**: messaging/ CAN import from actor/ (per KNOWLEDGE-WASM-012 line 274)
+   - messaging/ can import from core/ (all modules can)
+   - Forbidden imports: `use crate::runtime` (messaging/ cannot use runtime/)
+   - Allowed imports: `use crate::actor`, `use crate::core`
+
+**Knowledge References:**
+- **KNOWLEDGE-WASM-012**: Module Structure Architecture (lines 271-289)
+   - **Line 274 CRITICAL**: `messaging/ → core/, actor/, airssys-rt`
+   - This means messaging/ CAN import from core/, actor/, AND airssys-rt
+   - messaging/ is Block 5: Inter-Component Communication
+   - messaging/ is top-level module (parallel to runtime/, actor/, security/)
+   
+- **KNOWLEDGE-WASM-005**: Messaging Architecture
+   - MessagingService manages MessageBroker singleton from airssys-rt
+   - CorrelationTracker tracks pending requests
+   - ResponseRouter routes responses to requesters
+   - Fire-and-forget and request-response patterns
+
+- **KNOWLEDGE-WASM-026**: Message Delivery Architecture Final
+   - ActorSystemSubscriber owns message delivery (has MailboxSender references)
+   - ComponentRegistry stays pure (identity lookup only)
+   - Message flow from component send to handle-message invocation
+   - Correlation tracking for request-response pattern
+
+- **KNOWLEDGE-WASM-029**: Messaging Patterns (Fire-and-Forget vs Request-Response)
+   - Two patterns: send-message (fire-and-forget) and send-request (request-response)
+   - Response is return value from handle-message, NOT a separate host function
+   - Runtime decides what to do with return value based on message type
+
+**System Patterns:**
+- **From KNOWLEDGE-WASM-012**: messaging/ module owns:
+   - MessageBroker integration (from airssys-rt)
+   - Request-response patterns and routing
+   - Correlation tracking infrastructure
+   - Inter-component communication orchestration
+   - NOT: WASM execution (that's runtime/)
+
+**PROJECTS_STANDARD.md Compliance:**
+- **§2.1 3-Layer Import Organization**: Code will follow import organization
+   - Layer 1: Standard library imports
+   - Layer 2: Third-party crate imports (airssys_rt, serde, chrono)
+   - Layer 3: Internal crate imports (from core/, actor/)
+   
+- **§4.3 Module Architecture Patterns**: mod.rs files will only contain declarations
+   - messaging/mod.rs already has module declarations only
+   - messaging_service.rs contains implementation code
+   - Follows declaration-only pattern for module files
+   
+- **§6.2 Avoid `dyn` Patterns**: Static dispatch preferred over trait objects
+   - CorrelationTracker uses DashMap (concurrent hashmap), not `dyn Trait`
+   - MessagingService uses concrete types, no trait objects
+   
+- **§6.4 Implementation Quality Gates**:
+   - Zero compiler warnings: `cargo build`
+   - Zero clippy warnings: `cargo clippy --all-targets --all-features -- -D warnings`
+   - Comprehensive tests: Unit tests in `#[cfg(test)]` blocks
+   - All tests passing: `cargo test --lib`
+
+**Rust Guidelines Applied:**
+- **M-DESIGN-FOR-AI**: Idiomatic APIs, thorough docs, testable code
+   - All public types have module documentation
+   - All public functions have doc comments with examples
+   - Tests verify all functionality
+   
+- **M-MODULE-DOCS**: Module documentation complete
+   - messaging_service.rs has module-level `//!` documentation
+   - All public types documented with `///` comments
+   - Follows M-CANONICAL-DOCS structure
+   
+- **M-ERRORS-CANONICAL-STRUCTS**: Error types follow canonical structure
+   - RequestError in core/messaging.rs follows thiserror pattern
+   - WasmError is used consistently
+   - All errors implement Display and std::error::Error
+   
+- **M-STATIC-VERIFICATION**: Lints enabled, clippy used
+   - All clippy lints from PROJECTS_STANDARD.md §M-LINT-OVERRIDE-EXPECT
+   - `#[expect(clippy::...)]` for intentional violations with reasons
+   - `cargo clippy --all-targets --all-features -- -D warnings`
+
+**Documentation Standards:**
+- **Diátaxis Type**: Reference documentation for APIs
+   - MessagingService, ResponseRouter, metrics types are reference docs
+   - Provide complete API documentation with examples
+   - Neutral technical language, no marketing terms
+   
+- **Quality**: Professional tone, no hyperbole per documentation-quality-standards.md
+   - No superlatives ("best", "fastest", "revolutionary")
+   - Measurable performance claims with units
+   - Accurate descriptions, not promotional
+   
+- **Task documentation**: Standards Compliance Checklist in task file per task-documentation-standards.md
+   - Evidence of standards application included in plan
+   - Code examples showing compliance
+
+### Prerequisites
+
+**Must be in place before starting:**
+
+1. ✅ **Task 1.1 Completed**: messaging/ module structure created
+   - `src/messaging/mod.rs` exists with module declarations
+   - `src/messaging/messaging_service.rs` exists with placeholder
+   - `src/lib.rs` updated with `pub mod messaging;`
+   - Verified by: Task 1.1 acceptance criteria met
+
+2. ✅ **core/messaging.rs Exists**: Types moved to core module
+   - `CorrelationTracker` in `src/core/messaging.rs`
+   - `CorrelationId`, `RequestError`, `ResponseMessage` in `src/core/messaging.rs`
+   - Verified by: Task 1.1 moved types from actor/message/ to core/messaging/
+
+3. ✅ **Code Review Complete**: runtime/messaging.rs reviewed
+   - All 1,313 lines of code reviewed
+   - Import dependencies identified
+   - Code structure analyzed
+
+4. ✅ **Git Branch Ready**: Working branch for changes
+   - Create branch: `hotfix/messaging-module-refactoring-task-1.2`
+   - Ensure clean working directory
+
+### Module Architecture (CORRECTED)
+
+**Code will be placed in:** `src/messaging/messaging_service.rs`
+
+**Module responsibilities (per ADR-WASM-023 and KNOWLEDGE-WASM-012):**
+- MessagingService: MessageBroker singleton management
+- ResponseRouter: Request-response routing
+- MessagingMetrics: Message publication statistics
+- ResponseRouterMetrics: Response routing statistics
+- MessageReceptionMetrics: ComponentActor message delivery metrics
+
+**Dependency Rules (from KNOWLEDGE-WASM-012 Line 274):**
+```
+messaging/ → core/, actor/, airssys-rt
+```
+
+**This means:**
+- ✅ messaging/ CAN import from core/ (types, errors, configs)
+- ✅ messaging/ CAN import from actor/ (actor system integration)
+- ✅ messaging/ CAN import from airssys-rt (MessageBroker from runtime)
+- ❌ messaging/ CANNOT import from runtime/ (WASM execution engine)
+
+**Forbidden imports:**
+- ❌ `use crate::runtime` - messaging/ cannot import from runtime/
+
+**Allowed imports:**
+- ✅ `use crate::core::messaging::{CorrelationId, RequestError, ResponseMessage}` (types in core)
+- ✅ `use crate::actor::message::CorrelationTracker` (CorrelationTracker in actor/, ALLOWED!)
+
+**Verification commands (for implementer to run):**
+```bash
+# Check 1: messaging/ doesn't import from runtime/ (FORBIDDEN)
+grep -rn "use crate::runtime" src/messaging/
+# Expected: No output (clean)
+
+# Check 2: messaging/ CAN import from actor/ (ALLOWED)
+grep -rn "use crate::actor" src/messaging/
+# Expected: May have output (this is OK per KNOWLEDGE-WASM-012)
+
+# Check 3: messaging/ imports from core/ (EXPECTED)
+grep -rn "use crate::core" src/messaging/
+# Expected: Has output (types, errors, etc.)
+```
+
+### Import Analysis (CORRECTED)
+
+**Current imports in runtime/messaging.rs (lines 75-78):**
+```rust
+// Layer 3: Internal crate imports
+use crate::actor::message::{CorrelationId, CorrelationTracker, RequestError, ResponseMessage};
+use crate::core::{ComponentId, ComponentMessage, WasmError};
+```
+
+**Problem: runtime/ importing from actor/ VIOLATES ADR-WASM-023**
+- runtime/ is lower level than actor/
+- runtime/ cannot import from actor/ (reverse dependency)
+- This is why the file needs to be moved to messaging/
+
+**Where Types Are Actually Located (Current State):**
+
+**In core/messaging.rs:**
+- CorrelationId (type alias to Uuid)
+- ResponseMessage (struct)
+- RequestError (enum)
+- MessageEnvelope (struct)
+- MessageType (enum)
+- DeliveryGuarantee (enum)
+
+**In actor/message/correlation_tracker.rs:**
+- CorrelationTracker (struct) ← NOT in core/messaging.rs!
+
+**Import Strategy for messaging/messaging_service.rs:**
+```rust
+// FROM: In runtime/messaging.rs (wrong location)
+use crate::actor::message::{CorrelationId, CorrelationTracker, RequestError, ResponseMessage};
+use crate::core::{ComponentId, ComponentMessage, WasmError};
+
+// TO: In messaging/messaging_service.rs (correct location)
+use crate::core::messaging::{CorrelationId, RequestError, ResponseMessage};  // Types in core
+use crate::core::{ComponentId, ComponentMessage, WasmError};              // Types in core
+use crate::actor::message::CorrelationTracker;                               // Allowed per KNOWLEDGE-WASM-012!
+```
+
+**Why This Is CORRECT After Moving to messaging/:**
+1. **CorrelationId, RequestError, ResponseMessage** → Import from `core::messaging` (types in core)
+2. **CorrelationTracker** → Import from `actor::message` (actor system integration)
+3. **Per KNOWLEDGE-WASM-012 Line 274**: `messaging/ → core/, actor/, airssys-rt`
+   - This means messaging/ CAN import from actor/
+   - The import `use crate::actor::message::CorrelationTracker` is **ALLOWED**!
+
+**Import update locations:**
+1. Line 76-78: Update all imports to correct paths after moving to messaging/
+2. Types in `core/messaging/` → Use `use crate::core::messaging::{...}`
+3. CorrelationTracker in `actor/message/` → Use `use crate::actor::message::CorrelationTracker`
+4. ComponentId, ComponentMessage, WasmError in `core/` → Keep as-is (already correct)
+
+**No other imports need updating.**
+
+### Implementation Subtasks
+
+#### Subtask 1.2.1: Prepare messaging/messaging_service.rs
+
+**Objective:** Replace placeholder with actual implementation.
+
+**Steps:**
+1. Backup existing placeholder file:
+   ```bash
+   cp src/messaging/messaging_service.rs src/messaging/messaging_service.rs.placeholder
+   ```
+
+2. Read runtime/messaging.rs completely (1,313 lines):
+   - Read entire file to understand full implementation
+   - Note all types, traits, impls, and tests
+
+3. Remove all placeholder code:
+   - Delete placeholder MessagingService struct
+   - Delete placeholder impls
+   - Keep module documentation (`//!` section)
+
+**Deliverables:**
+- messaging_service.rs ready for code insertion
+
+**Acceptance Criteria:**
+- [ ] Placeholder code removed
+- [ ] Module documentation preserved
+- [ ] File ready for implementation
+
+---
+
+#### Subtask 1.2.2: Move MessagingService Implementation
+
+**Deliverables:**
+- MessagingService struct (lines 126-387 from runtime/messaging.rs)
+- Implementation methods and all doc comments
+
+**Code to move:**
+```rust
+/// Service managing MessageBroker integration for inter-component communication.
+/// [Full doc comment from runtime/messaging.rs]
+#[derive(Clone)]
+pub struct MessagingService {
+    broker: Arc<InMemoryMessageBroker<ComponentMessage>>,
+    correlation_tracker: Arc<CorrelationTracker>,
+    metrics: Arc<MessagingMetrics>,
+    response_router: Arc<ResponseRouter>,
+}
+
+impl MessagingService {
+    pub fn new() -> Self { /* implementation */ }
+    pub fn broker(&self) -> Arc<InMemoryMessageBroker<ComponentMessage>> { /* implementation */ }
+    pub fn correlation_tracker(&self) -> Arc<CorrelationTracker> { /* implementation */ }
+    pub async fn get_stats(&self) -> MessagingStats { /* implementation */ }
+    pub(crate) fn record_publish(&self) { /* implementation */ }
+    pub(crate) fn record_routing_failure(&self) { /* implementation */ }
+    pub(crate) fn record_request_sent(&self) { /* implementation */ }
+    pub(crate) fn record_request_completed(&self) { /* implementation */ }
+    pub(crate) fn pending_requests(&self) -> u64 { /* implementation */ }
+    pub fn response_router(&self) -> Arc<ResponseRouter> { /* implementation */ }
+}
+
+impl Default for MessagingService {
+    fn default() -> Self { /* implementation */ }
+}
+```
+
+**Import update (CORRECTED):**
+```rust
+// BEFORE (in runtime/messaging.rs - WRONG MODULE):
+use crate::actor::message::{CorrelationId, CorrelationTracker, RequestError, ResponseMessage};
+
+// AFTER (in messaging/messaging_service.rs - CORRECT MODULE):
+// Import types from core/ (where they live):
+use crate::core::messaging::{CorrelationId, RequestError, ResponseMessage};
+
+// Import CorrelationTracker from actor/message/ (where it lives):
+use crate::actor::message::CorrelationTracker;
+```
+
+**Why This Is CORRECT:**
+- `CorrelationId`, `RequestError`, `ResponseMessage` are in `core/messaging.rs` → Import from core/
+- `CorrelationTracker` is in `actor/message/correlation_tracker.rs` → Import from actor/
+- **Per KNOWLEDGE-WASM-012 Line 274**: `messaging/ → core/, actor/, airssys-rt`
+- This means messaging/ CAN import from both core/ AND actor/
+- Only runtime/ is FORBIDDEN (messaging/ cannot import from runtime/)
+
+**Acceptance Criteria:**
+- [ ] MessagingService struct moved
+- [ ] All impl blocks moved
+- [ ] Imports updated: types from core::messaging, CorrelationTracker from actor::message
+- [ ] All doc comments preserved
+- [ ] No imports from runtime/ (forbidden)
+
+**ADR Constraints:**
+- **ADR-WASM-023**: No imports from runtime/ (can import from actor/ and core/)
+- **KNOWLEDGE-WASM-012**: messaging/ → core/, actor/, airssys-rt
+
+**PROJECTS_STANDARD.md Compliance:**
+- **§2.1**: Import organization: std → external → internal (core/, actor/)
+- **§6.2**: Avoid `dyn` (MessagingService uses concrete types)
+- **§6.4**: Quality gates (zero warnings, tests included)
+
+**Rust Guidelines:**
+- **M-DESIGN-FOR-AI**: Idiomatic API with docs
+- **M-MODULE-DOCS**: Module documentation complete
+- **M-ERRORS-CANONICAL-STRUCTS**: Error types canonical
+
+**Documentation:**
+- **Diátaxis type**: Reference documentation
+- **Quality**: Professional tone, no hyperbole
+
+---
+
+#### Subtask 1.2.3: Move Metrics Types
+
+**Deliverables:**
+- MessagingMetrics struct (lines 418-431)
+- MessagingStats struct (lines 448-467)
+- ResponseRouterMetrics struct (lines 521-531)
+- ResponseRouterStats struct (lines 668-679)
+- MessageReceptionMetrics struct (lines 736-852)
+- MessageReceptionStats struct (lines 868-885)
+
+**Acceptance Criteria:**
+- [ ] All metrics types moved
+- [ ] All doc comments preserved
+- [ ] Imports use core/ types (where appropriate)
+- [ ] No imports from runtime/ (forbidden)
+
+**ADR Constraints:**
+- **ADR-WASM-023**: No imports from runtime/ (forbidden)
+- **KNOWLEDGE-WASM-012**: Can import from actor/ and core/ (allowed)
+
+**PROJECTS_STANDARD.md Compliance:**
+- **§2.1**: Import organization correct
+- **§6.4**: Quality gates met
+
+---
+
+#### Subtask 1.2.4: Move ResponseRouter Implementation
+
+**Deliverables:**
+- ResponseRouter struct (lines 511-666)
+- All implementation methods
+- All doc comments
+
+**Acceptance Criteria:**
+- [ ] ResponseRouter struct moved
+- [ ] All impl blocks moved
+- [ ] Imports use core/messaging and actor/message as appropriate
+- [ ] All doc comments preserved
+- [ ] No imports from runtime/ (forbidden)
+
+**ADR Constraints:**
+- **ADR-WASM-023**: No imports from runtime/ (forbidden)
+- **KNOWLEDGE-WASM-012**: Can import from actor/ and core/ (allowed)
+
+---
+
+#### Subtask 1.2.5: Move All Tests
+
+**Deliverables:**
+- All unit tests from lines 887-1313
+
+**Test categories to move:**
+1. MessagingService tests (tests 1.2.1-1.2.7)
+2. ResponseRouter tests (tests 1.2.8-1.2.12)
+3. Metrics tests (all remaining)
+
+**Acceptance Criteria:**
+- [ ] All tests moved
+- [ ] Test structure preserved
+- [ ] Imports updated in tests
+- [ ] All tests compile
+
+**PROJECTS_STANDARD.md Compliance:**
+- **§6.4**: Comprehensive tests required
+- **§M-STATIC-VERIFICATION**: Tests pass clippy
+
+**Rust Guidelines:**
+- **M-DESIGN-FOR-AI**: Testable code with examples
+
+---
+
+#### Subtask 1.2.6: Verify All Imports Updated (CORRECTED)
+
+**Objective:** Ensure imports are correct per architecture rules.
+
+**Verification steps:**
+1. Search for runtime imports in messaging_service.rs (FORBIDDEN):
+    ```bash
+    grep -n "use crate::runtime" src/messaging/messaging_service.rs
+    ```
+    Expected: No results (forbidden)
+
+2. Verify actor/ imports for CorrelationTracker (ALLOWED):
+    ```bash
+    grep -n "use crate::actor::" src/messaging/messaging_service.rs
+    ```
+    Expected: May have results (this is OK per KNOWLEDGE-WASM-012)
+
+3. Verify core/ imports (EXPECTED):
+    ```bash
+    grep -n "use crate::core::" src/messaging/messaging_service.rs
+    ```
+    Expected: Multiple lines (ComponentId, ComponentMessage, messaging types, etc.)
+
+**Acceptance Criteria:**
+- [ ] No runtime/ imports found (forbidden)
+- [ ] actor/ imports present only where appropriate (CorrelationTracker from actor/message/)
+- [ ] All imports follow §2.1 pattern
+- [ ] Types imported from correct modules (core/ for types, actor/ for CorrelationTracker)
+
+---
+
+#### Subtask 1.2.7: Build and Test Verification
+
+**Objective:** Verify code compiles and all tests pass.
+
+**Build verification:**
+```bash
+# 1. Build project
+cargo build
+# Expected: No errors, no warnings
+
+# 2. Check for warnings
+cargo build 2>&1 | grep -i "warning"
+# Expected: No warnings
+```
+
+**Test verification:**
+```bash
+# 1. Run unit tests
+cargo test --lib messaging
+# Expected: All tests pass
+
+# 2. Run all tests
+cargo test --lib
+# Expected: All tests pass
+
+# 3. Run specific test functions
+cargo test messaging_service_new
+cargo test messaging_service_broker_access
+# Expected: All pass
+```
+
+**Clippy verification:**
+```bash
+cargo clippy --all-targets --all-features -- -D warnings
+# Expected: Zero warnings
+```
+
+**Acceptance Criteria:**
+- [ ] cargo build succeeds with zero warnings
+- [ ] cargo test --lib passes all tests
+- [ ] cargo clippy passes with zero warnings
+
+**PROJECTS_STANDARD.md Compliance:**
+- **§6.4**: Zero compiler and clippy warnings
+
+---
+
+### Quality Standards
+
+**All subtasks must meet:**
+- ✅ Code builds without errors
+- ✅ Zero compiler warnings
+- ✅ Zero clippy warnings: `cargo clippy --all-targets --all-features -- -D warnings`
+- ✅ Follows PROJECTS_STANDARD.md §2.1-§6.4
+- ✅ Follows Rust guidelines (see references above)
+- ✅ Unit tests in `#[cfg(test)]` blocks
+- ✅ All tests pass: `cargo test --lib`
+- ✅ Documentation follows quality standards
+- ✅ Standards Compliance Checklist in task file
+
+### Verification Checklist
+
+**For implementer to run after completing all subtasks:**
+
+```bash
+# ============================================================================
+# 1. Architecture Verification (ADR-WASM-023)
+# ============================================================================
+
+echo "=== Verifying Module Boundaries (CORRECTED) ==="
+echo "Checking messaging/ does NOT import from runtime/ (FORBIDDEN)..."
+
+if grep -rn "use crate::runtime" src/messaging/; then
+    echo "❌ FAILED: messaging/ imports from runtime/"
+    exit 1
+else
+    echo "✅ PASSED: messaging/ does not import from runtime/"
+fi
+
+echo "Checking messaging/ CAN import from actor/ (ALLOWED per KNOWLEDGE-WASM-012)..."
+# This check is for INFORMATIONAL - actor imports are ALLOWED in messaging/
+if grep -rn "use crate::actor" src/messaging/; then
+    echo "ℹ️  INFO: messaging/ imports from actor/ (this is CORRECT per KNOWLEDGE-WASM-012)"
+    echo "✅ PASSED: messaging/ imports from actor/ as needed"
+else
+    echo "ℹ️  INFO: messaging/ has no actor imports (also OK)"
+fi
+
+if grep -rn "use crate::security" src/messaging/; then
+    echo "❌ FAILED: messaging/ imports from security/"
+    exit 1
+else
+    echo "✅ PASSED: messaging/ does not import from security/"
+fi
+
+echo ""
+echo "=== All Architecture Checks Passed ==="
+
+# ============================================================================
+# 2. Build Verification
+# ============================================================================
+
+echo "=== Building Project ==="
+cargo build
+BUILD_EXIT=$?
+
+if [ $BUILD_EXIT -ne 0 ]; then
+    echo "❌ FAILED: Build failed"
+    exit 1
+else
+    echo "✅ PASSED: Build succeeded"
+fi
+
+# Check for warnings
+WARNINGS=$(cargo build 2>&1 | grep -i "warning" | wc -l)
+if [ "$WARNINGS" -gt 0 ]; then
+    echo "❌ FAILED: Build has $WARNINGS warnings"
+    exit 1
+else
+    echo "✅ PASSED: Zero compiler warnings"
+fi
+
+echo ""
+
+# ============================================================================
+# 3. Test Verification
+# ============================================================================
+
+echo "=== Running Tests ==="
+cargo test --lib
+TEST_EXIT=$?
+
+if [ $TEST_EXIT -ne 0 ]; then
+    echo "❌ FAILED: Tests failed"
+    exit 1
+else
+    echo "✅ PASSED: All tests pass"
+fi
+
+# Test messaging_service specifically
+echo ""
+echo "=== Testing messaging_service module ==="
+cargo test messaging_service_new
+cargo test messaging_service_broker_access
+cargo test messaging_service_stats
+cargo test response_router_new
+cargo test response_router_route_response_success
+
+echo ""
+echo "✅ PASSED: All messaging tests pass"
+
+# ============================================================================
+# 4. Clippy Verification
+# ============================================================================
+
+echo "=== Running Clippy ==="
+cargo clippy --all-targets --all-features -- -D warnings
+CLIPPY_EXIT=$?
+
+if [ $CLIPPY_EXIT -ne 0 ]; then
+    echo "❌ FAILED: Clippy found warnings"
+    exit 1
+else
+    echo "✅ PASSED: Zero clippy warnings"
+fi
+
+echo ""
+echo "=== All Quality Checks Passed ==="
+echo "✅ Task 1.2 is complete"
+```
+
+**Expected output:**
+- All architecture checks pass
+- Build succeeds with zero warnings
+- All tests pass
+- Clippy passes with zero warnings
+
+### Testing Strategy
+
+**Unit Tests (Already in code):**
+- MessagingService instantiation tests
+- Broker access tests
+- Stats tests
+- Correlation tracker tests
+- Response router tests
+- Metrics tests
+- All existing tests from runtime/messaging.rs
+
+**Integration Tests (Run after completion):**
+```bash
+# Run integration tests that use messaging
+cargo test --test messaging_integration_tests
+cargo test --test actor_routing_tests
+cargo test --test actor_invocation_tests
+```
+
+**Test Coverage Requirements:**
+- All public functions have tests
+- All error paths have tests
+- All metrics have tests
+- Tests verify correct behavior after import changes
+
+**PROJECTS_STANDARD.md Compliance:**
+- **§6.4**: Comprehensive test coverage
+- **M-DESIGN-FOR-AI**: Testable code design
+
+### Risk Mitigation
+
+**Identified Risks:**
+
+1. **Import Update Missed (CORRECTED)**
+   - **Risk**: Forgetting to update imports OR incorrectly removing actor/ imports
+   - **Mitigation**: Use grep to verify correct imports:
+     ```bash
+     # Verify NO runtime/ imports (forbidden)
+     grep -n "use crate::runtime" src/messaging/messaging_service.rs
+     # Expected: No results
+     
+     # Verify actor/ imports PRESENT for CorrelationTracker (allowed!)
+     grep -n "use crate::actor::message::CorrelationTracker" src/messaging/messaging_service.rs
+     # Expected: Has results
+     
+     # Verify core/ imports for types (expected)
+     grep -n "use crate::core::messaging" src/messaging/messaging_service.rs
+     # Expected: Has results
+     ```
+   - **Verification**: Build will fail if imports wrong
+   - **CRITICAL**: Do NOT remove actor/ imports for CorrelationTracker - they are ALLOWED!
+
+2. **Code Copy Errors**
+   - **Risk**: Incorrect copy/paste or missing lines
+   - **Mitigation**: Compare file sizes (expected ~1,313 lines)
+   - **Verification**: All tests will fail if code missing
+
+3. **Type Mismatches**
+   - **Risk**: Types in core/messaging.rs don't match what code expects
+   - **Mitigation**: Task 1.1 already moved types, verify they compile
+   - **Verification**: Build will fail with type errors
+
+4. **Module Boundary Violations**
+   - **Risk**: Accidentally importing from actor/ or runtime/
+   - **Mitigation**: Architecture verification commands after completion
+   - **Verification**: ADR-WASM-023 verification checks
+
+5. **Test Failures**
+   - **Risk**: Tests rely on old import paths
+   - **Mitigation**: Review all tests, update imports in test code too
+   - **Verification**: cargo test will fail
+
+**Contingency:**
+- If build fails with import errors: Review and fix imports
+- If tests fail: Debug and fix test code
+- If architecture check fails: Review and remove forbidden imports
+
+### Rollback Plan
+
+**If critical issues arise:**
+
+1. **Backup created before starting** (Subtask 1.2.1):
+   - Original placeholder file: `src/messaging/messaging_service.rs.placeholder`
+   - Original source file: `src/runtime/messaging.rs` (unchanged)
+
+2. **Rollback steps:**
+   ```bash
+   # Step 1: Restore placeholder
+   cp src/messaging/messaging_service.rs.placeholder src/messaging/messaging_service.rs
+   
+   # Step 2: Verify build passes
+   cargo build
+   
+   # Step 3: Notify and investigate failure
+   echo "Task 1.2 rolled back. Investigate failure before retrying."
+   ```
+
+3. **Decision points:**
+   - If type mismatches: Review Task 1.1 (types moved to core/messaging.rs)
+   - If import issues: Check CorrelationTracker location
+   - If logic errors: Compare with runtime/messaging.rs line-by-line
+
+4. **After rollback:**
+   - Document what went wrong
+   - Update plan with learned lessons
+   - Retry after root cause identified
+
+### Standards Compliance Checklist
+
+**PROJECTS_STANDARD.md Applied:**
+- [ ] **§2.1 3-Layer Import Organization** - Evidence: All imports follow std → external → internal pattern (code in messaging_service.rs)
+- [ ] **§4.3 Module Architecture Patterns** - Evidence: messaging/mod.rs contains only declarations (verified in Task 1.1)
+- [ ] **§6.2 Avoid `dyn` Patterns** - Evidence: No trait objects used, concrete types only (MessagingService, ResponseRouter)
+- [ ] **§6.4 Implementation Quality Gates** - Evidence: Zero compiler/clippy warnings, comprehensive tests (verification commands)
+
+**Rust Guidelines Applied:**
+- [ ] **M-DESIGN-FOR-AI** - Evidence: Idiomatic APIs, comprehensive docs, testable code (moved code with docs preserved)
+- [ ] **M-MODULE-DOCS** - Evidence: Module documentation complete (messaging_service.rs has `//!` and `///` docs)
+- [ ] **M-ERRORS-CANONICAL-STRUCTS** - Evidence: Error types follow thiserror pattern (RequestError, WasmError)
+- [ ] **M-STATIC-VERIFICATION** - Evidence: Lints enabled, clippy verification in plan
+
+**Documentation Quality:**
+- [ ] **No hyperbolic terms** - Evidence: Verified against forbidden list in documentation-quality-standards.md
+- [ ] **Technical precision** - Evidence: All claims measurable, no vague assertions
+- [ ] **Diátaxis compliance** - Evidence: Reference documentation type chosen for APIs
+
+**ADR Compliance:**
+- [ ] **ADR-WASM-018** - Evidence: One-way dependency enforced (messaging → core only)
+- [ ] **ADR-WASM-023** - Evidence: No forbidden imports (verification commands in plan)
+
+**Knowledge Compliance:**
+- [ ] **KNOWLEDGE-WASM-012** - Evidence: Module structure follows specification (messaging/ top-level)
+- [ ] **KNOWLEDGE-WASM-024** - Evidence: Messaging patterns correctly implemented
+
+---
+
 #### Task 1.3: Create Remaining Messaging Submodules
 
 **Objective:** Create messaging submodules per KNOWLEDGE-WASM-012 specification.
