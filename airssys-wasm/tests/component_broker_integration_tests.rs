@@ -1,3 +1,5 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Integration tests for ComponentActor and MessageBroker integration.
 //!
 //! Tests verify end-to-end broker functionality:
@@ -20,13 +22,10 @@
 //! - **WASM-TASK-004 Phase 4 Task 4.1**: MessageBroker Setup for Components
 //! - **ADR-WASM-009**: Component Communication Model
 
-#![allow(clippy::unwrap_used, reason = "unwrap is acceptable in test code")]
-#![allow(clippy::expect_used, reason = "expect is acceptable in test code")]
-
 use airssys_rt::broker::InMemoryMessageBroker;
 use airssys_rt::system::{ActorSystem, SystemConfig};
 use airssys_wasm::actor::{ComponentActor, ComponentMessage, ComponentSpawner};
-use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits};
+use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata};
 use std::path::PathBuf;
 
 fn create_test_metadata() -> ComponentMetadata {
@@ -35,10 +34,10 @@ fn create_test_metadata() -> ComponentMetadata {
         version: "1.0.0".to_string(),
         author: "Test".to_string(),
         description: None,
-            max_memory_bytes: 64 * 1024 * 1024,
-            max_fuel: 1_000_000,
-            timeout_seconds: 5,
-        }
+        max_memory_bytes: 64 * 1024 * 1024,
+        max_fuel: 1_000_000,
+        timeout_seconds: 5,
+    }
 }
 
 #[tokio::test]

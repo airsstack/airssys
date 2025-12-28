@@ -1,6 +1,6 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Integration tests for WASM actor invocation (Task 2.1 Step 1.4).
-#![allow(clippy::expect_used, clippy::unwrap_used, reason = "test code")]//!
-//! These tests verify that the actor message handling implementation (Steps 1.2 and 1.3)
 //! works correctly for:
 //! - Function invocation with type conversion
 //! - InterComponent message handling
@@ -24,15 +24,6 @@
 //! - **Action Plan**: task-004-phase-2-task-2.1-actorsystem-integration-plan.md (lines 595-730)
 //! - **DEBT-WASM-004**: Verification of Items #1 and #2
 
-#![expect(
-    clippy::expect_used,
-    reason = "expect is acceptable in test code for clear error messages"
-)]
-#![expect(
-    clippy::panic,
-    reason = "panic is acceptable in test code for assertion failures"
-)]
-
 // Layer 3: Internal module imports
 use airssys_rt::supervisor::Child;
 use airssys_wasm::actor::{ActorState, ComponentActor, ComponentMessage};
@@ -51,8 +42,6 @@ fn create_test_metadata(name: &str) -> ComponentMetadata {
         timeout_seconds: 5,
     }
 }
-
-/// Create test component actor
 
 /// Create test component actor
 fn create_test_actor(name: &str) -> ComponentActor<()> {

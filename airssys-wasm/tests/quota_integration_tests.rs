@@ -1,6 +1,6 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Resource Quota Integration Tests
-#![allow(clippy::expect_used, clippy::unwrap_used, reason = "test code")]//!
-//! Comprehensive integration tests for WASM-TASK-005 Phase 4, Task 4.3:
 //! Resource Quota System.
 //!
 //! # Test Coverage
@@ -24,8 +24,6 @@
 //! - Quota update: <5μs per operation
 //! - Memory overhead: <1KB per component
 
-#![allow(clippy::panic)]
-
 use airssys_wasm::security::quota::{QuotaError, QuotaTracker, ResourceQuota};
 use airssys_wasm::security::{WasmCapability, WasmCapabilitySet, WasmSecurityContext};
 use std::sync::Arc;
@@ -35,7 +33,6 @@ use std::time::Duration;
 // ═════════════════════════════════════════════════════════════════════════════
 // Component Registration with Quota
 // ═════════════════════════════════════════════════════════════════════════════
-
 #[test]
 fn test_component_registration_with_default_quota() {
     let capabilities = WasmCapabilitySet::new().grant(WasmCapability::Filesystem {
@@ -48,7 +45,10 @@ fn test_component_registration_with_default_quota() {
     // Verify default quota values
     assert_eq!(context.resource_quota.max_storage_bytes, 100 * 1024 * 1024);
     assert_eq!(context.resource_quota.max_message_rate, 1000);
-    assert_eq!(context.resource_quota.max_network_bandwidth, 10 * 1024 * 1024);
+    assert_eq!(
+        context.resource_quota.max_network_bandwidth,
+        10 * 1024 * 1024
+    );
     assert_eq!(context.resource_quota.max_cpu_time_ms, 1000);
     assert_eq!(context.resource_quota.max_memory_bytes, 256 * 1024 * 1024);
 }
@@ -58,19 +58,19 @@ fn test_component_registration_with_custom_quota() {
     let capabilities = WasmCapabilitySet::new();
     let custom_quota = ResourceQuota::new()
         .with_storage(50 * 1024 * 1024) // 50 MB
-        .with_message_rate(500)          // 500 msg/sec
+        .with_message_rate(500) // 500 msg/sec
         .with_network_bandwidth(5 * 1024 * 1024); // 5 MB/sec
 
-    let context = WasmSecurityContext::with_quota(
-        "quota-custom".to_string(),
-        capabilities,
-        custom_quota,
-    );
+    let context =
+        WasmSecurityContext::with_quota("quota-custom".to_string(), capabilities, custom_quota);
 
     // Verify custom quota values
     assert_eq!(context.resource_quota.max_storage_bytes, 50 * 1024 * 1024);
     assert_eq!(context.resource_quota.max_message_rate, 500);
-    assert_eq!(context.resource_quota.max_network_bandwidth, 5 * 1024 * 1024);
+    assert_eq!(
+        context.resource_quota.max_network_bandwidth,
+        5 * 1024 * 1024
+    );
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

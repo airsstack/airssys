@@ -1,3 +1,5 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Integration tests for pub-sub message routing.
 //!
 //! Tests end-to-end pub-sub flows including:
@@ -19,12 +21,10 @@
 //!
 //! - **WASM-TASK-004 Phase 4 Task 4.2**: Pub-Sub Message Routing
 
-#![allow(clippy::unwrap_used)] // Test code: unwrap is acceptable
-#![allow(clippy::clone_on_ref_ptr)] // Test code: .clone() is clear
-#![allow(clippy::needless_borrows_for_generic_args)] // Test code: explicitness over terseness
-
 use airssys_rt::broker::InMemoryMessageBroker;
-use airssys_wasm::actor::{MessageBrokerWrapper, MessagePublisher, SubscriberManager};
+use airssys_wasm::actor::{
+    MessageBrokerBridge, MessageBrokerWrapper, MessagePublisher, SubscriberManager,
+};
 use airssys_wasm::core::ComponentId;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -37,14 +37,14 @@ use uuid::Uuid;
 async fn test_end_to_end_pub_sub() {
     // Setup
     let broker = InMemoryMessageBroker::new();
-    let wrapper = Arc::new(MessageBrokerWrapper::new(broker));
+    let wrapper: Arc<dyn MessageBrokerBridge> = Arc::new(MessageBrokerWrapper::new(broker));
     let manager = SubscriberManager::new();
 
     let publisher_id = ComponentId::new("publisher");
     let subscriber_id = ComponentId::new("subscriber");
 
     // Create publisher
-    let publisher = MessagePublisher::new(publisher_id, wrapper.clone());
+    let publisher = MessagePublisher::new(publisher_id, Arc::clone(&wrapper));
 
     // Subscribe
     let _handle = manager
@@ -69,7 +69,7 @@ async fn test_end_to_end_pub_sub() {
 #[tokio::test]
 async fn test_multiple_subscribers_same_topic() {
     let broker = InMemoryMessageBroker::new();
-    let wrapper = Arc::new(MessageBrokerWrapper::new(broker));
+    let wrapper: Arc<dyn MessageBrokerBridge> = Arc::new(MessageBrokerWrapper::new(broker));
     let manager = SubscriberManager::new();
 
     let publisher_id = ComponentId::new("publisher");
@@ -162,14 +162,14 @@ async fn test_wildcard_subscription_routing() {
 #[tokio::test]
 async fn test_correlation_pattern() {
     let broker = InMemoryMessageBroker::new();
-    let wrapper = Arc::new(MessageBrokerWrapper::new(broker));
+    let wrapper: Arc<dyn MessageBrokerBridge> = Arc::new(MessageBrokerWrapper::new(broker));
     let manager = SubscriberManager::new();
 
     let requester_id = ComponentId::new("requester");
     let responder_id = ComponentId::new("responder");
 
     // Create requester
-    let requester = MessagePublisher::new(requester_id, wrapper.clone());
+    let requester = MessagePublisher::new(requester_id, Arc::clone(&wrapper));
 
     // Responder subscribes to requests
     manager
@@ -197,15 +197,15 @@ async fn test_correlation_pattern() {
 #[tokio::test]
 async fn test_concurrent_publish_subscribe() {
     let broker = InMemoryMessageBroker::new();
-    let wrapper = Arc::new(MessageBrokerWrapper::new(broker));
+    let wrapper: Arc<dyn MessageBrokerBridge> = Arc::new(MessageBrokerWrapper::new(broker));
     let manager = Arc::new(SubscriberManager::new());
 
     // Spawn multiple publishers
     let mut publish_handles = vec![];
     for i in 0..10 {
-        let wrapper_clone = wrapper.clone();
+        let wrapper_clone = Arc::clone(&wrapper);
         let handle = tokio::spawn(async move {
-            let publisher_id = ComponentId::new(&format!("publisher-{}", i));
+            let publisher_id = ComponentId::new(format!("publisher-{}", i));
             let publisher = MessagePublisher::new(publisher_id, wrapper_clone);
             publisher
                 .publish(&format!("topic-{}", i % 3), vec![i as u8])
@@ -217,9 +217,9 @@ async fn test_concurrent_publish_subscribe() {
     // Spawn multiple subscribers
     let mut subscribe_handles = vec![];
     for i in 0..10 {
-        let manager_clone = manager.clone();
+        let manager_clone = Arc::clone(&manager);
         let handle = tokio::spawn(async move {
-            let subscriber_id = ComponentId::new(&format!("subscriber-{}", i));
+            let subscriber_id = ComponentId::new(format!("subscriber-{}", i));
             manager_clone
                 .subscribe(subscriber_id, vec![format!("topic-{}", i % 3)])
                 .await
@@ -250,7 +250,7 @@ async fn test_concurrent_publish_subscribe() {
 #[tokio::test]
 async fn test_broadcast_to_multiple_topics() {
     let broker = InMemoryMessageBroker::new();
-    let wrapper = Arc::new(MessageBrokerWrapper::new(broker));
+    let wrapper: Arc<dyn MessageBrokerBridge> = Arc::new(MessageBrokerWrapper::new(broker));
     let manager = SubscriberManager::new();
 
     let publisher_id = ComponentId::new("broadcaster");

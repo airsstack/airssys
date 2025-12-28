@@ -63,8 +63,8 @@
 //! - **RT-TASK-008**: Message Broker Performance Baseline (211ns proven)
 
 // Layer 1: Standard library imports
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 
 // Layer 2: Third-party crate imports
 use serde::{Deserialize, Serialize};
@@ -297,7 +297,9 @@ impl MessagingService {
     #[doc(hidden)]
     #[allow(dead_code)]
     pub(crate) fn record_publish(&self) {
-        self.metrics.messages_published.fetch_add(1, Ordering::Relaxed);
+        self.metrics
+            .messages_published
+            .fetch_add(1, Ordering::Relaxed);
     }
 
     /// Record a routing failure (internal use by ActorSystemSubscriber).
@@ -311,7 +313,9 @@ impl MessagingService {
     #[doc(hidden)]
     #[allow(dead_code)]
     pub(crate) fn record_routing_failure(&self) {
-        self.metrics.routing_failures.fetch_add(1, Ordering::Relaxed);
+        self.metrics
+            .routing_failures
+            .fetch_add(1, Ordering::Relaxed);
     }
 
     /// Record a request sent (internal use by SendRequestHostFunction).
@@ -325,7 +329,9 @@ impl MessagingService {
     #[allow(dead_code)]
     pub(crate) fn record_request_sent(&self) {
         self.metrics.requests_sent.fetch_add(1, Ordering::Relaxed);
-        self.metrics.requests_pending.fetch_add(1, Ordering::Relaxed);
+        self.metrics
+            .requests_pending
+            .fetch_add(1, Ordering::Relaxed);
     }
 
     /// Record a request completed (response received or timeout).
@@ -341,7 +347,9 @@ impl MessagingService {
         // Saturating sub to prevent underflow
         let current = self.metrics.requests_pending.load(Ordering::Relaxed);
         if current > 0 {
-            self.metrics.requests_pending.fetch_sub(1, Ordering::Relaxed);
+            self.metrics
+                .requests_pending
+                .fetch_sub(1, Ordering::Relaxed);
         }
     }
 
@@ -678,7 +686,15 @@ pub struct MessageReceptionStats {
     pub current_queue_depth: u64,
 }
 
-#[allow(clippy::expect_used, clippy::unwrap_used, clippy::unwrap_err_used, clippy::expect_err_used, clippy::panic, clippy::unwrap_on_result, clippy::indexing_slicing, clippy::too_many_arguments, clippy::type_complexity, reason = "test code")]
+#[allow(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    reason = "test code"
+)]
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -692,7 +708,10 @@ mod tests {
         assert_eq!(Arc::strong_count(&service.broker), 1);
 
         // Metrics should start at zero
-        assert_eq!(service.metrics.messages_published.load(Ordering::Relaxed), 0);
+        assert_eq!(
+            service.metrics.messages_published.load(Ordering::Relaxed),
+            0
+        );
         assert_eq!(service.metrics.routing_failures.load(Ordering::Relaxed), 0);
     }
 
@@ -729,10 +748,16 @@ mod tests {
         let service = MessagingService::new();
 
         service.record_publish();
-        assert_eq!(service.metrics.messages_published.load(Ordering::Relaxed), 1);
+        assert_eq!(
+            service.metrics.messages_published.load(Ordering::Relaxed),
+            1
+        );
 
         service.record_publish();
-        assert_eq!(service.metrics.messages_published.load(Ordering::Relaxed), 2);
+        assert_eq!(
+            service.metrics.messages_published.load(Ordering::Relaxed),
+            2
+        );
     }
 
     #[test]
@@ -757,7 +782,13 @@ mod tests {
 
         // Metrics should be shared
         service.record_publish();
-        assert_eq!(service_clone.metrics.messages_published.load(Ordering::Relaxed), 1);
+        assert_eq!(
+            service_clone
+                .metrics
+                .messages_published
+                .load(Ordering::Relaxed),
+            1
+        );
     }
 
     #[test]
@@ -766,8 +797,14 @@ mod tests {
         let service2 = MessagingService::default();
 
         // Both should be initialized correctly
-        assert_eq!(service1.metrics.messages_published.load(Ordering::Relaxed), 0);
-        assert_eq!(service2.metrics.messages_published.load(Ordering::Relaxed), 0);
+        assert_eq!(
+            service1.metrics.messages_published.load(Ordering::Relaxed),
+            0
+        );
+        assert_eq!(
+            service2.metrics.messages_published.load(Ordering::Relaxed),
+            0
+        );
     }
 
     // ============================================================================
@@ -927,11 +964,14 @@ mod tests {
         tracker.register_pending(pending).await.unwrap();
 
         let router = service.response_router();
-        router.route_response(
-            correlation_id,
-            Ok(vec![1, 2, 3]),
-            ComponentId::new("responder"),
-        ).await.unwrap();
+        router
+            .route_response(
+                correlation_id,
+                Ok(vec![1, 2, 3]),
+                ComponentId::new("responder"),
+            )
+            .await
+            .unwrap();
 
         let stats = service.get_stats().await;
         assert_eq!(stats.responses_routed, 1);

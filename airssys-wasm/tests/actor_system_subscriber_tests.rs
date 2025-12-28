@@ -1,6 +1,6 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Unit tests for ActorSystemSubscriber and UnifiedRouter.
-#![allow(clippy::expect_used, clippy::unwrap_used, reason = "test code")]//!
-//! This test suite validates Task 4.3 implementation:
 //! - ActorSystem subscribes to MessageBroker as primary subscriber
 //! - UnifiedRouter centralizes routing logic
 //! - Routing statistics tracking
@@ -24,10 +24,7 @@
 //! - **ADR-WASM-009**: Component Communication Model
 //! - **ADR-WASM-018**: Three-Layer Architecture
 
-#![allow(clippy::expect_used)] // Test code: expect is acceptable for clear error messages
-
 // Layer 1: Standard library imports
-#![allow(clippy::clone_on_ref_ptr)]
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -50,7 +47,8 @@ async fn test_actor_system_subscribes_to_broker() {
     let registry = ComponentRegistry::new();
     let subscriber_manager = Arc::new(SubscriberManager::new());
 
-    let mut subscriber = ActorSystemSubscriber::new(broker.clone(), registry, subscriber_manager);
+    let mut subscriber =
+        ActorSystemSubscriber::new(Arc::clone(&broker), registry, subscriber_manager);
 
     // Start subscription
     let result = subscriber.start().await;
@@ -82,8 +80,11 @@ async fn test_message_routes_to_mailbox() {
     let registry = ComponentRegistry::new();
     let subscriber_manager = Arc::new(SubscriberManager::new());
 
-    let mut subscriber =
-        ActorSystemSubscriber::new(broker.clone(), registry.clone(), subscriber_manager.clone());
+    let mut subscriber = ActorSystemSubscriber::new(
+        Arc::clone(&broker),
+        registry.clone(),
+        Arc::clone(&subscriber_manager),
+    );
 
     // Start subscriber
     subscriber
@@ -189,7 +190,8 @@ async fn test_error_handling_unreachable_component() {
     let registry = ComponentRegistry::new();
     let subscriber_manager = Arc::new(SubscriberManager::new());
 
-    let mut subscriber = ActorSystemSubscriber::new(broker.clone(), registry, subscriber_manager);
+    let mut subscriber =
+        ActorSystemSubscriber::new(Arc::clone(&broker), registry, subscriber_manager);
 
     // Start subscriber
     subscriber.start().await.expect("Failed to start");
@@ -221,7 +223,7 @@ async fn test_concurrent_routing() {
     let broker = Arc::new(InMemoryMessageBroker::new());
     let registry = ComponentRegistry::new();
 
-    let router = UnifiedRouter::new(broker.clone(), registry);
+    let router = UnifiedRouter::new(Arc::clone(&broker), registry);
     router.start().await.expect("Failed to start router");
 
     // Spawn multiple concurrent routing tasks
@@ -330,7 +332,8 @@ async fn test_multiple_messages_sequential() {
     let registry = ComponentRegistry::new();
     let subscriber_manager = Arc::new(SubscriberManager::new());
 
-    let mut subscriber = ActorSystemSubscriber::new(broker.clone(), registry, subscriber_manager);
+    let mut subscriber =
+        ActorSystemSubscriber::new(Arc::clone(&broker), registry, subscriber_manager);
 
     subscriber.start().await.expect("Failed to start");
 

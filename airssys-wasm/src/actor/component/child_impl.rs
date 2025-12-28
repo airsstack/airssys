@@ -41,9 +41,9 @@ use tracing::{error, info, warn};
 // Layer 3: Internal module imports
 // NOTE: ComponentResourceLimiter, WasmExports, WasmRuntime deleted in WASM-TASK-006-HOTFIX Phase 2 Task 2.1
 use crate::actor::component::{ActorState, ComponentActor};
+use crate::core::runtime::RuntimeEngine; // Component Model trait
 use crate::core::ComponentHealthStatus as HealthStatus;
 use crate::core::WasmError;
-use crate::core::runtime::RuntimeEngine; // Component Model trait
 use airssys_rt::supervisor::{Child, ChildHealth};
 
 /// Child trait implementation for ComponentActor (STUB).
@@ -261,7 +261,9 @@ where
             // Call post_start hook
             let hook_result = {
                 let ctx_clone = lifecycle_ctx.clone();
-                crate::actor::lifecycle::catch_unwind_hook(|| self.hooks_mut().post_start(&ctx_clone))
+                crate::actor::lifecycle::catch_unwind_hook(|| {
+                    self.hooks_mut().post_start(&ctx_clone)
+                })
             };
 
             match hook_result {
@@ -303,11 +305,12 @@ where
             component_id = %self.component_id().as_str(),
             "Component Model engine not configured - use with_component_engine() to set up"
         );
-        
+
         self.set_state(ActorState::Failed(
-            "Component Model engine not configured - legacy path removed in WASM-TASK-006-HOTFIX".to_string()
+            "Component Model engine not configured - legacy path removed in WASM-TASK-006-HOTFIX"
+                .to_string(),
         ));
-        
+
         Err(WasmError::engine_initialization(
             "Component Model engine not configured. Use ComponentActor::new().with_component_engine(engine) to configure."
         ))
@@ -857,15 +860,11 @@ where
     }
 }
 
-#[allow(clippy::expect_used, clippy::unwrap_used, clippy::unwrap_err_used, clippy::expect_err_used, clippy::panic, clippy::unwrap_on_result, clippy::indexing_slicing, clippy::too_many_arguments, clippy::type_complexity, reason = "test code")]
 #[cfg(test)]
-#[expect(
-    clippy::unwrap_used,
-    reason = "unwrap is acceptable in test code for brevity"
-)]
+#[allow(clippy::expect_used)]
 mod tests {
     use super::*;
-    use crate::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits};
+    use crate::core::{CapabilitySet, ComponentId, ComponentMetadata};
     use crate::runtime::WasmEngine;
 
     fn create_test_metadata() -> ComponentMetadata {
@@ -1477,24 +1476,28 @@ mod tests {
     async fn test_start_fails_without_engine() {
         // ComponentActor without component_engine should fail to start
         let mut actor = create_test_actor();
-        
+
         // Verify no Component Model engine configured
         assert!(!actor.uses_component_model());
-        
+
         // Start should FAIL now that legacy path is removed
         let result = actor.start().await;
-        assert!(result.is_err(), "Start without engine should fail: {result:?}");
-        
+        assert!(
+            result.is_err(),
+            "Start without engine should fail: {result:?}"
+        );
+
         // State should be Failed
         assert!(matches!(actor.state(), ActorState::Failed(_)));
-        
+
         // Component should not be loaded
         assert!(!actor.is_wasm_loaded());
-        
+
         // Error should indicate missing engine
         if let Err(e) = result {
             assert!(
-                e.to_string().contains("Component Model engine not configured"),
+                e.to_string()
+                    .contains("Component Model engine not configured"),
                 "Expected engine configuration error, got: {e}"
             );
         }
@@ -1504,11 +1507,11 @@ mod tests {
     #[test]
     fn test_uses_component_model_detection() {
         use crate::runtime::WasmEngine;
-        
+
         // Without engine
         let actor1 = create_test_actor();
         assert!(!actor1.uses_component_model());
-        
+
         // With engine
         let engine = std::sync::Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
         let actor2 = ComponentActor::new(
@@ -1518,7 +1521,7 @@ mod tests {
             (),
         )
         .with_component_engine(engine);
-        
+
         assert!(actor2.uses_component_model());
     }
 
@@ -1526,20 +1529,20 @@ mod tests {
     #[test]
     fn test_component_engine_accessor() {
         use crate::runtime::WasmEngine;
-        
+
         let engine = std::sync::Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
-        
+
         let actor = ComponentActor::new(
             ComponentId::new("test"),
             create_test_metadata(),
             CapabilitySet::new(),
             (),
         )
-        .with_component_engine(engine.clone());
-        
+        .with_component_engine(Arc::clone(&engine));
+
         // Engine should be accessible
         assert!(actor.component_engine().is_some());
-        
+
         // Should be the same engine (by Arc pointer)
         let retrieved = actor.component_engine().unwrap();
         assert!(std::sync::Arc::ptr_eq(&engine, retrieved));
@@ -1549,10 +1552,10 @@ mod tests {
     #[test]
     fn test_component_handle_accessors() {
         let mut actor = create_test_actor();
-        
+
         // Initially None
         assert!(actor.component_handle().is_none());
-        
+
         // Set to None (no-op but should work)
         actor.set_component_handle(None);
         assert!(actor.component_handle().is_none());

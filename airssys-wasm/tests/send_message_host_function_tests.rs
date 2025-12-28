@@ -1,3 +1,5 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Integration tests for send-message host function (WASM-TASK-006 Phase 2 Task 2.1).
 //!
 //! These tests verify the end-to-end functionality of the `send-message` host function:
@@ -21,9 +23,6 @@
 //! - **ADR-WASM-001**: Multicodec Compatibility Strategy
 //! - **ADR-WASM-009**: Component Communication Model
 //! - **KNOWLEDGE-WASM-024**: Component Messaging Clarifications
-
-#![allow(clippy::unwrap_used, reason = "unwrap is acceptable in test code")]
-#![allow(clippy::expect_used, reason = "expect is acceptable in test code")]
 
 use std::sync::Arc;
 

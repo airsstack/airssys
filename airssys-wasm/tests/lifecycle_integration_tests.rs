@@ -1,6 +1,6 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Integration tests for lifecycle hooks and custom state management (Task 5.2).
-#![allow(clippy::expect_used, clippy::unwrap_used, reason = "test code")]//!
-//! This test suite validates the complete integration of:
 //! - ComponentActor<S> generic state management
 //! - Lifecycle hooks (pre/post-start/stop, on_message, on_error)
 //! - Event callbacks (message received/processed, error occurred)
@@ -29,9 +29,7 @@ use tokio::sync::Mutex;
 use airssys_rt::supervisor::Child;
 use airssys_wasm::actor::lifecycle::{EventCallback, HookResult, LifecycleContext, LifecycleHooks};
 use airssys_wasm::actor::{ActorState, ComponentActor, ComponentMessage};
-use airssys_wasm::core::{
-    CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits, WasmError,
-};
+use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, WasmError};
 
 // ==============================================================================
 // Test Helpers
@@ -44,10 +42,10 @@ fn create_test_metadata(name: &str) -> ComponentMetadata {
         version: "1.0.0-test".to_string(),
         author: "Test Suite".to_string(),
         description: Some("Integration test component".to_string()),
-            max_memory_bytes: 64 * 1024 * 1024,
-            max_fuel: 1_000_000,
-            timeout_seconds: 5,
-        }
+        max_memory_bytes: 64 * 1024 * 1024,
+        max_fuel: 1_000_000,
+        timeout_seconds: 5,
+    }
 }
 
 /// Test state for custom state management.

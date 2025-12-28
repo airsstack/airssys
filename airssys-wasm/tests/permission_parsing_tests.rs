@@ -1,8 +1,8 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Permission parsing tests
 //!
 //! Tests for Component.toml permission parsing and validation.
-
-#![allow(clippy::unwrap_used)] // Test code is allowed to use unwrap for clarity
 
 use airssys_wasm::core::manifest::ComponentManifest;
 use airssys_wasm::core::permission::{NetworkEndpoint, PermissionManifest};

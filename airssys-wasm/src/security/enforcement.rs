@@ -1229,7 +1229,7 @@ macro_rules! require_capability {
     }};
 }
 
-#[allow(clippy::expect_used, clippy::unwrap_used, clippy::unwrap_err_used, clippy::expect_err_used, clippy::panic, clippy::unwrap_on_result, clippy::indexing_slicing, clippy::too_many_arguments, clippy::type_complexity, reason = "test code")]
+#[allow(clippy::expect_used, clippy::unwrap_used, clippy::panic, clippy::indexing_slicing, clippy::too_many_arguments, clippy::type_complexity, reason = "test code")]
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1529,7 +1529,7 @@ mod tests {
             assert_eq!(get_component_context().unwrap(), "early-return");
             
             // Early return - guard should still clean up
-            return Err("early error".to_string());
+            Err("early error".to_string())
         }
 
         clear_component_context();

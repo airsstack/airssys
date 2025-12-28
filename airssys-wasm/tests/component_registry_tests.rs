@@ -1,6 +1,6 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Integration tests for ComponentRegistry.
-#![allow(clippy::expect_used, clippy::unwrap_used, reason = "test code")]//!
-//! This test suite verifies that ComponentRegistry correctly tracks component instances
 //! with O(1) lookup performance and thread-safe concurrent access.
 //!
 //! # Test Coverage
@@ -15,23 +15,6 @@
 //! # References
 //!
 //! - **WASM-TASK-004 Phase 2 Task 2.2**: ComponentRegistry Implementation
-
-#![expect(
-    clippy::expect_used,
-    reason = "expect is acceptable in test code for clear error messages"
-)]
-#![expect(
-    clippy::unwrap_used,
-    reason = "unwrap is acceptable in test code for convenience"
-)]
-#![expect(
-    clippy::expect_fun_call,
-    reason = "format! in expect is acceptable in test code"
-)]
-#![expect(
-    clippy::panic,
-    reason = "panic is acceptable in test code for assertion failures"
-)]
 
 // Layer 1: Standard library imports
 use std::sync::Arc;
@@ -77,7 +60,7 @@ fn test_register_multiple_components() {
 
         registry
             .register(component_id, actor_addr)
-            .expect(&format!("Failed to register component {}", i));
+            .unwrap_or_else(|_| panic!("Failed to register component {}", i));
     }
 
     assert_eq!(registry.count().expect("Failed to get count"), COUNT);

@@ -1,6 +1,6 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Crash isolation and recovery integration tests (Phase 5 - Task 5.3).
-#![allow(clippy::expect_used, clippy::unwrap_used, reason = "test code")]//!
-//! This test suite validates that component crashes (traps, timeouts, fuel exhaustion)
 //! are properly isolated and don't crash the host runtime. Tests cover:
 //!
 //! - **Trap Handling**: All Wasmtime trap types properly categorized
@@ -21,10 +21,6 @@
 //! Each crash is isolated and should not affect subsequent component execution.
 
 // Allow panic-style testing in test code (workspace lint exceptions)
-#![allow(clippy::panic)]
-#![allow(clippy::unwrap_used)]
-#![allow(clippy::expect_used)]
-
 // Layer 1: Standard library imports
 use std::collections::HashMap;
 

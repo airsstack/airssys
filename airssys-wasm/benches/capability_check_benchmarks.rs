@@ -1,3 +1,5 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Capability Check API Performance Benchmarks (Task 3.1)
 //!
 //! These benchmarks measure the performance of the capability checking system
@@ -16,10 +18,10 @@
 //! cargo bench --bench capability_check_benchmarks
 //! ```
 
-use airssys_wasm::security::enforcement::{CapabilityChecker, register_component};
+use airssys_wasm::security::enforcement::{register_component, CapabilityChecker};
 use airssys_wasm::security::{WasmCapability, WasmCapabilitySet, WasmSecurityContext};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use std::hint::black_box;
-use criterion::{ criterion_group, criterion_main, Criterion, BenchmarkId};
 
 /// Benchmark: Component registration.
 ///
@@ -30,18 +32,17 @@ fn bench_component_registration(c: &mut Criterion) {
         b.iter(|| {
             counter += 1;
             let checker = CapabilityChecker::new();
-            let capabilities = WasmCapabilitySet::new()
-                .grant(WasmCapability::Filesystem {
-                    paths: vec!["/app/data/*".to_string()],
-                    permissions: vec!["read".to_string(), "write".to_string()],
-                });
+            let capabilities = WasmCapabilitySet::new().grant(WasmCapability::Filesystem {
+                paths: vec!["/app/data/*".to_string()],
+                permissions: vec!["read".to_string(), "write".to_string()],
+            });
 
-            let security_ctx = WasmSecurityContext::new(
-                format!("bench-comp-{}", counter),
-                capabilities,
-            );
+            let security_ctx =
+                WasmSecurityContext::new(format!("bench-comp-{}", counter), capabilities);
 
-            checker.register_component(security_ctx).expect("registration failed"));
+            checker
+                .register_component(security_ctx)
+                .expect("registration failed");
         });
     });
 }
@@ -60,11 +61,15 @@ fn bench_component_unregistration(c: &mut Criterion) {
                     format!("bench-unreg-{}", counter),
                     WasmCapabilitySet::new(),
                 );
-                checker.register_component(security_ctx).expect("registration failed");
+                checker
+                    .register_component(security_ctx)
+                    .expect("registration failed");
                 (checker, format!("bench-unreg-{}", counter))
             },
             |(checker, component_id)| {
-                checker.unregister_component(&component_id).expect("unregistration failed"));
+                checker
+                    .unregister_component(&component_id)
+                    .expect("unregistration failed");
             },
         );
     });
@@ -80,7 +85,9 @@ fn bench_check_fast_path_no_capabilities(c: &mut Criterion) {
         "bench-fast-path".to_string(),
         WasmCapabilitySet::new(), // Empty capabilities
     );
-    checker.register_component(security_ctx).expect("registration failed");
+    checker
+        .register_component(security_ctx)
+        .expect("registration failed");
 
     c.bench_function("check_fast_path_no_capabilities", |b| {
         b.iter(|| {
@@ -104,7 +111,9 @@ fn bench_check_single_capability_granted(c: &mut Criterion) {
         permissions: vec!["read".to_string()],
     });
     let security_ctx = WasmSecurityContext::new("bench-single-cap".to_string(), capabilities);
-    checker.register_component(security_ctx).expect("registration failed");
+    checker
+        .register_component(security_ctx)
+        .expect("registration failed");
 
     c.bench_function("check_single_capability_granted", |b| {
         b.iter(|| {
@@ -127,7 +136,9 @@ fn bench_check_single_capability_denied_pattern(c: &mut Criterion) {
         permissions: vec!["read".to_string()],
     });
     let security_ctx = WasmSecurityContext::new("bench-single-denied".to_string(), capabilities);
-    checker.register_component(security_ctx).expect("registration failed");
+    checker
+        .register_component(security_ctx)
+        .expect("registration failed");
 
     c.bench_function("check_single_capability_denied_pattern", |b| {
         b.iter(|| {
@@ -156,7 +167,9 @@ fn bench_check_multiple_capabilities(c: &mut Criterion) {
     }
 
     let security_ctx = WasmSecurityContext::new("bench-multi-cap".to_string(), capabilities);
-    checker.register_component(security_ctx).expect("registration failed");
+    checker
+        .register_component(security_ctx)
+        .expect("registration failed");
 
     c.bench_function("check_multiple_capabilities_10", |b| {
         b.iter(|| {
@@ -189,7 +202,9 @@ fn bench_check_scaling_by_capability_count(c: &mut Criterion) {
 
         let component_id = format!("bench-scale-{}", cap_count);
         let security_ctx = WasmSecurityContext::new(component_id.clone(), capabilities);
-        checker.register_component(security_ctx).expect("registration failed");
+        checker
+            .register_component(security_ctx)
+            .expect("registration failed");
 
         group.bench_with_input(
             BenchmarkId::from_parameter(cap_count),
@@ -216,14 +231,16 @@ fn bench_check_complex_glob_patterns(c: &mut Criterion) {
     let checker = CapabilityChecker::new();
     let capabilities = WasmCapabilitySet::new().grant(WasmCapability::Filesystem {
         paths: vec![
-            "/app/**/*.log".to_string(),       // Recursive glob
-            "/app/data-?/*.json".to_string(),  // Single character wildcard
+            "/app/**/*.log".to_string(),             // Recursive glob
+            "/app/data-?/*.json".to_string(),        // Single character wildcard
             "/app/config/*.{toml,json}".to_string(), // Alternatives
         ],
         permissions: vec!["read".to_string()],
     });
     let security_ctx = WasmSecurityContext::new("bench-glob".to_string(), capabilities);
-    checker.register_component(security_ctx).expect("registration failed");
+    checker
+        .register_component(security_ctx)
+        .expect("registration failed");
 
     c.bench_function("check_complex_glob_patterns", |b| {
         b.iter(|| {
@@ -246,7 +263,9 @@ fn bench_check_network_capability(c: &mut Criterion) {
         permissions: vec!["connect".to_string()],
     });
     let security_ctx = WasmSecurityContext::new("bench-network".to_string(), capabilities);
-    checker.register_component(security_ctx).expect("registration failed");
+    checker
+        .register_component(security_ctx)
+        .expect("registration failed");
 
     c.bench_function("check_network_capability", |b| {
         b.iter(|| {
@@ -269,7 +288,9 @@ fn bench_check_storage_capability(c: &mut Criterion) {
         permissions: vec!["read".to_string(), "write".to_string()],
     });
     let security_ctx = WasmSecurityContext::new("bench-storage".to_string(), capabilities);
-    checker.register_component(security_ctx).expect("registration failed");
+    checker
+        .register_component(security_ctx)
+        .expect("registration failed");
 
     c.bench_function("check_storage_capability", |b| {
         b.iter(|| {
@@ -295,7 +316,9 @@ fn bench_concurrent_checks(c: &mut Criterion) {
         permissions: vec!["read".to_string()],
     });
     let security_ctx = WasmSecurityContext::new("bench-concurrent".to_string(), capabilities);
-    checker.register_component(security_ctx).expect("registration failed");
+    checker
+        .register_component(security_ctx)
+        .expect("registration failed");
 
     c.bench_function("concurrent_checks_4_threads", |b| {
         b.iter(|| {
@@ -336,14 +359,12 @@ fn bench_global_check_capability(c: &mut Criterion) {
 
     c.bench_function("global_check_capability", |b| {
         b.iter(|| {
-            black_box(
-                airssys_wasm::security::check_capability(
-                    black_box(component_id),
-                    black_box("/app/data/file.json"),
-                    black_box("read"),
-                )
-                .expect("check failed")
+            airssys_wasm::security::check_capability(
+                black_box(component_id),
+                black_box("/app/data/file.json"),
+                black_box("read"),
             )
+            .expect("check failed")
         });
     });
 }

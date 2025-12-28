@@ -1,11 +1,10 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Benchmark for WASM component execution performance.
 //!
 //! Measures the performance of executing WASM component functions.
 
 // Allow panic in benchmarks (setup code only)
-#![allow(clippy::panic)]
-#![allow(clippy::unwrap_used)]
-#![allow(clippy::expect_used)]
 
 // Layer 1: Standard library imports
 use std::collections::HashMap;
@@ -17,9 +16,11 @@ use criterion::{criterion_group, criterion_main, Criterion};
 // Layer 3: Internal module imports
 use airssys_wasm::core::{
     capability::CapabilitySet,
-    component::{ComponentId, ComponentInput, ResourceLimits},
+    component::{ComponentId, ComponentInput},
     runtime::{ExecutionContext, RuntimeEngine},
 };
+use airssys_wasm::prelude::ResourceLimits;
+
 use airssys_wasm::runtime::WasmEngine;
 
 /// Create minimal WASM component for benchmarking.
@@ -66,8 +67,7 @@ fn bench_execute_function(c: &mut Criterion) {
                 limits: ResourceLimits {
                     max_memory_bytes: 1024 * 1024, // 1MB
                     max_fuel: 100_000,             // 100K fuel
-                    max_execution_ms: 5000,        // 5s
-                    max_storage_bytes: 0,
+                    timeout_seconds: 5,            // 5s
                 },
                 capabilities: CapabilitySet::new(),
                 timeout_ms: 5000,

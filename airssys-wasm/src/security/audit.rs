@@ -64,11 +64,11 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 // Layer 3: airssys-osl imports
+use airssys_osl::core::context::SecurityContext;
 use airssys_osl::middleware::security::audit::{
     SecurityAuditLog, SecurityAuditLogger, SecurityEventType,
 };
 use airssys_osl::middleware::security::policy::PolicyDecision;
-use airssys_osl::core::context::SecurityContext;
 
 // Layer 4: Internal imports
 use crate::security::enforcement::CapabilityCheckError;
@@ -286,12 +286,11 @@ impl WasmAuditLogger {
         let osl_log = log.to_osl_audit_log();
 
         // Async log (non-blocking)
-        self.logger
-            .log_security_event(osl_log)
-            .await
-            .map_err(|e| CapabilityCheckError::AuditLogError {
+        self.logger.log_security_event(osl_log).await.map_err(|e| {
+            CapabilityCheckError::AuditLogError {
                 reason: format!("Failed to log capability check: {e}"),
-            })
+            }
+        })
     }
 
     /// Get reference to underlying OSL logger.
@@ -304,7 +303,15 @@ impl WasmAuditLogger {
 // Tests
 // ═════════════════════════════════════════════════════════════════════════════
 
-#[allow(clippy::expect_used, clippy::unwrap_used, clippy::unwrap_err_used, clippy::expect_err_used, clippy::panic, clippy::unwrap_on_result, clippy::indexing_slicing, clippy::too_many_arguments, clippy::type_complexity, reason = "test code")]
+#[allow(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    reason = "test code"
+)]
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -385,8 +392,9 @@ mod tests {
 
     #[test]
     fn test_wasm_audit_logger_creation() {
-        let console_logger = Arc::new(ConsoleSecurityAuditLogger::new());
-        let _audit_logger = WasmAuditLogger::new(console_logger.clone());
+        let console_logger: Arc<dyn SecurityAuditLogger> =
+            Arc::new(ConsoleSecurityAuditLogger::new());
+        let _audit_logger = WasmAuditLogger::new(Arc::clone(&console_logger));
 
         // Arc::ptr_eq cannot compare trait objects directly
     }

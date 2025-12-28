@@ -1,6 +1,6 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Integration tests for message delivery to component mailboxes.
-#![allow(clippy::expect_used, clippy::unwrap_used, reason = "test code")]//!
-//! This test suite validates the WASM-TASK-006 Task 1.1 Remediation:
 //! - `ActorSystemSubscriber` ACTUALLY DELIVERS messages to mailboxes
 //! - End-to-end message flow from broker → subscriber → component mailbox
 //! - Error handling for unregistered components
@@ -26,11 +26,6 @@
 //! - **KNOWLEDGE-WASM-026**: Message Delivery Architecture - Final Decision
 //! - **WASM-TASK-006 Task 1.1 Remediation**: Fix stubbed message routing
 //! - **task-006-phase-1-task-1.1-remediation-plan.md**: Implementation plan
-
-#![allow(clippy::expect_used)] // Test code: expect is acceptable
-#![allow(clippy::unwrap_used)] // Test code: unwrap is acceptable
-#![allow(clippy::panic)]       // Test code: panic is acceptable for assertion failures
-#![allow(clippy::clone_on_ref_ptr)] // Test code: Arc::clone readability preference
 
 // Layer 1: Standard library imports
 use std::sync::Arc;
@@ -64,11 +59,8 @@ async fn test_end_to_end_message_delivery() {
     let subscriber_manager = Arc::new(SubscriberManager::new());
 
     // Step 1: Create ActorSystemSubscriber
-    let mut subscriber = ActorSystemSubscriber::new(
-        broker.clone(),
-        registry.clone(),
-        subscriber_manager,
-    );
+    let mut subscriber =
+        ActorSystemSubscriber::new(Arc::clone(&broker), registry.clone(), subscriber_manager);
 
     // Step 2: Create channel to receive messages (simulates component mailbox)
     let (tx, mut rx) = mpsc::unbounded_channel::<ComponentMessage>();
@@ -81,7 +73,10 @@ async fn test_end_to_end_message_delivery() {
         .expect("Failed to register mailbox");
 
     // Step 4: Start subscriber (spawns routing task)
-    subscriber.start().await.expect("Failed to start subscriber");
+    subscriber
+        .start()
+        .await
+        .expect("Failed to start subscriber");
 
     // Step 5: Publish message to broker
     let message = ComponentMessage::InterComponent {
@@ -99,7 +94,11 @@ async fn test_end_to_end_message_delivery() {
         Ok(Some(received_message)) => {
             // SUCCESS: Message was delivered!
             match received_message {
-                ComponentMessage::InterComponent { sender, to, payload } => {
+                ComponentMessage::InterComponent {
+                    sender,
+                    to,
+                    payload,
+                } => {
                     assert_eq!(sender.as_str(), "sender");
                     assert_eq!(to.as_str(), "target-component");
                     assert_eq!(payload, vec![1, 2, 3, 4, 5]);
@@ -130,15 +129,12 @@ async fn test_multiple_messages_delivered_in_order() {
     let registry = ComponentRegistry::new();
     let subscriber_manager = Arc::new(SubscriberManager::new());
 
-    let mut subscriber = ActorSystemSubscriber::new(
-        broker.clone(),
-        registry.clone(),
-        subscriber_manager,
-    );
+    let mut subscriber =
+        ActorSystemSubscriber::new(Arc::clone(&broker), registry.clone(), subscriber_manager);
 
     let (tx, mut rx) = mpsc::unbounded_channel::<ComponentMessage>();
     let target_id = ComponentId::new("ordered-target");
-    
+
     subscriber
         .register_mailbox(target_id.clone(), tx)
         .await
@@ -167,7 +163,12 @@ async fn test_multiple_messages_delivered_in_order() {
 
         match received {
             ComponentMessage::InterComponent { payload, .. } => {
-                assert_eq!(payload, vec![i], "Messages arrived out of order at index {}", i);
+                assert_eq!(
+                    payload,
+                    vec![i],
+                    "Messages arrived out of order at index {}",
+                    i
+                );
             }
             _ => panic!("Wrong message type at index {}", i),
         }
@@ -187,11 +188,8 @@ async fn test_message_to_unregistered_component_handled_gracefully() {
     let registry = ComponentRegistry::new();
     let subscriber_manager = Arc::new(SubscriberManager::new());
 
-    let mut subscriber = ActorSystemSubscriber::new(
-        broker.clone(),
-        registry.clone(),
-        subscriber_manager,
-    );
+    let mut subscriber =
+        ActorSystemSubscriber::new(Arc::clone(&broker), registry.clone(), subscriber_manager);
 
     // Do NOT register any mailbox
     subscriber.start().await.expect("Failed to start");
@@ -231,7 +229,7 @@ async fn test_concurrent_registration_and_delivery() {
     let subscriber_manager = Arc::new(SubscriberManager::new());
 
     let subscriber = Arc::new(tokio::sync::RwLock::new(ActorSystemSubscriber::new(
-        broker.clone(),
+        Arc::clone(&broker),
         registry.clone(),
         subscriber_manager,
     )));
@@ -255,7 +253,7 @@ async fn test_concurrent_registration_and_delivery() {
         let handle = tokio::spawn(async move {
             // Small delay to stagger registrations
             tokio::time::sleep(Duration::from_millis(i as u64 * 10)).await;
-            
+
             let sub = subscriber_clone.read().await;
             sub.register_mailbox(component_id, tx).await
         });
@@ -264,7 +262,10 @@ async fn test_concurrent_registration_and_delivery() {
 
     // Wait for all registrations
     for handle in handles {
-        handle.await.expect("Task panicked").expect("Registration failed");
+        handle
+            .await
+            .expect("Task panicked")
+            .expect("Registration failed");
     }
 
     // Allow time for registrations to settle
@@ -315,11 +316,8 @@ async fn test_message_delivery_with_correlation_id() {
     let registry = ComponentRegistry::new();
     let subscriber_manager = Arc::new(SubscriberManager::new());
 
-    let mut subscriber = ActorSystemSubscriber::new(
-        broker.clone(),
-        registry.clone(),
-        subscriber_manager,
-    );
+    let mut subscriber =
+        ActorSystemSubscriber::new(Arc::clone(&broker), registry.clone(), subscriber_manager);
 
     let (tx, mut rx) = mpsc::unbounded_channel::<ComponentMessage>();
     let target_id = ComponentId::new("correlation-target");
@@ -378,11 +376,8 @@ async fn test_multiple_components_independent_messages() {
     let registry = ComponentRegistry::new();
     let subscriber_manager = Arc::new(SubscriberManager::new());
 
-    let subscriber = ActorSystemSubscriber::new(
-        broker.clone(),
-        registry.clone(),
-        subscriber_manager,
-    );
+    let subscriber =
+        ActorSystemSubscriber::new(Arc::clone(&broker), registry.clone(), subscriber_manager);
 
     // Register 3 components
     let (tx_a, rx_a) = mpsc::unbounded_channel::<ComponentMessage>();
@@ -393,9 +388,18 @@ async fn test_multiple_components_independent_messages() {
     let comp_b = ComponentId::new("component-b");
     let comp_c = ComponentId::new("component-c");
 
-    subscriber.register_mailbox(comp_a.clone(), tx_a).await.unwrap();
-    subscriber.register_mailbox(comp_b.clone(), tx_b).await.unwrap();
-    subscriber.register_mailbox(comp_c.clone(), tx_c).await.unwrap();
+    subscriber
+        .register_mailbox(comp_a.clone(), tx_a)
+        .await
+        .unwrap();
+    subscriber
+        .register_mailbox(comp_b.clone(), tx_b)
+        .await
+        .unwrap();
+    subscriber
+        .register_mailbox(comp_c.clone(), tx_c)
+        .await
+        .unwrap();
 
     // Note: subscriber.start() requires &mut self, so we need a mutable binding
     // For this test, we'll directly test the routing function
@@ -406,9 +410,9 @@ async fn test_multiple_components_independent_messages() {
     use std::collections::HashMap;
     use tokio::sync::RwLock;
 
-    let mailbox_senders: RwLock<HashMap<ComponentId, mpsc::UnboundedSender<ComponentMessage>>> = 
+    let mailbox_senders: RwLock<HashMap<ComponentId, mpsc::UnboundedSender<ComponentMessage>>> =
         RwLock::new(HashMap::new());
-    
+
     // Re-register in the test-local map
     let (tx_a2, mut rx_a2) = mpsc::unbounded_channel::<ComponentMessage>();
     let (tx_b2, mut rx_b2) = mpsc::unbounded_channel::<ComponentMessage>();
@@ -433,7 +437,9 @@ async fn test_multiple_components_independent_messages() {
         &mailbox_senders,
         &sub_mgr,
         MessageEnvelope::new(msg_a),
-    ).await.unwrap();
+    )
+    .await
+    .unwrap();
 
     // Send message to component B
     let msg_b = ComponentMessage::InterComponent {
@@ -445,7 +451,9 @@ async fn test_multiple_components_independent_messages() {
         &mailbox_senders,
         &sub_mgr,
         MessageEnvelope::new(msg_b),
-    ).await.unwrap();
+    )
+    .await
+    .unwrap();
 
     // Send message to component C
     let msg_c = ComponentMessage::InterComponent {
@@ -457,7 +465,9 @@ async fn test_multiple_components_independent_messages() {
         &mailbox_senders,
         &sub_mgr,
         MessageEnvelope::new(msg_c),
-    ).await.unwrap();
+    )
+    .await
+    .unwrap();
 
     // Verify each component got only its message
     let recv_a = rx_a2.try_recv().unwrap();
@@ -495,11 +505,8 @@ async fn test_mailbox_registration_lifecycle() {
     let registry = ComponentRegistry::new();
     let subscriber_manager = Arc::new(SubscriberManager::new());
 
-    let subscriber = ActorSystemSubscriber::new(
-        broker.clone(),
-        registry.clone(),
-        subscriber_manager,
-    );
+    let subscriber =
+        ActorSystemSubscriber::new(Arc::clone(&broker), registry.clone(), subscriber_manager);
 
     let component_id = ComponentId::new("lifecycle-test");
 

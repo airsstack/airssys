@@ -1,3 +1,5 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! ComponentActor lifecycle and registry performance benchmarks.
 //!
 //! Establishes baseline performance for:
@@ -14,8 +16,6 @@
 //!
 //! CRITICAL: All benchmarks must have < 5% variance across 5 runs.
 
-#![expect(clippy::unwrap_used, reason = "unwrap is acceptable in benchmark code")]
-
 // Layer 1: Standard library imports
 use std::hint::black_box;
 use std::sync::Arc;
@@ -29,7 +29,7 @@ use tokio::sync::RwLock;
 use airssys_rt::supervisor::Child;
 use airssys_rt::util::ActorAddress;
 use airssys_wasm::actor::{ComponentActor, ComponentRegistry};
-use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits};
+use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata};
 
 /// Helper: Create test metadata
 fn create_test_metadata(name: &str) -> ComponentMetadata {
@@ -38,14 +38,15 @@ fn create_test_metadata(name: &str) -> ComponentMetadata {
         version: "1.0.0".to_string(),
         author: "AirsSys Benchmark".to_string(),
         description: Some("Benchmark test component".to_string()),
-        required_capabilities: vec![],
-        resource_limits: ResourceLimits {
-            max_memory_bytes: 64 * 1024 * 1024, // 64MB
-            max_fuel: 1_000_000,
-            max_execution_ms: 5000,
-            max_storage_bytes: 10 * 1024 * 1024, // 10MB
-        },
+        max_memory_bytes: 64 * 1024 * 1024, // 64MB
+        max_fuel: 1_000_000,
+        timeout_seconds: 5,
     }
+}
+
+/// Helper: Create test capability set
+fn create_test_capabilities() -> CapabilitySet {
+    CapabilitySet::new()
 }
 
 // ============================================================================

@@ -1,6 +1,6 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Integration Tests for Capability Check API (Task 3.1)
-#![allow(clippy::expect_used, clippy::unwrap_used, reason = "test code")]//!
-//! These tests verify the complete capability checking workflow:
 //! - Component registration and unregistration
 //! - Capability checks (granted/denied scenarios)
 //! - airssys-osl ACL integration
@@ -16,8 +16,6 @@
 //! - **Edge Cases**: Empty capabilities, unregistered components, invalid patterns
 
 // Allow test-specific patterns
-#![allow(clippy::expect_used)]
-#![allow(clippy::unwrap_used)]
 use airssys_wasm::security::enforcement::{
     check_capability, register_component, unregister_component, CapabilityCheckError,
     CapabilityCheckResult, CapabilityChecker,

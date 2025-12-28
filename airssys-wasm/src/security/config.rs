@@ -1364,7 +1364,7 @@ impl ConfigManager {
     }
 }
 
-#[allow(clippy::expect_used, clippy::unwrap_used, clippy::unwrap_err_used, clippy::expect_err_used, clippy::panic, clippy::unwrap_on_result, clippy::indexing_slicing, clippy::too_many_arguments, clippy::type_complexity, reason = "test code")]
+#[allow(clippy::expect_used, clippy::unwrap_used, clippy::panic, clippy::indexing_slicing, clippy::too_many_arguments, clippy::type_complexity, reason = "test code")]
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2171,7 +2171,7 @@ mod tests {
         manager.create_backup().await.unwrap();
 
         let backups = manager.list_backups().await.unwrap();
-        assert!(backups.len() >= 1); // At least 1 backup should exist (cleanup keeps last 10)
+        assert!(!backups.is_empty()); // At least 1 backup should exist (cleanup keeps last 10)
     }
 
     #[tokio::test]

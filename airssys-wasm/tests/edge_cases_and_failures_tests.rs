@@ -1,3 +1,5 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Edge Cases and Failures Integration Tests
 //!
 //! Validates system behavior under adverse conditions, resource constraints,
@@ -31,15 +33,6 @@
 //! - **KNOWLEDGE-WASM-016**: Actor System Integration Implementation Guide
 //! - **WASM-TASK-004 Phase 6 Task 6.1 Checkpoint 3**: Edge Cases and Failures
 
-#![allow(
-    clippy::unwrap_used,
-    reason = "unwrap is acceptable in test code for clear error messages"
-)]
-#![allow(
-    clippy::expect_used,
-    reason = "expect is acceptable in test code for clear error messages"
-)]
-
 // Layer 1: Standard library imports
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
@@ -51,7 +44,7 @@ use tokio::sync::Mutex;
 // Layer 3: Internal module imports
 use airssys_rt::supervisor::Child;
 use airssys_wasm::actor::{ActorState, ComponentActor, ComponentRegistry};
-use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits};
+use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata};
 
 // ==============================================================================
 // Test Helpers
@@ -76,7 +69,7 @@ fn create_limited_metadata(
     name: &str,
     memory_mb: u64,
     fuel: u64,
-    storage_mb: u64,
+    _storage_mb: u64,
 ) -> ComponentMetadata {
     ComponentMetadata {
         name: name.to_string(),
@@ -219,10 +212,7 @@ async fn test_message_processing_with_fuel_exhaustion() {
     );
 
     // Verify low fuel limit
-    assert_eq!(
-        metadata.max_fuel, 1_000,
-        "Fuel limit should be 1,000"
-    );
+    assert_eq!(metadata.max_fuel, 1_000, "Fuel limit should be 1,000");
 
     // Act: Simulate processing that would require >1000 fuel
     actor

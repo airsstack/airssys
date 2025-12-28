@@ -514,7 +514,10 @@ impl HostFunction for SendMessageHostFunction {
 
         // 3. Validate capability using existing can_send_to()
         let target_id = ComponentId::new(&target_str);
-        if !context.capabilities.can_send_to(&target_id, Some(codec.name())) {
+        if !context
+            .capabilities
+            .can_send_to(&target_id, Some(codec.name()))
+        {
             return Err(WasmError::capability_denied(
                 Capability::Messaging(TopicPattern::new(codec.name())),
                 format!(
@@ -669,7 +672,10 @@ impl HostFunction for SendRequestHostFunction {
 
         // 3. Check capability
         let target_id = ComponentId::new(&target_str);
-        if !context.capabilities.can_send_to(&target_id, Some(codec.name())) {
+        if !context
+            .capabilities
+            .can_send_to(&target_id, Some(codec.name()))
+        {
             return Err(WasmError::capability_denied(
                 Capability::Messaging(TopicPattern::new(codec.name())),
                 format!(
@@ -804,12 +810,12 @@ impl AsyncHostRegistryBuilder {
         let send_fn = SendMessageHostFunction::new(Arc::clone(&messaging_service));
         self.functions
             .insert(send_fn.name().to_string(), Box::new(send_fn));
-        
+
         // Request-response messaging (Phase 3 Task 3.1)
         let request_fn = SendRequestHostFunction::new(messaging_service);
         self.functions
             .insert(request_fn.name().to_string(), Box::new(request_fn));
-        
+
         self
     }
 
@@ -843,10 +849,10 @@ impl AsyncHostRegistryBuilder {
     ///
     /// * `func` - Host function implementation
     pub fn with_function(mut self, func: impl HostFunction + 'static) -> Self {
-        self.functions.insert(func.name().to_string(), Box::new(func));
+        self.functions
+            .insert(func.name().to_string(), Box::new(func));
         self
     }
-    
 
     /// Build the immutable AsyncHostRegistry.
     pub fn build(self) -> AsyncHostRegistry {
@@ -910,11 +916,17 @@ pub fn create_host_context(
     }
 }
 
-#[allow(clippy::expect_used, clippy::unwrap_used, clippy::unwrap_err_used, clippy::expect_err_used, clippy::panic, clippy::unwrap_on_result, clippy::indexing_slicing, clippy::too_many_arguments, clippy::type_complexity, reason = "test code")]
+#[allow(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    reason = "test code"
+)]
 #[cfg(test)]
 mod tests {
-    #![allow(clippy::unwrap_used)]
-    #![allow(clippy::expect_used)]
 
     use super::*;
 
@@ -1112,7 +1124,7 @@ mod tests {
     #[tokio::test]
     async fn test_send_message_success() {
         let messaging = Arc::new(MessagingService::new());
-        let func = SendMessageHostFunction::new(messaging.clone());
+        let func = SendMessageHostFunction::new(Arc::clone(&messaging));
 
         // Create context with messaging capability (wildcard)
         let mut caps = CapabilitySet::new();
@@ -1142,7 +1154,7 @@ mod tests {
     #[tokio::test]
     async fn test_send_message_no_capability() {
         let messaging = Arc::new(MessagingService::new());
-        let func = SendMessageHostFunction::new(messaging);
+        let func = SendMessageHostFunction::new(Arc::clone(&messaging));
 
         // Create context WITHOUT messaging capability
         let context = create_host_context(ComponentId::new("sender"), CapabilitySet::new());
@@ -1170,7 +1182,7 @@ mod tests {
     #[tokio::test]
     async fn test_send_message_invalid_multicodec() {
         let messaging = Arc::new(MessagingService::new());
-        let func = SendMessageHostFunction::new(messaging);
+        let func = SendMessageHostFunction::new(Arc::clone(&messaging));
 
         // Create context with messaging capability
         let mut caps = CapabilitySet::new();
@@ -1228,7 +1240,7 @@ mod tests {
     #[tokio::test]
     async fn test_send_message_bincode_codec() {
         let messaging = Arc::new(MessagingService::new());
-        let func = SendMessageHostFunction::new(messaging.clone());
+        let func = SendMessageHostFunction::new(Arc::clone(&messaging));
 
         // Create context with messaging capability
         let mut caps = CapabilitySet::new();
@@ -1248,7 +1260,7 @@ mod tests {
         let result = func.execute(&context, args).await;
 
         assert!(result.is_ok());
-        
+
         let stats = messaging.get_stats().await;
         assert_eq!(stats.messages_published, 1);
     }
@@ -1256,7 +1268,7 @@ mod tests {
     #[tokio::test]
     async fn test_send_message_messagepack_codec() {
         let messaging = Arc::new(MessagingService::new());
-        let func = SendMessageHostFunction::new(messaging.clone());
+        let func = SendMessageHostFunction::new(Arc::clone(&messaging));
 
         // Create context with messaging capability
         let mut caps = CapabilitySet::new();
@@ -1276,7 +1288,7 @@ mod tests {
         let result = func.execute(&context, args).await;
 
         assert!(result.is_ok());
-        
+
         let stats = messaging.get_stats().await;
         assert_eq!(stats.messages_published, 1);
     }
@@ -1401,7 +1413,7 @@ mod tests {
     #[tokio::test]
     async fn test_send_request_parses_args_correctly() {
         let messaging = Arc::new(MessagingService::new());
-        let func = SendRequestHostFunction::new(messaging.clone());
+        let func = SendRequestHostFunction::new(Arc::clone(&messaging));
 
         let mut caps = CapabilitySet::new();
         caps.grant(Capability::Messaging(TopicPattern::new("*")));
@@ -1417,7 +1429,7 @@ mod tests {
 
         // Should succeed and return correlation ID
         assert!(result.is_ok(), "Execute should succeed: {:?}", result.err());
-        
+
         // Verify returned correlation ID is a valid UUID string (36 chars)
         let response = result.unwrap();
         let request_id = String::from_utf8(response).unwrap();
@@ -1428,7 +1440,7 @@ mod tests {
     #[tokio::test]
     async fn test_send_request_validates_multicodec() {
         let messaging = Arc::new(MessagingService::new());
-        let func = SendRequestHostFunction::new(messaging);
+        let func = SendRequestHostFunction::new(Arc::clone(&messaging));
 
         let mut caps = CapabilitySet::new();
         caps.grant(Capability::Messaging(TopicPattern::new("*")));
@@ -1451,7 +1463,7 @@ mod tests {
     #[tokio::test]
     async fn test_send_request_generates_uuid_v4() {
         let messaging = Arc::new(MessagingService::new());
-        let func = SendRequestHostFunction::new(messaging.clone());
+        let func = SendRequestHostFunction::new(Arc::clone(&messaging));
 
         let mut caps = CapabilitySet::new();
         caps.grant(Capability::Messaging(TopicPattern::new("*")));
@@ -1479,7 +1491,7 @@ mod tests {
     #[tokio::test]
     async fn test_send_request_returns_request_id() {
         let messaging = Arc::new(MessagingService::new());
-        let func = SendRequestHostFunction::new(messaging.clone());
+        let func = SendRequestHostFunction::new(Arc::clone(&messaging));
 
         let mut caps = CapabilitySet::new();
         caps.grant(Capability::Messaging(TopicPattern::new("*")));
@@ -1493,13 +1505,13 @@ mod tests {
 
         assert!(result.is_ok());
         let request_id_bytes = result.unwrap();
-        
+
         // Should return non-empty bytes
         assert!(!request_id_bytes.is_empty(), "Should return request ID");
-        
+
         // Should be valid UTF-8
         let request_id = String::from_utf8(request_id_bytes).expect("Should be valid UTF-8");
-        
+
         // Should be valid UUID format (36 chars: 8-4-4-4-12)
         assert_eq!(request_id.len(), 36);
         assert!(request_id.chars().nth(8) == Some('-'));
@@ -1555,7 +1567,7 @@ mod tests {
     #[tokio::test]
     async fn test_send_request_records_metrics() {
         let messaging = Arc::new(MessagingService::new());
-        let func = SendRequestHostFunction::new(messaging.clone());
+        let func = SendRequestHostFunction::new(Arc::clone(&messaging));
 
         let mut caps = CapabilitySet::new();
         caps.grant(Capability::Messaging(TopicPattern::new("*")));
@@ -1584,7 +1596,7 @@ mod tests {
     #[tokio::test]
     async fn test_send_request_registers_pending() {
         let messaging = Arc::new(MessagingService::new());
-        let func = SendRequestHostFunction::new(messaging.clone());
+        let func = SendRequestHostFunction::new(Arc::clone(&messaging));
 
         let mut caps = CapabilitySet::new();
         caps.grant(Capability::Messaging(TopicPattern::new("*")));

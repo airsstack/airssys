@@ -1,3 +1,5 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! End-to-End Lifecycle Integration Tests
 //!
 //! Validates complete actor system workflows from component spawn to termination.
@@ -43,9 +45,7 @@ use airssys_wasm::actor::lifecycle::{
     EventCallback, HookResult, LifecycleContext, LifecycleHooks, RestartReason,
 };
 use airssys_wasm::actor::{ActorState, ComponentActor, ComponentMessage, HealthStatus};
-use airssys_wasm::core::{
-    CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits, WasmError,
-};
+use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, WasmError};
 
 // ==============================================================================
 // Test Helpers

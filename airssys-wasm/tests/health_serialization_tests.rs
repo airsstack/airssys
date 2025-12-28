@@ -1,6 +1,6 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! HealthStatus serialization tests (Task 1.4).
-#![allow(clippy::expect_used, clippy::unwrap_used, reason = "test code")]//!
-//! Comprehensive round-trip serialization tests for HealthStatus enum across
 //! all supported formats: Borsh (binary), JSON (text), and CBOR (binary).
 //!
 //! # Test Coverage
@@ -15,9 +15,6 @@
 //!
 //! - WASM-TASK-004 Phase 1 Task 1.4: Health Check System
 //! - KNOWLEDGE-WASM-017: Health Check System Architecture
-
-#![allow(clippy::expect_used, reason = "expect is acceptable in test code")]
-#![allow(clippy::panic, reason = "panic in test assertions is acceptable")]
 
 use airssys_wasm::actor::HealthStatus;
 use borsh::BorshDeserialize;

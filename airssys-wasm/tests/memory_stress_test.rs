@@ -1,10 +1,8 @@
-#![allow(clippy::unwrap_used)] // Test code is allowed to use unwrap for clarity
-#![allow(clippy::expect_used, clippy::unwrap_used, reason = "test code")]
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Memory stress tests under high load.
 //!
 //! Verifies system behavior under high-frequency allocations and concurrent components.
-
-#![allow(clippy::expect_used)] // Test code - expect is acceptable for test assertions
 
 use airssys_wasm::core::config::ResourceLimits;
 use airssys_wasm::runtime::ComponentResourceLimiter;

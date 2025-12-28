@@ -1,3 +1,5 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Unit tests for message routing components.
 //!
 //! Tests TopicFilter, MessagePublisher, and SubscriberManager functionality
@@ -14,8 +16,6 @@
 //! # References
 //!
 //! - **WASM-TASK-004 Phase 4 Task 4.2**: Pub-Sub Message Routing
-
-#![allow(clippy::unwrap_used)] // Test code: unwrap is acceptable
 
 use airssys_rt::broker::InMemoryMessageBroker;
 use airssys_wasm::actor::{MessageBrokerWrapper, MessagePublisher, SubscriberManager, TopicFilter};

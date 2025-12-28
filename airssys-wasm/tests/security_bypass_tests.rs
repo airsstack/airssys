@@ -1,6 +1,6 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Security Bypass Attempt Tests - CRITICAL + COMMON (Task 5.1 - Deliverable 2)
-#![allow(clippy::expect_used, clippy::unwrap_used, reason = "test code")]//!
-//! Simulates malicious components attempting high-impact security bypasses. All tests in this
 //! file MUST verify that attacks are successfully blocked by the security system.
 //!
 //! # Scope Philosophy (Resource-Conscious)
@@ -46,9 +46,6 @@
 //! - **CWE-22**: Path Traversal ✅
 //! - **CWE-269**: Improper Privilege Management ✅
 //! - **ADR-WASM-005**: Capability-Based Security Model ✅
-
-#![allow(clippy::expect_used)] // Test code allows expect
-#![allow(clippy::unwrap_used)] // Test code allows unwrap
 
 use airssys_wasm::security::{
     CapabilityChecker, QuotaTracker, ResourceQuota, TrustLevel, TrustRegistry, TrustSource,

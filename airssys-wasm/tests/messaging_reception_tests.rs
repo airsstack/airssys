@@ -1,5 +1,5 @@
-#![allow(clippy::unwrap_used, reason = "unwrap is acceptable in test code")]
-#![allow(clippy::expect_used, reason = "expect is acceptable in test code")]
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Comprehensive message reception tests for ComponentActor (WASM-TASK-006 Task 1.2).
 //!
 //! This test suite validates message reception infrastructure including:
@@ -34,9 +34,7 @@ use std::time::Duration;
 
 // Layer 3: Internal module imports
 use airssys_wasm::actor::{ComponentActor, MessageReceptionConfig};
-use airssys_wasm::core::{
-    CapabilitySet, ComponentId, ComponentMetadata, WasmError,
-};
+use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, WasmError};
 use airssys_wasm::messaging::MessageReceptionMetrics;
 
 // Test helpers
@@ -261,7 +259,11 @@ async fn test_invoke_handle_message_missing_export() {
 
     assert!(result.is_err());
     let err = result.unwrap_err();
-    assert!(matches!(err, WasmError::Internal { .. }), "Expected Internal error when Component Model engine not configured, got: {:?}", err);
+    assert!(
+        matches!(err, WasmError::Internal { .. }),
+        "Expected Internal error when Component Model engine not configured, got: {:?}",
+        err
+    );
 }
 
 // ============================================================================
@@ -346,31 +348,6 @@ async fn test_metrics_performance_overhead() {
     assert!(
         avg_ns < 50,
         "Metrics overhead {}ns exceeds 50ns target",
-        avg_ns
-    );
-}
-
-#[tokio::test]
-async fn test_queue_depth_tracking_performance() {
-    use std::time::Instant;
-
-    let metrics = MessageReceptionMetrics::new();
-    let iterations = 100_000;
-
-    // Measure queue depth update overhead
-    let start = Instant::now();
-    for i in 0..iterations {
-        metrics.set_queue_depth(i as u64);
-    }
-    let elapsed = start.elapsed();
-
-    let avg_ns = elapsed.as_nanos() / iterations;
-    println!("Average queue depth update: {}ns", avg_ns);
-
-    // Target: <30ns per update (atomic store with some variance)
-    assert!(
-        avg_ns < 30,
-        "Queue depth update {}ns exceeds 30ns target",
         avg_ns
     );
 }

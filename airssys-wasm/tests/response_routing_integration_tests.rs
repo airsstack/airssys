@@ -1,6 +1,6 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Integration tests for Response Routing and Callbacks (WASM-TASK-006 Phase 3 Task 3.2).
-#![allow(clippy::expect_used, clippy::unwrap_used, reason = "test code")]//!
-//! These tests verify the end-to-end response routing flow:
 //! 1. send-request creates pending request with correlation tracking
 //! 2. handle-message returns response as return value
 //! 3. ResponseRouter routes response to requester
@@ -17,9 +17,6 @@
 //! - **KNOWLEDGE-WASM-029**: Messaging Patterns
 //! - **ADR-WASM-009**: Component Communication Model
 //! - **WASM-TASK-006 Phase 3 Task 3.2**: Response Routing and Callbacks
-
-#![allow(clippy::unwrap_used)]
-#![allow(clippy::expect_used)]
 
 use tokio::time::{Duration, Instant};
 
@@ -105,7 +102,9 @@ async fn test_response_routing_with_error() {
     router
         .route_response(
             correlation_id,
-            Err(RequestError::ProcessingFailed("Component error".to_string())),
+            Err(RequestError::ProcessingFailed(
+                "Component error".to_string(),
+            )),
             ComponentId::new("responder"),
         )
         .await
@@ -143,7 +142,7 @@ async fn test_multiple_concurrent_responses() {
             response_tx: tx,
             requested_at: Instant::now(),
             timeout: Duration::from_secs(30),
-            from: ComponentId::new(&format!("requester-{}", i)),
+            from: ComponentId::new(format!("requester-{}", i)),
             to: ComponentId::new("responder"),
         };
 
@@ -225,7 +224,11 @@ async fn test_response_router_stats() {
 
         tracker.register_pending(pending).await.unwrap();
         router
-            .route_response(correlation_id, Ok(vec![1, 2, 3]), ComponentId::new("responder"))
+            .route_response(
+                correlation_id,
+                Ok(vec![1, 2, 3]),
+                ComponentId::new("responder"),
+            )
             .await
             .unwrap();
     }
@@ -353,7 +356,11 @@ async fn test_messaging_service_stats_include_responses() {
 
     tracker.register_pending(pending).await.unwrap();
     router
-        .route_response(correlation_id, Ok(vec![1, 2, 3]), ComponentId::new("responder"))
+        .route_response(
+            correlation_id,
+            Ok(vec![1, 2, 3]),
+            ComponentId::new("responder"),
+        )
         .await
         .unwrap();
 

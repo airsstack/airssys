@@ -1,11 +1,10 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Benchmark for WASM component loading performance.
 //!
 //! Measures the performance of loading and parsing WASM components with Wasmtime.
 
 // Allow panic in benchmarks (setup code only)
-#![allow(clippy::panic)]
-#![allow(clippy::unwrap_used)]
-#![allow(clippy::expect_used)]
 
 // Layer 1: Standard library imports
 use std::hint::black_box;

@@ -1,14 +1,12 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Debug test to isolate fuel metering issue
-#![allow(clippy::expect_used, clippy::unwrap_used, reason = "test code")]#![allow(clippy::unwrap_used)]
-#![allow(clippy::expect_used)]
-#![allow(clippy::panic)]
-#![allow(clippy::uninlined_format_args)]
 
 use airssys_wasm::core::{
     capability::CapabilitySet,
     component::{ComponentId, ComponentInput},
     config::ResourceLimits,
-    runtime::{ExecutionContext, RuntimeEngine},
+    ExecutionContext, RuntimeEngine,
 };
 use airssys_wasm::runtime::WasmEngine;
 use std::collections::HashMap;
@@ -135,10 +133,10 @@ async fn debug_fuel_metering_via_engine() {
     let context = ExecutionContext {
         component_id: component_id.clone(),
         limits: ResourceLimits {
-        max_memory_bytes: 1024 * 1024,
-        max_fuel: 10_000,
-        timeout_seconds: 0,
-    },
+            max_memory_bytes: 1024 * 1024,
+            max_fuel: 10_000,
+            timeout_seconds: 0,
+        },
         capabilities: CapabilitySet::new(),
         timeout_ms: 30_000,
     };

@@ -1,10 +1,7 @@
-//! Integration tests for SupervisorNode integration.
-#![allow(clippy::expect_used, clippy::unwrap_used, reason = "test code")]//!
-//! These tests verify the complete integration between ComponentSupervisor (Layer 1)
-//! and SupervisorNode (Layer 3) via the SupervisorNodeBridge abstraction.
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
 
-#![allow(clippy::expect_used)]
-#![allow(clippy::unwrap_used)]
+//! Integration tests for SupervisorNode integration.
+//! and SupervisorNode (Layer 3) via the SupervisorNodeBridge abstraction.
 
 // Layer 1: Standard library imports
 

@@ -409,16 +409,16 @@ impl Default for ComponentRegistry {
     }
 }
 
-#[allow(clippy::expect_used, clippy::unwrap_used, clippy::unwrap_err_used, clippy::expect_err_used, clippy::panic, clippy::unwrap_on_result, clippy::indexing_slicing, clippy::too_many_arguments, clippy::type_complexity, reason = "test code")]
-#[cfg(test)]
-#[expect(
+#[allow(
     clippy::expect_used,
-    reason = "expect is acceptable in test code for clear error messages"
-)]
-#[expect(
+    clippy::unwrap_used,
     clippy::panic,
-    reason = "panic is acceptable in test code for assertion failures"
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    reason = "test code"
 )]
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -675,12 +675,16 @@ mod tests {
         let component_id = ComponentId::new("resolve-test");
         let actor_addr = ActorAddress::named("resolve-test");
 
-        registry.register(component_id.clone(), actor_addr.clone())
+        registry
+            .register(component_id.clone(), actor_addr.clone())
             .expect("Failed to register");
 
         // resolve_address should return Some
         let resolved = registry.resolve_address(&component_id);
-        assert!(resolved.is_some(), "resolve_address should return Some for registered component");
+        assert!(
+            resolved.is_some(),
+            "resolve_address should return Some for registered component"
+        );
         assert_eq!(resolved.unwrap(), actor_addr);
     }
 
@@ -691,7 +695,10 @@ mod tests {
 
         // resolve_address should return None
         let resolved = registry.resolve_address(&component_id);
-        assert!(resolved.is_none(), "resolve_address should return None for unregistered component");
+        assert!(
+            resolved.is_none(),
+            "resolve_address should return None for unregistered component"
+        );
     }
 
     #[test]
@@ -700,12 +707,19 @@ mod tests {
         let component_id = ComponentId::new("is-registered-test");
         let actor_addr = ActorAddress::named("is-registered-test");
 
-        assert!(!registry.is_registered(&component_id), "Should not be registered initially");
+        assert!(
+            !registry.is_registered(&component_id),
+            "Should not be registered initially"
+        );
 
-        registry.register(component_id.clone(), actor_addr)
+        registry
+            .register(component_id.clone(), actor_addr)
             .expect("Failed to register");
 
-        assert!(registry.is_registered(&component_id), "Should be registered after register()");
+        assert!(
+            registry.is_registered(&component_id),
+            "Should be registered after register()"
+        );
     }
 
     #[test]
@@ -714,13 +728,21 @@ mod tests {
         let component_id = ComponentId::new("unregister-is-registered-test");
         let actor_addr = ActorAddress::named("unregister-is-registered-test");
 
-        registry.register(component_id.clone(), actor_addr)
+        registry
+            .register(component_id.clone(), actor_addr)
             .expect("Failed to register");
-        assert!(registry.is_registered(&component_id), "Should be registered");
+        assert!(
+            registry.is_registered(&component_id),
+            "Should be registered"
+        );
 
-        registry.unregister(&component_id)
+        registry
+            .unregister(&component_id)
             .expect("Failed to unregister");
-        assert!(!registry.is_registered(&component_id), "Should not be registered after unregister");
+        assert!(
+            !registry.is_registered(&component_id),
+            "Should not be registered after unregister"
+        );
     }
 
     #[test]
@@ -733,15 +755,29 @@ mod tests {
         for i in 0..5 {
             let component_id = ComponentId::new(format!("count-test-{}", i));
             let actor_addr = ActorAddress::named(format!("count-test-{}", i));
-            registry.register(component_id, actor_addr).expect("Failed to register");
+            registry
+                .register(component_id, actor_addr)
+                .expect("Failed to register");
         }
 
-        assert_eq!(registry.component_count(), 5, "Count should be 5 after registering 5 components");
+        assert_eq!(
+            registry.component_count(),
+            5,
+            "Count should be 5 after registering 5 components"
+        );
 
         // Unregister some
-        registry.unregister(&ComponentId::new("count-test-0")).expect("Failed to unregister");
-        registry.unregister(&ComponentId::new("count-test-2")).expect("Failed to unregister");
+        registry
+            .unregister(&ComponentId::new("count-test-0"))
+            .expect("Failed to unregister");
+        registry
+            .unregister(&ComponentId::new("count-test-2"))
+            .expect("Failed to unregister");
 
-        assert_eq!(registry.component_count(), 3, "Count should be 3 after unregistering 2 components");
+        assert_eq!(
+            registry.component_count(),
+            3,
+            "Count should be 3 after unregistering 2 components"
+        );
     }
 }

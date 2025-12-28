@@ -1,3 +1,5 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Integration tests for correlation tracking with ComponentActor.
 //!
 //! Tests end-to-end request-response flows in production-like scenarios.
@@ -12,12 +14,6 @@
 //!
 //! - **ADR-WASM-009**: Component Communication Model (Pattern 2: Request-Response)
 //! - **WASM-TASK-004 Phase 5 Task 5.1**: Message Correlation Implementation
-
-#![expect(
-    clippy::expect_used,
-    reason = "expect is acceptable in test code for clear error messages"
-)]
-#![expect(clippy::unwrap_used, reason = "unwrap is acceptable in test code")]
 
 // Layer 1: Standard library imports
 use std::path::PathBuf;
@@ -34,7 +30,7 @@ use airssys_wasm::actor::{
     message::{CorrelationTracker, PendingRequest, RequestError, RequestMessage},
     ComponentRegistry, ComponentSpawner,
 };
-use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits, messaging::ResponseMessage};
+use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResponseMessage};
 use chrono::Utc;
 
 /// Create test metadata for components.
@@ -44,10 +40,10 @@ fn create_test_metadata(name: &str) -> ComponentMetadata {
         version: "1.0.0".to_string(),
         author: "Test".to_string(),
         description: None,
-            max_memory_bytes: 64 * 1024 * 1024,
-            max_fuel: 1_000_000,
-            timeout_seconds: 5,
-        }
+        max_memory_bytes: 64 * 1024 * 1024,
+        max_fuel: 1_000_000,
+        timeout_seconds: 5,
+    }
 }
 
 #[tokio::test]
@@ -278,7 +274,7 @@ async fn test_concurrent_requests_between_multiple_components() {
     let mut component_ids = Vec::new();
 
     for i in 0..num_components {
-        let component_id = ComponentId::new(&format!("concurrent-component-{}", i));
+        let component_id = ComponentId::new(format!("concurrent-component-{}", i));
         let wasm_path = PathBuf::from(format!("./test-concurrent-{}.wasm", i));
         let metadata = create_test_metadata(&format!("concurrent-component-{}", i));
         let caps = CapabilitySet::new();
@@ -299,7 +295,7 @@ async fn test_concurrent_requests_between_multiple_components() {
         for j in 0..10 {
             let to_component = component_ids[j % num_components].clone();
             let from = from_component.clone();
-            let tracker_clone = tracker.clone();
+            let tracker_clone = Arc::clone(&tracker);
 
             let task = tokio::spawn(async move {
                 let (response_tx, response_rx) = tokio::sync::oneshot::channel();

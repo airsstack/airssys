@@ -1,3 +1,5 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Fire-and-Forget Messaging Performance Benchmarks (WASM-TASK-006 Phase 2 Task 2.3)
 //!
 //! Lightweight benchmarks validating fire-and-forget messaging performance.
@@ -30,8 +32,6 @@
 //! - Small sample sizes (10-50 messages)
 //! - Total benchmark suite: <30 seconds
 
-#![expect(clippy::unwrap_used, reason = "unwrap is acceptable in benchmark code")]
-
 // Layer 1: Standard library imports
 use std::hint::black_box;
 use std::sync::Arc;
@@ -49,8 +49,8 @@ use airssys_wasm::core::{
     bridge::{HostCallContext, HostFunction},
     Capability, CapabilitySet, ComponentId, MulticodecPrefix, TopicPattern,
 };
-use airssys_wasm::runtime::{create_host_context, SendMessageHostFunction};
 use airssys_wasm::messaging::MessagingService;
+use airssys_wasm::runtime::{create_host_context, SendMessageHostFunction};
 
 // ============================================================================
 // Helper Functions

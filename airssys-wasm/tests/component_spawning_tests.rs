@@ -1,6 +1,6 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Integration tests for component spawning via ActorSystem.
-#![allow(clippy::expect_used, clippy::unwrap_used, reason = "test code")]//!
-//! This test suite verifies that ComponentSpawner correctly spawns ComponentActor
 //! instances through the airssys-rt ActorSystem, ensuring proper integration with
 //! the actor system's message routing and lifecycle management.
 //!
@@ -16,19 +16,6 @@
 //!
 //! - **WASM-TASK-004 Phase 2 Task 2.1**: ComponentSpawner Implementation
 
-#![expect(
-    clippy::expect_used,
-    reason = "expect is acceptable in test code for clear error messages"
-)]
-#![expect(
-    clippy::panic,
-    reason = "panic is acceptable in test code for assertion failures"
-)]
-#![expect(
-    clippy::expect_fun_call,
-    reason = "format! in expect is acceptable in test code"
-)]
-
 // Layer 1: Standard library imports
 use std::path::PathBuf;
 use std::time::Instant;
@@ -41,7 +28,7 @@ use airssys_rt::broker::InMemoryMessageBroker;
 use airssys_rt::system::{ActorSystem, SystemConfig};
 use airssys_rt::util::ActorAddress;
 use airssys_wasm::actor::{ComponentRegistry, ComponentSpawner};
-use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits};
+use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata};
 
 /// Create test component metadata with standard resource limits.
 fn create_test_metadata(name: &str) -> ComponentMetadata {
@@ -50,10 +37,10 @@ fn create_test_metadata(name: &str) -> ComponentMetadata {
         version: "1.0.0".to_string(),
         author: "Test Author".to_string(),
         description: Some("Test component".to_string()),
-            max_memory_bytes: 64 * 1024 * 1024,  // 64MB,
-            max_fuel: 1_000_000,                 // 1M fuel,
-            timeout_seconds: 5,
-        }
+        max_memory_bytes: 64 * 1024 * 1024, // 64MB,
+        max_fuel: 1_000_000,                // 1M fuel,
+        timeout_seconds: 5,
+    }
 }
 
 #[tokio::test]
@@ -102,7 +89,7 @@ async fn test_spawn_multiple_components() {
         let actor_ref = spawner
             .spawn_component(component_id.clone(), wasm_path, metadata, capabilities)
             .await
-            .expect(&format!("Failed to spawn component {}", i));
+            .unwrap_or_else(|_| panic!("Failed to spawn component {}", i));
 
         addresses.push(actor_ref);
     }
@@ -202,7 +189,7 @@ async fn test_spawn_performance_batch() {
         spawner
             .spawn_component(component_id, wasm_path, metadata, capabilities)
             .await
-            .expect(&format!("Failed to spawn component {}", i));
+            .unwrap_or_else(|_| panic!("Failed to spawn component {}", i));
     }
     let elapsed = start.elapsed();
 
@@ -244,7 +231,7 @@ async fn test_spawn_component_naming() {
         let actor_ref = spawner
             .spawn_component(component_id.clone(), wasm_path, metadata, capabilities)
             .await
-            .expect(&format!("Failed to spawn component '{}'", name));
+            .unwrap_or_else(|_| panic!("Failed to spawn component '{}'", name));
 
         // Verify name preserved
         match actor_ref {
@@ -272,10 +259,10 @@ async fn test_spawn_with_different_resource_limits() {
         version: "1.0.0".to_string(),
         author: "Test".to_string(),
         description: None,
-            max_memory_bytes: 1024 * 1024,  // 1MB,
-            max_fuel: 100_000,              // 100K fuel,
-            timeout_seconds: 1,
-        };
+        max_memory_bytes: 1024 * 1024, // 1MB,
+        max_fuel: 100_000,             // 100K fuel,
+        timeout_seconds: 1,
+    };
     let capabilities = CapabilitySet::new();
 
     let _addr = spawner
@@ -291,10 +278,10 @@ async fn test_spawn_with_different_resource_limits() {
         version: "1.0.0".to_string(),
         author: "Test".to_string(),
         description: None,
-            max_memory_bytes: 512 * 1024 * 1024,  // 512MB,
-            max_fuel: 10_000_000,                 // 10M fuel,
-            timeout_seconds: 0,
-        };
+        max_memory_bytes: 512 * 1024 * 1024, // 512MB,
+        max_fuel: 10_000_000,                // 10M fuel,
+        timeout_seconds: 0,
+    };
     let capabilities = CapabilitySet::new();
 
     let _addr = spawner

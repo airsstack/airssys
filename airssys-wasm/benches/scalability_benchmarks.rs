@@ -1,3 +1,5 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! ComponentActor scalability and stress benchmarks.
 //!
 //! Validates:
@@ -14,8 +16,6 @@
 //! CRITICAL: All benchmarks must have < 5% variance across 5 runs.
 //! NOTE: Using max 1,000 components for local machine compatibility (not 10,000).
 
-#![expect(clippy::unwrap_used, reason = "unwrap is acceptable in benchmark code")]
-
 // Layer 1: Standard library imports
 use std::hint::black_box;
 use std::sync::Arc;
@@ -27,7 +27,7 @@ use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Through
 // Layer 3: Internal module imports
 use airssys_rt::util::ActorAddress;
 use airssys_wasm::actor::{ComponentActor, ComponentRegistry};
-use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits};
+use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata};
 
 /// Helper: Create test metadata
 fn create_test_metadata(name: &str) -> ComponentMetadata {
@@ -39,11 +39,6 @@ fn create_test_metadata(name: &str) -> ComponentMetadata {
         max_memory_bytes: 64 * 1024 * 1024, // 64MB
         max_fuel: 1_000_000,
         timeout_seconds: 5, // 5000ms
-            max_memory_bytes: 64 * 1024 * 1024, // 64MB
-            max_fuel: 1_000_000,
-            timeout_seconds: 5, // 5000ms
-            
-        },
     }
 }
 

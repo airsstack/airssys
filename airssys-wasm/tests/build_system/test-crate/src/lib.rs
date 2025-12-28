@@ -1,3 +1,5 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 // Test crate to validate wit-bindgen multi-package binding generation
 
 // Generate bindings for the test-world defined in wit/test-component/component.wit

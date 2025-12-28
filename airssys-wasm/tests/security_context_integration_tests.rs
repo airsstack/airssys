@@ -1,3 +1,5 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Security Context Integration Tests (WASM-TASK-005 Phase 4 Task 4.1)
 //!
 //! Tests the integration of WasmSecurityContext with ComponentActor, including:
@@ -29,7 +31,7 @@
 
 // Layer 3: Internal module imports
 use airssys_wasm::actor::component::ComponentActor;
-use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits};
+use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata};
 use airssys_wasm::security::{
     register_component, unregister_component, WasmCapability, WasmCapabilitySet,
     WasmSecurityContext,
@@ -42,16 +44,16 @@ fn create_test_metadata(name: &str) -> ComponentMetadata {
         version: "1.0.0".to_string(),
         author: "test".to_string(),
         description: Some(format!("Test component {}", name)),
-            max_memory_bytes: 64 * 1024 * 1024, // 64MB
-            max_fuel: 1_000_000,
-            timeout_seconds: 5,
+        max_memory_bytes: 64 * 1024 * 1024, // 64MB
+        max_fuel: 1_000_000,
+        timeout_seconds: 5,
     }
 }
 
 // Test helper: Create security context with filesystem capabilities
-fn create_filesystem_context(component_id: &str, paths: Vec<&str>) -> WasmSecurityContext {
+fn create_filesystem_context(component_id: &str, paths: &[&str]) -> WasmSecurityContext {
     let capabilities = WasmCapabilitySet::new().grant(WasmCapability::Filesystem {
-        paths: paths.iter().map(|s| s.to_string()).collect(),
+        paths: paths.iter().map(|s| (*s).to_string()).collect(),
         permissions: vec!["read".to_string()],
     });
 
@@ -59,9 +61,9 @@ fn create_filesystem_context(component_id: &str, paths: Vec<&str>) -> WasmSecuri
 }
 
 // Test helper: Create security context with network capabilities
-fn create_network_context(component_id: &str, endpoints: Vec<&str>) -> WasmSecurityContext {
+fn create_network_context(component_id: &str, endpoints: &[&str]) -> WasmSecurityContext {
     let capabilities = WasmCapabilitySet::new().grant(WasmCapability::Network {
-        endpoints: endpoints.iter().map(|s| s.to_string()).collect(),
+        endpoints: endpoints.iter().map(|s| (*s).to_string()).collect(),
         permissions: vec!["connect".to_string()],
     });
 
@@ -69,9 +71,9 @@ fn create_network_context(component_id: &str, endpoints: Vec<&str>) -> WasmSecur
 }
 
 // Test helper: Create security context with storage capabilities
-fn create_storage_context(component_id: &str, namespaces: Vec<&str>) -> WasmSecurityContext {
+fn create_storage_context(component_id: &str, namespaces: &[&str]) -> WasmSecurityContext {
     let capabilities = WasmCapabilitySet::new().grant(WasmCapability::Storage {
-        namespaces: namespaces.iter().map(|s| s.to_string()).collect(),
+        namespaces: namespaces.iter().map(|s| (*s).to_string()).collect(),
         permissions: vec!["read".to_string(), "write".to_string()],
     });
 
@@ -87,15 +89,10 @@ fn test_security_context_attachment() {
     // Create component with security context
     let component_id = ComponentId::new("secure-component");
     let metadata = create_test_metadata("secure-component");
-    let security_context = create_filesystem_context("secure-component", vec!["/app/data/*"]);
+    let security_context = create_filesystem_context("secure-component", &["/app/data/*"]);
 
-    let actor = ComponentActor::<()>::new(
-        component_id.clone(),
-        metadata,
-        CapabilitySet::new(),
-        (),
-    )
-    .with_security_context(security_context.clone());
+    let actor = ComponentActor::<()>::new(component_id.clone(), metadata, CapabilitySet::new(), ())
+        .with_security_context(security_context.clone());
 
     // Verify security context is attached
     let retrieved_context = actor.security_context();
@@ -108,17 +105,18 @@ fn test_security_context_default_empty() {
     let component_id = ComponentId::new("default-component");
     let metadata = create_test_metadata("default-component");
 
-    let actor = ComponentActor::<()>::new(
-        component_id.clone(),
-        metadata,
-        CapabilitySet::new(),
-        (),
-    );
+    let actor = ComponentActor::<()>::new(component_id.clone(), metadata, CapabilitySet::new(), ());
 
     // Default security context should have empty capabilities (deny-by-default)
     let context = actor.security_context();
     assert_eq!(context.component_id, "default-component");
-    assert_eq!(context.capabilities.to_acl_entries("default-component").len(), 0);
+    assert_eq!(
+        context
+            .capabilities
+            .to_acl_entries("default-component")
+            .len(),
+        0
+    );
 }
 
 #[test]
@@ -126,15 +124,10 @@ fn test_security_context_builder_pattern() {
     // Test fluent API with security context
     let component_id = ComponentId::new("builder-component");
     let metadata = create_test_metadata("builder-component");
-    let security_context = create_filesystem_context("builder-component", vec!["/data/*"]);
+    let security_context = create_filesystem_context("builder-component", &["/data/*"]);
 
-    let actor = ComponentActor::<()>::new(
-        component_id.clone(),
-        metadata,
-        CapabilitySet::new(),
-        (),
-    )
-    .with_security_context(security_context);
+    let actor = ComponentActor::<()>::new(component_id.clone(), metadata, CapabilitySet::new(), ())
+        .with_security_context(security_context);
 
     // Verify builder pattern works
     let context = actor.security_context();
@@ -149,12 +142,12 @@ fn test_security_context_builder_pattern() {
 fn test_filesystem_isolation_between_components() {
     // Component A: Access to /app/data/*
     let component_a_id = "component-a";
-    let context_a = create_filesystem_context(component_a_id, vec!["/app/data/*"]);
+    let context_a = create_filesystem_context(component_a_id, &["/app/data/*"]);
     let acl_a = context_a.capabilities.to_acl_entries(component_a_id);
 
     // Component B: Access to /app/config/*
     let component_b_id = "component-b";
-    let context_b = create_filesystem_context(component_b_id, vec!["/app/config/*"]);
+    let context_b = create_filesystem_context(component_b_id, &["/app/config/*"]);
     let acl_b = context_b.capabilities.to_acl_entries(component_b_id);
 
     // Verify different resource patterns
@@ -175,12 +168,12 @@ fn test_filesystem_isolation_between_components() {
 fn test_network_isolation_between_components() {
     // Component A: Access to api.example.com
     let component_a_id = "component-net-a";
-    let context_a = create_network_context(component_a_id, vec!["api.example.com:443"]);
+    let context_a = create_network_context(component_a_id, &["api.example.com:443"]);
     let acl_a = context_a.capabilities.to_acl_entries(component_a_id);
 
     // Component B: Access to db.example.com
     let component_b_id = "component-net-b";
-    let context_b = create_network_context(component_b_id, vec!["db.example.com:5432"]);
+    let context_b = create_network_context(component_b_id, &["db.example.com:5432"]);
     let acl_b = context_b.capabilities.to_acl_entries(component_b_id);
 
     // Verify isolated network endpoints
@@ -193,12 +186,12 @@ fn test_network_isolation_between_components() {
 fn test_storage_isolation_between_components() {
     // Component A: Access to component:a:*
     let component_a_id = "component-storage-a";
-    let context_a = create_storage_context(component_a_id, vec!["component:a:*"]);
+    let context_a = create_storage_context(component_a_id, &["component:a:*"]);
     let acl_a = context_a.capabilities.to_acl_entries(component_a_id);
 
     // Component B: Access to component:b:*
     let component_b_id = "component-storage-b";
-    let context_b = create_storage_context(component_b_id, vec!["component:b:*"]);
+    let context_b = create_storage_context(component_b_id, &["component:b:*"]);
     let acl_b = context_b.capabilities.to_acl_entries(component_b_id);
 
     // Verify isolated storage namespaces
@@ -226,7 +219,7 @@ fn test_multi_capability_isolation() {
 
     // Component B: Storage only
     let component_b_id = "component-multi-b";
-    let context_b = create_storage_context(component_b_id, vec!["component:b:*"]);
+    let context_b = create_storage_context(component_b_id, &["component:b:*"]);
 
     // Verify different capability counts
     let acl_a = context_a.capabilities.to_acl_entries(component_a_id);
@@ -247,7 +240,7 @@ fn test_multi_capability_isolation() {
 async fn test_security_context_registration() {
     // Create security context
     let component_id = "test-registration-component";
-    let security_context = create_filesystem_context(component_id, vec!["/test/data/*"]);
+    let security_context = create_filesystem_context(component_id, &["/test/data/*"]);
 
     // Register component
     let result = register_component(security_context.clone());
@@ -267,7 +260,7 @@ async fn test_security_context_registration() {
 async fn test_security_context_unregistration() {
     // Register component
     let component_id = "test-unregistration-component";
-    let security_context = create_filesystem_context(component_id, vec!["/test/data/*"]);
+    let security_context = create_filesystem_context(component_id, &["/test/data/*"]);
     let _ = register_component(security_context);
 
     // Unregister component
@@ -282,15 +275,15 @@ async fn test_security_context_unregistration() {
 async fn test_duplicate_registration_overwrites() {
     // Register with filesystem capability
     let component_id = "test-duplicate-registration";
-    let context1 = create_filesystem_context(component_id, vec!["/data/v1/*"]);
+    let context1 = create_filesystem_context(component_id, &["/data/v1/*"]);
     let _ = register_component(context1);
 
     // Note: Current implementation returns error on duplicate registration
     // (see CapabilityCheckError::ComponentAlreadyRegistered in enforcement.rs:482)
     // This test verifies the error handling
-    let context2 = create_filesystem_context(component_id, vec!["/data/v2/*"]);
+    let context2 = create_filesystem_context(component_id, &["/data/v2/*"]);
     let result = register_component(context2);
-    
+
     // Duplicate registration should fail (component already registered)
     assert!(result.is_err(), "Duplicate registration should fail");
 
@@ -307,15 +300,10 @@ fn test_security_context_immutability_after_construction() {
     // Create component with security context
     let component_id = ComponentId::new("immutable-component");
     let metadata = create_test_metadata("immutable-component");
-    let original_context = create_filesystem_context("immutable-component", vec!["/original/*"]);
+    let original_context = create_filesystem_context("immutable-component", &["/original/*"]);
 
-    let actor = ComponentActor::<()>::new(
-        component_id.clone(),
-        metadata,
-        CapabilitySet::new(),
-        (),
-    )
-    .with_security_context(original_context.clone());
+    let actor = ComponentActor::<()>::new(component_id.clone(), metadata, CapabilitySet::new(), ())
+        .with_security_context(original_context.clone());
 
     // Verify context matches original
     let context = actor.security_context();
@@ -332,7 +320,8 @@ fn test_multiple_components_independent_contexts() {
         .map(|i| {
             let id = format!("component-{}", i);
             let component_id = ComponentId::new(&id);
-            let security_context = create_filesystem_context(&id, vec![&format!("/data/{}/*", i)]);
+            let path = format!("/data/{}/*", i);
+            let security_context = create_filesystem_context(&id, &[&path]);
             (component_id, security_context)
         })
         .collect();
@@ -341,13 +330,8 @@ fn test_multiple_components_independent_contexts() {
         .into_iter()
         .map(|(component_id, security_context)| {
             let metadata = create_test_metadata(component_id.as_str());
-            ComponentActor::new(
-                component_id.clone(),
-                metadata,
-                CapabilitySet::new(),
-                (),
-            )
-            .with_security_context(security_context)
+            ComponentActor::new(component_id.clone(), metadata, CapabilitySet::new(), ())
+                .with_security_context(security_context)
         })
         .collect();
 
@@ -378,7 +362,7 @@ fn test_multiple_components_independent_contexts() {
 #[test]
 fn test_filesystem_capability_to_acl() {
     let component_id = "acl-fs-component";
-    let context = create_filesystem_context(component_id, vec!["/app/data/*", "/app/config/*"]);
+    let context = create_filesystem_context(component_id, &["/app/data/*", "/app/config/*"]);
 
     let acl_entries = context.capabilities.to_acl_entries(component_id);
 
@@ -401,7 +385,7 @@ fn test_network_capability_to_acl() {
     let component_id = "acl-net-component";
     let context = create_network_context(
         component_id,
-        vec!["api.example.com:443", "*.cdn.example.com:80"],
+        &["api.example.com:443", "*.cdn.example.com:80"],
     );
 
     let acl_entries = context.capabilities.to_acl_entries(component_id);
@@ -421,7 +405,7 @@ fn test_network_capability_to_acl() {
 #[test]
 fn test_storage_capability_to_acl() {
     let component_id = "acl-storage-component";
-    let context = create_storage_context(component_id, vec!["component:test:*"]);
+    let context = create_storage_context(component_id, &["component:test:*"]);
 
     let acl_entries = context.capabilities.to_acl_entries(component_id);
 
@@ -439,7 +423,11 @@ fn test_empty_capability_set_to_acl() {
 
     let acl_entries = context.capabilities.to_acl_entries(component_id);
 
-    assert_eq!(acl_entries.len(), 0, "Empty capabilities should produce no ACL entries");
+    assert_eq!(
+        acl_entries.len(),
+        0,
+        "Empty capabilities should produce no ACL entries"
+    );
 }
 
 // ============================================================================
@@ -463,7 +451,7 @@ fn test_least_privilege_specific_paths() {
     let component_id = "least-privilege-component";
     let context = create_filesystem_context(
         component_id,
-        vec!["/app/config/app.toml"], // Specific file, not /app/**/*
+        &["/app/config/app.toml"], // Specific file, not /app/**/*
     );
 
     let acl_entries = context.capabilities.to_acl_entries(component_id);
@@ -486,19 +474,29 @@ fn test_explicit_declaration_required() {
         CapabilitySet::new(),
         (),
     );
-    assert_eq!(actor_no_caps.security_context().capabilities.to_acl_entries("explicit-component").len(), 0);
+    assert_eq!(
+        actor_no_caps
+            .security_context()
+            .capabilities
+            .to_acl_entries("explicit-component")
+            .len(),
+        0
+    );
 
     // Must explicitly add capabilities
-    let security_context = create_filesystem_context("explicit-component", vec!["/data/*"]);
-    let actor_with_caps = ComponentActor::<()>::new(
-        component_id.clone(),
-        metadata,
-        CapabilitySet::new(),
-        (),
-    )
-    .with_security_context(security_context);
+    let security_context = create_filesystem_context("explicit-component", &["/data/*"]);
+    let actor_with_caps =
+        ComponentActor::<()>::new(component_id.clone(), metadata, CapabilitySet::new(), ())
+            .with_security_context(security_context);
 
-    assert_eq!(actor_with_caps.security_context().capabilities.to_acl_entries("explicit-component").len(), 1);
+    assert_eq!(
+        actor_with_caps
+            .security_context()
+            .capabilities
+            .to_acl_entries("explicit-component")
+            .len(),
+        1
+    );
 }
 
 // ============================================================================
@@ -511,15 +509,10 @@ fn test_component_id_consistency() {
     let component_id_str = "consistency-component";
     let component_id = ComponentId::new(component_id_str);
     let metadata = create_test_metadata(component_id_str);
-    let security_context = create_filesystem_context(component_id_str, vec!["/data/*"]);
+    let security_context = create_filesystem_context(component_id_str, &["/data/*"]);
 
-    let actor = ComponentActor::<()>::new(
-        component_id.clone(),
-        metadata,
-        CapabilitySet::new(),
-        (),
-    )
-    .with_security_context(security_context);
+    let actor = ComponentActor::<()>::new(component_id.clone(), metadata, CapabilitySet::new(), ())
+        .with_security_context(security_context);
 
     assert_eq!(actor.component_id().as_str(), component_id_str);
     assert_eq!(actor.security_context().component_id, component_id_str);
@@ -529,7 +522,7 @@ fn test_component_id_consistency() {
 fn test_clone_security_context() {
     // Security context should be Clone for supervisor restart
     let component_id = "clone-component";
-    let original_context = create_filesystem_context(component_id, vec!["/data/*"]);
+    let original_context = create_filesystem_context(component_id, &["/data/*"]);
 
     let cloned_context = original_context.clone();
 
@@ -540,5 +533,8 @@ fn test_clone_security_context() {
     let cloned_acl = cloned_context.capabilities.to_acl_entries(component_id);
 
     assert_eq!(original_acl.len(), cloned_acl.len());
-    assert_eq!(original_acl[0].resource_pattern, cloned_acl[0].resource_pattern);
+    assert_eq!(
+        original_acl[0].resource_pattern,
+        cloned_acl[0].resource_pattern
+    );
 }

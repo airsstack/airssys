@@ -1,6 +1,6 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Security Test Suite - Focused Essentials (Task 5.1 - Deliverable 1)
-#![allow(clippy::expect_used, clippy::unwrap_used, reason = "test code")]//!
-//! Comprehensive security integration testing covering CRITICAL and COMMON capability patterns.
 //! This test suite validates the complete security stack from capability declaration through
 //! enforcement and audit logging.
 //!
@@ -31,9 +31,6 @@
 //! - **ADR-WASM-006**: Component Isolation and Sandboxing ✅
 //! - **PROJECTS_STANDARD.md**: §6.2 (test organization), §6.3 (integration tests) ✅
 //! - **Microsoft Rust Guidelines**: M-TEST-DOCS, M-INTEGRATION-TESTS ✅
-
-#![allow(clippy::expect_used)] // Test code allows expect
-#![allow(clippy::unwrap_used)] // Test code allows unwrap
 
 use airssys_wasm::security::{
     CapabilityCheckResult, CapabilityChecker, WasmCapability, WasmCapabilitySet,

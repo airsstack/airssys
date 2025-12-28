@@ -1,8 +1,8 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Permission matching tests
 //!
 //! Tests for glob pattern matching and permission checking logic.
-
-#![allow(clippy::unwrap_used)] // Test code is allowed to use unwrap for clarity
 
 use airssys_wasm::core::component::ComponentId;
 use airssys_wasm::core::permission::{NetworkEndpoint, PermissionManifest};

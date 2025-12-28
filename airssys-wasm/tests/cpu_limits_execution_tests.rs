@@ -1,6 +1,6 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Integration tests for WASM component execution with CPU limits and timeouts.
-#![allow(clippy::expect_used, clippy::unwrap_used, reason = "test code")]//!
-//! Tests real component execution with fuel metering and timeout wrappers.
 //! This test suite validates Phase 3 Task 3.3 implementation:
 //! - Real component loading with Wasmtime Component Model
 //! - Execution with fuel metering (CPU limiting)
@@ -16,10 +16,6 @@
 //! - Test failure paths (fuel exhaustion, timeout, combined limits)
 
 // Allow panic-style testing in test code (workspace lint exceptions)
-#![allow(clippy::unwrap_used)]
-#![allow(clippy::expect_used)]
-#![allow(clippy::panic)]
-
 // Layer 1: Standard library imports (§2.1 - 3-layer import organization)
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -32,7 +28,7 @@ use airssys_wasm::core::{
     capability::CapabilitySet,
     component::{ComponentId, ComponentInput},
     config::ResourceLimits,
-    runtime::{ExecutionContext, RuntimeEngine},
+    ExecutionContext, RuntimeEngine,
 };
 use airssys_wasm::runtime::WasmEngine;
 
@@ -81,10 +77,10 @@ async fn test_execute_hello_world_component() {
     let context = ExecutionContext {
         component_id: component_id.clone(),
         limits: ResourceLimits {
-        max_memory_bytes: 1024 * 1024, // 1MB,
-        max_fuel: 10_000,              // 10K fuel,
-        timeout_seconds: 0,
-    },
+            max_memory_bytes: 1024 * 1024, // 1MB,
+            max_fuel: 10_000,              // 10K fuel,
+            timeout_seconds: 0,
+        },
         capabilities: CapabilitySet::new(),
         timeout_ms: 30_000, // 30s timeout
     };
@@ -133,10 +129,10 @@ async fn test_execution_within_timeout() {
     let context = ExecutionContext {
         component_id: component_id.clone(),
         limits: ResourceLimits {
-        max_memory_bytes: 1024 * 1024, // 1MB,
-        max_fuel: 10_000,              // 10K fuel,
-        timeout_seconds: 0,
-    },
+            max_memory_bytes: 1024 * 1024, // 1MB,
+            max_fuel: 10_000,              // 10K fuel,
+            timeout_seconds: 0,
+        },
         capabilities: CapabilitySet::new(),
         timeout_ms: 30_000, // 30s timeout (should be plenty for simple function)
     };
@@ -183,10 +179,10 @@ async fn test_fuel_limit_exceeded() {
     let context = ExecutionContext {
         component_id: component_id.clone(),
         limits: ResourceLimits {
-        max_memory_bytes: 1024 * 1024, // 1MB,
-        max_fuel: 1,                   // 1 fuel unit (extremely restrictive),
-        timeout_seconds: 0,
-    },
+            max_memory_bytes: 1024 * 1024, // 1MB,
+            max_fuel: 1,                   // 1 fuel unit (extremely restrictive),
+            timeout_seconds: 0,
+        },
         capabilities: CapabilitySet::new(),
         timeout_ms: 30_000, // 30s timeout (generous)
     };
@@ -227,10 +223,10 @@ async fn test_timeout_enforcement_via_tokio() {
     let context = ExecutionContext {
         component_id: component_id.clone(),
         limits: ResourceLimits {
-        max_memory_bytes: 1024 * 1024, // 1MB,
-        max_fuel: 10_000_000,          // 10M fuel (generous),
-        timeout_seconds: 0,
-    },
+            max_memory_bytes: 1024 * 1024, // 1MB,
+            max_fuel: 10_000_000,          // 10M fuel (generous),
+            timeout_seconds: 0,
+        },
         capabilities: CapabilitySet::new(),
         timeout_ms: 1, // 1ms timeout (intentionally triggers timeout)
     };
@@ -277,10 +273,10 @@ async fn test_within_all_limits_success() {
     let context = ExecutionContext {
         component_id: component_id.clone(),
         limits: ResourceLimits {
-        max_memory_bytes: 1024 * 1024, // 1MB,
-        max_fuel: 10_000_000,          // 10M fuel (generous),
-        timeout_seconds: 0,
-    },
+            max_memory_bytes: 1024 * 1024, // 1MB,
+            max_fuel: 10_000_000,          // 10M fuel (generous),
+            timeout_seconds: 0,
+        },
         capabilities: CapabilitySet::new(),
         timeout_ms: 30_000, // 30s timeout (generous)
     };
@@ -329,10 +325,10 @@ async fn test_fuel_triggers_before_timeout() {
     let context = ExecutionContext {
         component_id: component_id.clone(),
         limits: ResourceLimits {
-        max_memory_bytes: 1024 * 1024, // 1MB,
-        max_fuel: 1,                   // 1 fuel unit (very restrictive),
-        timeout_seconds: 0,
-    },
+            max_memory_bytes: 1024 * 1024, // 1MB,
+            max_fuel: 1,                   // 1 fuel unit (very restrictive),
+            timeout_seconds: 0,
+        },
         capabilities: CapabilitySet::new(),
         timeout_ms: 30_000, // 30s timeout (generous)
     };
@@ -381,10 +377,10 @@ async fn test_timeout_triggers_before_fuel() {
     let context = ExecutionContext {
         component_id: component_id.clone(),
         limits: ResourceLimits {
-        max_memory_bytes: 1024 * 1024, // 1MB,
-        max_fuel: 10_000_000,          // 10M fuel (generous),
-        timeout_seconds: 0,
-    },
+            max_memory_bytes: 1024 * 1024, // 1MB,
+            max_fuel: 10_000_000,          // 10M fuel (generous),
+            timeout_seconds: 0,
+        },
         capabilities: CapabilitySet::new(),
         timeout_ms: 1, // 1ms timeout (very restrictive)
     };

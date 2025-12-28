@@ -1,6 +1,6 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Integration tests for async WASM execution and host functions.
-#![allow(clippy::expect_used, clippy::unwrap_used, reason = "test code")]//!
-//! Tests Phase 4 (WASM-TASK-002): Async Execution and Tokio Integration
 //!
 //! ## Test Coverage
 //!
@@ -33,10 +33,6 @@
 //!   - Performance meets targets (<5% overhead)
 
 // Allow panic-style testing in test code (workspace lint exceptions)
-#![allow(clippy::unwrap_used)]
-#![allow(clippy::expect_used)]
-#![allow(clippy::panic)]
-
 // Layer 1: Standard library imports (§2.1 - 3-layer import organization)
 use std::sync::Arc;
 use std::time::Duration;
@@ -56,10 +52,10 @@ use airssys_wasm::runtime::{
     AsyncSleepFunction, WasmEngine,
 };
 
+#[allow(clippy::expect_fun_call)]
 // ============================================================================
 // Task 4.1: Async WASM Function Support Tests
 // ============================================================================
-
 #[tokio::test]
 async fn test_async_wasm_function_execution() {
     // Test that WASM functions execute asynchronously with Tokio
@@ -448,10 +444,10 @@ async fn test_async_execution_with_resource_limits() {
     let context = ExecutionContext {
         component_id: component_id.clone(),
         limits: ResourceLimits {
-        max_memory_bytes: 1024 * 1024, // 1MB,
-        max_fuel: 100_000,
-        timeout_seconds: 1,
-    },
+            max_memory_bytes: 1024 * 1024, // 1MB,
+            max_fuel: 100_000,
+            timeout_seconds: 1,
+        },
         capabilities: CapabilitySet::new(),
         timeout_ms: 1000,
     };

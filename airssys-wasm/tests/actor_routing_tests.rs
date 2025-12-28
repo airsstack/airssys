@@ -1,16 +1,11 @@
-//! Integration tests for actor address routing.
-#![allow(clippy::expect_used, clippy::unwrap_used, reason = "test code")]//!
-//! - MessageRouter delivers messages via ActorAddress
-//! - ComponentActor receives messages
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
 
-#![expect(
-    clippy::expect_used,
-    reason = "expect is acceptable in test code for clear error messages"
-)]
-#![allow(clippy::unwrap_used, reason = "unwrap is acceptable in test code")]
+//! Integration tests for actor address routing.
+//! - ComponentActor receives messages
 
 // Layer 2: Third-party crate imports
 // (none)
+use std::path::PathBuf;
 
 // Layer 3: Internal module imports
 use airssys_rt::broker::InMemoryMessageBroker;
@@ -24,10 +19,10 @@ fn create_test_metadata() -> ComponentMetadata {
         version: "1.0.0".to_string(),
         author: "Test".to_string(),
         description: None,
-            max_memory_bytes: 64 * 1024 * 1024,
-            max_fuel: 1_000_000,
-            timeout_seconds: 5,
-        }
+        max_memory_bytes: 64 * 1024 * 1024,
+        max_fuel: 1_000_000,
+        timeout_seconds: 5,
+    }
 }
 
 #[tokio::test]

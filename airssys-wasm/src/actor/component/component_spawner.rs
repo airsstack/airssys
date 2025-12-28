@@ -386,20 +386,18 @@ impl<B: MessageBroker<ComponentMessage> + Clone + Send + Sync + 'static> Compone
     }
 }
 
-#[allow(clippy::expect_used, clippy::unwrap_used, clippy::unwrap_err_used, clippy::expect_err_used, clippy::panic, clippy::unwrap_on_result, clippy::indexing_slicing, clippy::too_many_arguments, clippy::type_complexity, reason = "test code")]
-#[cfg(test)]
-#[expect(
+#[allow(
     clippy::expect_used,
-    reason = "expect is acceptable in test code for clear error messages"
-)]
-#[expect(
+    clippy::unwrap_used,
     clippy::panic,
-    reason = "panic is acceptable in test code for assertion failures"
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    reason = "test code"
 )]
-#[expect(clippy::unwrap_used, reason = "unwrap is acceptable in test code")]
+#[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::ResourceLimits;
     use airssys_rt::broker::InMemoryMessageBroker;
     use airssys_rt::system::SystemConfig;
     use airssys_rt::util::ActorAddress;

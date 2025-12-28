@@ -1,6 +1,6 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Integration tests for send-request host function (WASM-TASK-006 Phase 3 Task 3.1).
-#![allow(clippy::expect_used, clippy::unwrap_used, reason = "test code")]//!
-//! These tests verify the end-to-end functionality of the `send-request` host function:
 //!
 //! - Request ID generation (UUID v4) with uniqueness verification
 //! - Correlation tracker integration
@@ -23,9 +23,6 @@
 //! - **WASM-TASK-006 Phase 3 Task 3.1**: send-request Host Function
 //! - **ADR-WASM-001**: Multicodec Compatibility Strategy
 //! - **ADR-WASM-009**: Component Communication Model (Pattern 2: Request-Response)
-
-#![allow(clippy::unwrap_used, reason = "unwrap is acceptable in test code")]
-#![allow(clippy::expect_used, reason = "expect is acceptable in test code")]
 
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -456,7 +453,7 @@ async fn test_concurrent_requests() {
             let mut caps = CapabilitySet::new();
             caps.grant(Capability::Messaging(TopicPattern::new("*")));
             let context = create_host_context(
-                ComponentId::new(&format!("component-{}", i)),
+                ComponentId::new(format!("component-{}", i)),
                 caps,
             );
 

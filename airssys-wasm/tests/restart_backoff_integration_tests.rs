@@ -1,3 +1,5 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Integration tests for component restart and exponential backoff system.
 //!
 //! This test suite validates the end-to-end restart flow with backoff delays,

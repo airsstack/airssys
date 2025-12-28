@@ -1,6 +1,6 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Integration tests for basic WASM component execution.
-#![allow(clippy::expect_used, clippy::unwrap_used, reason = "test code")]//!
-//! Tests end-to-end component loading workflow with real WASM fixtures.
 //!
 //! ## Test Fixture Strategy
 //!
@@ -12,10 +12,6 @@
 //! - Works seamlessly in CI/CD (no external build tools required)
 
 // Allow panic-style testing in test code (workspace lint exceptions)
-#![allow(clippy::unwrap_used)]
-#![allow(clippy::expect_used)]
-#![allow(clippy::panic)]
-
 // Layer 1: Standard library imports (§2.1 - 3-layer import organization)
 use std::path::PathBuf;
 

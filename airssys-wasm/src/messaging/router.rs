@@ -38,8 +38,8 @@
 //! - **KNOWLEDGE-WASM-029**: Request-Response Messaging Pattern
 
 // Layer 1: Standard library imports
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 
 // Layer 2: Third-party crate imports
 use serde::{Deserialize, Serialize};
@@ -177,13 +177,21 @@ impl ResponseRouter {
         };
 
         // Resolve via correlation tracker (delivers to oneshot channel)
-        match self.correlation_tracker.resolve(correlation_id, response).await {
+        match self
+            .correlation_tracker
+            .resolve(correlation_id, response)
+            .await
+        {
             Ok(()) => {
-                self.metrics.responses_routed.fetch_add(1, Ordering::Relaxed);
+                self.metrics
+                    .responses_routed
+                    .fetch_add(1, Ordering::Relaxed);
                 Ok(())
             }
             Err(e) => {
-                self.metrics.responses_orphaned.fetch_add(1, Ordering::Relaxed);
+                self.metrics
+                    .responses_orphaned
+                    .fetch_add(1, Ordering::Relaxed);
                 Err(e)
             }
         }
@@ -243,7 +251,15 @@ pub struct ResponseRouterStats {
     pub error_responses: u64,
 }
 
-#[allow(clippy::expect_used, clippy::unwrap_used, clippy::unwrap_err_used, clippy::expect_err_used, clippy::panic, clippy::unwrap_on_result, clippy::indexing_slicing, clippy::too_many_arguments, clippy::type_complexity, reason = "test code")]
+#[allow(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    reason = "test code"
+)]
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -300,7 +316,11 @@ mod tests {
             to: ComponentId::new("responder"),
         };
 
-        router.correlation_tracker.register_pending(pending).await.unwrap();
+        router
+            .correlation_tracker
+            .register_pending(pending)
+            .await
+            .unwrap();
 
         // Should have pending request
         assert!(router.has_pending_request(&correlation_id));
@@ -309,7 +329,7 @@ mod tests {
     #[tokio::test]
     async fn test_response_router_route_response_success() {
         let tracker = Arc::new(CorrelationTracker::new());
-        let router = ResponseRouter::new(tracker.clone());
+        let router = ResponseRouter::new(Arc::clone(&tracker));
         let (tx, rx) = oneshot::channel();
 
         let correlation_id = uuid::Uuid::new_v4();
@@ -325,11 +345,14 @@ mod tests {
         tracker.register_pending(pending).await.unwrap();
 
         // Route response
-        router.route_response(
-            correlation_id,
-            Ok(vec![1, 2, 3]),
-            ComponentId::new("responder"),
-        ).await.unwrap();
+        router
+            .route_response(
+                correlation_id,
+                Ok(vec![1, 2, 3]),
+                ComponentId::new("responder"),
+            )
+            .await
+            .unwrap();
 
         // Verify metrics
         assert_eq!(router.responses_routed_count(), 1);
@@ -344,7 +367,7 @@ mod tests {
     #[tokio::test]
     async fn test_response_router_route_response_error() {
         let tracker = Arc::new(CorrelationTracker::new());
-        let router = ResponseRouter::new(tracker.clone());
+        let router = ResponseRouter::new(Arc::clone(&tracker));
         let (tx, rx) = oneshot::channel();
 
         let correlation_id = uuid::Uuid::new_v4();
@@ -360,11 +383,14 @@ mod tests {
         tracker.register_pending(pending).await.unwrap();
 
         // Route error response
-        router.route_response(
-            correlation_id,
-            Err(RequestError::Timeout),
-            ComponentId::new("responder"),
-        ).await.unwrap();
+        router
+            .route_response(
+                correlation_id,
+                Err(RequestError::Timeout),
+                ComponentId::new("responder"),
+            )
+            .await
+            .unwrap();
 
         // Verify metrics
         assert_eq!(router.responses_routed_count(), 1);
@@ -379,16 +405,18 @@ mod tests {
     #[tokio::test]
     async fn test_response_router_orphaned_response() {
         let tracker = Arc::new(CorrelationTracker::new());
-        let router = ResponseRouter::new(tracker.clone());
+        let router = ResponseRouter::new(Arc::clone(&tracker));
 
         let correlation_id = uuid::Uuid::new_v4();
 
         // Try to route response without pending request
-        let result = router.route_response(
-            correlation_id,
-            Ok(vec![1, 2, 3]),
-            ComponentId::new("responder"),
-        ).await;
+        let result = router
+            .route_response(
+                correlation_id,
+                Ok(vec![1, 2, 3]),
+                ComponentId::new("responder"),
+            )
+            .await;
 
         // Should fail
         assert!(result.is_err());

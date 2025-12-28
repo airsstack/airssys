@@ -1,6 +1,6 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Integration tests for WasmEngine::call_handle_message()
-#![allow(clippy::expect_used, clippy::unwrap_used, reason = "test code")]//!
-//! Tests the Component Model path for message handling via the
 //! WasmEngine API. These tests verify:
 //! - Successful message delivery to components with handle-message export
 //! - Error handling for components without handle-message export
@@ -27,14 +27,12 @@ use airssys_wasm::core::ComponentId;
 use airssys_wasm::runtime::WasmEngine;
 
 /// Load fixture file by name
-#[allow(clippy::panic)]
-fn load_fixture(name: fn load_fixture(name: &str) -> Vec<u8> {str) -> Vec<u8> {
+fn load_fixture(name: &str) -> Vec<u8> {
     let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("tests/fixtures")
         .join(name);
-    std::fs::read(&fixture_path).unwrap_or_else(|e| {
-        panic!("Failed to read fixture '{}': {}", fixture_path.display(), e)
-    })
+    std::fs::read(&fixture_path)
+        .unwrap_or_else(|e| panic!("Failed to read fixture '{}': {}", fixture_path.display(), e))
 }
 
 // ============================================================================
@@ -46,18 +44,18 @@ fn load_fixture(name: fn load_fixture(name: &str) -> Vec<u8> {str) -> Vec<u8> {
 async fn test_call_handle_message_success() {
     let engine = Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
     let bytes = load_fixture("handle-message-component.wasm");
-    
+
     let component_id = ComponentId::new("integration-test-handler");
     let handle = engine
         .load_component(&component_id, &bytes)
         .await
         .expect("Failed to load component");
-    
+
     let sender = ComponentId::new("sender-component");
     let payload = b"test message payload";
-    
+
     let result = engine.call_handle_message(&handle, &sender, payload).await;
-    
+
     assert!(
         result.is_ok(),
         "Expected successful message handling: {:?}",
@@ -70,18 +68,18 @@ async fn test_call_handle_message_success() {
 async fn test_call_handle_message_empty_payload() {
     let engine = Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
     let bytes = load_fixture("handle-message-component.wasm");
-    
+
     let component_id = ComponentId::new("empty-payload-handler");
     let handle = engine
         .load_component(&component_id, &bytes)
         .await
         .expect("Failed to load component");
-    
+
     let sender = ComponentId::new("sender");
     let payload: &[u8] = &[];
-    
+
     let result = engine.call_handle_message(&handle, &sender, payload).await;
-    
+
     assert!(
         result.is_ok(),
         "Expected success with empty payload: {:?}",
@@ -94,19 +92,19 @@ async fn test_call_handle_message_empty_payload() {
 async fn test_call_handle_message_large_payload() {
     let engine = Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
     let bytes = load_fixture("handle-message-component.wasm");
-    
+
     let component_id = ComponentId::new("large-payload-handler");
     let handle = engine
         .load_component(&component_id, &bytes)
         .await
         .expect("Failed to load component");
-    
+
     let sender = ComponentId::new("sender");
     // 64KB payload
     let payload: Vec<u8> = (0..65536).map(|i| (i % 256) as u8).collect();
-    
+
     let result = engine.call_handle_message(&handle, &sender, &payload).await;
-    
+
     assert!(
         result.is_ok(),
         "Expected success with large payload: {:?}",
@@ -123,19 +121,22 @@ async fn test_call_handle_message_large_payload() {
 async fn test_call_handle_message_no_export() {
     let engine = Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
     let bytes = load_fixture("hello_world.wasm");
-    
+
     let component_id = ComponentId::new("no-export-component");
     let handle = engine
         .load_component(&component_id, &bytes)
         .await
         .expect("Failed to load component");
-    
+
     let sender = ComponentId::new("sender");
     let payload = b"test";
-    
+
     let result = engine.call_handle_message(&handle, &sender, payload).await;
-    
-    assert!(result.is_err(), "Expected error when no handle-message export");
+
+    assert!(
+        result.is_err(),
+        "Expected error when no handle-message export"
+    );
     let err_msg = result.unwrap_err().to_string();
     assert!(
         err_msg.contains("handle-message"),
@@ -152,13 +153,13 @@ async fn test_call_handle_message_no_export() {
 async fn test_call_handle_message_sender_variations() {
     let engine = Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
     let bytes = load_fixture("handle-message-component.wasm");
-    
+
     let component_id = ComponentId::new("sender-variation-handler");
     let handle = engine
         .load_component(&component_id, &bytes)
         .await
         .expect("Failed to load component");
-    
+
     let senders = [
         ComponentId::new("simple"),
         ComponentId::new("namespace/component"),
@@ -166,11 +167,9 @@ async fn test_call_handle_message_sender_variations() {
         ComponentId::new("very-long-component-identifier-for-testing-purposes"),
         ComponentId::new("component_with_underscores"),
     ];
-    
+
     for sender in &senders {
-        let result = engine
-            .call_handle_message(&handle, sender, b"test")
-            .await;
+        let result = engine.call_handle_message(&handle, sender, b"test").await;
         assert!(
             result.is_ok(),
             "Expected success with sender '{}': {:?}",
@@ -189,15 +188,15 @@ async fn test_call_handle_message_sender_variations() {
 async fn test_call_handle_message_multiple_sequential() {
     let engine = Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
     let bytes = load_fixture("handle-message-component.wasm");
-    
+
     let component_id = ComponentId::new("sequential-handler");
     let handle = engine
         .load_component(&component_id, &bytes)
         .await
         .expect("Failed to load component");
-    
+
     let sender = ComponentId::new("sender");
-    
+
     // Send 10 messages sequentially
     for i in 0..10 {
         let payload = format!("message-{}", i);
@@ -218,29 +217,27 @@ async fn test_call_handle_message_multiple_sequential() {
 async fn test_call_handle_message_varying_payloads() {
     let engine = Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
     let bytes = load_fixture("handle-message-component.wasm");
-    
+
     let component_id = ComponentId::new("varying-payload-handler");
     let handle = engine
         .load_component(&component_id, &bytes)
         .await
         .expect("Failed to load component");
-    
+
     let sender = ComponentId::new("sender");
-    
+
     // Various payload sizes
     let payloads: Vec<Vec<u8>> = vec![
-        vec![],                          // Empty
-        vec![1],                         // 1 byte
-        vec![0; 100],                    // 100 bytes
-        vec![0; 1000],                   // 1KB
-        vec![0; 10000],                  // 10KB
+        vec![],                              // Empty
+        vec![1],                             // 1 byte
+        vec![0; 100],                        // 100 bytes
+        vec![0; 1000],                       // 1KB
+        vec![0; 10000],                      // 10KB
         (0..256).map(|i| i as u8).collect(), // All byte values
     ];
-    
+
     for (idx, payload) in payloads.iter().enumerate() {
-        let result = engine
-            .call_handle_message(&handle, &sender, payload)
-            .await;
+        let result = engine.call_handle_message(&handle, &sender, payload).await;
         assert!(
             result.is_ok(),
             "Expected success for payload {} (size {}): {:?}",
@@ -260,23 +257,23 @@ async fn test_call_handle_message_varying_payloads() {
 async fn test_call_handle_message_with_cloned_engine() {
     let engine = Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
     let engine_clone = Arc::clone(&engine);
-    
+
     let bytes = load_fixture("handle-message-component.wasm");
-    
+
     let component_id = ComponentId::new("cloned-engine-handler");
-    
+
     // Load with original engine
     let handle = engine
         .load_component(&component_id, &bytes)
         .await
         .expect("Failed to load component");
-    
+
     // Call with cloned engine
     let sender = ComponentId::new("sender");
     let result = engine_clone
         .call_handle_message(&handle, &sender, b"test")
         .await;
-    
+
     assert!(
         result.is_ok(),
         "Expected success with cloned engine: {:?}",

@@ -83,8 +83,8 @@ use tokio::sync::RwLock;
 use tracing::{debug, trace};
 
 // Layer 3: Internal module imports
-use crate::core::{CapabilitySet, ComponentId, ComponentMetadata, WasmError};
 use crate::core::runtime::ComponentHandle;
+use crate::core::{CapabilitySet, ComponentId, ComponentMetadata, WasmError};
 use crate::runtime::WasmEngine;
 
 // =============================================================================
@@ -97,8 +97,6 @@ use crate::runtime::WasmEngine;
 // See ADR-WASM-002 and ADR-WASM-021 for migration details.
 // =============================================================================
 
-
-
 // =============================================================================
 // LEGACY WORKAROUND CODE DELETED (WASM-TASK-006-HOTFIX Phase 2 Task 2.1)
 // =============================================================================
@@ -108,7 +106,7 @@ use crate::runtime::WasmEngine;
 // - HandleMessageResult (Component Model has typed returns)
 // - BUMP_ALLOCATOR_BASE, MAX_SENDER_SIZE, MAX_MESSAGE_SIZE constants
 //
-// These were workarounds for the wrong API (wasmtime::Module instead of 
+// These were workarounds for the wrong API (wasmtime::Module instead of
 // wasmtime::component::Component). The Component Model API handles all parameter
 // marshalling automatically via the Canonical ABI.
 //
@@ -170,10 +168,10 @@ use crate::runtime::WasmEngine;
 pub struct MessageReceptionConfig {
     /// Maximum queue depth before backpressure applies (default: 1000)
     pub max_queue_depth: usize,
-    
+
     /// WASM export invocation timeout in milliseconds (default: 100ms)
     pub delivery_timeout_ms: u64,
-    
+
     /// Enable backpressure detection (default: true)
     pub enable_backpressure: bool,
 }
@@ -195,14 +193,18 @@ impl MessageReceptionConfig {
     /// let config = MessageReceptionConfig::new(5000, 200, true);
     /// assert_eq!(config.max_queue_depth, 5000);
     /// ```
-    pub fn new(max_queue_depth: usize, delivery_timeout_ms: u64, enable_backpressure: bool) -> Self {
+    pub fn new(
+        max_queue_depth: usize,
+        delivery_timeout_ms: u64,
+        enable_backpressure: bool,
+    ) -> Self {
         Self {
             max_queue_depth,
             delivery_timeout_ms,
             enable_backpressure,
         }
     }
-    
+
     /// Get delivery timeout as Duration.
     ///
     /// # Examples
@@ -334,7 +336,6 @@ where
 
     // NOTE: wasm_runtime field removed in WASM-TASK-006-HOTFIX Phase 2 Task 2.1
     // Component Model uses component_engine + component_handle instead
-
     /// Component capabilities and permissions
     capabilities: CapabilitySet,
 
@@ -461,7 +462,6 @@ where
     // These fields replace the legacy core WASM API (WasmRuntime) with Component Model.
     // The transition follows ADR-WASM-002 (Component Model mandate) and ADR-WASM-021.
     // =============================================================================
-
     /// Shared WASM execution engine (Component Model API).
     ///
     /// This is the CORRECT architecture per ADR-WASM-002:
@@ -573,7 +573,6 @@ pub enum ActorState {
     Failed(String),
 }
 
-
 // =============================================================================
 // MOVED TO core/component_message.rs (ADR-WASM-022)
 // =============================================================================
@@ -591,7 +590,6 @@ pub use crate::core::ComponentMessage;
 // Re-export ComponentHealthStatus as HealthStatus for backward compatibility
 // Note: Renamed to avoid conflict with core::observability::HealthStatus
 pub use crate::core::ComponentHealthStatus as HealthStatus;
-
 
 impl<S> ComponentActor<S>
 where
@@ -1164,10 +1162,18 @@ where
     /// - SerializationError: Component manifest parse error
     pub(crate) async fn load_component_bytes(&self) -> Result<Vec<u8>, WasmError> {
         // Test mode: Return valid Component Model bytes from fixture
-        // This is required because Component Model (wasmtime::component::Component) 
+        // This is required because Component Model (wasmtime::component::Component)
         // requires valid component format, not core WASM format.
-        #[allow(clippy::expect_used, clippy::unwrap_used, clippy::unwrap_err_used, clippy::expect_err_used, clippy::panic, clippy::unwrap_on_result, clippy::indexing_slicing, clippy::too_many_arguments, clippy::type_complexity, reason = "test code")]
-#[cfg(test)]
+        #[allow(
+            clippy::expect_used,
+            clippy::unwrap_used,
+            clippy::panic,
+            clippy::indexing_slicing,
+            clippy::too_many_arguments,
+            clippy::type_complexity,
+            reason = "test code"
+        )]
+        #[cfg(test)]
         {
             // Minimal valid Component Model binary (component format, not core WASM)
             // This is the binary from tests/fixtures/handle-message-component.wasm
@@ -1623,11 +1629,12 @@ where
         // This method now ALWAYS uses WasmEngine::call_handle_message() for typed
         // function calls with automatic parameter marshalling via Canonical ABI.
         // =============================================================================
-        
+
         // Delegate to the Component Model implementation
-        self.invoke_handle_message_component_model(sender, payload).await
+        self.invoke_handle_message_component_model(sender, payload)
+            .await
     }
-    
+
     /// Invoke handle-message using Component Model API.
     ///
     /// Uses WasmEngine for type-safe invocation with automatic parameter marshalling
@@ -1682,20 +1689,21 @@ where
         let sender_str = sender.as_str().to_string();
         let timeout = self.message_config().delivery_timeout();
         let delivery_timeout_ms = self.message_config().delivery_timeout_ms;
-        
+
         // Get Component Model engine
         let engine = self.component_engine.as_ref()
             .ok_or_else(|| WasmError::internal(
                 "Component Model engine not configured (uses_component_model() should have prevented this)"
             ))?;
-        
+
         // Get Component Model handle
-        let handle = self.component_handle.as_ref()
-            .ok_or_else(|| WasmError::component_not_found(format!(
+        let handle = self.component_handle.as_ref().ok_or_else(|| {
+            WasmError::component_not_found(format!(
                 "Component {} not loaded (no ComponentHandle)",
                 component_id_str
-            )))?;
-        
+            ))
+        })?;
+
         trace!(
             component_id = %component_id_str,
             sender = %sender_str,
@@ -1703,15 +1711,15 @@ where
             timeout_ms = delivery_timeout_ms,
             "Invoking handle-message via Component Model API"
         );
-        
+
         // Call handle-message via WasmEngine::call_handle_message()
         // Wrap with timeout for consistency with legacy path
         let result = tokio::time::timeout(
             timeout,
-            engine.call_handle_message(handle, &sender, &payload)
+            engine.call_handle_message(handle, &sender, &payload),
         )
         .await;
-        
+
         match result {
             Ok(Ok(())) => {
                 debug!(
@@ -1727,10 +1735,7 @@ where
             }
             Err(_) => {
                 // Timeout exceeded
-                Err(WasmError::execution_timeout(
-                    delivery_timeout_ms,
-                    None,
-                ))
+                Err(WasmError::execution_timeout(delivery_timeout_ms, None))
             }
         }
     }
@@ -2092,9 +2097,16 @@ where
         use crate::core::WasmError;
 
         match msg {
-            ComponentMessage::InterComponent { sender, to: _, payload }
+            ComponentMessage::InterComponent {
+                sender,
+                to: _,
+                payload,
+            }
             | ComponentMessage::InterComponentWithCorrelation {
-                sender, to: _, payload, ..
+                sender,
+                to: _,
+                payload,
+                ..
             } => {
                 let component_id_str = self.component_id().as_str();
                 let sender_str = sender.as_str();
@@ -2141,7 +2153,8 @@ where
 // to maintain clean separation of concerns (§4.3)
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used, reason = "unwrap acceptable in test code")]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::expect_used)]
 mod tests {
     use super::*;
 
@@ -2287,7 +2300,11 @@ mod tests {
         };
 
         match msg {
-            ComponentMessage::InterComponent { sender, to, payload } => {
+            ComponentMessage::InterComponent {
+                sender,
+                to,
+                payload,
+            } => {
                 assert_eq!(sender, sender_id);
                 assert_eq!(to, target_id);
                 assert_eq!(payload, vec![7, 8, 9]);
@@ -2726,12 +2743,12 @@ mod tests {
     // ========================================================================
     // WASM-TASK-006-HOTFIX Phase 2: Component Model Architecture Tests
     // ========================================================================
-    
+
     /// Test that new ComponentActor has no Component Model engine by default
     #[test]
     fn test_component_model_engine_not_set_by_default() {
         let actor = create_test_actor();
-        
+
         assert!(actor.component_engine().is_none());
         assert!(!actor.uses_component_model());
     }
@@ -2740,17 +2757,17 @@ mod tests {
     #[test]
     fn test_with_component_engine_builder() {
         use crate::runtime::WasmEngine;
-        
+
         let engine = Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
-        
+
         let actor = ComponentActor::new(
             ComponentId::new("test"),
             create_test_metadata(),
             CapabilitySet::new(),
             (),
         )
-        .with_component_engine(engine.clone());
-        
+        .with_component_engine(Arc::clone(&engine));
+
         assert!(actor.component_engine().is_some());
         assert!(actor.uses_component_model());
     }
@@ -2759,7 +2776,7 @@ mod tests {
     #[test]
     fn test_component_handle_not_loaded_by_default() {
         let actor = create_test_actor();
-        
+
         assert!(actor.component_handle().is_none());
     }
 
@@ -2767,10 +2784,10 @@ mod tests {
     #[test]
     fn test_set_component_handle() {
         let mut actor = create_test_actor();
-        
+
         // Verify the method signature compiles and the None case works
         assert!(actor.component_handle().is_none());
-        
+
         // Clear the handle (already None)
         actor.set_component_handle(None);
         assert!(actor.component_handle().is_none());
@@ -2780,11 +2797,11 @@ mod tests {
     #[test]
     fn test_uses_component_model_reflects_engine() {
         use crate::runtime::WasmEngine;
-        
+
         // Without engine
         let actor1 = create_test_actor();
         assert!(!actor1.uses_component_model());
-        
+
         // With engine
         let engine = Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
         let actor2 = ComponentActor::new(
@@ -2794,7 +2811,7 @@ mod tests {
             (),
         )
         .with_component_engine(engine);
-        
+
         assert!(actor2.uses_component_model());
     }
 
@@ -2802,9 +2819,9 @@ mod tests {
     #[test]
     fn test_legacy_and_component_model_coexistence() {
         use crate::runtime::WasmEngine;
-        
+
         let engine = Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
-        
+
         let actor = ComponentActor::new(
             ComponentId::new("test"),
             create_test_metadata(),
@@ -2812,10 +2829,10 @@ mod tests {
             (),
         )
         .with_component_engine(engine);
-        
+
         // Component Model engine set
         assert!(actor.uses_component_model());
-        
+
         // Legacy WASM runtime not set (they're independent during migration)
         assert!(!actor.is_wasm_loaded());
     }
@@ -2829,18 +2846,18 @@ mod tests {
     #[tokio::test]
     async fn test_invoke_handle_message_fails_without_engine() {
         let mut actor = create_test_actor();
-        
+
         // Verify no Component Model engine
         assert!(!actor.uses_component_model());
-        
+
         let sender = ComponentId::new("sender");
         let payload = vec![1, 2, 3];
-        
+
         // This should fail because engine is not configured (legacy path removed)
         let result = actor
             .invoke_handle_message_with_timeout(sender, payload)
             .await;
-        
+
         // Should fail with Internal (engine not configured)
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -2855,9 +2872,9 @@ mod tests {
     #[tokio::test]
     async fn test_invoke_handle_message_uses_component_model_path_with_engine() {
         use crate::runtime::WasmEngine;
-        
+
         let engine = Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
-        
+
         let mut actor = ComponentActor::new(
             ComponentId::new("test-component"),
             create_test_metadata(),
@@ -2865,19 +2882,19 @@ mod tests {
             (),
         )
         .with_component_engine(engine);
-        
+
         // Verify Component Model engine is configured
         assert!(actor.uses_component_model());
-        
+
         let sender = ComponentId::new("sender");
         let payload = vec![1, 2, 3];
-        
+
         // This should use Component Model path
         // Since component_handle is not set, it should fail with ComponentNotFound
         let result = actor
             .invoke_handle_message_with_timeout(sender, payload)
             .await;
-        
+
         // Should fail because component_handle is None
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -2892,9 +2909,9 @@ mod tests {
     #[tokio::test]
     async fn test_component_model_handle_message_fails_without_handle() {
         use crate::runtime::WasmEngine;
-        
+
         let engine = Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
-        
+
         let mut actor = ComponentActor::new(
             ComponentId::new("test-component"),
             create_test_metadata(),
@@ -2902,19 +2919,19 @@ mod tests {
             (),
         )
         .with_component_engine(engine);
-        
+
         // Don't set component_handle - it should fail with descriptive error
         assert!(actor.component_handle().is_none());
-        
+
         let sender = ComponentId::new("sender");
         let payload = vec![1, 2, 3, 4, 5];
-        
+
         let result = actor
             .invoke_handle_message_with_timeout(sender, payload)
             .await;
-        
+
         assert!(result.is_err());
-        
+
         let err_str = result.unwrap_err().to_string();
         // Error should mention component not loaded
         assert!(
@@ -2928,43 +2945,43 @@ mod tests {
     /// (Task 2.5 implemented WasmEngine::call_handle_message)
     #[tokio::test]
     async fn test_component_model_handle_message_invocation() {
-        use crate::runtime::WasmEngine;
         use crate::core::runtime::RuntimeEngine;
-        
+        use crate::runtime::WasmEngine;
+
         let engine = Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
-        
+
         // Load handle-message-component.wasm which has handle-message export
         let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests/fixtures/handle-message-component.wasm");
-        
+
         let wasm_bytes = std::fs::read(&fixture_path).expect("Failed to read fixture");
-        
+
         let component_id = ComponentId::new("test-component");
-        
+
         // Load the component
         let handle = engine
             .load_component(&component_id, &wasm_bytes)
             .await
             .expect("Failed to load component");
-        
+
         let mut actor = ComponentActor::new(
             component_id.clone(),
             create_test_metadata(),
             CapabilitySet::new(),
             (),
         )
-        .with_component_engine(engine.clone());
-        
+        .with_component_engine(Arc::clone(&engine));
+
         // Set the component handle
         actor.set_component_handle(Some(handle));
-        
+
         let sender = ComponentId::new("sender");
         let payload = vec![1, 2, 3];
-        
+
         let result = actor
             .invoke_handle_message_with_timeout(sender, payload)
             .await;
-        
+
         // Should succeed - Task 2.5 implemented WasmEngine::call_handle_message()
         assert!(
             result.is_ok(),
@@ -2976,46 +2993,46 @@ mod tests {
     /// Test Component Model path fails gracefully when component lacks handle-message export
     #[tokio::test]
     async fn test_component_model_handle_message_no_export() {
-        use crate::runtime::WasmEngine;
         use crate::core::runtime::RuntimeEngine;
-        
+        use crate::runtime::WasmEngine;
+
         let engine = Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
-        
+
         // Load hello_world.wasm which does NOT have handle-message export
         let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests/fixtures/hello_world.wasm");
-        
+
         let wasm_bytes = std::fs::read(&fixture_path).expect("Failed to read fixture");
-        
+
         let component_id = ComponentId::new("test-component");
-        
+
         // Load the component
         let handle = engine
             .load_component(&component_id, &wasm_bytes)
             .await
             .expect("Failed to load component");
-        
+
         let mut actor = ComponentActor::new(
             component_id.clone(),
             create_test_metadata(),
             CapabilitySet::new(),
             (),
         )
-        .with_component_engine(engine.clone());
-        
+        .with_component_engine(Arc::clone(&engine));
+
         // Set the component handle
         actor.set_component_handle(Some(handle));
-        
+
         let sender = ComponentId::new("sender");
         let payload = vec![1, 2, 3];
-        
+
         let result = actor
             .invoke_handle_message_with_timeout(sender, payload)
             .await;
-        
+
         // Should fail - component doesn't have handle-message export
         assert!(result.is_err());
-        
+
         let err_str = result.unwrap_err().to_string();
         // Error should mention handle-message export
         assert!(
@@ -3030,24 +3047,21 @@ mod tests {
     #[tokio::test]
     async fn test_handle_message_requires_component_model_engine() {
         use crate::runtime::WasmEngine;
-        
+
         // Test 1: Without engine - fails with Internal error (engine not configured)
         let mut actor_no_engine = create_test_actor();
         assert!(!actor_no_engine.uses_component_model());
-        
+
         let result_no_engine = actor_no_engine
-            .invoke_handle_message_with_timeout(
-                ComponentId::new("sender"),
-                vec![1, 2, 3],
-            )
+            .invoke_handle_message_with_timeout(ComponentId::new("sender"), vec![1, 2, 3])
             .await;
-        
+
         // Should fail with Internal (engine not configured - legacy path removed)
         assert!(
             matches!(result_no_engine.unwrap_err(), WasmError::Internal { .. }),
             "Without engine should fail with Internal error"
         );
-        
+
         // Test 2: With engine - uses Component Model path (fails with ComponentNotFound because no handle)
         let engine = Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
         let mut actor_cm = ComponentActor::new(
@@ -3057,16 +3071,13 @@ mod tests {
             (),
         )
         .with_component_engine(engine);
-        
+
         assert!(actor_cm.uses_component_model());
-        
+
         let result_cm = actor_cm
-            .invoke_handle_message_with_timeout(
-                ComponentId::new("sender"),
-                vec![1, 2, 3],
-            )
+            .invoke_handle_message_with_timeout(ComponentId::new("sender"), vec![1, 2, 3])
             .await;
-        
+
         // Component Model path should fail with ComponentNotFound (no handle loaded)
         assert!(
             matches!(result_cm.unwrap_err(), WasmError::ComponentNotFound { .. }),

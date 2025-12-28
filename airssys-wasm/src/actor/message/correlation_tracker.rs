@@ -51,8 +51,8 @@
 //! - **WASM-TASK-004 Phase 5 Task 5.1**: Message Correlation Implementation
 
 // Layer 1: Standard library imports
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 
 // Layer 2: Third-party crate imports
 use chrono::Utc;
@@ -444,9 +444,16 @@ impl Default for CorrelationTracker {
     }
 }
 
-#[allow(clippy::expect_used, clippy::unwrap_used, clippy::unwrap_err_used, clippy::expect_err_used, clippy::panic, clippy::unwrap_on_result, clippy::indexing_slicing, clippy::too_many_arguments, clippy::type_complexity, reason = "test code")]
+#[allow(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    reason = "test code"
+)]
 #[cfg(test)]
-#[expect(clippy::unwrap_used, reason = "unwrap acceptable in test code")]
 mod tests {
     use super::*;
     use crate::core::ComponentId;
@@ -655,7 +662,7 @@ mod tests {
     #[tokio::test]
     async fn test_completed_count_multiple_resolves() {
         let tracker = CorrelationTracker::new();
-        
+
         // Register and resolve 3 requests
         for i in 0..3 {
             let (tx, _rx) = oneshot::channel();
@@ -720,7 +727,7 @@ mod tests {
     #[tokio::test]
     async fn test_counts_are_independent() {
         let tracker = CorrelationTracker::new();
-        
+
         // Register request 1 (will be resolved)
         let (tx1, _rx1) = oneshot::channel();
         let corr_id1 = Uuid::new_v4();

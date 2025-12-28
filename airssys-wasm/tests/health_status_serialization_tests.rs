@@ -1,6 +1,6 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Integration tests for HealthStatus serialization across formats.
-#![allow(clippy::expect_used, clippy::unwrap_used, reason = "test code")]//!
-//! This module tests HealthStatus serialization and deserialization through
 //! Borsh, CBOR, and JSON formats, ensuring cross-format compatibility and
 //! multicodec round-trip fidelity.
 //!
@@ -17,11 +17,6 @@
 //!
 //! - **WASM-TASK-004 Phase 1 Task 1.4**: Health Check Implementation
 //! - **ADR-WASM-001**: Inter-Component Communication Design (multicodec)
-
-#![expect(
-    clippy::expect_used,
-    reason = "expect is acceptable in test code for clear error messages"
-)]
 
 // Layer 1: Standard library imports
 use std::time::Instant;

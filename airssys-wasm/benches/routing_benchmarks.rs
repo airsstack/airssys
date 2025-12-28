@@ -1,8 +1,8 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Performance benchmarks for actor address routing.
 //!
 //! Benchmarks verify <500ns routing latency target from ADR-WASM-009.
-
-#![expect(clippy::unwrap_used, reason = "unwrap is acceptable in benchmark code")]
 
 // Layer 1: Standard library imports
 use std::hint::black_box;

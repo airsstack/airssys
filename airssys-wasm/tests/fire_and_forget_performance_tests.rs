@@ -1,6 +1,6 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Fire-and-Forget Performance Correctness Tests (WASM-TASK-006 Phase 2 Task 2.3)
-#![allow(clippy::expect_used, clippy::unwrap_used, reason = "test code")]//!
-//! These tests verify the **CORRECTNESS** of fire-and-forget messaging.
 //! NO timing assertions - performance is validated via benchmarks only.
 //!
 //! # Test Organization (8 tests)
@@ -27,9 +27,6 @@
 //! - WASM-TASK-006 Phase 2 Task 2.3
 //! - ADR-WASM-009: Component Communication Model
 //! - ADR-WASM-001: Multicodec Compatibility Strategy
-
-#![allow(clippy::unwrap_used, reason = "unwrap is acceptable in test code")]
-#![allow(clippy::expect_used, reason = "expect is acceptable in test code")]
 
 // Layer 1: Standard library imports
 use std::sync::Arc;

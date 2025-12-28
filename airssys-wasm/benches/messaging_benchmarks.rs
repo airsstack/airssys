@@ -1,3 +1,5 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Benchmarks for messaging module.
 //!
 //! This benchmark suite measures the performance of inter-component
@@ -7,10 +9,9 @@
 //! **Note:** This is a stub placeholder. Actual benchmarks will be
 //! implemented in Phase 2 when messaging functionality is fully developed.
 
-#![allow(clippy::clone_on_ref_ptr, reason = "clone is acceptable in benchmark code")]
-use criterion::{criterion_group, criterion_main, Criterion};
-use airssys_wasm::messaging::{FireAndForget, MulticodecCodec, RequestResponse, ResponseRouter};
 use airssys_wasm::actor::message::correlation_tracker::CorrelationTracker;
+use airssys_wasm::messaging::{FireAndForget, MulticodecCodec, RequestResponse, ResponseRouter};
+use criterion::{criterion_group, criterion_main, Criterion};
 use std::sync::Arc;
 
 fn benchmark_fire_and_forget_creation(c: &mut Criterion) {
@@ -41,7 +42,7 @@ fn benchmark_router_creation(c: &mut Criterion) {
     c.bench_function("router_creation", |b| {
         let tracker = Arc::new(CorrelationTracker::new());
         b.iter(|| {
-            ResponseRouter::new(tracker.clone());
+            ResponseRouter::new(Arc::clone(&tracker));
         });
     });
 }

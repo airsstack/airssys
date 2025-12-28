@@ -751,11 +751,17 @@ impl std::fmt::Debug for WasmEngine {
     }
 }
 
-#[allow(clippy::expect_used, clippy::unwrap_used, clippy::unwrap_err_used, clippy::expect_err_used, clippy::panic, clippy::unwrap_on_result, clippy::indexing_slicing, clippy::too_many_arguments, clippy::type_complexity, reason = "test code")]
+#[allow(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    reason = "test code"
+)]
 #[cfg(test)]
 mod tests {
-    #![allow(clippy::unwrap_used)]
-    #![allow(clippy::expect_used)]
 
     use super::*;
 
@@ -819,7 +825,10 @@ mod tests {
         let result = engine.call_handle_message(&handle, &sender, payload).await;
 
         // Should fail with execution error (no handle-message export)
-        assert!(result.is_err(), "Expected error when no handle-message export");
+        assert!(
+            result.is_err(),
+            "Expected error when no handle-message export"
+        );
         let err_msg = result.unwrap_err().to_string();
         assert!(
             err_msg.contains("handle-message") || err_msg.contains("no handle-message"),
@@ -910,9 +919,7 @@ mod tests {
         ];
 
         for sender in &senders {
-            let result = engine
-                .call_handle_message(&handle, sender, b"test")
-                .await;
+            let result = engine.call_handle_message(&handle, sender, b"test").await;
             assert!(
                 result.is_ok(),
                 "Expected success with sender '{}': {:?}",
@@ -948,10 +955,15 @@ mod tests {
         let payload = b"test response";
         let is_error = 0;
 
-        let result = engine.call_handle_callback(&handle, request_id, payload, is_error).await;
+        let result = engine
+            .call_handle_callback(&handle, request_id, payload, is_error)
+            .await;
 
         // Should fail with execution error (no handle-callback export)
-        assert!(result.is_err(), "Expected error when no handle-callback export");
+        assert!(
+            result.is_err(),
+            "Expected error when no handle-callback export"
+        );
         let err_msg = result.unwrap_err().to_string();
         assert!(
             err_msg.contains("handle-callback") || err_msg.contains("no handle-callback"),
@@ -982,7 +994,9 @@ mod tests {
         let payload = b"response data";
         let is_error = 0;
 
-        let result = engine.call_handle_callback(&handle, request_id, payload, is_error).await;
+        let result = engine
+            .call_handle_callback(&handle, request_id, payload, is_error)
+            .await;
 
         // Should succeed
         assert!(
@@ -1011,7 +1025,9 @@ mod tests {
         let payload = b"error message";
         let is_error = 1;
 
-        let result = engine.call_handle_callback(&handle, request_id, payload, is_error).await;
+        let result = engine
+            .call_handle_callback(&handle, request_id, payload, is_error)
+            .await;
 
         // Should succeed (component handles error responses)
         assert!(
@@ -1040,7 +1056,9 @@ mod tests {
         let payload: &[u8] = &[];
         let is_error = 0;
 
-        let result = engine.call_handle_callback(&handle, request_id, payload, is_error).await;
+        let result = engine
+            .call_handle_callback(&handle, request_id, payload, is_error)
+            .await;
 
         // Should succeed with empty payload
         assert!(

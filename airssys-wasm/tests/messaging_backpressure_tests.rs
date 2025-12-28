@@ -1,5 +1,5 @@
-#![allow(clippy::unwrap_used, reason = "unwrap is acceptable in test code")]
-#![allow(clippy::expect_used, reason = "expect is acceptable in test code")]
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Backpressure handling tests for ComponentActor (WASM-TASK-006 Task 1.2).
 //!
 //! This test suite validates backpressure detection and handling including:
@@ -35,7 +35,7 @@ use std::time::Duration;
 
 // Layer 3: Internal module imports
 use airssys_wasm::actor::{ComponentActor, MessageReceptionConfig};
-use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits};
+use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata};
 use airssys_wasm::messaging::MessageReceptionMetrics;
 
 // Test helpers
@@ -104,13 +104,8 @@ fn test_backpressure_config_disabled() {
         enable_backpressure: false,
     };
 
-    let actor = ComponentActor::new(
-        ComponentId::new("test"),
-        metadata,
-        CapabilitySet::new(),
-        (),
-    )
-    .with_message_config(config);
+    let actor = ComponentActor::new(ComponentId::new("test"), metadata, CapabilitySet::new(), ())
+        .with_message_config(config);
 
     assert!(!actor.message_config().enable_backpressure);
 }
@@ -257,7 +252,6 @@ async fn test_concurrent_queue_depth_updates_under_load() {
     let depth = metrics.get_queue_depth();
     assert!(depth < 500);
 }
-
 
 // ============================================================================
 // INTEGRATION TESTS: Backpressure Recovery

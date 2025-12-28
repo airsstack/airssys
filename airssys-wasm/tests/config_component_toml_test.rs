@@ -1,6 +1,4 @@
-#![allow(clippy::unwrap_used)]
-#![allow(clippy::expect_used)]
-#![allow(clippy::panic)]
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
 
 use airssys_wasm::core::config::{ComponentConfigToml, ConfigError};
 use std::fs;

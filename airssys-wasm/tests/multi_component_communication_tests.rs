@@ -1,3 +1,5 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Multi-Component Communication Integration Tests
 //!
 //! Validates inter-component messaging, routing, and coordination patterns across
@@ -34,19 +36,6 @@
 //! - **KNOWLEDGE-WASM-005**: Inter-Component Messaging Architecture
 //! - **WASM-TASK-004 Phase 6 Task 6.1 Checkpoint 2**: Multi-Component Communication
 
-#![allow(
-    clippy::unwrap_used,
-    reason = "unwrap is acceptable in test code for clear error messages"
-)]
-#![allow(
-    clippy::expect_used,
-    reason = "expect is acceptable in test code for clear error messages"
-)]
-#![allow(
-    clippy::useless_vec,
-    reason = "vec! is clearer than array syntax in test data"
-)]
-
 // Layer 1: Standard library imports
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
@@ -64,7 +53,9 @@ use airssys_wasm::actor::{
     ActorState, ComponentActor, ComponentRegistry, CorrelationTracker, MessageBrokerWrapper,
     MessagePublisher, PendingRequest, SubscriberManager,
 };
-use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits, messaging::ResponseMessage};
+use airssys_wasm::core::{
+    messaging::ResponseMessage, CapabilitySet, ComponentId, ComponentMetadata,
+};
 use chrono::Utc;
 
 // ==============================================================================
@@ -1339,7 +1330,7 @@ async fn test_concurrent_requests_from_multiple_components() {
         let handle = tokio::spawn(async move {
             let (response_tx, response_rx) = tokio::sync::oneshot::channel();
             let correlation_id = Uuid::new_v4();
-            let _request_payload = vec![i as u8];
+            let _request_payload = [i as u8];
 
             // Register pending request
             let pending = PendingRequest {

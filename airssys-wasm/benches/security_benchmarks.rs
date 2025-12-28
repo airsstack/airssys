@@ -1,3 +1,5 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Security enforcement performance benchmarks.
 //!
 //! Validates that DEBT-WASM-004 Item #3 security checks meet performance targets:
@@ -21,8 +23,6 @@
 //! - **Action Plan**: `.memory-bank/sub-projects/airssys-wasm/tasks/debt-wasm-004-item-3-action-plan.md`
 //! - **DEBT-WASM-004**: Technical Debt Resolution (Item #3: Capability Enforcement)
 //! - **ADR-WASM-005**: Capability-Based Security Model
-
-#![allow(clippy::unwrap_used, reason = "unwrap is acceptable in benchmark code")]
 
 // Layer 1: Standard library imports
 use std::hint::black_box;

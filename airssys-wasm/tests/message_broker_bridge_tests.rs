@@ -1,3 +1,5 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Unit tests for MessageBrokerBridge implementation.
 //!
 //! Tests verify:
@@ -20,9 +22,6 @@
 //! - **WASM-TASK-004 Phase 4 Task 4.1**: MessageBroker Setup for Components
 //! - **ADR-WASM-018**: Three-Layer Architecture (Layer Separation)
 //! - **ADR-WASM-009**: Component Communication Model
-
-#![allow(clippy::unwrap_used, reason = "unwrap is acceptable in test code")]
-#![allow(clippy::expect_used, reason = "expect is acceptable in test code")]
 
 use airssys_rt::broker::InMemoryMessageBroker;
 use airssys_wasm::actor::{ComponentMessage, MessageBrokerBridge, MessageBrokerWrapper};

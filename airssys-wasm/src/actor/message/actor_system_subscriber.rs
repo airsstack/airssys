@@ -92,8 +92,8 @@ use tokio::task::JoinHandle;
 
 // Layer 3: Internal module imports
 use crate::actor::component::ComponentRegistry;
-use crate::core::ComponentMessage;
 use crate::actor::message::SubscriberManager;
+use crate::core::ComponentMessage;
 use crate::core::{ComponentId, WasmError};
 use airssys_rt::broker::MessageBroker;
 use airssys_rt::message::MessageEnvelope;
@@ -251,20 +251,20 @@ impl<B: MessageBroker<ComponentMessage> + Send + Sync + 'static> ActorSystemSubs
         sender: UnboundedSender<ComponentMessage>,
     ) -> Result<(), WasmError> {
         let mut senders = self.mailbox_senders.write().await;
-        
+
         if senders.contains_key(&component_id) {
             return Err(WasmError::internal(format!(
                 "Mailbox already registered for component: {}",
                 component_id.as_str()
             )));
         }
-        
+
         senders.insert(component_id.clone(), sender);
         tracing::debug!(
             component_id = %component_id.as_str(),
             "Registered mailbox sender for message delivery"
         );
-        
+
         Ok(())
     }
 
@@ -301,7 +301,7 @@ impl<B: MessageBroker<ComponentMessage> + Send + Sync + 'static> ActorSystemSubs
     ) -> Option<UnboundedSender<ComponentMessage>> {
         let mut senders = self.mailbox_senders.write().await;
         let removed = senders.remove(component_id);
-        
+
         if removed.is_some() {
             tracing::debug!(
                 component_id = %component_id.as_str(),
@@ -313,7 +313,7 @@ impl<B: MessageBroker<ComponentMessage> + Send + Sync + 'static> ActorSystemSubs
                 "Attempted to unregister non-existent mailbox sender"
             );
         }
-        
+
         removed
     }
 
@@ -441,7 +441,7 @@ impl<B: MessageBroker<ComponentMessage> + Send + Sync + 'static> ActorSystemSubs
     ) -> Result<(), WasmError> {
         // 1. Extract target ComponentId from message
         let target = Self::extract_target(&envelope.payload)?;
-        
+
         // 2. Look up MailboxSender for target component
         let senders = mailbox_senders.read().await;
         let sender = senders.get(&target).ok_or_else(|| {
@@ -450,7 +450,7 @@ impl<B: MessageBroker<ComponentMessage> + Send + Sync + 'static> ActorSystemSubs
                 target.as_str()
             ))
         })?;
-        
+
         // 3. ACTUAL DELIVERY - Send message to component's mailbox
         sender.send(envelope.payload).map_err(|e| {
             WasmError::messaging_error(format!(
@@ -459,12 +459,12 @@ impl<B: MessageBroker<ComponentMessage> + Send + Sync + 'static> ActorSystemSubs
                 e
             ))
         })?;
-        
+
         tracing::debug!(
             target = %target.as_str(),
             "Message delivered to component mailbox"
         );
-        
+
         Ok(())
     }
 
@@ -561,7 +561,7 @@ impl<B: MessageBroker<ComponentMessage>> Drop for ActorSystemSubscriber<B> {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)] // Test code: unwrap is acceptable
+#[allow(clippy::unwrap_used, clippy::panic)] // Test code: unwrap is acceptable
 mod tests {
     use super::*;
     use airssys_rt::broker::InMemoryMessageBroker;
@@ -678,7 +678,7 @@ mod tests {
 
         // Verify registered
         assert_eq!(subscriber.mailbox_count().await, 1);
-        
+
         // Verify can lookup in internal map
         let senders = subscriber.mailbox_senders.read().await;
         assert!(senders.contains_key(&component_id));
@@ -702,7 +702,10 @@ mod tests {
         let (tx2, _rx2) = tokio::sync::mpsc::unbounded_channel();
         let result = subscriber.register_mailbox(component_id.clone(), tx2).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("already registered"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("already registered"));
     }
 
     #[tokio::test]
@@ -716,7 +719,10 @@ mod tests {
         let component_id = ComponentId::new("test-component");
 
         // Register then unregister
-        subscriber.register_mailbox(component_id.clone(), tx).await.unwrap();
+        subscriber
+            .register_mailbox(component_id.clone(), tx)
+            .await
+            .unwrap();
         assert_eq!(subscriber.mailbox_count().await, 1);
 
         let removed = subscriber.unregister_mailbox(&component_id).await;
@@ -748,10 +754,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_message_actually_delivered() {
-        let mailbox_senders: RwLock<HashMap<ComponentId, UnboundedSender<ComponentMessage>>> = 
+        let mailbox_senders: RwLock<HashMap<ComponentId, UnboundedSender<ComponentMessage>>> =
             RwLock::new(HashMap::new());
         let subscriber_manager = Arc::new(SubscriberManager::new());
-        
+
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
         let target = ComponentId::new("receiver");
 
@@ -781,10 +787,14 @@ mod tests {
         // CRITICAL: Verify message was ACTUALLY RECEIVED in mailbox
         let received = rx.try_recv();
         assert!(received.is_ok(), "Message was NOT delivered to mailbox");
-        
+
         let received_msg = received.unwrap();
         match received_msg {
-            ComponentMessage::InterComponent { sender, to, payload } => {
+            ComponentMessage::InterComponent {
+                sender,
+                to,
+                payload,
+            } => {
                 assert_eq!(sender.as_str(), "sender");
                 assert_eq!(to.as_str(), "receiver");
                 assert_eq!(payload, vec![1, 2, 3]);
@@ -795,10 +805,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_send_to_unregistered_fails() {
-        let mailbox_senders: RwLock<HashMap<ComponentId, UnboundedSender<ComponentMessage>>> = 
+        let mailbox_senders: RwLock<HashMap<ComponentId, UnboundedSender<ComponentMessage>>> =
             RwLock::new(HashMap::new());
         let subscriber_manager = Arc::new(SubscriberManager::new());
-        
+
         // Do NOT register any mailbox
         let target = ComponentId::new("nonexistent");
 
@@ -822,10 +832,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_message_delivery_with_correlation() {
-        let mailbox_senders: RwLock<HashMap<ComponentId, UnboundedSender<ComponentMessage>>> = 
+        let mailbox_senders: RwLock<HashMap<ComponentId, UnboundedSender<ComponentMessage>>> =
             RwLock::new(HashMap::new());
         let subscriber_manager = Arc::new(SubscriberManager::new());
-        
+
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
         let target = ComponentId::new("receiver");
         let correlation_id = uuid::Uuid::new_v4();
@@ -857,9 +867,14 @@ mod tests {
         // Verify message received
         let received = rx.try_recv();
         assert!(received.is_ok(), "Message was NOT delivered to mailbox");
-        
+
         match received.unwrap() {
-            ComponentMessage::InterComponentWithCorrelation { sender, to, payload, correlation_id: cid } => {
+            ComponentMessage::InterComponentWithCorrelation {
+                sender,
+                to,
+                payload,
+                correlation_id: cid,
+            } => {
                 assert_eq!(sender.as_str(), "sender");
                 assert_eq!(to.as_str(), "receiver");
                 assert_eq!(payload, vec![4, 5, 6]);
@@ -887,18 +902,22 @@ mod tests {
         assert_eq!(subscriber.mailbox_count().await, 5);
 
         // Unregister some
-        subscriber.unregister_mailbox(&ComponentId::new("component-0")).await;
-        subscriber.unregister_mailbox(&ComponentId::new("component-2")).await;
+        subscriber
+            .unregister_mailbox(&ComponentId::new("component-0"))
+            .await;
+        subscriber
+            .unregister_mailbox(&ComponentId::new("component-2"))
+            .await;
 
         assert_eq!(subscriber.mailbox_count().await, 3);
     }
 
     #[tokio::test]
     async fn test_route_to_closed_channel_fails() {
-        let mailbox_senders: RwLock<HashMap<ComponentId, UnboundedSender<ComponentMessage>>> = 
+        let mailbox_senders: RwLock<HashMap<ComponentId, UnboundedSender<ComponentMessage>>> =
             RwLock::new(HashMap::new());
         let subscriber_manager = Arc::new(SubscriberManager::new());
-        
+
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
         let target = ComponentId::new("receiver");
 
@@ -926,6 +945,9 @@ mod tests {
         ).await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Failed to deliver"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Failed to deliver"));
     }
 }

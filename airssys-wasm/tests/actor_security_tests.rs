@@ -1,6 +1,6 @@
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+
 //! Security tests for inter-component message capability enforcement.
-#![allow(clippy::expect_used, clippy::unwrap_used, reason = "test code")]//!
-//! Tests verify that DEBT-WASM-004 Item #3 is correctly implemented:
 //! - Sender authorization (capability checking)
 //! - Payload size validation
 //! - Rate limiting
@@ -26,11 +26,7 @@
 //! - **DEBT-WASM-004**: Technical Debt Resolution (Item #3: Capability Enforcement)
 //! - **ADR-WASM-005**: Capability-Based Security Model
 
-#![allow(clippy::unwrap_used, reason = "unwrap is acceptable in test code")]
-#![expect(
-    clippy::panic,
-    reason = "panic is acceptable in test code for assertion failures"
-)]
+//!
 
 // Layer 1: Standard library imports
 use std::time::{Duration, Instant};
@@ -42,8 +38,8 @@ use uuid::Uuid;
 use airssys_wasm::actor::{ComponentActor, ComponentMessage};
 use airssys_wasm::core::rate_limiter::{MessageRateLimiter, RateLimiterConfig, DEFAULT_RATE_LIMIT};
 use airssys_wasm::core::{
-    Capability, CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits, SecurityConfig,
-    SecurityMode, TopicPattern, WasmError,
+    Capability, CapabilitySet, ComponentId, ComponentMetadata, SecurityConfig, SecurityMode,
+    TopicPattern, WasmError,
 };
 
 // ============================================================================
@@ -62,8 +58,6 @@ fn create_test_metadata(name: &str) -> ComponentMetadata {
         timeout_seconds: 5,
     }
 }
-
-/// Create component actor with specific capabilities.
 
 /// Create component actor with specific capabilities.
 ///
