@@ -21,7 +21,7 @@ use tokio::time::sleep;
 
 // Layer 3: Internal module imports
 use airssys_wasm::actor::ComponentActor;
-use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits};
+use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata};
 
 /// Custom state tracking message processing statistics
 #[derive(Debug, Clone, Default)]

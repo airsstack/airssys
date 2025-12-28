@@ -17,7 +17,7 @@ use chrono::Utc;
 
 // Layer 3: Internal module imports
 use airssys_wasm::actor::{ActorState, ComponentActor};
-use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits};
+use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata};
 
 /// Create example component metadata
 fn create_example_metadata() -> ComponentMetadata {
@@ -26,9 +26,9 @@ fn create_example_metadata() -> ComponentMetadata {
         version: "1.0.0".to_string(),
         author: "Example Author".to_string(),
         description: Some("Basic ComponentActor demonstration".to_string()),
-        max_memory_bytes: 64 * 1024 * 1024,  // 64MB
-        max_fuel: 1_000_000,                 // 1M fuel
-        timeout_seconds: 5,                     // 5s timeout
+        max_memory_bytes: 64 * 1024 * 1024, // 64MB
+        max_fuel: 1_000_000,                // 1M fuel
+        timeout_seconds: 5,                 // 5s timeout
     }
 }
 
