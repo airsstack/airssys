@@ -1,5 +1,5 @@
 //! Integration tests for WasmEngine::call_handle_message()
-//!
+#![allow(clippy::expect_used, clippy::unwrap_used, reason = "test code")]//!
 //! Tests the Component Model path for message handling via the
 //! WasmEngine API. These tests verify:
 //! - Successful message delivery to components with handle-message export
@@ -27,7 +27,8 @@ use airssys_wasm::core::ComponentId;
 use airssys_wasm::runtime::WasmEngine;
 
 /// Load fixture file by name
-fn load_fixture(name: &str) -> Vec<u8> {
+#[allow(clippy::panic)]
+fn load_fixture(name: fn load_fixture(name: &str) -> Vec<u8> {str) -> Vec<u8> {
     let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("tests/fixtures")
         .join(name);

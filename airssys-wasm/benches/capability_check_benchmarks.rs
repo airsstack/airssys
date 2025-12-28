@@ -336,12 +336,14 @@ fn bench_global_check_capability(c: &mut Criterion) {
 
     c.bench_function("global_check_capability", |b| {
         b.iter(|| {
-            airssys_wasm::security::check_capability(
-                black_box(component_id),
-                black_box("/app/data/file.json"),
-                black_box("read"),
+            black_box(
+                airssys_wasm::security::check_capability(
+                    black_box(component_id),
+                    black_box("/app/data/file.json"),
+                    black_box("read"),
+                )
+                .expect("check failed")
             )
-            .expect("check failed")
         });
     });
 }

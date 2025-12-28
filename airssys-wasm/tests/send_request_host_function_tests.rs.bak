@@ -35,8 +35,9 @@ use airssys_wasm::core::{
     WasmError,
 };
 use airssys_wasm::runtime::{
-    create_host_context, AsyncHostRegistryBuilder, MessagingService, SendRequestHostFunction,
+    create_host_context, AsyncHostRegistryBuilder, SendRequestHostFunction,
 };
+use airssys_wasm::messaging::MessagingService;
 use uuid::Uuid;
 
 /// Helper to create encoded args for send-request host function.

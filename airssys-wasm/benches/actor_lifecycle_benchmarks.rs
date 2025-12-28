@@ -48,11 +48,6 @@ fn create_test_metadata(name: &str) -> ComponentMetadata {
     }
 }
 
-/// Helper: Create test capabilities
-fn create_test_capabilities() -> CapabilitySet {
-    CapabilitySet::new()
-}
-
 // ============================================================================
 // Category A: Component Lifecycle Benchmarks (3 benchmarks)
 // ============================================================================

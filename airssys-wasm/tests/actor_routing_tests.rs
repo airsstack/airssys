@@ -1,8 +1,5 @@
 //! Integration tests for actor address routing.
-//!
-//! Tests end-to-end message delivery:
-//! - ComponentSpawner creates ComponentActor
-//! - ComponentRegistry stores ActorAddress
+#![allow(clippy::expect_used, clippy::unwrap_used, reason = "test code")]//!
 //! - MessageRouter delivers messages via ActorAddress
 //! - ComponentActor receives messages
 
@@ -10,10 +7,7 @@
     clippy::expect_used,
     reason = "expect is acceptable in test code for clear error messages"
 )]
-#![expect(clippy::unwrap_used, reason = "unwrap is acceptable in test code")]
-
-// Layer 1: Standard library imports
-use std::path::PathBuf;
+#![allow(clippy::unwrap_used, reason = "unwrap is acceptable in test code")]
 
 // Layer 2: Third-party crate imports
 // (none)
@@ -22,7 +16,7 @@ use std::path::PathBuf;
 use airssys_rt::broker::InMemoryMessageBroker;
 use airssys_rt::system::{ActorSystem, SystemConfig};
 use airssys_wasm::actor::{ComponentMessage, ComponentRegistry, ComponentSpawner};
-use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits};
+use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata};
 
 fn create_test_metadata() -> ComponentMetadata {
     ComponentMetadata {

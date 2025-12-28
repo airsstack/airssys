@@ -1,0 +1,363 @@
+//! Integration tests for Response Routing and Callbacks (WASM-TASK-006 Phase 3 Task 3.2).
+//!
+//! These tests verify the end-to-end response routing flow:
+//! 1. send-request creates pending request with correlation tracking
+//! 2. handle-message returns response as return value
+//! 3. ResponseRouter routes response to requester
+//! 4. handle-callback is invoked on requester component
+//!
+//! # Key Pattern (KNOWLEDGE-WASM-029)
+//!
+//! - NO `send-response` host function
+//! - Response IS the return value from `handle-message`
+//! - Correlation-based routing via CorrelationTracker
+//!
+//! # References
+//!
+//! - **KNOWLEDGE-WASM-029**: Messaging Patterns
+//! - **ADR-WASM-009**: Component Communication Model
+//! - **WASM-TASK-006 Phase 3 Task 3.2**: Response Routing and Callbacks
+
+#![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
+
+use tokio::time::{Duration, Instant};
+
+use airssys_wasm::actor::message::{PendingRequest, RequestError};
+use airssys_wasm::core::{ComponentId, RuntimeEngine};
+use airssys_wasm::messaging::MessagingService;
+use airssys_wasm::runtime::WasmEngine;
+use tokio::sync::oneshot;
+use uuid::Uuid;
+
+// ============================================================================
+// ResponseRouter Integration Tests
+// ============================================================================
+
+/// Test complete response routing flow: register → route → receive
+#[tokio::test]
+async fn test_response_routing_complete_flow() {
+    // 1. Create messaging service
+    let service = MessagingService::new();
+    let tracker = service.correlation_tracker();
+    let router = service.response_router();
+
+    // 2. Register a pending request (simulating send-request)
+    let correlation_id = Uuid::new_v4();
+    let (tx, rx) = oneshot::channel();
+
+    let pending = PendingRequest {
+        correlation_id,
+        response_tx: tx,
+        requested_at: Instant::now(),
+        timeout: Duration::from_secs(30),
+        from: ComponentId::new("requester-component"),
+        to: ComponentId::new("responder-component"),
+    };
+
+    tracker.register_pending(pending).await.unwrap();
+    assert!(tracker.contains(&correlation_id));
+
+    // 3. Route response (simulating handle-message return)
+    let response_payload = b"response data".to_vec();
+    router
+        .route_response(
+            correlation_id,
+            Ok(response_payload.clone()),
+            ComponentId::new("responder-component"),
+        )
+        .await
+        .unwrap();
+
+    // 4. Verify response was received
+    let response = rx.await.unwrap();
+    assert_eq!(response.correlation_id, correlation_id);
+    assert!(response.result.is_ok());
+    assert_eq!(response.result.unwrap(), response_payload);
+
+    // 5. Verify tracker cleaned up
+    assert!(!tracker.contains(&correlation_id));
+    assert_eq!(tracker.completed_count(), 1);
+}
+
+/// Test response routing with error result
+#[tokio::test]
+async fn test_response_routing_with_error() {
+    let service = MessagingService::new();
+    let tracker = service.correlation_tracker();
+    let router = service.response_router();
+
+    let correlation_id = Uuid::new_v4();
+    let (tx, rx) = oneshot::channel();
+
+    let pending = PendingRequest {
+        correlation_id,
+        response_tx: tx,
+        requested_at: Instant::now(),
+        timeout: Duration::from_secs(30),
+        from: ComponentId::new("requester"),
+        to: ComponentId::new("responder"),
+    };
+
+    tracker.register_pending(pending).await.unwrap();
+
+    // Route error response
+    router
+        .route_response(
+            correlation_id,
+            Err(RequestError::ProcessingFailed("Component error".to_string())),
+            ComponentId::new("responder"),
+        )
+        .await
+        .unwrap();
+
+    // Verify error response received
+    let response = rx.await.unwrap();
+    assert!(response.result.is_err());
+
+    let error = response.result.unwrap_err();
+    assert!(matches!(error, RequestError::ProcessingFailed(_)));
+
+    // Verify error count tracked
+    assert_eq!(router.error_responses_count(), 1);
+}
+
+/// Test multiple concurrent response routings
+#[tokio::test]
+async fn test_multiple_concurrent_responses() {
+    let service = MessagingService::new();
+    let tracker = service.correlation_tracker();
+    let router = service.response_router();
+
+    const NUM_REQUESTS: usize = 10;
+    let mut receivers = Vec::new();
+    let mut correlation_ids = Vec::new();
+
+    // Register multiple pending requests
+    for i in 0..NUM_REQUESTS {
+        let correlation_id = Uuid::new_v4();
+        let (tx, rx) = oneshot::channel();
+
+        let pending = PendingRequest {
+            correlation_id,
+            response_tx: tx,
+            requested_at: Instant::now(),
+            timeout: Duration::from_secs(30),
+            from: ComponentId::new(&format!("requester-{}", i)),
+            to: ComponentId::new("responder"),
+        };
+
+        tracker.register_pending(pending).await.unwrap();
+        correlation_ids.push(correlation_id);
+        receivers.push(rx);
+    }
+
+    assert_eq!(tracker.pending_count(), NUM_REQUESTS);
+
+    // Route responses for all requests
+    for (i, corr_id) in correlation_ids.iter().enumerate() {
+        router
+            .route_response(
+                *corr_id,
+                Ok(format!("response-{}", i).into_bytes()),
+                ComponentId::new("responder"),
+            )
+            .await
+            .unwrap();
+    }
+
+    // Verify all responses received
+    for (i, rx) in receivers.into_iter().enumerate() {
+        let response = rx.await.unwrap();
+        assert!(response.result.is_ok());
+        let payload = response.result.unwrap();
+        assert_eq!(payload, format!("response-{}", i).into_bytes());
+    }
+
+    assert_eq!(tracker.pending_count(), 0);
+    assert_eq!(tracker.completed_count(), NUM_REQUESTS as u64);
+}
+
+/// Test orphaned response (no pending request)
+#[tokio::test]
+async fn test_orphaned_response_tracking() {
+    let service = MessagingService::new();
+    let router = service.response_router();
+
+    // Try to route response for non-existent correlation ID
+    let fake_correlation_id = Uuid::new_v4();
+    let result = router
+        .route_response(
+            fake_correlation_id,
+            Ok(b"orphan data".to_vec()),
+            ComponentId::new("unknown"),
+        )
+        .await;
+
+    // Should fail
+    assert!(result.is_err());
+
+    // Verify orphaned count tracked
+    assert_eq!(router.responses_orphaned_count(), 1);
+    assert_eq!(router.responses_routed_count(), 0);
+}
+
+/// Test response router stats aggregation
+#[tokio::test]
+async fn test_response_router_stats() {
+    let service = MessagingService::new();
+    let tracker = service.correlation_tracker();
+    let router = service.response_router();
+
+    // Route 3 successful responses
+    for _ in 0..3 {
+        let correlation_id = Uuid::new_v4();
+        let (tx, _rx) = oneshot::channel();
+
+        let pending = PendingRequest {
+            correlation_id,
+            response_tx: tx,
+            requested_at: Instant::now(),
+            timeout: Duration::from_secs(30),
+            from: ComponentId::new("requester"),
+            to: ComponentId::new("responder"),
+        };
+
+        tracker.register_pending(pending).await.unwrap();
+        router
+            .route_response(correlation_id, Ok(vec![1, 2, 3]), ComponentId::new("responder"))
+            .await
+            .unwrap();
+    }
+
+    // Route 2 error responses
+    for _ in 0..2 {
+        let correlation_id = Uuid::new_v4();
+        let (tx, _rx) = oneshot::channel();
+
+        let pending = PendingRequest {
+            correlation_id,
+            response_tx: tx,
+            requested_at: Instant::now(),
+            timeout: Duration::from_secs(30),
+            from: ComponentId::new("requester"),
+            to: ComponentId::new("responder"),
+        };
+
+        tracker.register_pending(pending).await.unwrap();
+        router
+            .route_response(
+                correlation_id,
+                Err(RequestError::ProcessingFailed("error".to_string())),
+                ComponentId::new("responder"),
+            )
+            .await
+            .unwrap();
+    }
+
+    // Try 1 orphaned response
+    let _ = router
+        .route_response(Uuid::new_v4(), Ok(vec![1]), ComponentId::new("unknown"))
+        .await;
+
+    let stats = router.get_stats();
+    assert_eq!(stats.responses_routed, 5); // 3 success + 2 error
+    assert_eq!(stats.error_responses, 2);
+    assert_eq!(stats.responses_orphaned, 1);
+}
+
+// ============================================================================
+// WasmEngine::call_handle_callback Integration Tests
+// ============================================================================
+
+/// Test call_handle_callback invokes WASM component correctly
+#[tokio::test]
+async fn test_call_handle_callback_invocation() {
+    let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/callback-receiver-component.wasm");
+    let bytes = std::fs::read(&fixture_path).expect("Failed to read fixture");
+
+    let engine = WasmEngine::new().unwrap();
+    let component_id = ComponentId::new("callback-test");
+    let handle = engine
+        .load_component(&component_id, &bytes)
+        .await
+        .expect("Failed to load component");
+
+    // Call handle-callback with success response
+    let request_id = "550e8400-e29b-41d4-a716-446655440000";
+    let payload = b"callback payload data";
+    let is_error = 0; // success
+
+    let result = engine
+        .call_handle_callback(&handle, request_id, payload, is_error)
+        .await;
+
+    assert!(result.is_ok(), "call_handle_callback should succeed");
+}
+
+/// Test call_handle_callback with error flag
+#[tokio::test]
+async fn test_call_handle_callback_error_flag() {
+    let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/callback-receiver-component.wasm");
+    let bytes = std::fs::read(&fixture_path).expect("Failed to read fixture");
+
+    let engine = WasmEngine::new().unwrap();
+    let component_id = ComponentId::new("callback-test");
+    let handle = engine
+        .load_component(&component_id, &bytes)
+        .await
+        .expect("Failed to load component");
+
+    // Call handle-callback with error response
+    let request_id = "test-request-id";
+    let error_message = b"Error: Component failed";
+    let is_error = 1; // error
+
+    let result = engine
+        .call_handle_callback(&handle, request_id, error_message, is_error)
+        .await;
+
+    // Component should handle error callbacks
+    assert!(result.is_ok(), "call_handle_callback should handle errors");
+}
+
+// ============================================================================
+// MessagingService Integration Tests
+// ============================================================================
+
+/// Test MessagingService includes response routing stats
+#[tokio::test]
+async fn test_messaging_service_stats_include_responses() {
+    let service = MessagingService::new();
+    let tracker = service.correlation_tracker();
+    let router = service.response_router();
+
+    // Initial stats
+    let stats = service.get_stats().await;
+    assert_eq!(stats.responses_routed, 0);
+
+    // Register and route a response
+    let correlation_id = Uuid::new_v4();
+    let (tx, _rx) = oneshot::channel();
+
+    let pending = PendingRequest {
+        correlation_id,
+        response_tx: tx,
+        requested_at: Instant::now(),
+        timeout: Duration::from_secs(30),
+        from: ComponentId::new("requester"),
+        to: ComponentId::new("responder"),
+    };
+
+    tracker.register_pending(pending).await.unwrap();
+    router
+        .route_response(correlation_id, Ok(vec![1, 2, 3]), ComponentId::new("responder"))
+        .await
+        .unwrap();
+
+    // Verify stats updated
+    let stats = service.get_stats().await;
+    assert_eq!(stats.responses_routed, 1);
+}

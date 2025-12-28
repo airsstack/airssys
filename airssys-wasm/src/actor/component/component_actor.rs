@@ -1166,7 +1166,8 @@ where
         // Test mode: Return valid Component Model bytes from fixture
         // This is required because Component Model (wasmtime::component::Component) 
         // requires valid component format, not core WASM format.
-        #[cfg(test)]
+        #[allow(clippy::expect_used, clippy::unwrap_used, clippy::unwrap_err_used, clippy::expect_err_used, clippy::panic, clippy::unwrap_on_result, clippy::indexing_slicing, clippy::too_many_arguments, clippy::type_complexity, reason = "test code")]
+#[cfg(test)]
         {
             // Minimal valid Component Model binary (component format, not core WASM)
             // This is the binary from tests/fixtures/handle-message-component.wasm

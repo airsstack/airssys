@@ -843,6 +843,7 @@ where
     }
 }
 
+#[allow(clippy::expect_used, clippy::unwrap_used, clippy::unwrap_err_used, clippy::expect_err_used, clippy::panic, clippy::unwrap_on_result, clippy::indexing_slicing, clippy::too_many_arguments, clippy::type_complexity, reason = "test code")]
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "unwrap is acceptable in test code")]
 #[expect(

@@ -1,0 +1,664 @@
+//! Resource Quota Integration Tests
+//!
+//! Comprehensive integration tests for WASM-TASK-005 Phase 4, Task 4.3:
+//! Resource Quota System.
+//!
+//! # Test Coverage
+//!
+//! - Component registration with quota
+//! - Storage quota enforcement
+//! - Message rate limiting (time-window based)
+//! - Network bandwidth limits
+//! - CPU time limits
+//! - Memory limits
+//! - Quota violation scenarios
+//! - Quota reset behavior
+//! - Multi-component quota isolation
+//! - Edge cases (quota = 0, quota = unlimited)
+//! - Configuration parsing
+//! - Monitoring API
+//!
+//! # Performance Targets
+//!
+//! - Quota check: <10μs per operation
+//! - Quota update: <5μs per operation
+//! - Memory overhead: <1KB per component
+
+#![allow(clippy::panic)]
+
+use airssys_wasm::security::quota::{QuotaError, QuotaTracker, ResourceQuota};
+use airssys_wasm::security::{WasmCapability, WasmCapabilitySet, WasmSecurityContext};
+use std::sync::Arc;
+use std::thread;
+use std::time::Duration;
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Component Registration with Quota
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_component_registration_with_default_quota() {
+    let capabilities = WasmCapabilitySet::new().grant(WasmCapability::Filesystem {
+        paths: vec!["/app/data/*".to_string()],
+        permissions: vec!["read".to_string()],
+    });
+
+    let context = WasmSecurityContext::new("quota-default".to_string(), capabilities);
+
+    // Verify default quota values
+    assert_eq!(context.resource_quota.max_storage_bytes, 100 * 1024 * 1024);
+    assert_eq!(context.resource_quota.max_message_rate, 1000);
+    assert_eq!(context.resource_quota.max_network_bandwidth, 10 * 1024 * 1024);
+    assert_eq!(context.resource_quota.max_cpu_time_ms, 1000);
+    assert_eq!(context.resource_quota.max_memory_bytes, 256 * 1024 * 1024);
+}
+
+#[test]
+fn test_component_registration_with_custom_quota() {
+    let capabilities = WasmCapabilitySet::new();
+    let custom_quota = ResourceQuota::new()
+        .with_storage(50 * 1024 * 1024) // 50 MB
+        .with_message_rate(500)          // 500 msg/sec
+        .with_network_bandwidth(5 * 1024 * 1024); // 5 MB/sec
+
+    let context = WasmSecurityContext::with_quota(
+        "quota-custom".to_string(),
+        capabilities,
+        custom_quota,
+    );
+
+    // Verify custom quota values
+    assert_eq!(context.resource_quota.max_storage_bytes, 50 * 1024 * 1024);
+    assert_eq!(context.resource_quota.max_message_rate, 500);
+    assert_eq!(context.resource_quota.max_network_bandwidth, 5 * 1024 * 1024);
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Storage Quota Enforcement
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_storage_quota_enforcement_allowed() {
+    let quota = ResourceQuota::new().with_storage(10 * 1024); // 10 KB
+    let tracker = QuotaTracker::new(quota);
+
+    // Should allow storage within quota
+    assert!(tracker.check_storage(5 * 1024).is_ok());
+
+    tracker.consume_storage(5 * 1024);
+
+    // Should still allow remaining storage
+    assert!(tracker.check_storage(5 * 1024).is_ok());
+}
+
+#[test]
+fn test_storage_quota_enforcement_denied() {
+    let quota = ResourceQuota::new().with_storage(10 * 1024); // 10 KB
+    let tracker = QuotaTracker::new(quota);
+
+    tracker.consume_storage(8 * 1024);
+
+    // Should deny storage exceeding quota
+    let result = tracker.check_storage(3 * 1024);
+    assert!(result.is_err());
+
+    match result {
+        Err(QuotaError::StorageExceeded {
+            current,
+            requested,
+            limit,
+        }) => {
+            assert_eq!(current, 8 * 1024);
+            assert_eq!(requested, 3 * 1024);
+            assert_eq!(limit, 10 * 1024);
+        }
+        other => panic!("Expected StorageExceeded error, got: {:?}", other),
+    }
+}
+
+#[test]
+fn test_storage_quota_gradual_exhaustion() {
+    let quota = ResourceQuota::new().with_storage(1024);
+    let tracker = QuotaTracker::new(quota);
+
+    // Gradually consume storage
+    for i in 1..=10 {
+        if i <= 10 {
+            assert!(tracker.check_storage(100).is_ok());
+            tracker.consume_storage(100);
+        } else {
+            // 11th allocation should fail
+            assert!(tracker.check_storage(100).is_err());
+        }
+    }
+
+    // Should be at quota limit
+    assert!(tracker.check_storage(25).is_err());
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Message Rate Limiting (Time-Window Based)
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_message_rate_enforcement_allowed() {
+    let quota = ResourceQuota::new().with_message_rate(10);
+    let tracker = QuotaTracker::new(quota);
+
+    // Should allow messages within rate limit
+    for _ in 0..10 {
+        assert!(tracker.check_message_rate(1).is_ok());
+        tracker.consume_message_rate(1);
+    }
+}
+
+#[test]
+fn test_message_rate_enforcement_denied() {
+    let quota = ResourceQuota::new().with_message_rate(10);
+    let tracker = QuotaTracker::new(quota);
+
+    tracker.consume_message_rate(10);
+
+    // Should deny messages exceeding rate limit
+    let result = tracker.check_message_rate(1);
+    assert!(result.is_err());
+
+    match result {
+        Err(QuotaError::MessageRateExceeded {
+            current,
+            requested,
+            limit,
+        }) => {
+            assert_eq!(current, 10);
+            assert_eq!(requested, 1);
+            assert_eq!(limit, 10);
+        }
+        other => panic!("Expected MessageRateExceeded error, got: {:?}", other),
+    }
+}
+
+#[test]
+fn test_message_rate_window_reset() {
+    let quota = ResourceQuota::new().with_message_rate(10);
+    let tracker = QuotaTracker::new(quota);
+    tracker.set_window_duration_for_testing(Duration::from_millis(100));
+
+    // Consume entire quota
+    tracker.consume_message_rate(10);
+    assert!(tracker.check_message_rate(1).is_err());
+
+    // Wait for window reset
+    thread::sleep(Duration::from_millis(150));
+
+    // Should allow messages again after window reset
+    assert!(tracker.check_message_rate(10).is_ok());
+}
+
+#[test]
+fn test_message_rate_burst_handling() {
+    let quota = ResourceQuota::new().with_message_rate(10);
+    let tracker = QuotaTracker::new(quota);
+
+    // Burst of messages (all at once)
+    let result = tracker.check_message_rate(11);
+    assert!(result.is_err());
+
+    // Should still allow up to limit
+    assert!(tracker.check_message_rate(10).is_ok());
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Network Bandwidth Limits
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_network_bandwidth_enforcement_allowed() {
+    let quota = ResourceQuota::new().with_network_bandwidth(1024);
+    let tracker = QuotaTracker::new(quota);
+
+    // Should allow bandwidth within quota
+    assert!(tracker.check_network_bandwidth(512).is_ok());
+    tracker.consume_network_bandwidth(512);
+
+    assert!(tracker.check_network_bandwidth(512).is_ok());
+}
+
+#[test]
+fn test_network_bandwidth_enforcement_denied() {
+    let quota = ResourceQuota::new().with_network_bandwidth(1024);
+    let tracker = QuotaTracker::new(quota);
+
+    tracker.consume_network_bandwidth(800);
+
+    // Should deny bandwidth exceeding quota
+    let result = tracker.check_network_bandwidth(300);
+    assert!(result.is_err());
+
+    match result {
+        Err(QuotaError::NetworkBandwidthExceeded {
+            current,
+            requested,
+            limit,
+        }) => {
+            assert_eq!(current, 800);
+            assert_eq!(requested, 300);
+            assert_eq!(limit, 1024);
+        }
+        other => panic!("Expected NetworkBandwidthExceeded error, got: {:?}", other),
+    }
+}
+
+#[test]
+fn test_network_bandwidth_window_reset() {
+    let quota = ResourceQuota::new().with_network_bandwidth(1024);
+    let tracker = QuotaTracker::new(quota);
+    tracker.set_window_duration_for_testing(Duration::from_millis(100));
+
+    // Consume entire quota
+    tracker.consume_network_bandwidth(1024);
+    assert!(tracker.check_network_bandwidth(1).is_err());
+
+    // Wait for window reset
+    thread::sleep(Duration::from_millis(150));
+
+    // Should allow bandwidth again after window reset
+    assert!(tracker.check_network_bandwidth(1024).is_ok());
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// CPU Time Limits
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_cpu_time_enforcement_allowed() {
+    let quota = ResourceQuota::new().with_cpu_time(1000);
+    let tracker = QuotaTracker::new(quota);
+
+    // Should allow CPU time within quota
+    assert!(tracker.check_cpu_time(500).is_ok());
+    tracker.consume_cpu_time(500);
+
+    assert!(tracker.check_cpu_time(500).is_ok());
+}
+
+#[test]
+fn test_cpu_time_enforcement_denied() {
+    let quota = ResourceQuota::new().with_cpu_time(1000);
+    let tracker = QuotaTracker::new(quota);
+
+    tracker.consume_cpu_time(800);
+
+    // Should deny CPU time exceeding quota
+    let result = tracker.check_cpu_time(300);
+    assert!(result.is_err());
+
+    match result {
+        Err(QuotaError::CpuTimeExceeded {
+            current,
+            requested,
+            limit,
+        }) => {
+            assert_eq!(current, 800);
+            assert_eq!(requested, 300);
+            assert_eq!(limit, 1000);
+        }
+        other => panic!("Expected CpuTimeExceeded error, got: {:?}", other),
+    }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Memory Limits
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_memory_enforcement_allowed() {
+    let quota = ResourceQuota::new().with_memory(10 * 1024);
+    let tracker = QuotaTracker::new(quota);
+
+    // Should allow memory within quota
+    assert!(tracker.check_memory(5 * 1024).is_ok());
+}
+
+#[test]
+fn test_memory_enforcement_denied() {
+    let quota = ResourceQuota::new().with_memory(10 * 1024);
+    let tracker = QuotaTracker::new(quota);
+
+    // Should deny memory exceeding quota
+    let result = tracker.check_memory(15 * 1024);
+    assert!(result.is_err());
+
+    match result {
+        Err(QuotaError::MemoryExceeded {
+            current,
+            requested,
+            limit,
+        }) => {
+            assert_eq!(current, 0); // No memory consumed yet
+            assert_eq!(requested, 15 * 1024);
+            assert_eq!(limit, 10 * 1024);
+        }
+        other => panic!("Expected MemoryExceeded error, got: {:?}", other),
+    }
+}
+
+#[test]
+fn test_memory_peak_tracking() {
+    let quota = ResourceQuota::new().with_memory(10 * 1024);
+    let tracker = QuotaTracker::new(quota);
+
+    tracker.update_memory_usage(5 * 1024);
+    assert_eq!(tracker.get_usage().memory_used, 5 * 1024);
+
+    tracker.update_memory_usage(8 * 1024);
+    assert_eq!(tracker.get_usage().memory_used, 8 * 1024);
+
+    // Memory can decrease (garbage collection)
+    tracker.update_memory_usage(3 * 1024);
+    assert_eq!(tracker.get_usage().memory_used, 3 * 1024);
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Quota Violation Scenarios
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_quota_violation_clear_error_messages() {
+    let quota = ResourceQuota::new().with_storage(1024);
+    let tracker = QuotaTracker::new(quota);
+
+    tracker.consume_storage(1000);
+
+    let result = tracker.check_storage(100);
+    assert!(result.is_err());
+
+    // Error message should be clear and informative
+    let error_message = result.expect_err("Expected error").to_string();
+    assert!(error_message.contains("Storage quota exceeded"));
+    assert!(error_message.contains("1000"));
+    assert!(error_message.contains("100"));
+    assert!(error_message.contains("1024"));
+}
+
+#[test]
+fn test_multiple_quota_types_violated() {
+    let quota = ResourceQuota::new()
+        .with_storage(1024)
+        .with_message_rate(10)
+        .with_network_bandwidth(1024);
+
+    let tracker = QuotaTracker::new(quota);
+
+    // Exhaust multiple quotas
+    tracker.consume_storage(1024);
+    tracker.consume_message_rate(10);
+    tracker.consume_network_bandwidth(1024);
+
+    // All should be denied
+    assert!(tracker.check_storage(1).is_err());
+    assert!(tracker.check_message_rate(1).is_err());
+    assert!(tracker.check_network_bandwidth(1).is_err());
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Quota Reset Behavior
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_quota_manual_reset() {
+    let quota = ResourceQuota::default();
+    let tracker = QuotaTracker::new(quota);
+
+    // Consume quotas
+    tracker.consume_storage(1024);
+    tracker.consume_message_rate(10);
+    tracker.consume_network_bandwidth(512);
+    tracker.consume_cpu_time(100);
+    tracker.update_memory_usage(2048);
+
+    // Reset all quotas
+    tracker.reset();
+
+    // All usage should be zero
+    let usage = tracker.get_usage();
+    assert_eq!(usage.storage_used, 0);
+    assert_eq!(usage.message_count, 0);
+    assert_eq!(usage.network_bandwidth_used, 0);
+    assert_eq!(usage.cpu_time_used, 0);
+    assert_eq!(usage.memory_used, 0);
+}
+
+#[test]
+fn test_quota_storage_release() {
+    let quota = ResourceQuota::new().with_storage(1024);
+    let tracker = QuotaTracker::new(quota);
+
+    tracker.consume_storage(1024);
+    assert!(tracker.check_storage(1).is_err());
+
+    // Release some storage
+    tracker.release_storage(512);
+    assert!(tracker.check_storage(512).is_ok());
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Multi-Component Quota Isolation
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_multi_component_quota_isolation() {
+    let quota1 = ResourceQuota::new().with_storage(1024);
+    let tracker1 = Arc::new(QuotaTracker::new(quota1));
+
+    let quota2 = ResourceQuota::new().with_storage(1024);
+    let tracker2 = Arc::new(QuotaTracker::new(quota2));
+
+    // Component 1 exhausts quota
+    tracker1.consume_storage(1024);
+    assert!(tracker1.check_storage(1).is_err());
+
+    // Component 2 should be unaffected
+    assert!(tracker2.check_storage(1024).is_ok());
+}
+
+#[test]
+fn test_component_a_exceeds_quota_component_b_unaffected() {
+    // Component A with low quota
+    let quota_a = ResourceQuota::new().with_message_rate(10);
+    let tracker_a = Arc::new(QuotaTracker::new(quota_a));
+
+    // Component B with normal quota
+    let quota_b = ResourceQuota::new().with_message_rate(1000);
+    let tracker_b = Arc::new(QuotaTracker::new(quota_b));
+
+    // Component A exhausts quota
+    tracker_a.consume_message_rate(10);
+    assert!(tracker_a.check_message_rate(1).is_err());
+
+    // Component B should be unaffected
+    assert!(tracker_b.check_message_rate(100).is_ok());
+    tracker_b.consume_message_rate(100);
+    assert_eq!(tracker_b.get_usage().message_count, 100);
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Edge Cases
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_quota_zero_always_denied() {
+    let quota = ResourceQuota::new()
+        .with_storage(0)
+        .with_message_rate(0)
+        .with_network_bandwidth(0)
+        .with_cpu_time(0)
+        .with_memory(0);
+
+    let tracker = QuotaTracker::new(quota);
+
+    // All operations should be denied
+    assert!(tracker.check_storage(1).is_err());
+    assert!(tracker.check_message_rate(1).is_err());
+    assert!(tracker.check_network_bandwidth(1).is_err());
+    assert!(tracker.check_cpu_time(1).is_err());
+    assert!(tracker.check_memory(1).is_err());
+}
+
+#[test]
+fn test_quota_unlimited() {
+    let quota = ResourceQuota::new()
+        .with_storage(u64::MAX)
+        .with_message_rate(u32::MAX)
+        .with_network_bandwidth(u64::MAX)
+        .with_cpu_time(u32::MAX)
+        .with_memory(u64::MAX);
+
+    let tracker = QuotaTracker::new(quota);
+
+    // Should allow very large values
+    assert!(tracker.check_storage(1024 * 1024 * 1024).is_ok()); // 1 GB
+    assert!(tracker.check_message_rate(1000000).is_ok()); // 1M messages
+    assert!(tracker.check_network_bandwidth(1024 * 1024 * 1024).is_ok()); // 1 GB/s
+    assert!(tracker.check_cpu_time(100000).is_ok()); // 100 seconds
+    assert!(tracker.check_memory(1024 * 1024 * 1024).is_ok()); // 1 GB
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Configuration Parsing
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_parse_storage_sizes() {
+    assert_eq!(
+        ResourceQuota::parse_storage("100MB").expect("valid size"),
+        100 * 1024 * 1024
+    );
+    assert_eq!(
+        ResourceQuota::parse_storage("1GB").expect("valid size"),
+        1024 * 1024 * 1024
+    );
+    assert_eq!(
+        ResourceQuota::parse_storage("500KB").expect("valid size"),
+        500 * 1024
+    );
+    assert_eq!(
+        ResourceQuota::parse_storage("1024B").expect("valid size"),
+        1024
+    );
+}
+
+#[test]
+fn test_parse_bandwidth() {
+    assert_eq!(
+        ResourceQuota::parse_bandwidth("10MB/s").expect("valid bandwidth"),
+        10 * 1024 * 1024
+    );
+    assert_eq!(
+        ResourceQuota::parse_bandwidth("1GB/s").expect("valid bandwidth"),
+        1024 * 1024 * 1024
+    );
+}
+
+#[test]
+fn test_parse_invalid_sizes() {
+    assert!(ResourceQuota::parse_storage("invalid").is_err());
+    assert!(ResourceQuota::parse_storage("100XB").is_err());
+    assert!(ResourceQuota::parse_bandwidth("100MB").is_err()); // Missing /s
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Monitoring API
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_quota_status_monitoring() {
+    let quota = ResourceQuota::new().with_storage(1000);
+    let tracker = QuotaTracker::new(quota);
+
+    tracker.consume_storage(500);
+
+    let status = tracker.get_quota_status();
+    assert_eq!(status.storage.used, 500);
+    assert_eq!(status.storage.limit, 1000);
+    assert_eq!(status.storage.available, 500);
+    assert_eq!(status.storage.percentage, 50.0);
+}
+
+#[test]
+fn test_quota_warning_detection() {
+    let quota = ResourceQuota::new().with_storage(1000);
+    let tracker = QuotaTracker::new(quota);
+
+    // Below warning threshold (80%)
+    tracker.consume_storage(700);
+    assert!(!tracker.is_quota_warning());
+
+    // At warning threshold
+    tracker.consume_storage(100);
+    assert!(tracker.is_quota_warning());
+}
+
+#[test]
+fn test_quota_critical_detection() {
+    let quota = ResourceQuota::new().with_storage(1000);
+    let tracker = QuotaTracker::new(quota);
+
+    // Below critical threshold (95%)
+    tracker.consume_storage(940);
+    assert!(!tracker.is_quota_critical());
+
+    // At critical threshold
+    tracker.consume_storage(10);
+    assert!(tracker.is_quota_critical());
+}
+
+#[test]
+fn test_quota_usage_metrics() {
+    let quota = ResourceQuota::default();
+    let tracker = QuotaTracker::new(quota);
+
+    tracker.consume_storage(1024);
+    tracker.consume_message_rate(5);
+    tracker.consume_network_bandwidth(512);
+    tracker.consume_cpu_time(100);
+    tracker.update_memory_usage(2048);
+
+    let usage = tracker.get_usage();
+    assert_eq!(usage.storage_used, 1024);
+    assert_eq!(usage.message_count, 5);
+    assert_eq!(usage.network_bandwidth_used, 512);
+    assert_eq!(usage.cpu_time_used, 100);
+    assert_eq!(usage.memory_used, 2048);
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Thread Safety and Concurrency
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[test]
+fn test_quota_concurrent_checks() {
+    let quota = ResourceQuota::new().with_storage(10000);
+    let tracker = Arc::new(QuotaTracker::new(quota));
+
+    let mut handles = vec![];
+
+    // Spawn 10 threads that concurrently check and consume storage
+    for _ in 0..10 {
+        let tracker_clone = Arc::clone(&tracker);
+        let handle = thread::spawn(move || {
+            for _ in 0..100 {
+                if tracker_clone.check_storage(10).is_ok() {
+                    tracker_clone.consume_storage(10);
+                }
+            }
+        });
+        handles.push(handle);
+    }
+
+    for handle in handles {
+        handle.join().expect("thread panicked");
+    }
+
+    // All threads should have consumed storage
+    assert_eq!(tracker.get_usage().storage_used, 10000);
+}

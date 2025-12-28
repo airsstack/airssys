@@ -1,5 +1,5 @@
 //! Example: Auto-Approval Workflow for Trusted Sources
-//!
+#![allow(clippy::panic, clippy::unwrap_used, clippy::expect_used, clippy::unwrap_err_used, clippy::expect_err_used, reason = "example code")]//!
 //! This example demonstrates the auto-approval workflow for WASM components from
 //! trusted sources. Trusted components install instantly without user interaction,
 //! optimizing developer productivity.
