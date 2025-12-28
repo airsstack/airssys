@@ -41,7 +41,7 @@ fn bench_component_registration(c: &mut Criterion) {
                 capabilities,
             );
 
-            black_box(checker.register_component(security_ctx).expect("registration failed"));
+            checker.register_component(security_ctx).expect("registration failed"));
         });
     });
 }
@@ -64,7 +64,7 @@ fn bench_component_unregistration(c: &mut Criterion) {
                 (checker, format!("bench-unreg-{}", counter))
             },
             |(checker, component_id)| {
-                black_box(checker.unregister_component(&component_id).expect("unregistration failed"));
+                checker.unregister_component(&component_id).expect("unregistration failed"));
             },
         );
     });
@@ -336,14 +336,12 @@ fn bench_global_check_capability(c: &mut Criterion) {
 
     c.bench_function("global_check_capability", |b| {
         b.iter(|| {
-            black_box(
-                airssys_wasm::security::check_capability(
-                    black_box(component_id),
-                    black_box("/app/data/file.json"),
-                    black_box("read"),
-                )
-                .expect("check failed")
+            airssys_wasm::security::check_capability(
+                black_box(component_id),
+                black_box("/app/data/file.json"),
+                black_box("read"),
             )
+            .expect("check failed")
         });
     });
 }

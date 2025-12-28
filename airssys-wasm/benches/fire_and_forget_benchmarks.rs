@@ -49,7 +49,8 @@ use airssys_wasm::core::{
     bridge::{HostCallContext, HostFunction},
     Capability, CapabilitySet, ComponentId, MulticodecPrefix, TopicPattern,
 };
-use airssys_wasm::runtime::{create_host_context, MessagingService, SendMessageHostFunction};
+use airssys_wasm::runtime::{create_host_context, SendMessageHostFunction};
+use airssys_wasm::messaging::MessagingService;
 
 // ============================================================================
 // Helper Functions

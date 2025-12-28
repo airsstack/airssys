@@ -60,7 +60,7 @@ use crate::core::{
     multicodec_prefix::MulticodecPrefix,
     Capability, CapabilitySet, ComponentId, DomainPattern, PathPattern, SecurityMode, TopicPattern,
 };
-use crate::runtime::MessagingService;
+use crate::messaging::MessagingService;
 
 /// Async host function registry.
 ///

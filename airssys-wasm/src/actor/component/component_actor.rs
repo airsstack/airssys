@@ -442,7 +442,7 @@ where
     /// - Capacity planning
     ///
     /// All operations are lock-free atomic updates (<50ns overhead per message).
-    message_metrics: crate::runtime::MessageReceptionMetrics,
+    message_metrics: crate::messaging::MessageReceptionMetrics,
 
     /// Message reception configuration (WASM-TASK-006 Task 1.2).
     ///
@@ -687,7 +687,7 @@ where
             rate_limiter: crate::core::rate_limiter::MessageRateLimiter::default(),
             security_config: crate::core::config::SecurityConfig::default(),
             security_context,
-            message_metrics: crate::runtime::MessageReceptionMetrics::new(),
+            message_metrics: crate::messaging::MessageReceptionMetrics::new(),
             message_config: MessageReceptionConfig::default(),
             // WASM-TASK-006-HOTFIX Phase 2: Component Model fields (initially None)
             component_engine: None,
@@ -969,7 +969,7 @@ where
     /// println!("Messages received: {}", stats.messages_received);
     /// println!("Backpressure drops: {}", stats.backpressure_drops);
     /// ```
-    pub fn message_metrics(&self) -> &crate::runtime::MessageReceptionMetrics {
+    pub fn message_metrics(&self) -> &crate::messaging::MessageReceptionMetrics {
         &self.message_metrics
     }
 

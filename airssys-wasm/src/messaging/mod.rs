@@ -36,7 +36,7 @@ pub mod codec;
 pub mod topics; // Phase 2
 
 // Public re-exports
-pub use messaging_service::{MessagingService, MessagingStats};
+pub use messaging_service::{MessageReceptionMetrics, MessageReceptionStats, MessagingService, MessagingStats};
 pub use router::{ResponseRouter, ResponseRouterStats};
 pub use fire_and_forget::FireAndForget;
 pub use request_response::{RequestResponse, RequestError};

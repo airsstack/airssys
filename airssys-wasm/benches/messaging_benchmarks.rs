@@ -7,8 +7,11 @@
 //! **Note:** This is a stub placeholder. Actual benchmarks will be
 //! implemented in Phase 2 when messaging functionality is fully developed.
 
+#![allow(clippy::clone_on_ref_ptr, reason = "clone is acceptable in benchmark code")]
 use criterion::{criterion_group, criterion_main, Criterion};
-use airssys_wasm::messaging::{FireAndForget, MessageRouter, MulticodecCodec, RequestResponse};
+use airssys_wasm::messaging::{FireAndForget, MulticodecCodec, RequestResponse, ResponseRouter};
+use airssys_wasm::actor::message::correlation_tracker::CorrelationTracker;
+use std::sync::Arc;
 
 fn benchmark_fire_and_forget_creation(c: &mut Criterion) {
     c.bench_function("fire_and_forget_creation", |b| {
@@ -36,8 +39,9 @@ fn benchmark_codec_creation(c: &mut Criterion) {
 
 fn benchmark_router_creation(c: &mut Criterion) {
     c.bench_function("router_creation", |b| {
+        let tracker = Arc::new(CorrelationTracker::new());
         b.iter(|| {
-            MessageRouter::new();
+            ResponseRouter::new(tracker.clone());
         });
     });
 }
@@ -47,7 +51,6 @@ criterion_group!(
     benchmark_fire_and_forget_creation,
     benchmark_request_response_creation,
     benchmark_codec_creation,
-    benchmark_router_creation
+    benchmark_router_creation,
 );
-
 criterion_main!(benches);
