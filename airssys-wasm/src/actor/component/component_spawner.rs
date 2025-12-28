@@ -409,13 +409,9 @@ mod tests {
             version: "1.0.0".to_string(),
             author: "Test".to_string(),
             description: None,
-            required_capabilities: vec![],
-            resource_limits: ResourceLimits {
-                max_memory_bytes: 64 * 1024 * 1024,
-                max_fuel: 1_000_000,
-                max_execution_ms: 5000,
-                max_storage_bytes: 10 * 1024 * 1024,
-            },
+            max_memory_bytes: 64 * 1024 * 1024,
+            max_fuel: 1_000_000,
+            timeout_seconds: 5,
         }
     }
 

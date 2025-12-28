@@ -31,8 +31,9 @@ use airssys_wasm::core::{
     bridge::HostFunction, Capability, CapabilitySet, ComponentId, MulticodecPrefix, TopicPattern,
     WasmError,
 };
+use airssys_wasm::messaging::MessagingService;
 use airssys_wasm::runtime::{
-    create_host_context, AsyncHostRegistryBuilder, MessagingService, SendMessageHostFunction,
+    create_host_context, AsyncHostRegistryBuilder, SendMessageHostFunction,
 };
 
 /// Helper to create encoded args for send-message host function.

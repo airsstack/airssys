@@ -79,8 +79,6 @@ pub use async_host::{
     AsyncHttpFetchFunction, AsyncSleepFunction, SendMessageHostFunction, SendRequestHostFunction,
 };
 pub use engine::WasmEngine;
-pub use limits::{
-    ComponentResourceLimiter, MemoryConfig, MemoryMetrics, ResourceLimits, ResourceLimitsBuilder,
-};
+pub use limits::{ComponentResourceLimiter, MemoryMetrics};
 pub use loader::ComponentLoader;
 pub use store_manager::StoreWrapper;

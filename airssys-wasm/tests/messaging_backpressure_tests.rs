@@ -36,7 +36,7 @@ use std::time::Duration;
 // Layer 3: Internal module imports
 use airssys_wasm::actor::{ComponentActor, MessageReceptionConfig};
 use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits};
-use airssys_wasm::runtime::MessageReceptionMetrics;
+use airssys_wasm::messaging::MessageReceptionMetrics;
 
 // Test helpers
 mod helpers {
@@ -52,13 +52,9 @@ mod helpers {
             version: "1.0.0".to_string(),
             author: "Test".to_string(),
             description: None,
-            required_capabilities: vec![],
-            resource_limits: ResourceLimits {
-                max_memory_bytes: 64 * 1024 * 1024,
-                max_fuel: 1_000_000,
-                max_execution_ms: 5000,
-                max_storage_bytes: 10 * 1024 * 1024,
-            },
+            max_memory_bytes: 64 * 1024 * 1024,
+            max_fuel: 1_000_000,
+            timeout_seconds: 5,
         };
 
         let config = MessageReceptionConfig {
@@ -97,13 +93,9 @@ fn test_backpressure_config_disabled() {
         version: "1.0.0".to_string(),
         author: "Test".to_string(),
         description: None,
-        required_capabilities: vec![],
-        resource_limits: ResourceLimits {
-            max_memory_bytes: 64 * 1024 * 1024,
-            max_fuel: 1_000_000,
-            max_execution_ms: 5000,
-            max_storage_bytes: 10 * 1024 * 1024,
-        },
+        max_memory_bytes: 64 * 1024 * 1024,
+        max_fuel: 1_000_000,
+        timeout_seconds: 5,
     };
 
     let config = MessageReceptionConfig {
@@ -244,7 +236,7 @@ async fn test_concurrent_queue_depth_updates_under_load() {
 
     // Simulate concurrent message processing
     for task_id in 0..10 {
-        let metrics_clone = Arc::clone(&metrics);
+        let metrics_clone: Arc<MessageReceptionMetrics> = Arc::clone(&metrics);
         let handle = tokio::spawn(async move {
             for i in 0..100 {
                 // Simulate queue depth changes
@@ -431,7 +423,7 @@ async fn test_concurrent_backpressure_checks() {
 
     // Spawn multiple tasks checking backpressure concurrently
     for _ in 0..20 {
-        let metrics_clone = Arc::clone(&metrics);
+        let metrics_clone: Arc<MessageReceptionMetrics> = Arc::clone(&metrics);
         let handle = tokio::spawn(async move {
             for _ in 0..500 {
                 let current_depth = metrics_clone.get_queue_depth();

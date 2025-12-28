@@ -26,13 +26,9 @@ fn create_example_metadata() -> ComponentMetadata {
         version: "1.0.0".to_string(),
         author: "Example Author".to_string(),
         description: Some("Basic ComponentActor demonstration".to_string()),
-        required_capabilities: vec![],
-        resource_limits: ResourceLimits {
-            max_memory_bytes: 64 * 1024 * 1024,  // 64MB
-            max_fuel: 1_000_000,                 // 1M fuel
-            max_execution_ms: 5000,              // 5s timeout
-            max_storage_bytes: 10 * 1024 * 1024, // 10MB storage
-        },
+        max_memory_bytes: 64 * 1024 * 1024,  // 64MB
+        max_fuel: 1_000_000,                 // 1M fuel
+        timeout_seconds: 5,                     // 5s timeout
     }
 }
 
@@ -51,9 +47,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  - Author: {}", metadata.author);
     println!(
         "  - Memory limit: {} MB",
-        metadata.resource_limits.max_memory_bytes / (1024 * 1024)
+        metadata.max_memory_bytes / (1024 * 1024)
     );
-    println!("  - Fuel limit: {}", metadata.resource_limits.max_fuel);
+    println!("  - Fuel limit: {}", metadata.max_fuel);
+    println!("  - Timeout: {} seconds", metadata.timeout_seconds);
 
     // Step 3: Create capabilities (empty for basic example)
     let capabilities = CapabilitySet::new();

@@ -83,13 +83,9 @@ fn create_limited_metadata(
         version: "1.0.0-test".to_string(),
         author: "Edge Cases Test Suite".to_string(),
         description: Some(format!("Edge case test component: {}", name)),
-        required_capabilities: vec![],
-        resource_limits: ResourceLimits {
-            max_memory_bytes: memory_mb * 1024 * 1024,
-            max_fuel: fuel,
-            max_execution_ms: 5000,
-            max_storage_bytes: storage_mb * 1024 * 1024,
-        },
+        max_memory_bytes: memory_mb * 1024 * 1024,
+        max_fuel: fuel,
+        timeout_seconds: 5,
     }
 }
 
@@ -179,7 +175,7 @@ async fn test_component_spawn_with_insufficient_memory() {
 
     // Verify low memory limit
     assert_eq!(
-        metadata.resource_limits.max_memory_bytes,
+        metadata.max_memory_bytes,
         1024 * 1024,
         "Memory limit should be 1MB"
     );
@@ -224,7 +220,7 @@ async fn test_message_processing_with_fuel_exhaustion() {
 
     // Verify low fuel limit
     assert_eq!(
-        metadata.resource_limits.max_fuel, 1_000,
+        metadata.max_fuel, 1_000,
         "Fuel limit should be 1,000"
     );
 

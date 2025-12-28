@@ -28,7 +28,6 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 
 // Layer 3: Internal module imports
-use crate::core::capability::Capability;
 use crate::core::error::WasmError;
 
 /// Unique identifier for a component instance.
@@ -59,65 +58,16 @@ impl ComponentId {
     }
 }
 
-/// Resource limits for component execution.
+/// Component metadata for component registry and lifecycle management.
 ///
-/// All limits are **mandatory** per ADR-WASM-002 to prevent resource exhaustion.
-/// Components exceeding these limits will be terminated.
-///
-/// # Examples
-///
-/// ```
-/// use airssys_wasm::core::component::ResourceLimits;
-///
-/// let limits = ResourceLimits {
-///     max_memory_bytes: 64 * 1024 * 1024,  // 64MB
-///     max_fuel: 1_000_000,                  // 1M fuel units
-///     max_execution_ms: 5000,               // 5 seconds
-///     max_storage_bytes: 10 * 1024 * 1024, // 10MB
-/// };
-/// ```
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ResourceLimits {
-    /// Maximum memory in bytes (REQUIRED from Component.toml)
-    pub max_memory_bytes: u64,
-
-    /// Maximum fuel per execution (CPU limiting)
-    pub max_fuel: u64,
-
-    /// Maximum execution time in milliseconds (wall-clock timeout)
-    pub max_execution_ms: u64,
-
-    /// Maximum storage quota in bytes
-    pub max_storage_bytes: u64,
-}
-
-/// Component metadata describing the component's identity and requirements.
-///
-/// # Examples
-///
-/// ```
-/// use airssys_wasm::core::component::{ComponentMetadata, ResourceLimits};
-///
-/// let metadata = ComponentMetadata {
-///     name: "image-processor".to_string(),
-///     version: "1.0.0".to_string(),
-///     author: "Acme Corp".to_string(),
-///     description: Some("Processes images with filters".to_string()),
-///     required_capabilities: vec![],
-///     resource_limits: ResourceLimits {
-///         max_memory_bytes: 64 * 1024 * 1024,
-///         max_fuel: 1_000_000,
-///         max_execution_ms: 5000,
-///         max_storage_bytes: 10 * 1024 * 1024,
-///     },
-/// };
-/// ```
+/// This struct provides runtime metadata for component registration,
+/// separate from Component.toml parsing (see ComponentMetadataToml).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ComponentMetadata {
-    /// Component name (e.g., "image-processor")
+    /// Component name
     pub name: String,
 
-    /// Semantic version (e.g., "1.2.3")
+    /// Component version
     pub version: String,
 
     /// Component author/publisher
@@ -126,11 +76,14 @@ pub struct ComponentMetadata {
     /// Optional description
     pub description: Option<String>,
 
-    /// Required capabilities
-    pub required_capabilities: Vec<Capability>,
+    /// Maximum memory in bytes
+    pub max_memory_bytes: u64,
 
-    /// Resource limits from Component.toml
-    pub resource_limits: ResourceLimits,
+    /// Maximum fuel per execution
+    pub max_fuel: u64,
+
+    /// Maximum execution time in seconds (wall-clock timeout)
+    pub timeout_seconds: u64,
 }
 
 /// Component input for execution.
@@ -470,6 +423,7 @@ pub trait Component {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::config::ResourceLimits;
 
     // ============================================================================
     // ComponentId Tests
@@ -509,31 +463,12 @@ mod tests {
         let limits = ResourceLimits {
             max_memory_bytes: 1024,
             max_fuel: 1000,
-            max_execution_ms: 5000,
-            max_storage_bytes: 512,
+            timeout_seconds: 5,
         };
 
-        assert_eq!(limits.max_memory_bytes, 1024);
-        assert_eq!(limits.max_fuel, 1000);
-        assert_eq!(limits.max_execution_ms, 5000);
-        assert_eq!(limits.max_storage_bytes, 512);
-    }
-
-    #[test]
-    fn test_resource_limits_serialization() -> Result<(), Box<dyn std::error::Error>> {
-        let limits = ResourceLimits {
-            max_memory_bytes: 1024,
-            max_fuel: 1000,
-            max_execution_ms: 5000,
-            max_storage_bytes: 512,
-        };
-
-        let json = serde_json::to_string(&limits)?;
-        let deserialized: ResourceLimits = serde_json::from_str(&json)?;
-
-        assert_eq!(limits.max_memory_bytes, deserialized.max_memory_bytes);
-        assert_eq!(limits.max_fuel, deserialized.max_fuel);
-        Ok(())
+        assert_eq!(limits.max_memory_bytes(), 1024);
+        assert_eq!(limits.max_fuel(), 1000);
+        assert_eq!(limits.timeout_seconds(), 5);
     }
 
     // ============================================================================
@@ -697,13 +632,9 @@ mod tests {
             version: "1.0.0".to_string(),
             author: "Test Author".to_string(),
             description: Some("A test component".to_string()),
-            required_capabilities: vec![],
-            resource_limits: ResourceLimits {
-                max_memory_bytes: 1024,
-                max_fuel: 1000,
-                max_execution_ms: 5000,
-                max_storage_bytes: 512,
-            },
+            max_memory_bytes: 1024,
+            max_fuel: 1000,
+            timeout_seconds: 5,
         };
 
         assert_eq!(metadata.name, "test-component");
@@ -724,13 +655,9 @@ mod tests {
                 version: "1.0.0".to_string(),
                 author: "Me".to_string(),
                 description: None,
-                required_capabilities: vec![],
-                resource_limits: ResourceLimits {
-                    max_memory_bytes: 1024,
-                    max_fuel: 1000,
-                    max_execution_ms: 5000,
-                    max_storage_bytes: 512,
-                },
+                max_memory_bytes: 1024,
+                max_fuel: 1000,
+                timeout_seconds: 5,
             },
             source: InstallationSource::File {
                 path: PathBuf::from("/tmp/component.wasm"),
@@ -780,13 +707,9 @@ mod tests {
                 version: "1.0.0".to_string(),
                 author: "Test".to_string(),
                 description: None,
-                required_capabilities: vec![],
-                resource_limits: ResourceLimits {
-                    max_memory_bytes: 1024,
-                    max_fuel: 1000,
-                    max_execution_ms: 5000,
-                    max_storage_bytes: 512,
-                },
+                max_memory_bytes: 1024,
+                max_fuel: 1000,
+                timeout_seconds: 5,
             },
         };
 

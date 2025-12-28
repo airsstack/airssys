@@ -448,11 +448,10 @@ async fn test_async_execution_with_resource_limits() {
     let context = ExecutionContext {
         component_id: component_id.clone(),
         limits: ResourceLimits {
-            max_memory_bytes: 1024 * 1024, // 1MB
-            max_fuel: 100_000,
-            max_execution_ms: 1000,
-            max_storage_bytes: 1024 * 1024,
-        },
+        max_memory_bytes: 1024 * 1024, // 1MB,
+        max_fuel: 100_000,
+        timeout_seconds: 1,
+    },
         capabilities: CapabilitySet::new(),
         timeout_ms: 1000,
     };

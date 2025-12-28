@@ -25,7 +25,8 @@ use tokio::time::{Duration, Instant};
 
 use airssys_wasm::actor::message::{PendingRequest, RequestError};
 use airssys_wasm::core::{ComponentId, RuntimeEngine};
-use airssys_wasm::runtime::{MessagingService, WasmEngine};
+use airssys_wasm::messaging::MessagingService;
+use airssys_wasm::runtime::WasmEngine;
 use tokio::sync::oneshot;
 use uuid::Uuid;
 

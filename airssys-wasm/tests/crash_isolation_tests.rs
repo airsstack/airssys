@@ -49,8 +49,7 @@ fn create_execution_context(
         limits: ResourceLimits {
             max_memory_bytes: 64 * 1024 * 1024, // 64MB
             max_fuel,
-            max_execution_ms: timeout_ms,
-            max_storage_bytes: 100 * 1024 * 1024, // 100MB
+            timeout_seconds: 5,
         },
         capabilities: CapabilitySet::new(),
         timeout_ms,

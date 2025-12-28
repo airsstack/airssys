@@ -42,13 +42,9 @@ fn create_test_metadata(name: &str) -> ComponentMetadata {
         version: "1.0.0".to_string(),
         author: "test".to_string(),
         description: Some(format!("Test component {}", name)),
-        required_capabilities: vec![],
-        resource_limits: ResourceLimits {
             max_memory_bytes: 64 * 1024 * 1024, // 64MB
             max_fuel: 1_000_000,
-            max_execution_ms: 5000,
-            max_storage_bytes: 10 * 1024 * 1024, // 10MB
-        },
+            timeout_seconds: 5,
     }
 }
 

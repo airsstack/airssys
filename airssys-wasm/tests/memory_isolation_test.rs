@@ -6,7 +6,8 @@
 
 #![allow(clippy::expect_used)] // Test code - expect is acceptable for test assertions
 
-use airssys_wasm::runtime::limits::{ComponentResourceLimiter, ResourceLimits};
+use airssys_wasm::core::config::ResourceLimits;
+use airssys_wasm::runtime::ComponentResourceLimiter;
 use wasmtime::ResourceLimiter;
 
 #[test]

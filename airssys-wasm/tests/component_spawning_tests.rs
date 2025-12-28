@@ -50,14 +50,10 @@ fn create_test_metadata(name: &str) -> ComponentMetadata {
         version: "1.0.0".to_string(),
         author: "Test Author".to_string(),
         description: Some("Test component".to_string()),
-        required_capabilities: vec![],
-        resource_limits: ResourceLimits {
-            max_memory_bytes: 64 * 1024 * 1024,  // 64MB
-            max_fuel: 1_000_000,                 // 1M fuel
-            max_execution_ms: 5000,              // 5s timeout
-            max_storage_bytes: 10 * 1024 * 1024, // 10MB storage
-        },
-    }
+            max_memory_bytes: 64 * 1024 * 1024,  // 64MB,
+            max_fuel: 1_000_000,                 // 1M fuel,
+            timeout_seconds: 5,
+        }
 }
 
 #[tokio::test]
@@ -276,14 +272,10 @@ async fn test_spawn_with_different_resource_limits() {
         version: "1.0.0".to_string(),
         author: "Test".to_string(),
         description: None,
-        required_capabilities: vec![],
-        resource_limits: ResourceLimits {
-            max_memory_bytes: 1024 * 1024,  // 1MB
-            max_fuel: 100_000,              // 100K fuel
-            max_execution_ms: 1000,         // 1s timeout
-            max_storage_bytes: 1024 * 1024, // 1MB storage
-        },
-    };
+            max_memory_bytes: 1024 * 1024,  // 1MB,
+            max_fuel: 100_000,              // 100K fuel,
+            timeout_seconds: 1,
+        };
     let capabilities = CapabilitySet::new();
 
     let _addr = spawner
@@ -299,14 +291,10 @@ async fn test_spawn_with_different_resource_limits() {
         version: "1.0.0".to_string(),
         author: "Test".to_string(),
         description: None,
-        required_capabilities: vec![],
-        resource_limits: ResourceLimits {
-            max_memory_bytes: 512 * 1024 * 1024,  // 512MB
-            max_fuel: 10_000_000,                 // 10M fuel
-            max_execution_ms: 60_000,             // 60s timeout
-            max_storage_bytes: 100 * 1024 * 1024, // 100MB storage
-        },
-    };
+            max_memory_bytes: 512 * 1024 * 1024,  // 512MB,
+            max_fuel: 10_000_000,                 // 10M fuel,
+            timeout_seconds: 0,
+        };
     let capabilities = CapabilitySet::new();
 
     let _addr = spawner

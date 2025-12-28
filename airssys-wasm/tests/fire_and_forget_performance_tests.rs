@@ -43,8 +43,9 @@ use airssys_wasm::core::{
     Capability, CapabilitySet, ComponentId, MulticodecPrefix, TopicPattern,
     runtime::RuntimeEngine,
 };
+use airssys_wasm::messaging::MessagingService;
 use airssys_wasm::runtime::{
-    create_host_context, MessagingService, SendMessageHostFunction, WasmEngine,
+    create_host_context, SendMessageHostFunction, WasmEngine,
 };
 
 // ============================================================================

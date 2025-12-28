@@ -35,9 +35,9 @@ use std::time::Duration;
 // Layer 3: Internal module imports
 use airssys_wasm::actor::{ComponentActor, MessageReceptionConfig};
 use airssys_wasm::core::{
-    CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits, WasmError,
+    CapabilitySet, ComponentId, ComponentMetadata, WasmError,
 };
-use airssys_wasm::runtime::MessageReceptionMetrics;
+use airssys_wasm::messaging::MessageReceptionMetrics;
 
 // Test helpers
 mod helpers {
@@ -100,13 +100,9 @@ mod helpers {
             version: "1.0.0".to_string(),
             author: "Test".to_string(),
             description: None,
-            required_capabilities: vec![],
-            resource_limits: ResourceLimits {
-                max_memory_bytes: 64 * 1024 * 1024,
-                max_fuel: 1_000_000,
-                max_execution_ms: 5000,
-                max_storage_bytes: 10 * 1024 * 1024,
-            },
+            max_memory_bytes: 64 * 1024 * 1024,
+            max_fuel: 1_000_000,
+            timeout_seconds: 5,
         };
 
         ComponentActor::new(
@@ -424,7 +420,7 @@ async fn test_concurrent_metrics_updates() {
 
     // Spawn 10 concurrent tasks updating metrics
     for _ in 0..10 {
-        let metrics_clone = Arc::clone(&metrics);
+        let metrics_clone: Arc<MessageReceptionMetrics> = Arc::clone(&metrics);
         let handle = tokio::spawn(async move {
             for _ in 0..1000 {
                 metrics_clone.record_message_received();
@@ -452,7 +448,7 @@ async fn test_concurrent_queue_depth_updates() {
 
     // Spawn 5 concurrent tasks updating queue depth
     for i in 0..5 {
-        let metrics_clone = Arc::clone(&metrics);
+        let metrics_clone: Arc<MessageReceptionMetrics> = Arc::clone(&metrics);
         let handle = tokio::spawn(async move {
             for j in 0..100 {
                 metrics_clone.set_queue_depth((i * 100 + j) as u64);

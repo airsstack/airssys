@@ -30,8 +30,7 @@ use std::path::PathBuf;
 // Layer 3: Internal module imports
 use airssys_wasm::core::{
     capability::CapabilitySet,
-    component::{ComponentId, ComponentInput},
-    config::ResourceLimits,
+    component::{ComponentId, ComponentInput, ResourceLimits},
     runtime::{ExecutionContext, RuntimeEngine},
 };
 use airssys_wasm::runtime::WasmEngine;

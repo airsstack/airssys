@@ -37,7 +37,7 @@
 use airssys_rt::supervisor::Child;
 use airssys_wasm::actor::{ActorState, ComponentActor, ComponentMessage};
 use airssys_wasm::core::{decode_multicodec, encode_multicodec, Codec};
-use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata, ResourceLimits};
+use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata};
 
 /// Create test component metadata
 fn create_test_metadata(name: &str) -> ComponentMetadata {
@@ -46,15 +46,13 @@ fn create_test_metadata(name: &str) -> ComponentMetadata {
         version: "1.0.0".to_string(),
         author: "Test Suite".to_string(),
         description: Some("Integration test component".to_string()),
-        required_capabilities: vec![],
-        resource_limits: ResourceLimits {
-            max_memory_bytes: 64 * 1024 * 1024, // 64MB
-            max_fuel: 1_000_000,
-            max_execution_ms: 5000,
-            max_storage_bytes: 10 * 1024 * 1024, // 10MB
-        },
+        max_memory_bytes: 64 * 1024 * 1024, // 64MB
+        max_fuel: 1_000_000,
+        timeout_seconds: 5,
     }
 }
+
+/// Create test component actor
 
 /// Create test component actor
 fn create_test_actor(name: &str) -> ComponentActor<()> {
@@ -330,8 +328,9 @@ fn test_component_metadata_creation() {
 
     assert_eq!(metadata.name, "test");
     assert_eq!(metadata.version, "1.0.0");
-    assert!(metadata.resource_limits.max_memory_bytes > 0);
-    assert!(metadata.resource_limits.max_fuel > 0);
+    assert!(metadata.max_memory_bytes > 0);
+    assert!(metadata.max_fuel > 0);
+    assert!(metadata.timeout_seconds > 0);
 }
 
 #[test]

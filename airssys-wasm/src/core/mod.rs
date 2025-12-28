@@ -195,9 +195,10 @@ pub use capability::{
 };
 pub use component::{
     Component, ComponentConfig, ComponentId, ComponentInput, ComponentMetadata, ComponentOutput,
-    ComponentState, InstallationSource, ResourceLimits,
+    ComponentState, InstallationSource,
 };
 pub use config::{
+    CpuConfig, MemoryConfig, ResourceConfig, ResourceLimits, ResourceLimitsBuilder,
     ComponentConfigToml, ComponentMetadataToml, ConfigError, CpuConfigToml, MemoryConfigToml,
     ResourcesConfigToml, RuntimeConfig, SecurityConfig, SecurityMode,
     StorageBackend as StorageBackendType, StorageConfig, DEFAULT_MAX_MESSAGE_SIZE,

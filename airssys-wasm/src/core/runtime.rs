@@ -73,7 +73,8 @@ use wasmtime::component::Component;
 // Layer 3: Internal module imports
 use super::{
     capability::CapabilitySet,
-    component::{ComponentId, ComponentInput, ComponentOutput, ResourceLimits},
+    component::{ComponentId, ComponentInput, ComponentOutput},
+    config::ResourceLimits,
     error::WasmResult,
 };
 
@@ -458,8 +459,7 @@ mod tests {
         ResourceLimits {
             max_memory_bytes: 64 * 1024 * 1024,
             max_fuel: 1_000_000,
-            max_execution_ms: 5000,
-            max_storage_bytes: 10 * 1024 * 1024,
+            timeout_seconds: 5,
         }
     }
 

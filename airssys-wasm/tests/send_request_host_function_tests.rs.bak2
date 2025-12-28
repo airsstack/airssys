@@ -1,0 +1,539 @@
+//! Integration tests for send-request host function (WASM-TASK-006 Phase 3 Task 3.1).
+//!
+//! These tests verify the end-to-end functionality of the `send-request` host function:
+//!
+//! - Request ID generation (UUID v4) with uniqueness verification
+//! - Correlation tracker integration
+//! - Multicodec prefix validation (REQUIRED per ADR-WASM-001)
+//! - Capability enforcement using existing `can_send_to()` method
+//! - Message publishing via MessageBroker
+//! - Timeout value handling
+//! - Metrics tracking
+//!
+//! # Test Organization
+//!
+//! - **End-to-End**: Full SendRequestHostFunction with MessagingService integration
+//! - **Request ID Generation**: UUID uniqueness and format verification
+//! - **Correlation Tracking**: Integration with CorrelationTracker
+//! - **Capability Enforcement**: Security validation
+//! - **Error Handling**: Various failure scenarios
+//!
+//! # References
+//!
+//! - **WASM-TASK-006 Phase 3 Task 3.1**: send-request Host Function
+//! - **ADR-WASM-001**: Multicodec Compatibility Strategy
+//! - **ADR-WASM-009**: Component Communication Model (Pattern 2: Request-Response)
+
+#![allow(clippy::unwrap_used, reason = "unwrap is acceptable in test code")]
+#![allow(clippy::expect_used, reason = "expect is acceptable in test code")]
+
+use std::collections::HashSet;
+use std::sync::Arc;
+
+use airssys_wasm::core::{
+    bridge::HostFunction, Capability, CapabilitySet, ComponentId, MulticodecPrefix, TopicPattern,
+    WasmError,
+};
+use airssys_wasm::runtime::{
+    create_host_context, AsyncHostRegistryBuilder, SendRequestHostFunction,
+};
+use uuid::Uuid;
+
+/// Helper to create encoded args for send-request host function.
+///
+/// Format: `[target_len: u32 LE][target_bytes][timeout_ms: u64 LE][request_bytes]`
+fn encode_request_args(target: &str, timeout_ms: u64, request: &[u8]) -> Vec<u8> {
+    let mut args = (target.len() as u32).to_le_bytes().to_vec();
+    args.extend_from_slice(target.as_bytes());
+    args.extend_from_slice(&timeout_ms.to_le_bytes());
+    args.extend_from_slice(request);
+    args
+}
+
+/// Helper to create a request message with multicodec prefix.
+fn create_prefixed_request(codec: MulticodecPrefix, payload: &[u8]) -> Vec<u8> {
+    codec.create_message(payload)
+}
+
+// ============================================================================
+// END-TO-END INTEGRATION TESTS
+// ============================================================================
+
+/// Test 1: Complete end-to-end send-request flow with Borsh codec
+///
+/// Verifies:
+/// 1. SendRequestHostFunction is registered correctly
+/// 2. Multicodec prefix is validated
+/// 3. Request is registered with correlation tracker
+/// 4. Message is published to broker
+/// 5. Request ID (UUID v4) is returned
+/// 6. Metrics are updated
+#[tokio::test]
+async fn test_send_request_end_to_end() {
+    // Setup
+    let messaging = Arc::new(MessagingService::new());
+    let registry = AsyncHostRegistryBuilder::new()
+        .with_messaging_functions(Arc::clone(&messaging))
+        .build();
+
+    // Create context with messaging capability
+    let mut caps = CapabilitySet::new();
+    caps.grant(Capability::Messaging(TopicPattern::new("*")));
+    let context = create_host_context(ComponentId::new("requester-component"), caps);
+
+    // Create request with Borsh prefix
+    let payload = b"RPC request payload";
+    let request = create_prefixed_request(MulticodecPrefix::Borsh, payload);
+    let args = encode_request_args("responder-component", 5000, &request);
+
+    // Execute
+    let request_fn = registry.get_function("messaging::send_request").unwrap();
+    let result = request_fn.execute(&context, args).await;
+
+    // Verify: Success with request ID returned
+    assert!(result.is_ok(), "Send request should succeed: {:?}", result.err());
+    
+    let response = result.unwrap();
+    assert!(!response.is_empty(), "Should return request ID");
+    
+    // Verify: Request ID is valid UUID
+    let request_id_str = String::from_utf8(response).expect("Should be valid UTF-8");
+    let request_id = Uuid::parse_str(&request_id_str).expect("Should be valid UUID");
+    
+    // Verify: Request was registered in correlation tracker
+    let tracker = messaging.correlation_tracker();
+    assert!(tracker.contains(&request_id), "Request should be pending in tracker");
+    assert_eq!(tracker.pending_count(), 1);
+
+    // Verify: Message was published
+    let stats = messaging.get_stats().await;
+    assert_eq!(stats.messages_published, 1, "Should have 1 message published");
+    assert_eq!(stats.requests_sent, 1, "Should have 1 request sent");
+    assert_eq!(stats.requests_pending, 1, "Should have 1 pending request");
+}
+
+/// Test 2: Multiple requests generate unique IDs
+#[tokio::test]
+async fn test_send_request_generates_unique_ids() {
+    let messaging = Arc::new(MessagingService::new());
+    let func = SendRequestHostFunction::new(Arc::clone(&messaging));
+
+    let mut caps = CapabilitySet::new();
+    caps.grant(Capability::Messaging(TopicPattern::new("*")));
+    let context = create_host_context(ComponentId::new("sender"), caps);
+
+    let request = create_prefixed_request(MulticodecPrefix::Borsh, b"test");
+    
+    // Send 100 requests and collect IDs
+    let mut request_ids = HashSet::new();
+    
+    for i in 0..100 {
+        let args = encode_request_args(&format!("target-{}", i), 5000, &request);
+        let result = func.execute(&context, args).await;
+        
+        assert!(result.is_ok(), "Request {} should succeed", i);
+        
+        let id_str = String::from_utf8(result.unwrap()).unwrap();
+        let uuid = Uuid::parse_str(&id_str).expect("Should be valid UUID");
+        
+        // Verify uniqueness
+        assert!(
+            request_ids.insert(uuid),
+            "Request {} generated duplicate ID: {}",
+            i,
+            uuid
+        );
+    }
+    
+    // Verify all 100 unique
+    assert_eq!(request_ids.len(), 100);
+    
+    // Verify all 100 registered in tracker
+    let tracker = messaging.correlation_tracker();
+    assert_eq!(tracker.pending_count(), 100);
+}
+
+/// Test 3: Pending requests are trackable via correlation tracker
+#[tokio::test]
+async fn test_send_request_pending_trackable() {
+    let messaging = Arc::new(MessagingService::new());
+    let func = SendRequestHostFunction::new(Arc::clone(&messaging));
+
+    let mut caps = CapabilitySet::new();
+    caps.grant(Capability::Messaging(TopicPattern::new("*")));
+    let context = create_host_context(ComponentId::new("sender"), caps);
+
+    let request = create_prefixed_request(MulticodecPrefix::Borsh, b"payload");
+    let args = encode_request_args("target", 10000, &request);
+
+    // Initial state
+    let tracker = messaging.correlation_tracker();
+    assert_eq!(tracker.pending_count(), 0);
+
+    // Send request
+    let result = func.execute(&context, args).await.unwrap();
+    let id_str = String::from_utf8(result).unwrap();
+    let correlation_id = Uuid::parse_str(&id_str).unwrap();
+
+    // Verify trackable
+    assert_eq!(tracker.pending_count(), 1);
+    assert!(tracker.contains(&correlation_id));
+
+    // Verify specific correlation ID is accessible
+    // (In real usage, response handler would resolve this)
+}
+
+/// Test 4: Invalid multicodec rejected
+#[tokio::test]
+async fn test_send_request_invalid_multicodec() {
+    let messaging = Arc::new(MessagingService::new());
+    let func = SendRequestHostFunction::new(Arc::clone(&messaging));
+
+    let mut caps = CapabilitySet::new();
+    caps.grant(Capability::Messaging(TopicPattern::new("*")));
+    let context = create_host_context(ComponentId::new("sender"), caps);
+
+    // Invalid multicodec prefix
+    let invalid_request = vec![0xFF, 0xFF, 0xDE, 0xAD, 0xBE, 0xEF];
+    let args = encode_request_args("target", 5000, &invalid_request);
+
+    let result = func.execute(&context, args).await;
+
+    assert!(result.is_err(), "Invalid multicodec should be rejected");
+    let err = result.unwrap_err();
+    let err_str = err.to_string().to_lowercase();
+    assert!(
+        err_str.contains("multicodec") || err_str.contains("unknown"),
+        "Error should mention multicodec: {err}"
+    );
+
+    // Verify nothing was registered
+    let tracker = messaging.correlation_tracker();
+    assert_eq!(tracker.pending_count(), 0);
+    
+    // Verify no message published
+    assert_eq!(messaging.get_stats().await.messages_published, 0);
+}
+
+/// Test 5: Capability denied without proper permissions
+#[tokio::test]
+async fn test_send_request_capability_denied() {
+    let messaging = Arc::new(MessagingService::new());
+    let func = SendRequestHostFunction::new(Arc::clone(&messaging));
+
+    // NO capabilities granted
+    let context = create_host_context(ComponentId::new("sender"), CapabilitySet::new());
+
+    let request = create_prefixed_request(MulticodecPrefix::Borsh, b"payload");
+    let args = encode_request_args("target", 5000, &request);
+
+    let result = func.execute(&context, args).await;
+
+    assert!(result.is_err(), "Should fail without capability");
+    let err = result.unwrap_err();
+    assert!(
+        matches!(err, WasmError::CapabilityDenied { .. }),
+        "Error should be CapabilityDenied: {err:?}"
+    );
+
+    // Verify nothing registered or published
+    let tracker = messaging.correlation_tracker();
+    assert_eq!(tracker.pending_count(), 0);
+    assert_eq!(messaging.get_stats().await.messages_published, 0);
+}
+
+// ============================================================================
+// MULTICODEC VALIDATION TESTS
+// ============================================================================
+
+/// Test 6: Various supported codecs work
+#[tokio::test]
+async fn test_send_request_all_supported_codecs() {
+    let messaging = Arc::new(MessagingService::new());
+    let func = SendRequestHostFunction::new(Arc::clone(&messaging));
+
+    let mut caps = CapabilitySet::new();
+    caps.grant(Capability::Messaging(TopicPattern::new("*")));
+    let context = create_host_context(ComponentId::new("sender"), caps);
+
+    let codecs = [
+        MulticodecPrefix::Borsh,
+        MulticodecPrefix::Bincode,
+        MulticodecPrefix::MessagePack,
+        MulticodecPrefix::Protobuf,
+    ];
+
+    for codec in codecs {
+        let request = create_prefixed_request(codec, b"test payload");
+        let args = encode_request_args("target", 5000, &request);
+        
+        let result = func.execute(&context, args).await;
+        
+        assert!(
+            result.is_ok(),
+            "Codec {:?} should be accepted: {:?}",
+            codec,
+            result.err()
+        );
+    }
+
+    // All 4 should be pending
+    assert_eq!(messaging.correlation_tracker().pending_count(), 4);
+}
+
+/// Test 7: Empty request payload rejected
+#[tokio::test]
+async fn test_send_request_empty_payload_rejected() {
+    let messaging = Arc::new(MessagingService::new());
+    let func = SendRequestHostFunction::new(Arc::clone(&messaging));
+
+    let mut caps = CapabilitySet::new();
+    caps.grant(Capability::Messaging(TopicPattern::new("*")));
+    let context = create_host_context(ComponentId::new("sender"), caps);
+
+    // Empty request (no multicodec prefix)
+    let args = encode_request_args("target", 5000, &[]);
+
+    let result = func.execute(&context, args).await;
+
+    assert!(result.is_err(), "Empty request should be rejected");
+}
+
+// ============================================================================
+// ARGUMENT PARSING TESTS
+// ============================================================================
+
+/// Test 8: Args too short for target_len
+#[tokio::test]
+async fn test_send_request_args_too_short() {
+    let messaging = Arc::new(MessagingService::new());
+    let func = SendRequestHostFunction::new(messaging);
+
+    let mut caps = CapabilitySet::new();
+    caps.grant(Capability::Messaging(TopicPattern::new("*")));
+    let context = create_host_context(ComponentId::new("sender"), caps);
+
+    // Only 3 bytes - need at least 12 (4 for target_len + 8 for timeout_ms)
+    let short_args = vec![0x01, 0x02, 0x03];
+
+    let result = func.execute(&context, short_args).await;
+
+    assert!(result.is_err(), "Too short args should fail");
+    let err_str = result.unwrap_err().to_string();
+    assert!(
+        err_str.contains("too short"),
+        "Error should indicate too short: {err_str}"
+    );
+}
+
+/// Test 9: Missing timeout bytes
+#[tokio::test]
+async fn test_send_request_missing_timeout() {
+    let messaging = Arc::new(MessagingService::new());
+    let func = SendRequestHostFunction::new(messaging);
+
+    let mut caps = CapabilitySet::new();
+    caps.grant(Capability::Messaging(TopicPattern::new("*")));
+    let context = create_host_context(ComponentId::new("sender"), caps);
+
+    // target_len = 5, but only 4 bytes of target and no timeout
+    let mut args = (5u32).to_le_bytes().to_vec();
+    args.extend_from_slice(b"hello"); // 5 bytes target
+    // Missing 8 bytes for timeout
+
+    let result = func.execute(&context, args).await;
+
+    assert!(result.is_err(), "Missing timeout should fail");
+}
+
+/// Test 10: Various timeout values accepted
+#[tokio::test]
+async fn test_send_request_various_timeouts() {
+    let messaging = Arc::new(MessagingService::new());
+    let func = SendRequestHostFunction::new(Arc::clone(&messaging));
+
+    let mut caps = CapabilitySet::new();
+    caps.grant(Capability::Messaging(TopicPattern::new("*")));
+    let context = create_host_context(ComponentId::new("sender"), caps);
+
+    let request = create_prefixed_request(MulticodecPrefix::Borsh, b"payload");
+
+    // Test various timeout values
+    let timeouts = [0u64, 100, 1000, 5000, 30000, 60000, u64::MAX];
+
+    for (i, timeout) in timeouts.iter().enumerate() {
+        let args = encode_request_args(&format!("target-{}", i), *timeout, &request);
+        let result = func.execute(&context, args).await;
+        
+        assert!(result.is_ok(), "Timeout {}ms should be accepted", timeout);
+    }
+
+    assert_eq!(messaging.correlation_tracker().pending_count(), timeouts.len());
+}
+
+// ============================================================================
+// REGISTRY INTEGRATION TESTS
+// ============================================================================
+
+/// Test 11: Both messaging functions registered
+#[tokio::test]
+async fn test_both_messaging_functions_registered() {
+    let messaging = Arc::new(MessagingService::new());
+    let registry = AsyncHostRegistryBuilder::new()
+        .with_messaging_functions(messaging)
+        .build();
+
+    // Both fire-and-forget and request-response should be present
+    assert!(registry.has_function("messaging::send"));
+    assert!(registry.has_function("messaging::send_request"));
+
+    let send_fn = registry.get_function("messaging::send").unwrap();
+    assert_eq!(send_fn.name(), "messaging::send");
+
+    let request_fn = registry.get_function("messaging::send_request").unwrap();
+    assert_eq!(request_fn.name(), "messaging::send_request");
+}
+
+/// Test 12: Can use both messaging functions together
+#[tokio::test]
+async fn test_send_and_request_together() {
+    let messaging = Arc::new(MessagingService::new());
+    let registry = AsyncHostRegistryBuilder::new()
+        .with_messaging_functions(Arc::clone(&messaging))
+        .build();
+
+    let mut caps = CapabilitySet::new();
+    caps.grant(Capability::Messaging(TopicPattern::new("*")));
+    let context = create_host_context(ComponentId::new("sender"), caps);
+
+    // Fire-and-forget message
+    let send_fn = registry.get_function("messaging::send").unwrap();
+    let mut message = MulticodecPrefix::Borsh.prefix_bytes().to_vec();
+    message.extend_from_slice(b"fire-and-forget");
+    
+    let mut send_args = (6u32).to_le_bytes().to_vec(); // "target" length
+    send_args.extend_from_slice(b"target");
+    send_args.extend_from_slice(&message);
+    
+    let send_result = send_fn.execute(&context, send_args).await;
+    assert!(send_result.is_ok());
+    assert!(send_result.unwrap().is_empty()); // Fire-and-forget returns empty
+
+    // Request-response message
+    let request_fn = registry.get_function("messaging::send_request").unwrap();
+    let request = create_prefixed_request(MulticodecPrefix::Borsh, b"request");
+    let request_args = encode_request_args("target", 5000, &request);
+    
+    let request_result = request_fn.execute(&context, request_args).await;
+    assert!(request_result.is_ok());
+    assert!(!request_result.unwrap().is_empty()); // Request returns correlation ID
+
+    // Verify metrics
+    let stats = messaging.get_stats().await;
+    assert_eq!(stats.messages_published, 2); // Both published
+    assert_eq!(stats.requests_sent, 1); // Only one was a request
+}
+
+// ============================================================================
+// CONCURRENT REQUEST TESTS
+// ============================================================================
+
+/// Test 13: Concurrent requests from multiple components
+#[tokio::test]
+async fn test_concurrent_requests() {
+    let messaging = Arc::new(MessagingService::new());
+    
+    // Spawn multiple concurrent request tasks
+    let mut handles = Vec::new();
+    
+    for i in 0..10 {
+        let messaging_clone = Arc::clone(&messaging);
+        
+        let handle = tokio::spawn(async move {
+            let func = SendRequestHostFunction::new(messaging_clone);
+            
+            let mut caps = CapabilitySet::new();
+            caps.grant(Capability::Messaging(TopicPattern::new("*")));
+            let context = create_host_context(
+                ComponentId::new(&format!("component-{}", i)),
+                caps,
+            );
+
+            let request = create_prefixed_request(MulticodecPrefix::Borsh, b"concurrent request");
+            
+            // Each component sends 10 requests
+            for j in 0..10 {
+                let args = encode_request_args(&format!("target-{}-{}", i, j), 5000, &request);
+                let result = func.execute(&context, args).await;
+                assert!(result.is_ok(), "Request {}-{} should succeed", i, j);
+            }
+        });
+        
+        handles.push(handle);
+    }
+    
+    // Wait for all
+    for handle in handles {
+        handle.await.unwrap();
+    }
+    
+    // Verify all 100 requests registered
+    let tracker = messaging.correlation_tracker();
+    assert_eq!(tracker.pending_count(), 100);
+    
+    let stats = messaging.get_stats().await;
+    assert_eq!(stats.messages_published, 100);
+    assert_eq!(stats.requests_sent, 100);
+}
+
+// ============================================================================
+// PERFORMANCE TESTS
+// ============================================================================
+
+/// Test 14: Performance verification (latency target ~350ns)
+///
+/// Note: CI environments may have higher latency, so we use a generous
+/// upper bound for the test. The actual target is ~350ns.
+#[tokio::test]
+async fn test_send_request_performance() {
+    let messaging = Arc::new(MessagingService::new());
+    let func = SendRequestHostFunction::new(Arc::clone(&messaging));
+
+    let mut caps = CapabilitySet::new();
+    caps.grant(Capability::Messaging(TopicPattern::new("*")));
+    let context = create_host_context(ComponentId::new("perf-sender"), caps);
+
+    let request = create_prefixed_request(MulticodecPrefix::Borsh, b"performance test payload");
+    let args = encode_request_args("perf-target", 5000, &request);
+
+    // Warmup
+    for _ in 0..100 {
+        let _ = func.execute(&context, args.clone()).await;
+    }
+
+    // Measure
+    let iterations = 1000;
+    let start = std::time::Instant::now();
+
+    for _ in 0..iterations {
+        let _ = func.execute(&context, args.clone()).await;
+    }
+
+    let elapsed = start.elapsed();
+    let avg_ns = elapsed.as_nanos() / iterations;
+
+    // Verify: Should be under 50000ns even on slow CI with debug builds
+    // Target is ~350ns on optimized hardware with release builds
+    // Debug builds have significant overhead from bounds checking, etc.
+    assert!(
+        avg_ns < 50000,
+        "Average latency {}ns exceeds 50000ns threshold (target ~350ns in release)",
+        avg_ns
+    );
+
+    println!("send-request average latency: {}ns (debug build)", avg_ns);
+
+    // Verify all requests registered
+    let tracker = messaging.correlation_tracker();
+    assert!(tracker.pending_count() >= iterations as usize);
+}
