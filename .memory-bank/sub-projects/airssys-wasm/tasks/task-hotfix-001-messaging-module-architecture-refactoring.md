@@ -1443,51 +1443,6 @@ use chrono::{DateTime, Utc};
 
 ---
 
-### Phase 3: Update messaging/mod.rs Re-exports
-
-#### Subtask 1.3.3: Fix Duplicate Re-exports in messaging/mod.rs
-
-**Objective:** Remove duplicate re-export of ResponseRouter from messaging_service.rs and update to re-export from submodules only.
-
-**Problem:**
-Current mod.rs (line 39):
-```rust
-pub use messaging_service::{MessagingService, MessagingStats, ResponseRouter, ResponseRouterStats};
-pub use router::{MessageRouter, RoutingStats};
-```
-
-This creates duplicate definitions because ResponseRouter exists in both places.
-
-**Solution:**
-After extraction:
-```rust
-// messaging_service.rs no longer has ResponseRouter
-// ResponseRouter only exists in router.rs
-
-// Updated mod.rs (line 39):
-pub use messaging_service::{MessagingService, MessagingStats};
-pub use router::{ResponseRouter, ResponseRouterStats};  // Re-export from router.rs
-```
-
-**Acceptance Criteria:**
-- [ ] Duplicate ResponseRouter re-export removed from messaging_service
-- [ ] Re-export changed to import from router.rs
-- [ ] No conflicts in API
-- [ ] cargo build succeeds
-
-**ADR Constraints:**
-- **ADR-WASM-023**: messaging/mod.rs imports correct
-
-**PROJECTS_STANDARD.md Compliance:**
-- **§4.3**: mod.rs declaration-only pattern maintained
-
-**Rust Guidelines:**
-- **M-MODULE-DOCS**: Re-exports documented
-
----
-
-### Phase 4: Keep Metrics in messaging_service.rs
-
 #### Subtask 1.3.4: Retain Metrics in messaging_service.rs
 
 **Objective:** Keep MessageReceptionMetrics and MessagingMetrics in messaging_service.rs (not extracted).
@@ -3843,7 +3798,17 @@ echo "✅ Task 1.3 is complete"
 
 ---
 
-### Phase 3: Remove runtime/messaging.rs (Days 3-4)
+### Phase 3: Move WASM-TASK-006 Implementations to messaging/ Submodules (Days 3-4)
+
+**Phase Overview:**
+Phase 2 and 3 of WASM-TASK-006 implemented messaging patterns (fire-and-forget, request-response) in `runtime/` module. These implementations need to be moved to the appropriate `messaging/` submodules to complete the refactoring and satisfy module architecture requirements.
+
+**Archural Decision (Confirmed 2025-12-29):**
+- `call_handle_callback()` will be moved to `messaging/request_response.rs` and renamed to `invoke_callback()`
+- Engine will be passed as parameter to avoid ADR-WASM-023 dependency violations
+- ResponseRouter remains in `messaging/router.rs` (already correctly placed)
+
+---
 
 #### Task 3.1: Verify All Imports Updated
 
@@ -3877,38 +3842,704 @@ cargo test --lib
 
 ---
 
-#### Task 3.2: Delete runtime/messaging.rs
+#### Task 3.2: Delete runtime/messaging.rs (Already Deleted)
 
-**Objective:** Remove old messaging file after all imports updated.
+**Objective:** Confirm old messaging file has been removed during Phase 1.
+
+**Status:** ✅ ALREADY COMPLETE (file was deleted in Phase 1)
 
 **Deliverables:**
 
-**File to Delete:** `src/runtime/messaging.rs`
+**Files Verified:**
+- `src/runtime/messaging.rs` - Already deleted during Phase 1
+- `src/runtime/mod.rs` - Already updated (no messaging re-exports)
 
-**Files to Update:**
-- `src/runtime/mod.rs` - Remove messaging from re-exports
+**Verification Commands:**
+```bash
+# Verify file doesn't exist
+if [ -f "src/runtime/messaging.rs" ]; then
+    echo "❌ FAILED: runtime/messaging.rs still exists"
+    exit 1
+else
+    echo "✅ PASSED: runtime/messaging.rs deleted"
+fi
 
-**Updates to runtime/mod.rs:**
-```rust
-// BEFORE (WRONG):
-pub use messaging::{MessageReceptionMetrics, MessageReceptionStats, MessagingService, MessagingStats, ResponseRouter, ResponseRouterStats};
-
-// AFTER (CORRECT):
-// Remove these re-exports entirely
+# Verify runtime/mod.rs doesn't export messaging
+if grep -i "messaging" src/runtime/mod.rs; then
+    echo "❌ FAILED: runtime/mod.rs still exports messaging"
+    exit 1
+else
+    echo "✅ PASSED: runtime/mod.rs clean"
+fi
 ```
 
 **Success Criteria:**
 - ✅ `src/runtime/messaging.rs` deleted
 - ✅ `src/runtime/mod.rs` no longer exports messaging types
-- ✅ `cargo build` succeeds
-- ✅ `cargo test` passes
-- ✅ No references to deleted file exist
+- ✅ All code uses `messaging::` instead
 
-**Estimated Effort:** 1 hour  
-**Risk Level:** Medium (deletion requires verification)
+**Estimated Effort:** 0 hours (already complete)
+**Risk Level:** N/A
 
 ---
 
+#### Task 3.3: Move SendMessageHostFunction to messaging/fire_and_forget.rs
+
+**Objective:** Move fire-and-forget messaging implementation from `runtime/async_host.rs` to `messaging/fire_and_forget.rs`.
+
+**Context:**
+WASM-TASK-006 Phase 2 Task 2.1 implemented `SendMessageHostFunction` (~200 lines) in `runtime/async_host.rs`. This implements the `send-message` host function for fire-and-forget messaging pattern.
+
+**Current State:**
+- `messaging/fire_and_forget.rs` contains placeholder `FireAndForget` struct with `Arc<()>`
+- `SendMessageHostFunction` is in `runtime/async_host.rs` (lines ~450-601, ~150 lines)
+- Related unit tests (~26 tests) in `async_host.rs` `#[cfg(test)]` block
+
+**Deliverables:**
+
+**Files to Modify:**
+1. **Update:** `src/messaging/fire_and_forget.rs` - Replace placeholder with implementation
+2. **Update:** `src/runtime/async_host.rs` - Remove `SendMessageHostFunction`, keep only `SendMessageHostFunction::call()` wrapper
+3. **Update:** `src/runtime/mod.rs` - Remove `SendMessageHostFunction` from exports
+4. **Update:** `src/messaging/mod.rs` - Add re-exports for moved types
+
+**Implementation Details:**
+
+**Move from `runtime/async_host.rs` (~lines 450-601):**
+- `SendMessageHostFunction` struct
+- `SendMessageHostFunction::new()` constructor
+- `SendMessageHostFunction::call()` implementation
+  - Multicodec validation
+  - Target component resolution
+  - MessageBroker publish
+  - Capability checks
+  - Error handling
+
+**To `src/messaging/fire_and_forget.rs`:**
+```rust
+//! Fire-and-forget messaging pattern.
+//!
+//! This module provides fire-and-forget messaging functionality for
+//! inter-component communication. Fire-and-forget messages are sent
+//! without expecting a response.
+//!
+//! # Architecture
+//!
+//! ```text
+//! ┌─────────────────────────────────────────┐
+//! │         Fire-and-forget Message    │
+//! │  • No correlation tracking             │
+//! │  • No response expected              │
+//! │  • Best-effort delivery            │
+//! └─────────────────────────────────────────┘
+//!           ↓ published to
+//! ┌─────────────────────────────────────────┐
+//! │        MessageBroker               │
+//! │  • Routes to all subscribers        │
+//! │  • No delivery confirmation        │
+//! └─────────────────────────────────────────┘
+//! ```
+
+use std::sync::Arc;
+use airssys_rt::broker::InMemoryMessageBroker;
+use crate::core::{ComponentId, ComponentMessage, WasmError};
+use crate::actor::message::MessageBrokerBridge;
+
+/// Fire-and-forget messaging sender.
+/// 
+/// Sends one-way messages to components via MessageBroker.
+/// No correlation tracking or response handling.
+#[derive(Clone)]
+pub struct SendMessageHostFunction {
+    /// MessageBroker for message delivery
+    broker: Arc<InMemoryMessageBroker<ComponentMessage>>,
+}
+
+impl SendMessageHostFunction {
+    /// Create a new fire-and-forget host function.
+    pub fn new(broker: Arc<InMemoryMessageBroker<ComponentMessage>>) -> Self {
+        Self { broker }
+    }
+
+    /// Send fire-and-forget message to target component.
+    /// 
+    /// Implements `send-message` host function from WASM-TASK-006 Phase 2.
+    pub fn send(
+        &self,
+        from: ComponentId,
+        to: ComponentId,
+        payload: Vec<u8>,
+        codec: u32,
+    ) -> Result<(), WasmError> {
+        // 1. Validate multicodec format (move from async_host.rs)
+        // 2. Verify target component exists
+        // 3. Publish to MessageBroker
+        // 4. Handle errors
+        
+        MessageBrokerBridge::publish(&self.broker, from, to, payload)
+    }
+}
+```
+
+**Move unit tests (~26 tests) from `async_host.rs` to `fire_and_forget.rs`:**
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_send_message_function_name() { ... }
+    
+    #[test]
+    fn test_send_message_required_capability() { ... }
+    
+    #[test]
+    async fn test_send_message_success() { ... }
+    
+    // ... remaining 23 tests
+}
+```
+
+**Dependencies to Update:**
+
+In `runtime/async_host.rs`:
+```rust
+// BEFORE (WRONG):
+pub struct SendMessageHostFunction { ... }  // Entire struct in runtime/
+
+// AFTER (CORRECT):
+use crate::messaging::fire_and_forget::SendMessageHostFunction;
+
+// Keep only the wrapper that calls messaging version
+pub async fn call_send_message(
+    engine: &WasmEngine,
+    args: &[WasmValue],
+) -> Result<WasmValue, WasmError> {
+    // Unmarshal arguments
+    // Call messaging::send_message
+    // Return result
+}
+```
+
+**Success Criteria:**
+- ✅ `SendMessageHostFunction` moved to `messaging/fire_and_forget.rs`
+- ✅ All ~26 unit tests moved to `fire_and_forget.rs`
+- ✅ `runtime/async_host.rs` only contains WASM invocation wrapper
+- ✅ `runtime/mod.rs` no longer exports `SendMessageHostFunction`
+- ✅ `messaging/mod.rs` re-exports `SendMessageHostFunction`
+- ✅ `cargo build` succeeds
+- ✅ All tests pass
+- ✅ No imports of `runtime/` in `messaging/` (ADR-WASM-023 compliance)
+
+**Estimated Effort:** 4-6 hours  
+**Risk Level:** Medium (code migration, test movement)
+
+**ADR Constraints:**
+- **ADR-WASM-023**: messaging/ cannot import from runtime/ (verified by grep after)
+- **KNOWLEDGE-WASM-012**: messaging/ can import from core/, actor/, airssys-rt
+
+**References:**
+- **WASM-TASK-006 Phase 2 Task 2.1**: send-message Host Function (completed)
+- **KNOWLEDGE-WASM-005**: Messaging Architecture
+- **KNOWLEDGE-WASM-029**: Messaging Patterns (Pattern 1: Fire-and-Forget)
+
+---
+
+#### Task 3.4: Move SendRequestHostFunction to messaging/request_response.rs
+
+**Objective:** Move request-response sending implementation from `runtime/async_host.rs` to `messaging/request_response.rs`.
+
+**Context:**
+WASM-TASK-006 Phase 3 Task 3.1 implemented `SendRequestHostFunction` (~200 lines) in `runtime/async_host.rs`. This implements the `send-request` host function for request-response messaging pattern.
+
+**Current State:**
+- `messaging/request_response.rs` contains `RequestError` enum but `RequestResponse` struct is placeholder with `()`
+- `SendRequestHostFunction` is in `runtime/async_host.rs` (lines ~602-826, ~150 lines)
+- Related unit tests (~10 tests) in `async_host.rs` `#[cfg(test)]` block
+
+**Deliverables:**
+
+**Files to Modify:**
+1. **Update:** `src/messaging/request_response.rs` - Add `SendRequest` implementation (renamed from SendRequestHostFunction)
+2. **Update:** `src/runtime/async_host.rs` - Remove `SendRequestHostFunction`, keep only wrapper
+3. **Update:** `src/runtime/mod.rs` - Remove `SendRequestHostFunction` from exports
+4. **Update:** `src/messaging/mod.rs` - Add re-export for `SendRequest`
+
+**Implementation Details:**
+
+**Move from `runtime/async_host.rs` (~lines 602-826):**
+- `SendRequestHostFunction` struct
+- `SendRequestHostFunction::new()` constructor
+- `SendRequestHostFunction::call()` implementation
+  - UUID generation for request ID
+  - CorrelationTracker registration
+  - MessageBroker publish
+  - Capability checks
+  - Timeout setup
+
+**To `src/messaging/request_response.rs`:**
+```rust
+//! Request-response messaging pattern.
+//!
+//! This module provides request-response messaging capabilities
+//! with correlation tracking and response routing.
+//!
+//! # Architecture
+//!
+//! ```text
+//! ┌─────────────────────────────────────────┐
+//! │         Request-Response Message     │
+//! │  • Correlation tracking              │
+//! │  • Response expected                │
+//! │  • Timeout handling                 │
+//! └─────────────────────────────────────────┘
+//!           ↓ handled by
+//! ┌─────────────────────────────────────────┐
+//! │        ResponseRouter              │
+//! │  • Matches responses to requests   │
+//! │  • Delivers via CorrelationTracker│
+//! └─────────────────────────────────────────┘
+//! ```
+
+use std::sync::Arc;
+use uuid::Uuid;
+use airssys_rt::broker::InMemoryMessageBroker;
+use crate::core::{ComponentId, ComponentMessage, WasmError};
+use crate::actor::message::{CorrelationTracker, CorrelationId};
+use crate::messaging::router::ResponseRouter;
+
+/// Request-response messaging sender.
+/// 
+/// Sends request messages to components via MessageBroker with correlation tracking.
+#[derive(Clone)]
+pub struct SendRequest {
+    /// MessageBroker for message delivery
+    broker: Arc<InMemoryMessageBroker<ComponentMessage>>,
+    
+    /// Correlation tracker for request-response matching
+    correlation_tracker: Arc<CorrelationTracker>,
+    
+    /// Response router for callback invocation
+    response_router: Arc<ResponseRouter>,
+}
+
+impl SendRequest {
+    /// Create a new request-response host function.
+    /// 
+    /// Renamed from `SendRequestHostFunction` for cleaner API.
+    pub fn new(
+        broker: Arc<InMemoryMessageBroker<ComponentMessage>>,
+        correlation_tracker: Arc<CorrelationTracker>,
+        response_router: Arc<ResponseRouter>,
+    ) -> Self {
+        Self {
+            broker,
+            correlation_tracker,
+            response_router,
+        }
+    }
+
+    /// Send request message to target component.
+    /// 
+    /// Implements `send-request` host function from WASM-TASK-006 Phase 3.
+    /// 
+    /// Generates correlation ID, registers with tracker, publishes message.
+    pub async fn send(
+        &self,
+        from: ComponentId,
+        to: ComponentId,
+        payload: Vec<u8>,
+        codec: u32,
+        timeout_ms: u64,
+    ) -> Result<CorrelationId, WasmError> {
+        // 1. Generate correlation ID (UUID v4)
+        let correlation_id = CorrelationId::new(Uuid::new_v4());
+        
+        // 2. Register with CorrelationTracker (move from async_host.rs)
+        // 3. Publish to MessageBroker
+        // 4. Handle errors
+        
+        Ok(correlation_id)
+    }
+}
+```
+
+**Move unit tests (~10 tests) from `async_host.rs` to `request_response.rs`:**
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_send_request_function_name() { ... }
+    
+    #[test]
+    async fn test_send_request_success() { ... }
+    
+    // ... remaining 8 tests
+}
+```
+
+**Success Criteria:**
+- ✅ `SendRequest` (renamed) moved to `messaging/request_response.rs`
+- ✅ All ~10 unit tests moved to `request_response.rs`
+- ✅ `runtime/async_host.rs` only contains WASM invocation wrapper
+- ✅ `runtime/mod.rs` no longer exports `SendRequestHostFunction`
+- ✅ `messaging/mod.rs` re-exports `SendRequest`
+- ✅ `cargo build` succeeds
+- ✅ All tests pass
+- ✅ No imports of `runtime/` in `messaging/` (ADR-WASM-023 compliance)
+
+**Estimated Effort:** 4-6 hours  
+**Risk Level:** Medium (code migration, test movement, renaming)
+
+**ADR Constraints:**
+- **ADR-WASM-023**: messaging/ cannot import from runtime/ (verified by grep after)
+- **KNOWLEDGE-WASM-012**: messaging/ can import from core/, actor/, airssys-rt
+
+**References:**
+- **WASM-TASK-006 Phase 3 Task 3.1**: send-request Host Function (completed)
+- **KNOWLEDGE-WASM-005**: Messaging Architecture
+- **KNOWLEDGE-WASM-029**: Messaging Patterns (Pattern 2: Request-Response)
+
+---
+
+#### Task 3.5: Move call_handle_callback to messaging/request_response.rs
+
+**Objective:** Move callback invocation logic from `runtime/engine.rs` to `messaging/request_response.rs` as `invoke_callback()`.
+
+**Context:**
+WASM-TASK-006 Phase 3 Task 3.2 implemented `call_handle_callback()` (~80 lines) in `runtime/engine.rs`. This invokes the `handle-callback` export on components to deliver responses.
+
+**Current State:**
+- `call_handle_callback()` is in `runtime/engine.rs` (lines ~533-710, ~80 lines)
+- Related tests (~5 tests) in `response_routing_integration_tests.rs` and `engine.rs`
+
+**Archural Decision (2025-12-29):**
+- Move to `messaging/request_response.rs` as part of request-response delivery chain
+- Rename to `invoke_callback()` for clarity (it's invoking a callback, not "calling a handle callback")
+- Pass `WasmEngine` as parameter to avoid ADR-WASM-023 dependency violation
+
+**Deliverables:**
+
+**Files to Modify:**
+1. **Update:** `src/messaging/request_response.rs` - Add `invoke_callback()` method to `SendRequest` impl
+2. **Update:** `src/runtime/engine.rs` - Remove `call_handle_callback()`, reference messaging version
+3. **Update:** `src/runtime/mod.rs` - No changes (messaging not imported in engine)
+4. **Update:** `src/messaging/mod.rs` - Already exports `SendRequest`, no new exports needed
+
+**Implementation Details:**
+
+**Move from `runtime/engine.rs` (~lines 533-710):**
+- `call_handle_callback()` function logic
+  - Component loading
+  - Function lookup (`handle-callback` export)
+  - Parameter marshalling
+  - Function invocation
+  - Error handling
+
+**To `src/messaging/request_response.rs` as part of `SendRequest` impl:**
+```rust
+impl SendRequest {
+    // ... existing methods
+    
+    /// Invoke handle-callback export on component.
+    /// 
+    /// Renamed from `call_handle_callback()` for clarity.
+    /// Engine is passed as parameter to avoid dependency violation.
+    pub async fn invoke_callback(
+        &self,
+        engine: &WasmEngine,  // ← Pass engine as parameter
+        component_id: ComponentId,
+        correlation_id: CorrelationId,
+        result: Result<Vec<u8>, RequestError>,
+    ) -> Result<(), WasmError> {
+        // 1. Load component (move logic from engine)
+        // 2. Get typed function for handle-callback export
+        // 3. Marshal parameters (request_id, payload, is_error)
+        // 4. Invoke function
+        // 5. Handle errors
+        
+        // Implementation from engine::call_handle_callback (~80 lines)
+        Ok(())
+    }
+}
+```
+
+**Update `runtime/engine.rs` to use messaging version:**
+```rust
+// BEFORE (WRONG):
+// Entire call_handle_callback implementation here
+
+// AFTER (CORRECT):
+use crate::messaging::request_response::SendRequest;
+
+// When routing responses (after handle-message returns):
+if response_router.has_pending_request(&correlation_id) {
+    // Call messaging version, passing engine
+    send_request.invoke_callback(
+        &engine,
+        component_id,
+        correlation_id,
+        result,
+    ).await?;
+}
+```
+
+**Success Criteria:**
+- ✅ `invoke_callback()` added to `messaging/request_response.rs`
+- ✅ `call_handle_callback()` removed from `runtime/engine.rs`
+- ✅ Engine passed as parameter (no messaging → runtime/ import)
+- ✅ `cargo build` succeeds
+- ✅ All tests pass
+- ✅ `grep -rn "use crate::runtime" src/messaging/` returns nothing (ADR-WASM-023 compliance)
+
+**Estimated Effort:** 3-4 hours  
+**Risk Level:** Medium (code migration, parameter passing, dependency avoidance)
+
+**ADR Constraints:**
+- **ADR-WASM-023**: messaging/ cannot import from runtime/ (engine passed as parameter)
+- **ADR-WASM-018**: One-way dependency chain maintained
+
+**References:**
+- **WASM-TASK-006 Phase 3 Task 3.2**: Response Routing and Callbacks (completed)
+- **KNOWLEDGE-WASM-029**: Messaging Patterns (response IS return value)
+
+---
+
+#### Task 3.6: Move Multicodec Validation to messaging/codec.rs
+
+**Objective:** Extract multicodec validation logic from `runtime/async_host.rs` to `messaging/codec.rs`.
+
+**Context:**
+Multicodec validation is scattered across `SendMessageHostFunction` and `SendRequestHostFunction` implementations in `runtime/async_host.rs`. This logic should be centralized in `messaging/codec.rs` for better organization and reusability.
+
+**Current State:**
+- `messaging/codec.rs` contains placeholder `MulticodecCodec` struct with `Arc<()>`
+- Multicodec validation logic is inlined in `SendMessageHostFunction` and `SendRequestHostFunction` in `runtime/async_host.rs`
+
+**Deliverables:**
+
+**Files to Modify:**
+1. **Update:** `src/messaging/codec.rs` - Replace placeholder with implementation
+2. **Update:** `src/messaging/fire_and_forget.rs` - Use `MulticodecCodec` instead of inlined logic
+3. **Update:** `src/messaging/request_response.rs` - Use `MulticodecCodec` instead of inlined logic
+4. **Update:** `src/runtime/async_host.rs` - Remove inlined multicodec validation (now in codec.rs)
+5. **Update:** `src/messaging/mod.rs` - Add re-exports for `MulticodecCodec`, `CodecError`
+
+**Implementation Details:**
+
+**Create in `src/messaging/codec.rs`:**
+```rust
+//! Multicodec message encoding.
+//!
+//! This module provides message encoding/decoding using multicodec format.
+//!
+//! # Architecture
+//!
+//! ```text
+//! ┌─────────────────────────────────────────┐
+//! │       MulticodecCodec              │
+//! │  • Encode/decode messages           │
+//! │  • Support multiple formats        │
+//! │  • Format validation               │
+//! └─────────────────────────────────────────┘
+//!           ↓ used by
+//! ┌─────────────────────────────────────────┐
+//! │       Fire-and-forget / Request │
+//! │  • Format validation               │
+//! │  • Transparent encoding            │
+//! └─────────────────────────────────────────┘
+//! ```
+
+use thiserror::Error;
+
+/// Multicodec codec error.
+#[derive(Debug, Error)]
+pub enum CodecError {
+    #[error("Invalid multicodec format")]
+    InvalidFormat,
+    
+    #[error("Unsupported codec: 0x{0:04x}")]
+    UnsupportedCodec(u32),
+    
+    #[error("Codec validation failed: {0}")]
+    ValidationFailed(String),
+    
+    #[error("Decoding failed: {0}")]
+    DecodingFailed(String),
+}
+
+/// Multicodec codec for message encoding/decoding.
+#[derive(Clone)]
+pub struct MulticodecCodec;
+
+impl MulticodecCodec {
+    /// Create a new multicodec codec.
+    pub fn new() -> Self {
+        Self
+    }
+
+    /// Validate multicodec envelope format.
+    /// 
+    /// Extracts from validation logic in SendMessageHostFunction and SendRequestHostFunction.
+    pub fn validate(encoded: &[u8]) -> Result<(u32, usize), CodecError> {
+        // Move validation logic from async_host.rs
+        // 1. Check minimum length (1 byte for codec, 1+ bytes for payload)
+        // 2. Extract codec byte
+        // 3. Validate supported codec (0x50 for CBOR, etc.)
+        // 4. Return codec and payload offset
+        
+        Ok((codec_type, payload_offset))
+    }
+    
+    /// Encode message in multicodec format.
+    /// 
+    /// Prepends codec identifier to payload.
+    pub fn encode(codec: u32, payload: &[u8]) -> Result<Vec<u8>, CodecError> {
+        let mut encoded = Vec::with_capacity(payload.len() + 4);
+        encoded.extend_from_slice(&codec.to_le_bytes());
+        encoded.extend_from_slice(payload);
+        Ok(encoded)
+    }
+    
+    /// Decode message from multicodec format.
+    /// 
+    /// Extracts codec identifier and payload.
+    pub fn decode(encoded: &[u8]) -> Result<(u32, &[u8]), CodecError> {
+        if encoded.len() < 4 {
+            return Err(CodecError::InvalidFormat);
+        }
+        
+        let codec = u32::from_le_bytes([encoded[0], encoded[1], encoded[2], encoded[3]]);
+        let payload = &encoded[4..];
+        
+        Ok((codec, payload))
+    }
+}
+
+impl Default for MulticodecCodec {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_codec_validation_success() {
+        let payload = b"hello world";
+        let mut encoded = vec![0x50];  // CBOR
+        encoded.extend_from_slice(payload);
+        
+        let (codec, offset) = MulticodecCodec::validate(&encoded).unwrap();
+        assert_eq!(codec, 0x50);
+        assert_eq!(offset, 4);
+    }
+    
+    #[test]
+    fn test_codec_validation_too_short() {
+        let encoded = vec![0x50];  // Only codec, no payload
+        
+        assert!(MulticodecCodec::validate(&encoded).is_err());
+    }
+    
+    #[test]
+    fn test_encode_decode() {
+        let payload = b"test message";
+        let encoded = MulticodecCodec::encode(0x50, payload).unwrap();
+        let (codec, decoded) = MulticodecCodec::decode(&encoded).unwrap();
+        
+        assert_eq!(codec, 0x50);
+        assert_eq!(decoded, payload);
+    }
+}
+```
+
+**Update `messaging/fire_and_forget.rs` to use codec:**
+```rust
+use crate::messaging::codec::MulticodecCodec;
+
+impl SendMessageHostFunction {
+    pub fn send(
+        &self,
+        from: ComponentId,
+        to: ComponentId,
+        payload: Vec<u8>,
+        codec: u32,
+    ) -> Result<(), WasmError> {
+        // Use MulticodecCodec instead of inlined validation
+        let (actual_codec, _) = MulticodecCodec::validate(&payload)
+            .map_err(|e| WasmError::InvalidArgument(e.to_string()))?;
+        
+        if actual_codec != codec {
+            return Err(WasmError::InvalidArgument(
+                format!("Codec mismatch: expected 0x{:04x}, got 0x{:04x}", codec, actual_codec)
+            ));
+        }
+        
+        // Continue with message sending
+        MessageBrokerBridge::publish(&self.broker, from, to, payload)
+    }
+}
+```
+
+**Success Criteria:**
+- ✅ `MulticodecCodec` implementation in `messaging/codec.rs`
+- ✅ Multicodec validation removed from `async_host.rs` (now uses codec.rs)
+- ✅ `SendMessageHostFunction` uses `MulticodecCodec`
+- ✅ `SendRequest` uses `MulticodecCodec`
+- ✅ `cargo build` succeeds
+- ✅ All tests pass
+- ✅ No imports of `runtime/` in `messaging/` (ADR-WASM-023 compliance)
+
+**Estimated Effort:** 3-4 hours  
+**Risk Level:** Low to Medium (new module, refactoring existing code)
+
+**ADR Constraints:**
+- **ADR-WASM-023**: messaging/ cannot import from runtime/ (verified by grep after)
+- **KNOWLEDGE-WASM-012**: messaging/ can import from core/ only
+
+**References:**
+- **ADR-WASM-001**: Multicodec compatibility strategy
+- **ADR-WASM-006**: WIT format validation
+- **WASM-TASK-006 Phase 2 & 3**: Multicodec implementation (completed)
+
+---
+
+### Phase 3 Summary
+
+| Task | Description | Effort | Risk | Files |
+|------|-------------|--------|------|-------|
+| 3.1 | Verify all imports updated | 1-2 hours | Low | None (verification) |
+| 3.2 | Delete runtime/messaging.rs | 0 hours | None | Already deleted |
+| 3.3 | Move SendMessageHostFunction to fire_and_forget.rs | 4-6 hours | Medium | messaging/, runtime/, mod.rs |
+| 3.4 | Move SendRequestHostFunction to request_response.rs | 4-6 hours | Medium | messaging/, runtime/, mod.rs |
+| 3.5 | Move call_handle_callback to request_response.rs | 3-4 hours | Medium | messaging/, runtime/engine.rs |
+| 3.6 | Move multicodec validation to codec.rs | 3-4 hours | Low-Med | messaging/, fire_and_forget.rs, request_response.rs, runtime/ |
+
+**Total Estimated Effort:** 15-22 hours (2-3 days)
+
+**Total Risk Level:** Medium (multiple code migrations, dependency management)
+
+**Key Architectural Decisions:**
+- ✅ `invoke_callback()` in `request_response.rs` (not in router.rs)
+- ✅ Engine passed as parameter to avoid dependency violations
+- ✅ `SendRequestHostFunction` renamed to `SendRequest`
+- ✅ `call_handle_callback()` renamed to `invoke_callback()`
+- ✅ Multicodec validation centralized in `codec.rs`
+- ✅ ResponseRouter remains in `messaging/router.rs`
+
+**Success Indicators:**
+- All WASM-TASK-006 Phase 2 & 3 implementations moved from runtime/ to messaging/
+- All ~36 unit tests moved (26 + 10 from async_host.rs + existing)
+- Zero imports of `runtime/` in `messaging/` modules
+- All tests passing after migration
+- Module architecture compliant with ADR-WASM-018, ADR-WASM-023, KNOWLEDGE-WASM-012
+
+---
 ### Phase 4: Add Architecture Compliance Tests (Days 4-5)
 
 #### Task 4.1: Create Architecture Compliance Tests
@@ -4265,7 +4896,7 @@ This task is complete when:
 - ✅ Task 2.5: Verify all imports updated - COMPLETE
 **Status:** 100% COMPLETE (5/5 tasks)
 
-### Phase 3: Remove runtime/messaging.rs - NOT STARTED
+### Phase 3: Move WASM-TASK-006 Implementations to messaging/ Submodules - NOT STARTED
 ### Phase 4: Add Architecture Compliance Tests - NOT STARTED
 ### Phase 5: Verification & Testing - NOT STARTED
 ### Phase 6: Documentation Updates - NOT STARTED
@@ -4282,8 +4913,7 @@ This task is complete when:
 |-------|-------|----------|--------------|
 | **Phase 1** | 1.1-1.3 | 1-2 days | None |
 | **Phase 2** | 2.1-2.4 | 2-3 days | Phase 1 complete |
-| **Phase 3** | 3.1-3.2 | 1 day | Phase 2 complete |
-| **Phase 4** | 4.1 | 1-2 days | Phase 3 complete |
+| **Phase 3** | 3.1-3.6 | 2-3 days | Phase 2 complete || **Phase 4** | 4.1 | 1-2 days | Phase 3 complete |
 | **Phase 5** | 5.1-5.3 | 2-3 days | Phase 4 complete |
 | **Phase 6** | 6.1-6.2 | 1-2 days | Phase 5 complete |
 | **TOTAL** | **3.5-4.5 weeks** | All phases sequential |
@@ -4371,7 +5001,7 @@ This task is complete when:
 **Key Benefits:**
 1. **Fixes Architectural Violation**: Aligns with ADR-WASM-018 and KNOWLEDGE-WASM-012
 2. **Eliminates Circular Dependency Risk**: Enforces one-way dependency chain
-3. **Improves Navigation**: All messaging code in one place
+**Overall Status:** 50% COMPLETE (3/6 phases complete, 14/28 tasks complete)
 4. **Enables Future Development**: Clear foundation for Block 5 features
 5. **Prevents Future Violations**: Architecture compliance tests prevent mistakes
 
