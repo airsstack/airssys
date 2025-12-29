@@ -172,9 +172,4 @@ pub use crate::core::{
 pub use crate::runtime::{ComponentLoader, WasmEngine};
 
 // Messaging (Block 5 - WASM-TASK-006)
-pub use crate::messaging::{
-    FireAndForget,
-    MessagingService, MessagingStats, MulticodecCodec,
-    RequestResponse, RequestError,
-    ResponseRouter, ResponseRouterStats,
-};
+pub use crate::messaging::{MessagingService, MessagingStats, ResponseRouter, ResponseRouterStats};

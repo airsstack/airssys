@@ -5,7 +5,6 @@
 //!
 //! - MessageBroker integration
 //! - Request-response patterns
-//! - Fire-and-forget messaging
 //! - Topic-based pub-sub (Phase 2)
 //! - Multicodec message encoding
 //!
@@ -26,18 +25,37 @@
 //! │    airssys-rt InMemoryMessageBroker │
 //! └─────────────────────────────────────────┘
 //! ```
+//!
+//! # Architecture (Planned for Phase 2+)
+//!
+//! Fire-and-forget and request-response patterns are currently
+//! implemented as host functions in `runtime/async_host.rs`.
+//! These stub files are kept for potential future helper functions
+//! if needed.
+//!
+//! # Message Types
+//!
+//! Message types are defined in `src/core/messaging.rs` as the
+//! `MessageType` enum:
+//!
+//! - `MessageType::FireAndForget` - One-way message, no response
+//! - `MessageType::Request` - Request expecting response
+//! - `MessageType::Response` - Response to a request
+//!
+//! Components use these message types directly.
+//!
 
 // Module declarations (§4.3 - declaration-only pattern)
+pub mod codec;
 pub mod messaging_service;
 pub mod router;
-pub mod fire_and_forget;
-pub mod request_response;
-pub mod codec;
-pub mod topics; // Phase 2
+pub mod topics;
 
 // Public re-exports
-pub use messaging_service::{MessageReceptionMetrics, MessageReceptionStats, MessagingService, MessagingStats};
+pub use messaging_service::{
+    MessageReceptionMetrics, MessageReceptionStats, MessagingService, MessagingStats,
+};
 pub use router::{ResponseRouter, ResponseRouterStats};
-pub use fire_and_forget::FireAndForget;
-pub use request_response::{RequestResponse, RequestError};
-pub use codec::MulticodecCodec;
+
+// Re-export message types from core for convenience
+pub use crate::core::messaging::MessageType;

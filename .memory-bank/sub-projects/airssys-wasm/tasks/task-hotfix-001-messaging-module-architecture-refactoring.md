@@ -4,8 +4,8 @@
 **Created:** 2025-12-26
 **Updated:** 2025-12-27
 **Priority:** 🔴 CRITICAL / BLOCKING
-**Status:** 🚀 IN PROGRESS  
-**Blocks:** All subsequent WASM-TASK-006+ and Block 5+ development  
+Status: 🔴 SUPERSEDED by WASM-TASK-013
+Updated: 2025-12-30 (CORRECTED)
 **Estimated Effort:** 3.5-4.5 weeks  
 
 ---
@@ -6192,3 +6192,180 @@ All HOTFIX-001 Phase 3 tasks (3.3, 3.4, 3.5, 3.6) are incorporated as phases 4, 
 - No circular dependencies
 - Clear ownership of orchestration logic
 
+
+---
+
+## Status Update - 2025-12-30 (CORRECTED)
+
+**Status:** 🔴 SUPERSEDED by WASM-TASK-013
+**Reason:** HOTFIX-001 Phase 3 tasks (3.3, 3.4, 3.5, 3.6) are **based on incorrect architectural assumptions** and violate module responsibilities defined in KNOWLEDGE-WASM-036.
+
+### What Phase 3 Wants (INCORRECT):
+
+The HOTFIX-001 plan (written before KNOWLEDGE-WASM-036 existed) proposes:
+
+**Task 3.3:** Move `SendMessageHostFunction` → `messaging/fire_and_forget.rs`  
+**Task 3.4:** Move `SendRequestHostFunction` → `messaging/request_response.rs`  
+**Task 3.5:** Move `call_handle_callback` → `messaging/request_response.rs`  
+**Task 3.6:** Move multicodec validation → `messaging/codec.rs`
+
+This approach violates **KNOWLEDGE-WASM-036** (lines 236-247) which states:
+
+> **runtime/ owns:**
+> - ✅ `SendMessageHostFunction`
+> - ✅ `SendRequestHostFunction`
+> - ✅ All host functions
+> - ❌ **NOT** messaging logic or orchestration
+
+### Why This Is Wrong:
+
+1. **Violates Module Responsibilities** (KNOWLEDGE-WASM-036 lines 236-247):
+   - Host functions MUST stay in `runtime/` (that's their correct location)
+   - Moving them to `messaging/` would create wrong module boundaries
+
+2. **Creates Architectural Problems**:
+   - Host functions are WASM invocation points (runtime responsibility)
+   - Messaging module should own messaging patterns, not host function invocation
+   - This would blur the line between runtime execution and messaging patterns
+
+### What TASK-013 Actually Does (CORRECT):
+
+**Phase 6: Refactor Runtime Host Functions** (lines 208-219)
+
+The CORRECT approach is:
+
+```rust
+// CURRENT (WRONG - in async_host.rs line 63):
+use crate::messaging::MessagingService;  // ❌ Creates circular dependency
+
+pub struct SendMessageHostFunction {
+    messaging_service: Arc<MessagingService>,  // ❌ Wrong - import from messaging/
+}
+
+// TASK-013 FIX (CORRECT):
+// No import from messaging/!
+
+pub struct SendMessageHostFunction {
+    broker: Arc<InMemoryMessageBroker<ComponentMessage>>,  // ✅ Passed in, not imported
+}
+
+impl SendMessageHostFunction {
+    pub fn new(broker: Arc<InMemoryMessageBroker<ComponentMessage>>) -> Self {
+        Self { broker }  // ✅ Dependencies injected via constructor
+    }
+}
+```
+
+**Phase 6 Deliverables:**
+- ✅ Remove `use crate::messaging::MessagingService` from `runtime/async_host.rs`
+- ✅ Pass `MessageBroker` via constructor (host_system/ provides this)
+- ✅ No forbidden imports
+- ✅ All tests pass
+
+**Verification Commands** (lines 241-244):
+```bash
+# MUST return nothing for valid architecture
+grep -r "use crate::messaging" src/runtime/  # ← THIS IS THE KEY CHECK
+```
+
+### Correction to Previous Status Update:
+
+**Previous status (line 6142-6151) incorrectly stated:**
+> "All HOTFIX-001 Phase 3 tasks (3.3, 3.4, 3.5, 3.6) are incorporated as phases 4, 5, 6 in WASM-TASK-013."
+
+**This is FALSE.** The correct relationship is:
+
+| Aspect | Reality |
+|--------|---------|
+| **Are Phase 3 tasks included in TASK-013?** | ❌ NO - they would violate architecture |
+| **Does TASK-013 Phase 6 do the same work?** | ❌ NO - it provides a completely different solution |
+| **Is TASK-013 the correct path?** | ✅ YES - it implements correct architecture per KNOWLEDGE-WASM-036 |
+
+### What's Valid from HOTFIX-001:
+
+**✅ Phase 1: Create messaging/ module (COMPLETED)**
+- Task 1.1: Create messaging module structure
+- Task 1.2: Move messaging code from runtime/messaging.rs
+- Task 1.3: Create remaining messaging submodules
+- **Result:** messaging/ module exists, all tests passing ✅
+
+**✅ Phase 2: Update all import statements (COMPLETED)**
+- Task 2.1: Update imports in actor/message/
+- Task 2.2: Update imports in runtime/ modules
+- Task 2.3: Update imports in integration tests
+- Task 2.4: Update imports in examples
+- Task 2.5: Verify all imports updated
+- **Result:** All imports updated, all tests passing ✅
+
+**❌ Phase 3: Move host functions to messaging/ (DO NOT COMPLETE)**
+- **Task 3.1:** Verify all imports updated ✅ (done)
+- **Task 3.2:** Delete runtime/messaging.rs ✅ (already done in Phase 1)
+- **Task 3.3:** Move SendMessageHostFunction → messaging/ ⚠️ **DO NOT COMPLETE** - violates architecture
+- **Task 3.4:** Move SendRequestHostFunction → messaging/ ⚠️ **DO NOT COMPLETE** - violates architecture
+- **Task 3.5:** Move call_handle_callback → messaging/ ⚠️ **DO NOT COMPLETE** - violates architecture
+- **Task 3.6:** Move multicodec validation → messaging/ ⚠️ **DO NOT COMPLETE** - violates architecture
+
+### Replacement Task:
+
+**WASM-TASK-013: Block 1 - Host System Architecture Implementation**
+
+**What TASK-013 Does:**
+- Phase 1: Create `host_system/` module structure
+- Phase 2: Move `CorrelationTracker` to `host_system/`
+- Phase 3: Move `TimeoutHandler` to `host_system/`
+- Phase 4: Implement `HostSystemManager` (system coordinator)
+- Phase 5: Refactor `ActorSystemSubscriber` (inject dependencies)
+- Phase 6: **Refactor Runtime Host Functions** (remove messaging/ imports, inject dependencies)
+- Phase 7: Update Knowledge & Close HOTFIX-001
+
+**Key Difference:**
+
+| Approach | Description | Aligns with KNOWLEDGE-WASM-036? |
+|----------|-------------|---------------------------------|
+| **HOTFIX-001 Phase 3** | "Move host functions to messaging/" | ❌ NO - violates lines 239-240 |
+| **TASK-013 Phase 6** | "Keep host functions in runtime/, inject dependencies" | ✅ YES - follows lines 496-516 |
+
+### Task Order Recommendation:
+
+**✅ Move directly to WASM-TASK-013**
+
+**Do NOT:**
+- ❌ Complete HOTFIX-001 Phase 3 tasks (3.3, 3.4, 3.5, 3.6)
+- ❌ Wait for HOTFIX-001 to finish
+
+**Do:**
+- ✅ HOTFIX-001 Phase 1-2 work is VALID and already complete
+- ✅ Use messaging/ module created by HOTFIX-001 Phase 1-2
+- ✅ Start WASM-TASK-013 implementation
+- ✅ TASK-013 Phase 6 will properly fix circular dependency via dependency injection
+
+**Why This Order?**
+
+1. **HOTFIX-001's valid work is done:**
+   - messaging/ module exists ✅
+   - All imports updated ✅
+   - 1,028 tests passing ✅
+
+2. **Phase 3 is based on WRONG assumptions:**
+   - Written before KNOWLEDGE-WASM-036 existed
+   - Would create new architectural violations
+   - Should NOT be completed
+
+3. **TASK-013 provides CORRECT solution:**
+   - Keeps host functions in runtime/ (per KNOWLEDGE-WASM-036)
+   - Eliminates circular dependency via dependency injection
+   - Implements complete `host_system/` coordinator
+
+### Summary:
+
+| Question | Answer |
+|----------|---------|
+| **Should HOTFIX-001 be completed?** | ❌ NO - Phase 3 violates architecture |
+| **Is HOTFIX-001 superseded?** | ✅ YES - by TASK-013 |
+| **Should we do TASK-013 next?** | ✅ YES - move directly to TASK-013 |
+| **Do we need to "finish" HOTFIX-001 first?** | ❌ NO - Phase 1-2 are done, Phase 3 is wrong |
+
+---
+
+**Updated:** 2025-12-30
+**Status:** SUPERSEDED - See WASM-TASK-013 for correct implementation path

@@ -360,3 +360,55 @@ This is a **breaking change** for:
 ### Review History
 
 - **2025-12-29**: Planned based on architectural analysis (KNOWLEDGE-WASM-036) and task exploration
+
+---
+
+## Status Update - 2025-12-30
+
+**Cleanup Needed Before Implementation:**
+
+Discovery during task planning: Two stub files in `messaging/` contain unused placeholder structs that should be deleted:
+
+1. `src/messaging/fire_and_forget.rs` - Contains `FireAndForget { _inner: Arc<()> }` which is NOT used anywhere
+2. `src/messaging/request_response.rs` - Contains `RequestResponse { _inner: Arc<()> }` which is NOT used anywhere
+
+**What's Actually Used:**
+- Fire-and-forget pattern: Implemented in `runtime/async_host.rs` as `SendMessageHostFunction` ✅
+- Request-response pattern: Implemented in `runtime/async_host.rs` as `SendRequestHostFunction` ✅
+- Message types: `FireAndForget` and `Request` are defined in `src/core/messaging.rs` (MessageType enum) ✅
+
+**Action Required During Phase 1:**
+
+```bash
+# Delete unused stub files
+rm src/messaging/fire_and_forget.rs
+rm src/messaging/request_response.rs
+
+# Update messaging/mod.rs to remove re-exports of these files
+# Add direct use of core::messaging types instead:
+# pub use crate::core::messaging::{FireAndForget, Request};
+```
+
+**Verification Commands:**
+```bash
+# Verify stub files deleted
+test ! -f src/messaging/fire_and_forget.rs && echo "✅ Deleted" || echo "❌ Still exists"
+test ! -f src/messaging/request_response.rs && echo "✅ Deleted" || echo "❌ Still exists"
+
+# Verify messaging/mod.rs updated correctly
+grep -n "pub use crate::core::messaging" src/messaging/mod.rs
+```
+
+**Rationale:**
+- These stub files were created as placeholders in HOTFIX-001 Phase 1
+- The actual messaging patterns (fire-and-forget, request-response) are implemented as host functions in `runtime/`
+- No code in the project uses the structs from these stub files
+- Keeping them creates confusion and violates single-responsibility principle
+
+**Impact on TASK-013:**
+- ✅ No changes to Phase 1-7 implementation plans
+- ✅ Just pre-cleanup before starting implementation
+- ✅ Reduces codebase confusion
+
+---
+

@@ -1393,3 +1393,39 @@ Timeout errors delivered to handle-callback with error status.
 3. Verify end-to-end message delivery with integration tests
 4. Proceed to Task 1.3
 
+
+---
+
+## Status Update - 2025-12-30
+
+**Important Discovery:** The stub files `fire_and_forget.rs` and `request_response.rs` contain unused placeholder structs (`FireAndForget { _inner: Arc<()> }` and `RequestResponse { _inner: Arc<()> }`).
+
+**What's Actually Used:**
+- Fire-and-forget pattern is implemented in `runtime/async_host.rs` as `SendMessageHostFunction` ✅
+- Request-response pattern is implemented in `runtime/async_host.rs` as `SendRequestHostFunction` ✅
+- Message types `FireAndForget` and `Request` are defined in `src/core/messaging.rs` (MessageType enum) ✅
+
+**Conclusion:** 
+- ❌ **Task 3.3 (Move SendMessageHostFunction to messaging/) should NOT be completed** - violates architecture (host functions belong in runtime/ per KNOWLEDGE-WASM-036)
+- ❌ **Task 3.4 (Move SendRequestHostFunction to messaging/) should NOT be completed** - violates architecture
+- ⏸️ **Task 3.3 (Timeout and Cancellation) still needs to be completed** - but this is a different task from moving host functions!
+
+**Architecture Clarification:**
+- Host functions MUST stay in `runtime/` module (per KNOWLEDGE-WASM-036 lines 239-240)
+- Messaging/ module owns messaging infrastructure (MessageBroker, ResponseRouter, etc.)
+- Host functions use dependencies injected via constructor (not import from messaging/)
+
+**Phase 3 Updated Status:**
+- ✅ Task 3.1: Verify all imports updated - COMPLETE
+- ✅ Task 3.2: Delete runtime/messaging.rs - COMPLETE (already done in Phase 1)
+- ⏳ Task 3.3: Timeout and Cancellation - **NOT STARTED** (still needs implementation, completely different from moving host functions)
+- ⏸️ Task 3.4: Move SendRequestHostFunction to messaging/ - **SHOULD NOT COMPLETE** (violates architecture)
+- ⏸️ Task 3.5: Move call_handle_callback to messaging/ - **NEEDS REVIEW** (where should callback execution live?)
+- ⏸️ Task 3.6: Move multicodec validation to messaging/ - **NEEDS CLARIFICATION** (already in host functions)
+
+**Recommendation:** Complete only Task 3.3 (Timeout and Cancellation). Tasks 3.4-3.6 are based on incorrect architectural assumptions (written before KNOWLEDGE-WASM-036 existed).
+
+**Replacement Task for architecture fix:** WASM-TASK-013 - Block 1: Host System Architecture Implementation
+
+---
+
