@@ -6138,3 +6138,57 @@ cargo test --lib
 
 ---
 
+
+## Status Update - 2025-12-29
+
+**Overall Status:** 🔴 SUPERSEDED
+
+**Reason:** New architecture (KNOWLEDGE-WASM-036: host_system/, actor/, messaging/, runtime/) introduces complete solution for module architecture with dedicated host_system/ coordinator. HOTFIX-001's partial fix (move messaging to messaging/) is superseded by comprehensive host_system/ implementation.
+
+**Replacement Task:** WASM-TASK-013 - Block 1: Host System Architecture Implementation
+
+**Phase 3 Tasks Included:**
+All HOTFIX-001 Phase 3 tasks (3.3, 3.4, 3.5, 3.6) are incorporated as phases 4, 5, 6 in WASM-TASK-013. This provides comprehensive host_system/ architecture implementation rather than just moving messaging code.
+
+**Key Difference:**
+- HOTFIX-001: "Move code from runtime/ to messaging/" (partial fix)
+- WASM-TASK-013: "Implement complete host_system/ coordinator with 7 phases" (complete solution)
+
+**Why This Makes Sense:**
+1. **Complete Solution:** WASM-TASK-013 implements full host_system/ architecture including:
+   - System initialization
+   - Component lifecycle management
+   - Message flow coordination
+   - Dependency injection for all modules
+   - Comprehensive testing
+   
+2. **Proper Phases:** Work broken into 7 clear phases
+3. **Clear Dependencies:** One-way flow established
+4. **Better Tracking:** Easier to estimate and manage progress
+
+**Impact:**
+- ✅ All future tasks can rely on stable host_system/ infrastructure
+- ✅ HOTFIX-001 properly completed and marked as superseded
+- ✅ Clear architectural foundation for Block 5-11 development
+
+---
+
+## What This Means
+
+**For WASM-TASK-006 (Block 5 - Messaging):**
+- Can continue development with stable messaging/ module
+- Can integrate with host_system/ when ready
+
+**For WASM-TASK-007 (Block 6 - Storage):**
+- Can continue development with stable messaging/ module
+- Can integrate with host_system/ when ready
+
+**For WASM-TASK-008 (Block 7 - Lifecycle):**
+- Can continue development with stable messaging/ module
+- Can integrate with host_system/ when ready
+
+**For All Future Tasks:**
+- All can depend on stable host_system/ infrastructure
+- No circular dependencies
+- Clear ownership of orchestration logic
+

@@ -1,9 +1,9 @@
 # airssys-wasm Knowledge Documentation Index
 
 **Sub-Project:** airssys-wasm  
-**Last Updated:** 2025-12-22  
-**Total Knowledge Docs:** 21  
-**Active Knowledge Docs:** 20
+**Last Updated:** 2025-12-29  
+**Total Knowledge Docs:** 22  
+**Active Knowledge Docs:** 21  
 
 ## Current Knowledge Documentation
 
@@ -29,7 +29,7 @@
 
 ### Architecture & Design Category ✅
 - **[KNOWLEDGE-WASM-015: Project Structure and Workspace Architecture](knowledge_wasm_015_project_structure_and_workspace_architecture.md)** ✅ **CRITICAL**
-  - **Purpose**: Comprehensive documentation of the three sub-projects and their relationships
+  - **Purpose**: Comprehensive documentation of three sub-projects and their relationships
   - **Scope**: Workspace structure, crate relationships, task-to-crate mapping, integration architecture
   - **Key Content**: airssys-wasm (core), airssys-wasm-component (macros), airssys-wasm-cli (CLI), dependency graph, implementation timeline, developer guidance
   - **Status**: Complete authoritative reference (Created 2025-11-30)
@@ -43,7 +43,7 @@
   - **Key Content**: 4-layer architecture, component model, runtime deployment, integration patterns
   - **Status**: Complete foundational design (Updated 2025-10-17 - terminology standardized)
   - **Impact**: Critical - defines entire framework foundation
-  - **Audience**: Architects and senior developers implementing the framework
+  - **Audience**: Architects and senior developers implementing framework
 
 - **[KNOWLEDGE-WASM-003: Core Architecture Design](knowledge_wasm_003_core_architecture_design.md)** ✅ **CRITICAL**
   - **Purpose**: Two-audience developer experience and architectural layers
@@ -94,7 +94,7 @@
   - **Scope**: 4-layer interface architecture, bidirectional contract, type reuse patterns, implementation directions
   - **Key Content**: Layer 0 (types.wit - shared vocabulary), Layer 1 (capabilities.wit - security model), Layer 2 (component-lifecycle.wit - component contract), Layer 3 (host-services.wit - host services), bidirectional relationship diagram, Component Model v0.1 type reuse via use statements
   - **Status**: Complete architectural knowledge (Created 2025-11-24)
-  - **Impact**: Critical - defines the foundational contract between host and components
+  - **Impact**: Critical - defines foundational contract between host and components
   - **Audience**: Component developers, host runtime implementers, framework architects
   - **Related**: KNOWLEDGE-WASM-004 (WIT management), WASM-TASK-003 (WIT implementation), DEBT-WASM-003 (Component Model v0.1 limitations)
 
@@ -256,9 +256,9 @@
 **File:** `docs/knowledges/knowledge-wasm-019-runtime-dependency-architecture.md`
 
 ---
-
-
+ 
 ## KNOWLEDGE-WASM-020: airssys-osl Security Integration Architecture
+
 **Category**: Integration / Security  
 **Created**: 2025-12-17  
 **Status**: Active  
@@ -277,8 +277,10 @@
 
 **File**: `knowledge-wasm-020-airssys-osl-security-integration.md`
 
+---
 
 ## KNOWLEDGE-WASM-021: Architecture References
+
 **Category**: Architecture  
 **Created**: 2025-10-23 (moved 2025-12-17)  
 **Status**: Active  
@@ -290,6 +292,7 @@
 ---
 
 ## KNOWLEDGE-WASM-022: Runtime Architecture Summary
+
 **Category**: Architecture / Runtime  
 **Created**: 2025-12-16 (moved 2025-12-17)  
 **Status**: Active  
@@ -307,6 +310,7 @@
 
 **File**: `knowledge-wasm-022-runtime-architecture-summary.md`
 
+---
 
 ## KNOWLEDGE-WASM-023: DashMap Migration Rationale (2025-12-19)
 
@@ -337,7 +341,7 @@
 - **[KNOWLEDGE-WASM-025: Message Delivery Mechanism](knowledge-wasm-025-message-delivery-mechanism.md)** ⚠️ **SUPERSEDED**
   - **Purpose**: (SUPERSEDED) Originally proposed extending ComponentRegistry for message delivery
   - **Status**: SUPERSEDED by KNOWLEDGE-WASM-026 (2025-12-21)
-  - **Note**: The solution proposed in this document (ComponentRegistry extension) was REJECTED. See KNOWLEDGE-WASM-026 for the correct architecture.
+  - **Note**: The solution proposed in this document (ComponentRegistry extension) was REJECTED. See KNOWLEDGE-WASM-026 for correct architecture.
   - **Related**: KNOWLEDGE-WASM-026 (replacement)
 
 - **[KNOWLEDGE-WASM-026: Message Delivery Architecture - Final Decision](knowledge-wasm-026-message-delivery-architecture-final.md)** ✅ **CRITICAL**
@@ -350,7 +354,6 @@
   - **Key Decision**: `ActorSystemSubscriber` owns `mailbox_senders` for delivery; `ComponentRegistry` stays pure (identity lookup only)
   - **Related**: ADR-WASM-009, KNOWLEDGE-WASM-024, KNOWLEDGE-WASM-018, WASM-TASK-006
   - **Note**: This document supersedes KNOWLEDGE-WASM-025 which proposed extending ComponentRegistry (rejected)
-
 
 ---
 
@@ -450,7 +453,7 @@
 **Category:** Architecture / Module Design / Enforcement  
 **Related ADR:** ADR-WASM-023 (Module Boundary Enforcement)
 
-**Summary:** Defines the MANDATORY module architecture for airssys-wasm. These are HARD REQUIREMENTS that MUST BE FOLLOWED without exception.
+**Summary:** Defines MANDATORY module architecture for airssys-wasm. These are HARD REQUIREMENTS that MUST BE FOLLOWED without exception.
 
 **The Four Modules and Their Purposes:**
 
@@ -468,10 +471,9 @@
 - Verification commands
 - Enforcement requirements
 
-**Why This Exists:** Repeated architectural violations have caused significant development delays. This document ensures the module separation (which was designed for specific reasons) is followed.
+**Why This Exists:** Repeated architectural violations have caused significant development delays. This document ensures module separation (which was designed for specific reasons) is followed.
 
 **Audience:** ALL developers, planners, implementers - MANDATORY reading before any code changes
-
 
 ---
 
@@ -481,7 +483,7 @@
 **Status:** 🔴 CRITICAL - ARCHITECTURE BROKEN  
 **Category:** Architecture Audit  
 
-**Purpose:** Comprehensive audit of module boundary violations in airssys-wasm. Documents that the architecture is fundamentally broken with `core/` importing from `runtime/` and `runtime/` importing from `actor/`, violating ADR-WASM-023.
+**Purpose:** Comprehensive audit of module boundary violations in airssys-wasm. Documents that architecture is fundamentally broken with `core/` importing from `runtime/` and `runtime/` importing from `actor/`, violating ADR-WASM-023.
 
 **Key Topics:**
 - ADR-WASM-023 required module hierarchy
@@ -524,7 +526,7 @@ grep -rn "use crate::actor" src/runtime/
 **Category:** Lessons Learned / AI Failures / Process Improvement  
 **Severity:** 🔴 **FATAL**
 
-**Summary:** Documents the FATAL MISTAKES made by AI agents during airssys-wasm development that caused architecture violations, wasted 10+ days of development time, and destroyed trust. Records specific failures: claims without evidence, proceeding without reading ADRs, ignoring module boundaries, creating STUB tests, and claiming completion without verification.
+**Summary:** Documents FATAL MISTAKES made by AI agents during airssys-wasm development that caused architecture violations, wasted 10+ days of development time, and destroyed trust. Records specific failures: claims without evidence, proceeding without reading ADRs, ignoring module boundaries, creating STUB tests, and claiming completion without verification.
 
 **Key Topics:**
 - FATAL MISTAKE #1: Claims of "Verified" Without Evidence
@@ -547,7 +549,6 @@ grep -rn "use crate::actor" src/runtime/
 - KNOWLEDGE-WASM-032 (Module Boundary Violations Audit)
 - AGENTS.md §9-12
 
-
 ### Architecture & Remediation Category 🔴
 - **[KNOWLEDGE-WASM-034: Module Architecture Violation - Messaging in Runtime](knowledge-wasm-034-module-architecture-violation-messaging-in-runtime.md)** 🔴 **CRITICAL FIX**
   - **Purpose**: Documents critical architectural violation where messaging infrastructure is incorrectly placed in `runtime/` module
@@ -565,6 +566,18 @@ grep -rn "use crate::actor" src/runtime/
   - **Key Content**: Three-layer architecture, module responsibility matrix, dependency graph, block alignment, testing organization
   - **Status**: Complete definitive specification (Updated 2025-10-21)
   - **Impact**: Critical - defines all module boundaries and rules
-  - **Audience**: All developers, architects, task implementers
-  - **Related**: All tasks and ADRs reference this for module structure compliance
+   - **Audience**: All developers, architects, task implementers
+   - **Related**: All tasks and ADRs reference this for module structure compliance
 
+- **[KNOWLEDGE-WASM-036: Three-Module Architecture - orchestration/, actor/, messaging/, runtime/ Integration](knowledge-wasm-036-three-module-architecture.md)** ✅ **CRITICAL**
+  - **Purpose**: Establishes CORRECT architectural design with dedicated orchestration layer to eliminate circular dependencies
+  - **Scope**: Four-module architecture, one-way dependency flow, clear module responsibilities, migration plan
+  - **Key Content**: orchestration/ as central coordinator, module responsibility matrix, dependency verification commands, architectural metaphors (conductor/bridge/courier/musician/sheet music), control flow examples, usage patterns, migration guide
+  - **Status**: New active reference (Created 2025-12-29) - **SUPERSEDES KNOWLEDGE-WASM-035**
+  - **Impact**: 🔴 CRITICAL - Resolves circular dependency issue, provides clear orchestration ownership
+  - **Audience**: All developers, architects, anyone working on module architecture or refactoring
+  - **Key Insight**: orchestration/ coordinates all operations, delegating to actor/ (wrappers), messaging/ (broker), and runtime/ (execution)
+  - **Related**: ADR-WASM-018 (Three-Layer Architecture), ADR-WASM-022 (Circular Dependency Remediation), ADR-WASM-023 (Module Boundary Enforcement), KNOWLEDGE-WASM-030 (Module Architecture Hard Requirements)
+  - **Replaces**: KNOWLEDGE-WASM-035 (contained incorrect circular dependency description)
+
+---

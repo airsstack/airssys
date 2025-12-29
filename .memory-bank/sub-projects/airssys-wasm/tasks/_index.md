@@ -76,3 +76,111 @@ All previous task files have been archived or are outdated. See `TASK-1.1-HONEST
 - **Dependencies:** ADR-WASM-018 (must follow)
 - **Blocks:** All subsequent WASM-TASK-006+ development
 
+
+---
+
+## Block 1: Foundation Layer Tasks
+
+| Task ID | Task Name | Status | Priority | Block | Last Updated |
+|----------|-----------|--------|----------|------|--------------|
+| WASM-TASK-001-* | Runtime Engine | ✅ Complete | CRITICAL | 0 | 2025-11-02 |
+| WASM-TASK-002-* | WIT System | ✅ Complete | CRITICAL | 1 | 2025-10-19 |
+| WASM-TASK-003-* | Actor System Integration | ✅ Complete | CRITICAL | 2 | 2025-10-24 |
+| WASM-TASK-004-* | Security & Isolation Layer | ✅ Complete | CRITICAL | 3 | 2025-10-27 |
+| WASM-TASK-005-* | Security & Isolation Layer | 🚀 IN PROGRESS | CRITICAL | 4 | 2025-11-30 |
+
+---
+
+## Block 2: Core Services Layer Tasks
+
+| Task ID | Task Name | Status | Priority | Block | Last Updated |
+|----------|-----------|--------|----------|------|--------------|
+| WASM-TASK-006-* | Inter-Component Communication | 🚀 IN PROGRESS | CRITICAL | 5 | 2025-12-21 |
+
+---
+
+## Block 3: Actor System Integration Tasks
+
+| Task ID | Task Name | Status | Priority | Block | Last Updated |
+|----------|-----------|--------|----------|------|--------------|
+| WASM-TASK-HOTFIX-001 | Messaging Module Architecture Refactoring | IN PROGRESS | 🔴 CRITICAL | N/A | 2025-12-26 |
+
+---
+
+## Block 4: Security & Isolation Layer Tasks
+
+| Task ID | Task Name | Status | Priority | Block | Last Updated |
+|----------|-----------|--------|----------|------|--------------|
+| WASM-TASK-007-* | Persistent Storage System | ⏸ NOT STARTED | 💾 CRITICAL | 6 | 2025-10-20 |
+
+---
+
+## Block 5: Inter-Component Communication Tasks
+
+*Tasks under this block depend on host_system/ architecture implementation.*
+
+---
+
+## Block 6: Persistent Storage System Tasks
+
+| Task ID | Task Name | Status | Priority | Block | Last Updated |
+|----------|-----------|--------|----------|------|--------------|
+| WASM-TASK-008-* | Component Lifecycle System | ⏸ NOT STARTED | CRITICAL | 7 | 2025-10-20 |
+
+---
+
+## Block 7: Component Lifecycle System Tasks
+
+*Tasks under this block depend on host_system/ architecture implementation.*
+
+---
+
+## Block 8: AirsSys-OSL Bridge Tasks
+
+| Task ID | Task Name | Status | Priority | Block | Last Updated |
+|----------|-----------|--------|----------|------|--------------|
+| WASM-TASK-009-* | AirsSys-OSL Bridge | ⏸ NOT STARTED | CRITICAL | 8 | 2025-10-20 |
+
+---
+
+## Block 9: Monitoring & Observability System Tasks
+
+| Task ID | Task Name | Status | Priority | Block | Last Updated |
+|----------|-----------|--------|----------|------|--------------|
+| WASM-TASK-010-* | Monitoring & Observability System | ⏸ NOT STARTED | High | 9 | 2025-10-20 |
+
+---
+
+## Block 10: Component Development SDK Tasks
+
+| Task ID | Task Name | Status | Priority | Block | Last Updated |
+|----------|-----------|--------|----------|------|--------------|
+| WASM-TASK-011-* | Component Development SDK | ⏸ NOT STARTED | High | 10 | 2025-10-20 |
+
+---
+
+## Block 11: CLI Tool Tasks
+
+| Task ID | Task Name | Status | Priority | Block | Last Updated |
+|----------|-----------|--------| task | Status | Priority | Block | Last Updated |
+|----------|-----------|--------|----------|------|--------------|
+| WASM-TASK-012-* | CLI Tool | ⏸ NOT STARTED | High | 11 | 2025-11-30 |
+
+---
+
+## Hotfix Tasks
+
+| Task ID | Task Name | Status | Priority | Block | Reason |
+|----------|-----------|--------|--------|----------|---------|
+| WASM-TASK-HOTFIX-001 | Messaging Module Architecture Refactoring | IN PROGRESS | 🔴 CRITICAL | Partial fix, superseded by WASM-TASK-013 |
+| WASM-TASK-HOTFIX-002 | Module Boundary Violations | ⏸ NOT STARTED | 🔴 CRITICAL | Awaiting host_system/ architecture |
+| WASM-TASK-HOTFIX-003 | Duplicate WASM Runtime - Fatal Architecture Violation | 🔴 SUPERSEDED | Architecture audit completed |
+
+---
+
+## Foundation Layer Tasks (NEW)
+
+| Task ID | Task Name | Status | Priority | Block | Last Updated |
+|----------|-----------|--------|--------|----------|------|--------------|
+| WASM-TASK-013 | Host System Architecture Implementation | 📋 PLANNING | 🔴 CRITICAL | 2025-12-29 |
+
