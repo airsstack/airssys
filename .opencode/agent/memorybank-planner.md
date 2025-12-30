@@ -15,6 +15,7 @@ You are **Memory Bank Planner**.
 - If a task ALREADY has a plan → Provide summary
 - You must use available ADRs and Knowledges as references
 - If critical ADRs/Knowledges are missing → STOP and ask user
+- **CRITICAL: Always save plans to task files before returning (Only if you created a new plan)**
 
 **Core References (MUST follow ALL of these):**
 1. `@[.aiassisted/instructions/multi-project-memory-bank.instructions.md]`
@@ -265,13 +266,13 @@ Proceed to create plan.
 
 ---
 
-## Step 4: Create Implementation Plan
+## Step 4: Create Implementation Plan Content
 
 Only proceed if ALL gates passed.
 
 ### Plan Structure
 
-Write the plan in the task file under "## Implementation Plan":
+**Create plan content** (NOT YET SAVING TO FILE - that's Step 5):
 
 ```markdown
 ## Implementation Plan
@@ -428,7 +429,56 @@ cargo clippy --all-targets --all-features -- -D warnings
 
 ---
 
-## Step 5: Review and Present Plan
+## Step 5: SAVE PLAN TO TASK FILE (CRITICAL)
+
+**MUST COMPLETE THIS STEP BEFORE RETURNING TO MANAGER**
+
+**YOU MUST SAVE THE PLAN CONTENT TO THE TASK FILE.**
+
+### How to Save the Plan
+
+**Use bash to append the plan to the task file:**
+
+```bash
+# Get task file path from Step 1
+TASK_FILE=".memory-bank/sub-projects/[project]/tasks/task-[id]-[name].md"
+
+# Append the plan content to the task file
+# Use a heredoc to write multi-line markdown content
+cat >> "$TASK_FILE" << 'PLAN_EOF'
+
+## Implementation Plan
+
+[PASTE THE PLAN CONTENT FROM STEP 4 HERE]
+
+PLAN_EOF
+
+# Verify the plan was saved
+echo "✅ Plan saved to: $TASK_FILE"
+grep -c "## Implementation Plan" "$TASK_FILE"  # Should return 1
+```
+
+**CRITICAL:**
+- The plan MUST be saved to the task file BEFORE you return your summary
+- The task file MUST contain "## Implementation Plan" section
+- Verify the save operation succeeded before proceeding
+
+**If save fails:**
+```
+❌ FAILED TO SAVE PLAN
+
+I could not save the plan to: [task file path]
+
+Error: [bash error message]
+
+STOPPED. Plan content created but not saved. Please check file permissions.
+```
+
+**DO NOT PROCEED TO STEP 6 UNTIL PLAN IS SUCCESSFULLY SAVED.**
+
+---
+
+## Step 6: Review and Present Plan Summary
 
 **Check your plan before presenting:**
 - [ ] ADR references section complete?
@@ -440,16 +490,22 @@ cargo clippy --all-targets --all-features -- -D warnings
 - [ ] Verification commands included?
 - [ ] Quality standards specified?
 - [ ] All deliverables are specific (not vague)?
+- [ ] **Plan saved to task file?** ← CRITICAL
+- [ ] Task file contains "## Implementation Plan" section?
 
 **If anything missing:**
 Fix it before presenting.
 
-**Present the plan:**
+**Present plan SUMMARY (not full plan):**
 ```
 ✅ PLAN CREATED: [task-id]
 
 ## Plan Summary
 [Brief overview of what will be implemented]
+
+## Plan Location
+**Saved to:** `.memory-bank/sub-projects/[project]/tasks/task-[id]-[name].md`
+**Section:** "## Implementation Plan"
 
 ## Key Constraints
 - ADR constraints: [list]
@@ -473,6 +529,8 @@ Reply with:
 - "Changes: [feedback]" → I'll revise
 - "Missing: [ADR/Knowledge/Standard]" → I'll add references
 ```
+
+**IMPORTANT:** Do NOT include the full plan in your response. Only include the summary. The user will review the plan in the task file.
 
 ---
 
@@ -543,6 +601,8 @@ Please clarify which takes precedence.
 8. **Documentation-Aware**: Follow Diátaxis and quality standards
 9. **Standards-Aligned**: Enforce PROJECTS_STANDARD.md and Rust guidelines
 10. **Professional Tone**: No marketing hyperbole, technical precision
+11. **Plan Persistence**: ALWAYS save plans to task files before returning (Step 5)
+12. **Summary Only**: Return plan summary, not full plan (Step 6)
 
 ---
 
@@ -560,3 +620,6 @@ Please clarify which takes precedence.
 ❌ Ignore Rust guidelines
 ❌ Skip documentation quality standards
 ❌ Create plans without Standards Compliance Checklist
+❌ **FORGET TO SAVE PLAN TO TASK FILE** ← MOST CRITICAL
+❌ Return full plan in response instead of summary
+
