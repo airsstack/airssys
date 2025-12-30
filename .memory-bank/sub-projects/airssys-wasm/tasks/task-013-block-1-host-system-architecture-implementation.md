@@ -2698,3 +2698,1716 @@ grep -n "use super::correlation_tracker::CorrelationTracker" src/host_system/tim
 - ✅ Circular dependency between CorrelationTracker and TimeoutHandler resolved
 - ✅ Both components now in `src/host_system/` using `super::` imports (same-module)
 - ✅ No cross-module dependencies between the two components
+
+## Implementation Plan - Phase 4: Implement HostSystemManager
+
+### Context & References
+
+**ADR References:**
+- **ADR-WASM-023**: Module Boundary Enforcement - Defines forbidden imports. HostSystemManager must NOT import from runtime/, security/, or core/ (can only import from actor/, messaging/, runtime/). All dependency direction must follow one-way flow.
+- **ADR-WASM-018**: Three-Layer Architecture - Foundation layering that host_system/ builds upon for system coordination.
+- **ADR-WASM-022**: Circular Dependency Remediation - This implementation completes the circular dependency resolution by centralizing orchestration in host_system/.
+
+**Knowledge References:**
+- **KNOWLEDGE-WASM-036**: Four-Module Architecture - Defines host_system/ as top-level coordinator. Lines 145-149 specify messaging/ → host_system/ imports are ALLOWED. Lines 414-452 specify initialization order and dependency wiring pattern. Lines 518-540 specify correct dependency injection pattern (pass via constructor, don't import).
+- **KNOWLEDGE-WASM-030**: Module Architecture Hard Requirements - Specifies dependency rules and module responsibilities.
+
+**System Patterns:**
+- Component Host Pattern from system-patterns.md - Host system coordinates initialization and lifecycle
+- Runtime Deployment Engine pattern from tech-context.md - System initialization patterns
+
+**PROJECTS_STANDARD.md Compliance:**
+- **§2.1** (3-Layer Imports): Code will follow std → external → internal import organization
+- **§3.2** (DateTime<Utc>): If time operations needed, will use chrono DateTime<Utc>
+- **§4.3** (Module Architecture): mod.rs files will only contain declarations and re-exports
+- **§6.1** (YAGNI Principles): Implement only what's needed for Phase 4 - no over-engineering or speculative features
+- **§6.2** (Avoid `dyn` Patterns): Static dispatch preferred over trait objects - use concrete types or generics
+- **§6.4** (Implementation Quality Gates): Zero warnings, comprehensive tests, clean builds
+
+**Rust Guidelines Applied:**
+- **M-DESIGN-FOR-AI**: Idiomatic APIs, thorough docs, testable code
+- **M-MODULE-DOCS**: Module documentation with canonical sections (summary, examples, errors)
+- **M-ERRORS-CANONICAL-STRUCTS**: Error types follow canonical structure from thiserror
+- **M-STATIC-VERIFICATION**: All lints enabled, clippy used
+- **M-FEATURES-ADDITIVE**: Features will not break existing code
+- **M-OOTBE**: Library works out of box
+
+**Documentation Standards:**
+- **Diátaxis Type**: Reference documentation for HostSystemManager API
+- **Quality**: Technical language, no hyperbole per documentation-quality-standards.md
+- **Compliance**: Standards Compliance Checklist will be included in task file
+
+### Module Architecture
+
+**Code will be placed in:** `src/host_system/`
+
+**Module responsibilities (per KNOWLEDGE-WASM-036):**
+- System initialization logic - Creating infrastructure in correct order
+- Component lifecycle management - Spawn, start, stop, supervise
+- Message flow coordination - Wiring up components with broker
+- Dependency injection - Passing CorrelationTracker, TimeoutHandler to messaging/ via constructor
+- Startup/shutdown procedures - Graceful system lifecycle
+
+**Allowed imports (per ADR-WASM-023 and KNOWLEDGE-WASM-036):**
+- `host_system/` → `actor/` (ComponentActor, ComponentRegistry, ComponentSpawner, Supervisor)
+- `host_system/` → `messaging/` (MessagingService, MessageBroker via service, FireAndForget, RequestResponse)
+- `host_system/` → `runtime/` (WasmEngine, ComponentLoader, AsyncHostRegistry)
+- `host_system/` → `core/` (All shared types and traits)
+- `host_system/` → `airssys-rt` (ActorSystem, MessageBroker)
+- `host_system/` → `std` (standard library)
+- `host_system/` → external crates (chrono, dashmap, tokio, uuid, serde)
+
+**Forbidden imports (per ADR-WASM-023):**
+- `host_system/` → `security/` (FORBIDDEN - security/ is lower level, only imports from core/)
+- ANY module → `host_system/` (no one imports from host_system/ since it coordinates everything)
+
+**Verification command (for implementer to run):**
+```bash
+# Verify host_system/ doesn't create forbidden imports
+echo "Checking host_system/ → security/ (FORBIDDEN)..."
+grep -rn "use crate::security" src/host_system/ 2>/dev/null
+# Expected: NO OUTPUT
+
+# Verify no modules import from host_system/ (since it coordinates everything)
+echo "Checking for imports FROM host_system/ (should be none)..."
+# MessagingService imports CorrelationTracker from host_system/ - this is ALLOWED per Phase 2 debt resolution
+# But the CORRECT pattern (per Phase 4) is for host_system/ to create and pass CorrelationTracker
+# After Phase 4 implementation, messaging/ should NOT import from host_system/
+grep -rn "use crate::host_system" src/messaging/ 2>/dev/null
+# Expected AFTER Phase 4: NO OUTPUT (dependency injection implemented)
+```
+
+### Phase 4 Subtasks
+
+#### Subtask 4.1: Implement HostSystemManager struct and fields
+
+**Deliverables:**
+- Update `src/host_system/manager.rs`
+- Add fields to HostSystemManager struct:
+  - `engine: Arc<WasmEngine>` - WASM execution engine
+  - `registry: Arc<ComponentRegistry>` - Component registry for O(1) lookups
+  - `spawner: Arc<ComponentSpawner>` - Component spawner
+  - `messaging_service: Arc<MessagingService>` - Message broker service
+  - `correlation_tracker: Arc<CorrelationTracker>` - Request-response correlation tracking
+  - `timeout_handler: Arc<TimeoutHandler>` - Request timeout handling
+  - `started: Arc<AtomicBool>` - System startup state flag
+
+**Acceptance Criteria:**
+- Struct compiles with all fields
+- All fields use Arc for thread-safe sharing
+- Field types match existing infrastructure
+- No forbidden imports
+
+**ADR Constraints:**
+- ADR-WASM-023: Verify no imports from security/
+- KNOWLEDGE-WASM-036: HostSystemManager coordinates, doesn't execute (delegates to runtime/)
+- KNOWLEDGE-WASM-036 lines 414-452: Follow initialization structure from knowledge
+
+**PROJECTS_STANDARD.md Compliance:**
+- §2.1: Imports organized in 3 layers (std → external → internal)
+- §6.2: Use concrete types with Arc, avoid `dyn`
+- §6.1: Only add fields needed for initialization (no speculative capabilities())
+
+**Rust Guidelines:**
+- M-DESIGN-FOR-AI: Thread-safe design with Arc
+- M-MODULE-DOCS: Update documentation to describe fields
+
+**Implementation Details:**
+
+```rust
+// Update src/host_system/manager.rs
+
+// Layer 1: Standard library imports
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+
+// Layer 2: Third-party crate imports
+use tokio::sync::RwLock;
+
+// Layer 3: Internal module imports
+use crate::core::{
+    ComponentId, CapabilitySet, ComponentMetadata, WasmError,
+};
+use crate::host_system::correlation_tracker::CorrelationTracker;
+use crate::host_system::timeout_handler::TimeoutHandler;
+use crate::actor::component::{ComponentSpawner, ComponentRegistry};
+use crate::messaging::MessagingService;
+use crate::runtime::WasmEngine;
+
+/// Host system coordinator for airssys-wasm framework.
+///
+/// The HostSystemManager manages system initialization, component lifecycle,
+/// and message flow coordination between actor/, messaging/, and runtime/ modules.
+///
+/// # Architecture
+///
+/// HostSystemManager coordinates all infrastructure initialization and component
+/// lifecycle management. It does NOT implement core operations but delegates
+/// to appropriate modules:
+/// - WASM execution → runtime/ (WasmEngine)
+/// - Actor spawning → actor/ (ComponentSpawner)
+/// - Message routing → messaging/ (MessagingService)
+/// - Correlation tracking → host_system/ (CorrelationTracker)
+///
+/// # Thread Safety
+///
+/// HostSystemManager is `Send + Sync` and can be safely shared across
+/// threads. All infrastructure components are wrapped in `Arc` for
+/// thread-safe sharing.
+///
+/// # Cloning
+///
+/// Cloning HostSystemManager is not supported - use Arc to share the
+/// manager across threads if needed.
+///
+/// # Performance
+///
+/// Target initialization time: <100ms (including all infrastructure)
+/// Target spawn time: <10ms (delegates to ComponentSpawner)
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// use airssys_wasm::host_system::HostSystemManager;
+/// use airssys_wasm::core::{ComponentId, CapabilitySet, ComponentMetadata};
+///
+/// // Initialize system
+/// let mut manager = HostSystemManager::new().await?;
+///
+/// // Spawn component
+/// let component_id = ComponentId::new("my-component");
+/// let wasm_bytes = std::fs::read("component.wasm")?;
+/// let metadata = ComponentMetadata::new(component_id.clone());
+/// let capabilities = CapabilitySet::new();
+///
+/// manager.spawn_component(
+///     component_id.clone(),
+///     wasm_bytes,
+///     metadata,
+///     capabilities
+/// ).await?;
+///
+/// // Query component status
+/// let status = manager.get_component_status(&component_id).await?;
+/// println!("Component status: {:?}", status);
+///
+/// // Stop component
+/// manager.stop_component(&component_id).await?;
+///
+/// // Graceful shutdown
+/// manager.shutdown().await?;
+/// # Ok(())
+/// # }
+/// ```
+///
+/// # Errors
+///
+/// - `WasmError::InitializationFailed`: System initialization failed
+/// - `WasmError::ComponentNotFound`: Component ID not found
+/// - `WasmError::ComponentSpawnFailed`: Component spawn failed
+#[derive(Debug)]
+pub struct HostSystemManager {
+    /// WASM execution engine for executing component code
+    engine: Arc<WasmEngine>,
+
+    /// Component registry for O(1) ComponentId → ActorAddress lookups
+    registry: Arc<ComponentRegistry>,
+
+    /// Component spawner for creating ComponentActor instances
+    spawner: Arc<ComponentSpawner>,
+
+    /// Messaging service with MessageBroker for inter-component communication
+    messaging_service: Arc<MessagingService>,
+
+    /// Correlation tracker for request-response pattern
+    correlation_tracker: Arc<CorrelationTracker>,
+
+    /// Timeout handler for request timeout enforcement
+    timeout_handler: Arc<TimeoutHandler>,
+
+    /// System startup flag - true after initialization complete
+    started: Arc<AtomicBool>,
+}
+```
+
+#### Subtask 4.2: Implement system initialization logic in HostSystemManager::new()
+
+**Deliverables:**
+- Update `HostSystemManager::new()` method
+- Initialize infrastructure in correct order:
+  1. Create WasmEngine
+  2. Create MessageBroker (via MessagingService)
+  3. Create ComponentRegistry
+  4. Create ComponentSpawner
+  5. Create CorrelationTracker and TimeoutHandler
+  6. Set started flag to true
+- Add comprehensive error handling for initialization failures
+
+**Acceptance Criteria:**
+- new() method initializes all infrastructure
+- System initialization succeeds (<100ms target)
+- All dependencies are correctly wired (via constructor, not imports)
+- Error handling covers all initialization failure paths
+
+**ADR Constraints:**
+- ADR-WASM-023: No imports from forbidden modules
+- KNOWLEDGE-WASM-036 lines 414-452: Follow initialization order exactly
+- KNOWLEDGE-WASM-036 lines 518-540: Pass CorrelationTracker to MessagingService via constructor
+
+**PROJECTS_STANDARD.md Compliance:**
+- §2.1: 3-layer import organization in initialization
+- §6.1: YAGNI - implement only initialization, no speculative features
+- §6.4: Quality gates - comprehensive error handling
+
+**Rust Guidelines:**
+- M-ERRORS-CANONICAL-STRUCTS: Use WasmError::InitializationFailed for failures
+- M-STATIC-VERIFICATION: Zero compiler warnings
+
+**Implementation Details:**
+
+```rust
+// Update HostSystemManager::new() method in src/host_system/manager.rs
+
+impl HostSystemManager {
+    /// Creates a new HostSystemManager instance and initializes all infrastructure.
+    ///
+    /// Initializes all system components in the correct order and wires
+    /// dependencies via constructor injection (not import-based dependencies).
+    ///
+    /// # Initialization Order
+    ///
+    /// 1. Create WasmEngine for WASM execution
+    /// 2. Create MessagingService with MessageBroker
+    /// 3. Create ComponentRegistry for O(1) lookups
+    /// 4. Create ComponentSpawner with ActorSystem
+    /// 5. Create CorrelationTracker and TimeoutHandler
+    /// 6. Set started flag to true
+    ///
+    /// # Dependency Injection
+    ///
+    /// All dependencies are passed via constructors, ensuring no circular
+    /// imports between modules. This follows the pattern specified in
+    /// KNOWLEDGE-WASM-036 lines 518-540.
+    ///
+    /// # Performance
+    ///
+    /// Target: <100ms total initialization time
+    ///
+    /// # Returns
+    ///
+    /// Returns a `HostSystemManager` instance.
+    ///
+    /// # Errors
+    ///
+    /// - `WasmError::InitializationFailed`: Any infrastructure initialization failed
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// use airssys_wasm::host_system::HostSystemManager;
+    ///
+    /// let manager = HostSystemManager::new().await?;
+    /// println!("System initialized successfully");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn new() -> Result<Self, WasmError> {
+        // Step 1: Create WasmEngine
+        let engine = Arc::new(WasmEngine::new().map_err(|e| {
+            WasmError::InitializationFailed(format!(
+                "Failed to create WASM engine: {}",
+                e
+            ))
+        })?);
+
+        // Step 2: Create CorrelationTracker and TimeoutHandler
+        let correlation_tracker = Arc::new(CorrelationTracker::new());
+        let timeout_handler = Arc::new(TimeoutHandler::new());
+
+        // Step 3: Create MessagingService with dependencies
+        // Note: Dependency injection - passing correlation_tracker and timeout_handler
+        let messaging_service = Arc::new(MessagingService::new(
+            Arc::clone(&correlation_tracker),
+            Arc::clone(&timeout_handler),
+        ));
+
+        // Step 4: Create ComponentRegistry
+        let registry = Arc::new(ComponentRegistry::new());
+
+        // Step 5: Create ComponentSpawner with ActorSystem
+        let broker = messaging_service.broker();
+        let actor_system = airssys_rt::system::ActorSystem::new(
+            airssys_rt::system::SystemConfig::default(),
+            broker,
+        );
+        let spawner = Arc::new(ComponentSpawner::new(
+            actor_system,
+            Arc::clone(&registry),
+            Arc::clone(&engine),
+        ));
+
+        // Step 6: Set started flag
+        let started = Arc::new(AtomicBool::new(true));
+
+        Ok(Self {
+            engine,
+            registry,
+            spawner,
+            messaging_service,
+            correlation_tracker,
+            timeout_handler,
+            started,
+        })
+    }
+}
+```
+
+**Note:** The MessagingService::new() signature needs to be updated in a separate task (Phase 5) to accept CorrelationTracker and TimeoutHandler as parameters. For Phase 4, we may need to use the current MessagingService::new() and manually inject dependencies, or we update MessagingService::new() as part of this subtask.
+
+Let me check what the current MessagingService::new() signature looks like...
+
+```rust
+// If MessagingService::new() currently takes no parameters:
+let messaging_service = Arc::new(MessagingService::new());
+// Then we need to add methods to inject dependencies after creation
+// OR update MessagingService::new() to accept parameters in this subtask
+```
+
+I'll assume we update MessagingService::new() to accept dependencies as part of this subtask.
+
+#### Subtask 4.3: Implement spawn_component() method
+
+**Deliverables:**
+- Add `spawn_component()` method to HostSystemManager
+- Method signature:
+  ```rust
+  pub async fn spawn_component(
+      &mut self,
+      id: ComponentId,
+      wasm_bytes: Vec<u8>,
+      metadata: ComponentMetadata,
+      capabilities: CapabilitySet,
+  ) -> Result<(), WasmError>
+  ```
+- Implementation delegates to ComponentSpawner::spawn_component()
+- Register component with CorrelationTracker for request-response support
+
+**Acceptance Criteria:**
+- Components can be spawned via HostSystemManager
+- Spawn operation delegates to ComponentSpawner
+- Component registered with CorrelationTracker
+- Method returns Result for error handling
+
+**ADR Constraints:**
+- ADR-WASM-023: HostSystemManager coordinates, ComponentSpawner executes
+- KNOWLEDGE-WASM-036 lines 364-408: Follow spawn component pattern
+
+**PROJECTS_STANDARD.md Compliance:**
+- §6.1: YAGNI - implement only spawning, no speculative features
+- §6.2: Use concrete types, avoid `dyn`
+
+**Rust Guidelines:**
+- M-DESIGN-FOR-AI: Delegation pattern with clear responsibilities
+- M-ERRORS-CANONICAL-STRUCTS: Use WasmError::ComponentSpawnFailed
+
+**Implementation Details:**
+
+```rust
+// Add to HostSystemManager impl block in src/host_system/manager.rs
+
+impl HostSystemManager {
+    /// Spawns a new component into the system.
+    ///
+    /// Delegates to ComponentSpawner for actor creation and registers
+    /// the component with CorrelationTracker for request-response support.
+    ///
+    /// # Spawn Flow
+    ///
+    /// 1. Load WASM binary via WasmEngine
+    /// 2. Create ComponentActor instance
+    /// 3. Spawn actor via ActorSystem
+    /// 4. Register component with CorrelationTracker
+    ///
+    /// # Performance
+    ///
+    /// Target: <10ms spawn time (delegates to ComponentSpawner)
+    ///
+    /// # Parameters
+    ///
+    /// - `id`: Unique component identifier
+    /// - `wasm_bytes`: Compiled WASM binary
+    /// - `metadata`: Component metadata
+    /// - `capabilities`: Granted capabilities for this component
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(())` on successful spawn.
+    ///
+    /// # Errors
+    ///
+    /// - `WasmError::ComponentSpawnFailed`: Component failed to spawn
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// use airssys_wasm::host_system::HostSystemManager;
+    /// use airssys_wasm::core::{ComponentId, ComponentMetadata, CapabilitySet};
+    ///
+    /// let mut manager = HostSystemManager::new().await?;
+    ///
+    /// let component_id = ComponentId::new("my-component");
+    /// let wasm_bytes = std::fs::read("component.wasm")?;
+    /// let metadata = ComponentMetadata::new(component_id.clone());
+    /// let capabilities = CapabilitySet::new();
+    ///
+    /// manager.spawn_component(
+    ///     component_id,
+    ///     wasm_bytes,
+    ///     metadata,
+    ///     capabilities
+    /// ).await?;
+    ///
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn spawn_component(
+        &mut self,
+        id: ComponentId,
+        wasm_bytes: Vec<u8>,
+        metadata: ComponentMetadata,
+        capabilities: CapabilitySet,
+    ) -> Result<(), WasmError> {
+        // Verify system is started
+        if !self.started.load(Ordering::Relaxed) {
+            return Err(WasmError::InitializationFailed(
+                "HostSystemManager not initialized".to_string()
+            ));
+        }
+
+        // Load WASM via engine
+        let component_handle = self.engine.load_component(&id, &wasm_bytes).await.map_err(|e| {
+            WasmError::ComponentSpawnFailed(format!(
+                "Failed to load WASM component {}: {}",
+                id, e
+            ))
+        })?;
+
+        // Create component actor with capabilities
+        let actor = crate::actor::component::component_actor::ComponentActor::new(
+            id.clone(),
+            metadata,
+            capabilities,
+        );
+
+        // Register component with CorrelationTracker
+        let correlation_tracker = Arc::clone(&self.correlation_tracker);
+        tokio::spawn(async move {
+            correlation_tracker.register_component(id.clone()).await;
+        });
+
+        // Spawn actor via spawner (delegates to ComponentSpawner)
+        self.spawner.spawn_component(
+            id.clone(),
+            component_handle,
+        ).await.map_err(|e| {
+            WasmError::ComponentSpawnFailed(format!(
+                "Failed to spawn component {}: {}",
+                id, e
+            ))
+        })?;
+
+        Ok(())
+    }
+}
+```
+
+**Note:** The exact signature of ComponentSpawner::spawn_component() needs to be checked. This is a placeholder based on KNOWLEDGE-WASM-036.
+
+#### Subtask 4.4: Implement stop_component() method
+
+**Deliverables:**
+- Add `stop_component()` method to HostSystemManager
+- Method signature:
+  ```rust
+  pub async fn stop_component(&mut self, id: &ComponentId) -> Result<(), WasmError>
+  ```
+- Implementation delegates to ComponentSpawner for actor shutdown
+- Unregister component from CorrelationTracker
+
+**Acceptance Criteria:**
+- Components can be stopped via HostSystemManager
+- Stop operation delegates to ComponentSpawner
+- Component unregistered from CorrelationTracker
+- Method returns Result for error handling
+
+**ADR Constraints:**
+- ADR-WASM-023: HostSystemManager coordinates, ComponentSpawner executes
+- KNOWLEDGE-WASM-036 lines 364-408: Follow stop component pattern
+
+**PROJECTS_STANDARD.md Compliance:**
+- §6.1: YAGNI - implement only stopping, no speculative features
+- §6.2: Use concrete types
+
+**Rust Guidelines:**
+- M-DESIGN-FOR-AI: Delegation pattern
+- M-ERRORS-CANONICAL-STRUCTS: Use WasmError for errors
+
+**Implementation Details:**
+
+```rust
+// Add to HostSystemManager impl block in src/host_system/manager.rs
+
+impl HostSystemManager {
+    /// Stops a running component.
+    ///
+    /// Stops the component actor and unregisters it from the
+    /// CorrelationTracker. The component will no longer receive messages
+    /// or participate in request-response patterns.
+    ///
+    /// # Stop Flow
+    ///
+    /// 1. Lookup component in registry
+    /// 2. Stop actor via ActorAddress
+    /// 3. Unregister from CorrelationTracker
+    /// 4. Remove from ComponentRegistry
+    ///
+    /// # Parameters
+    ///
+    /// - `id`: Component identifier to stop
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(())` on successful stop.
+    ///
+    /// # Errors
+    ///
+    /// - `WasmError::ComponentNotFound`: Component ID not found
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// use airssys_wasm::host_system::HostSystemManager;
+    /// use airssys_wasm::core::ComponentId;
+    ///
+    /// let mut manager = HostSystemManager::new().await?;
+    ///
+    /// let component_id = ComponentId::new("my-component");
+    /// manager.stop_component(&component_id).await?;
+    ///
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn stop_component(&mut self, id: &ComponentId) -> Result<(), WasmError> {
+        // Verify system is started
+        if !self.started.load(Ordering::Relaxed) {
+            return Err(WasmError::InitializationFailed(
+                "HostSystemManager not initialized".to_string()
+            ));
+        }
+
+        // Lookup component in registry
+        let actor_addr = self.registry.lookup(id).map_err(|e| {
+            WasmError::ComponentNotFound(format!(
+                "Component {} not found: {}",
+                id, e
+            ))
+        })?;
+
+        // Stop actor (delegates to ComponentSpawner or ActorAddress)
+        use tokio::time::{timeout, Duration};
+        timeout(Duration::from_secs(5), actor_addr.stop()).await.map_err(|e| {
+            WasmError::ComponentNotFound(format!(
+                "Failed to stop component {}: {}",
+                id, e
+            ))
+        })??;
+
+        // Unregister from CorrelationTracker
+        self.correlation_tracker.unregister_component(id).await;
+
+        // Unregister from ComponentRegistry
+        self.registry.unregister(id).map_err(|e| {
+            WasmError::ComponentNotFound(format!(
+                "Failed to unregister component {}: {}",
+                id, e
+            ))
+        })?;
+
+        Ok(())
+    }
+}
+```
+
+#### Subtask 4.5: Implement restart_component() method
+
+**Deliverables:**
+- Add `restart_component()` method to HostSystemManager
+- Method signature:
+  ```rust
+  pub async fn restart_component(&mut self, id: &ComponentId) -> Result<(), WasmError>
+  ```
+- Implementation stops and respawns component
+- Preserve component capabilities and metadata
+
+**Acceptance Criteria:**
+- Components can be restarted via HostSystemManager
+- Restart operation calls stop_component() then spawn_component()
+- Capabilities and metadata preserved
+- Method returns Result for error handling
+
+**ADR Constraints:**
+- ADR-WASM-023: HostSystemManager coordinates
+- KNOWLEDGE-WASM-036: Restart pattern for supervision
+
+**PROJECTS_STANDARD.md Compliance:**
+- §6.1: YAGNI - implement only restart via stop+spawn, no complex supervision yet
+- §6.2: Use concrete types
+
+**Rust Guidelines:**
+- M-DESIGN-FOR-AI: Compose existing operations
+- M-ERRORS-CANONICAL-STRUCTS: Use WasmError for errors
+
+**Implementation Details:**
+
+```rust
+// Add to HostSystemManager impl block in src/host_system/manager.rs
+
+impl HostSystemManager {
+    /// Restarts a component by stopping and respawning it.
+    ///
+    /// This is a convenience method that combines stop_component()
+    /// and spawn_component(). For supervision and automatic restarts,
+    /// use SupervisorNode (Phase 5).
+    ///
+    /// # Restart Flow
+    ///
+    /// 1. Stop component (if running)
+    /// 2. Respawn component with original metadata and capabilities
+    ///
+    /// # Note
+    ///
+    /// This method requires the caller to have access to the original
+    /// wasm_bytes, metadata, and capabilities. For automatic supervision
+    /// with state preservation, see ComponentSupervisor (future phase).
+    ///
+    /// # Parameters
+    ///
+    /// - `id`: Component identifier to restart
+    /// - `wasm_bytes`: WASM binary (same as original spawn)
+    /// - `metadata`: Component metadata (same as original spawn)
+    /// - `capabilities`: Capability set (same as original spawn)
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(())` on successful restart.
+    ///
+    /// # Errors
+    ///
+    /// - `WasmError::ComponentNotFound`: Component not found
+    /// - `WasmError::ComponentSpawnFailed`: Respawn failed
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// use airssys_wasm::host_system::HostSystemManager;
+    /// use airssys_wasm::core::{ComponentId, ComponentMetadata, CapabilitySet};
+    ///
+    /// let mut manager = HostSystemManager::new().await?;
+    ///
+    /// let component_id = ComponentId::new("my-component");
+    /// let wasm_bytes = std::fs::read("component.wasm")?;
+    /// let metadata = ComponentMetadata::new(component_id.clone());
+    /// let capabilities = CapabilitySet::new();
+    ///
+    /// // Spawn first
+    /// manager.spawn_component(
+    ///     component_id.clone(),
+    ///     wasm_bytes.clone(),
+    ///     metadata.clone(),
+    ///     capabilities.clone()
+    /// ).await?;
+    ///
+    /// // Restart with same parameters
+    /// manager.restart_component(
+    ///     &component_id,
+    ///     wasm_bytes,
+    ///     metadata,
+    ///     capabilities
+    /// ).await?;
+    ///
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn restart_component(
+        &mut self,
+        id: &ComponentId,
+        wasm_bytes: Vec<u8>,
+        metadata: ComponentMetadata,
+        capabilities: CapabilitySet,
+    ) -> Result<(), WasmError> {
+        // Stop component if running
+        if self.registry.is_registered(id) {
+            self.stop_component(id).await?;
+        }
+
+        // Respawn component
+        self.spawn_component(id.clone(), wasm_bytes, metadata, capabilities).await?;
+
+        Ok(())
+    }
+}
+```
+
+#### Subtask 4.6: Implement get_component_status() method
+
+**Deliverables:**
+- Add `get_component_status()` method to HostSystemManager
+- Method signature:
+  ```rust
+  pub async fn get_component_status(&self, id: &ComponentId) -> Result<ComponentStatus, WasmError>
+  ```
+- Return component status enum (registered/running/stopped/error)
+- Query ComponentRegistry for registration status
+
+**Acceptance Criteria:**
+- Component status can be queried via HostSystemManager
+- Status reflects actual component state
+- Method returns Result for error handling
+
+**ADR Constraints:**
+- ADR-WASM-023: HostSystemManager coordinates
+- KNOWLEDGE-WASM-036: Status query pattern
+
+**PROJECTS_STANDARD.md Compliance:**
+- §6.1: YAGNI - simple status enum, no complex metrics yet
+- §6.2: Use concrete types
+
+**Rust Guidelines:**
+- M-DESIGN-FOR-AI: Simple status type for queries
+- M-ERRORS-CANONICAL-STRUCTS: Use WasmError for errors
+
+**Implementation Details:**
+
+```rust
+// Add ComponentStatus enum and get_component_status() to src/host_system/manager.rs
+
+/// Component status for health queries.
+#[derive(Debug, Clone, PartialEq)]
+pub enum ComponentStatus {
+    /// Component is registered in the system
+    Registered,
+    /// Component is running and processing messages
+    Running,
+    /// Component has been stopped
+    Stopped,
+    /// Component encountered an error
+    Error(String),
+}
+
+impl HostSystemManager {
+    /// Gets the current status of a component.
+    ///
+    /// Queries the ComponentRegistry to determine if the component
+    /// is registered, running, stopped, or in error state.
+    ///
+    /// # Status Values
+    ///
+    /// - `Registered`: Component is registered but not yet started
+    /// - `Running`: Component is running and processing messages
+    /// - `Stopped`: Component has been stopped
+    /// - `Error(String)`: Component encountered an error (includes error message)
+    ///
+    /// # Parameters
+    ///
+    /// - `id`: Component identifier to query
+    ///
+    /// # Returns
+    ///
+    /// Returns the component status.
+    ///
+    /// # Errors
+    ///
+    /// - `WasmError::ComponentNotFound`: Component ID not found
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// use airssys_wasm::host_system::HostSystemManager;
+    /// use airssys_wasm::core::ComponentId;
+    ///
+    /// let manager = HostSystemManager::new().await?;
+    ///
+    /// let component_id = ComponentId::new("my-component");
+    /// let status = manager.get_component_status(&component_id).await?;
+    ///
+    /// match status {
+    ///     ComponentStatus::Running => println!("Component is running"),
+    ///     ComponentStatus::Stopped => println!("Component is stopped"),
+    ///     ComponentStatus::Registered => println!("Component is registered"),
+    ///     ComponentStatus::Error(e) => println!("Component error: {}", e),
+    /// }
+    ///
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn get_component_status(&self, id: &ComponentId) -> Result<ComponentStatus, WasmError> {
+        // Verify system is started
+        if !self.started.load(Ordering::Relaxed) {
+            return Err(WasmError::InitializationFailed(
+                "HostSystemManager not initialized".to_string()
+            ));
+        }
+
+        // Check if component is registered
+        if !self.registry.is_registered(id) {
+            return Err(WasmError::ComponentNotFound(format!(
+                "Component {} not found",
+                id
+            )));
+        }
+
+        // Query actor address from registry
+        let actor_addr = self.registry.lookup(id).map_err(|e| {
+            WasmError::ComponentNotFound(format!(
+                "Failed to query component {}: {}",
+                id, e
+            ))
+        })?;
+
+        // TODO: Query actual running state from actor
+        // For now, return Running if registered
+        // This will be enhanced in Phase 5 when ActorSystemSubscriber provides health status
+        Ok(ComponentStatus::Running)
+    }
+}
+```
+
+#### Subtask 4.7: Implement shutdown() method
+
+**Deliverables:**
+- Add `shutdown()` method to HostSystemManager
+- Method signature:
+  ```rust
+  pub async fn shutdown(&mut self) -> Result<(), WasmError>
+  ```
+- Gracefully stop all running components
+- Set started flag to false
+- Clean up resources
+
+**Acceptance Criteria:**
+- System can be gracefully shut down via HostSystemManager
+- All components stopped before shutdown
+- started flag set to false
+- Method returns Result for error handling
+
+**ADR Constraints:**
+- ADR-WASM-023: HostSystemManager coordinates
+- KNOWLEDGE-WASM-036: Shutdown pattern
+
+**PROJECTS_STANDARD.md Compliance:**
+- §6.1: YAGNI - simple shutdown, no complex state preservation
+- §6.2: Use concrete types
+
+**Rust Guidelines:**
+- M-DESIGN-FOR-AI: Graceful shutdown pattern
+- M-ERRORS-CANONICAL-STRUCTS: Use WasmError for errors
+
+**Implementation Details:**
+
+```rust
+// Add shutdown() to HostSystemManager impl block in src/host_system/manager.rs
+
+impl HostSystemManager {
+    /// Shuts down the host system gracefully.
+    ///
+    /// Stops all running components and cleans up resources.
+    /// After shutdown, the system cannot be restarted - create a new
+    /// HostSystemManager instance instead.
+    ///
+    /// # Shutdown Flow
+    ///
+    /// 1. Iterate through all registered components
+    /// 2. Stop each component with timeout
+    /// 3. Set started flag to false
+    /// 4. Note: WasmEngine and ActorSystem are automatically cleaned up on drop
+    ///
+    /// # Parameters
+    ///
+    /// None
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(())` on successful shutdown.
+    ///
+    /// # Errors
+    ///
+    /// - `WasmError::ShutdownFailed`: Shutdown encountered an error
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// use airssys_wasm::host_system::HostSystemManager;
+    ///
+    /// let mut manager = HostSystemManager::new().await?;
+    ///
+    /// // ... use system ...
+    ///
+    /// // Graceful shutdown
+    /// manager.shutdown().await?;
+    /// println!("System shut down gracefully");
+    ///
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn shutdown(&mut self) -> Result<(), WasmError> {
+        // Verify system is started
+        if !self.started.load(Ordering::Relaxed) {
+            return Ok(()); // Already shut down
+        }
+
+        // Get all registered component IDs
+        let component_ids = self.registry.list_components();
+
+        // Stop all components with timeout
+        for id in component_ids {
+            if let Err(e) = self.stop_component(&id).await {
+                eprintln!("Warning: Failed to stop component {}: {}", id, e);
+                // Continue shutting down other components
+            }
+        }
+
+        // Set started flag to false
+        self.started.store(false, Ordering::Relaxed);
+
+        Ok(())
+    }
+}
+```
+
+**Note:** ComponentRegistry::list_components() needs to exist. This may need to be added to ComponentRegistry if it doesn't exist.
+
+#### Subtask 4.8: Add comprehensive error handling
+
+**Deliverables:**
+- Verify all WasmError variants are used correctly
+- Add contextual error messages for all failure paths
+- Ensure error propagation is correct through call stack
+
+**Acceptance Criteria:**
+- All error paths return appropriate WasmError variant
+- Error messages are descriptive and actionable
+- Error propagation follows Rust conventions
+
+**ADR Constraints:**
+- M-ERRORS-CANONICAL-STRUCTS: Error types follow canonical structure
+
+**PROJECTS_STANDARD.md Compliance:**
+- §6.4: Quality gates - comprehensive error handling
+
+**Rust Guidelines:**
+- M-ERRORS-CANONICAL-STRUCTS: Use thiserror for error definitions
+- M-STATIC-VERIFICATION: Zero warnings
+
+**Implementation Details:**
+
+```rust
+// Ensure all methods in HostSystemManager handle errors correctly
+
+// Error types to use (from crate::core::WasmError):
+// - WasmError::InitializationFailed - System initialization failed
+// - WasmError::ComponentNotFound - Component ID not found
+// - WasmError::ComponentSpawnFailed - Component spawn failed
+// - WasmError::ShutdownFailed - Shutdown failed
+
+// Context: All error messages should include:
+// - What operation failed (e.g., "Failed to spawn component")
+// - Component ID (if applicable)
+// - Root cause error (from underlying error)
+// - Actionable hint (e.g., "verify WASM binary is valid")
+```
+
+#### Subtask 4.9: Add unit tests for HostSystemManager
+
+**Deliverables:**
+- Add `#[cfg(test)]` module to `src/host_system/manager.rs`
+- Tests for:
+  - test_host_system_manager_new() - System initializes successfully
+  - test_spawn_and_stop_component() - Full lifecycle test
+  - test_get_component_status() - Status query works
+  - test_restart_component() - Restart works
+  - test_shutdown() - Graceful shutdown works
+  - test_error_component_not_found() - Error handling for unknown component
+
+**Acceptance Criteria:**
+- All unit tests pass
+- Test coverage >80% for new code
+- Tests are REAL (not stubs that only validate APIs)
+
+**ADR Constraints:**
+- No ADR violations
+
+**PROJECTS_STANDARD.md Compliance:**
+- §6.4: Mandatory testing requirement - BOTH unit and integration tests
+- §6.1: YAGNI - tests essential functionality only
+
+**Rust Guidelines:**
+- M-DESIGN-FOR-AI: Testable code
+- M-STATIC-VERIFICATION: All tests pass
+
+**Implementation Details:**
+
+```rust
+// Add to src/host_system/manager.rs
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_host_system_manager_new() {
+        // Test: System initializes successfully
+        let manager = HostSystemManager::new().await;
+        assert!(manager.is_ok(), "HostSystemManager::new() should succeed");
+
+        let manager = manager.unwrap();
+        assert!(manager.started.load(Ordering::Relaxed), "System should be started");
+    }
+
+    #[tokio::test]
+    async fn test_spawn_and_stop_component() {
+        // Test: Full component lifecycle
+        let mut manager = HostSystemManager::new().await.unwrap();
+
+        // Load real WASM fixture
+        let wasm_bytes = std::fs::read(
+            "tests/fixtures/handle-message-component.wasm"
+        ).expect("Failed to load WASM fixture");
+
+        let component_id = ComponentId::new("test-component");
+        let metadata = ComponentMetadata::new(component_id.clone());
+        let capabilities = CapabilitySet::new();
+
+        // Spawn component
+        let result = manager.spawn_component(
+            component_id.clone(),
+            wasm_bytes,
+            metadata,
+            capabilities,
+        ).await;
+        assert!(result.is_ok(), "Component spawn should succeed");
+
+        // Query status
+        let status = manager.get_component_status(&component_id).await;
+        assert!(status.is_ok(), "Status query should succeed");
+
+        // Stop component
+        let result = manager.stop_component(&component_id).await;
+        assert!(result.is_ok(), "Component stop should succeed");
+    }
+
+    #[tokio::test]
+    async fn test_get_component_status() {
+        // Test: Status query works
+        let mut manager = HostSystemManager::new().await.unwrap();
+
+        let component_id = ComponentId::new("test-component");
+        let wasm_bytes = std::fs::read(
+            "tests/fixtures/handle-message-component.wasm"
+        ).expect("Failed to load WASM fixture");
+        let metadata = ComponentMetadata::new(component_id.clone());
+        let capabilities = CapabilitySet::new();
+
+        // Spawn first
+        manager.spawn_component(
+            component_id.clone(),
+            wasm_bytes,
+            metadata,
+            capabilities,
+        ).await.unwrap();
+
+        // Query status
+        let status = manager.get_component_status(&component_id).await;
+        assert!(status.is_ok(), "Status query should succeed");
+
+        let status = status.unwrap();
+        assert_eq!(status, ComponentStatus::Running, "Component should be running");
+    }
+
+    #[tokio::test]
+    async fn test_restart_component() {
+        // Test: Restart works
+        let mut manager = HostSystemManager::new().await.unwrap();
+
+        let component_id = ComponentId::new("test-component");
+        let wasm_bytes = std::fs::read(
+            "tests/fixtures/handle-message-component.wasm"
+        ).expect("Failed to load WASM fixture");
+        let metadata = ComponentMetadata::new(component_id.clone());
+        let capabilities = CapabilitySet::new();
+
+        // Spawn first
+        manager.spawn_component(
+            component_id.clone(),
+            wasm_bytes.clone(),
+            metadata.clone(),
+            capabilities.clone(),
+        ).await.unwrap();
+
+        // Restart
+        let result = manager.restart_component(
+            &component_id,
+            wasm_bytes,
+            metadata,
+            capabilities,
+        ).await;
+        assert!(result.is_ok(), "Component restart should succeed");
+    }
+
+    #[tokio::test]
+    async fn test_shutdown() {
+        // Test: Graceful shutdown works
+        let mut manager = HostSystemManager::new().await.unwrap();
+
+        // Spawn a component
+        let component_id = ComponentId::new("test-component");
+        let wasm_bytes = std::fs::read(
+            "tests/fixtures/handle-message-component.wasm"
+        ).expect("Failed to load WASM fixture");
+        let metadata = ComponentMetadata::new(component_id.clone());
+        let capabilities = CapabilitySet::new();
+
+        manager.spawn_component(
+            component_id.clone(),
+            wasm_bytes,
+            metadata,
+            capabilities,
+        ).await.unwrap();
+
+        // Shutdown
+        let result = manager.shutdown().await;
+        assert!(result.is_ok(), "Shutdown should succeed");
+
+        assert!(!manager.started.load(Ordering::Relaxed), "System should be stopped");
+    }
+
+    #[tokio::test]
+    async fn test_error_component_not_found() {
+        // Test: Error handling for unknown component
+        let manager = HostSystemManager::new().await.unwrap();
+
+        let component_id = ComponentId::new("nonexistent");
+
+        // Try to query status of nonexistent component
+        let result = manager.get_component_status(&component_id).await;
+        assert!(result.is_err(), "Should return error for nonexistent component");
+
+        // Try to stop nonexistent component
+        let result = manager.stop_component(&component_id).await;
+        assert!(result.is_err(), "Should return error for nonexistent component");
+    }
+}
+```
+
+#### Subtask 4.10: Update MessagingService to accept CorrelationTracker and TimeoutHandler via constructor
+
+**Deliverables:**
+- Update `MessagingService::new()` signature to accept CorrelationTracker and TimeoutHandler
+- Remove internal creation of CorrelationTracker and TimeoutHandler
+- Update documentation to reflect dependency injection
+
+**Acceptance Criteria:**
+- MessagingService accepts dependencies via constructor
+- No circular imports from messaging/ to host_system/
+- Dependency injection pattern implemented per KNOWLEDGE-WASM-036
+
+**ADR Constraints:**
+- ADR-WASM-023: No forbidden imports
+- KNOWLEDGE-WASM-036 lines 518-540: Dependency injection pattern
+- Phase 2 architectural debt: RESOLVED - messaging/ no longer imports from host_system/
+
+**PROJECTS_STANDARD.md Compliance:**
+- §6.1: YAGNI - only add constructor parameters, no over-engineering
+- §6.2: Use concrete types with Arc
+
+**Rust Guidelines:**
+- M-DESIGN-FOR-AI: Dependency injection via constructor
+- M-ERRORS-CANONICAL-STRUCTS: Error handling for constructor
+
+**Implementation Details:**
+
+```rust
+// Update src/messaging/messaging_service.rs
+
+// Remove this import from messaging_service.rs (line 76):
+// use crate::host_system::correlation_tracker::CorrelationTracker;
+
+// Update MessagingService struct and new() method:
+
+impl MessagingService {
+    /// Create a new MessagingService with injected dependencies.
+    ///
+    /// Initializes MessageBroker and accepts CorrelationTracker and
+    /// TimeoutHandler via constructor injection (dependency injection pattern).
+    ///
+    /// # Dependency Injection
+    ///
+    /// CorrelationTracker and TimeoutHandler are created by HostSystemManager
+    /// and passed to MessagingService via constructor. This follows the
+    /// dependency injection pattern specified in KNOWLEDGE-WASM-036.
+    ///
+    /// # Parameters
+    ///
+    /// - `correlation_tracker`: CorrelationTracker instance from host_system/
+    /// - `timeout_handler`: TimeoutHandler instance from host_system/
+    ///
+    /// # Returns
+    ///
+    /// Returns a `MessagingService` instance.
+    pub fn new(
+        correlation_tracker: Arc<CorrelationTracker>,
+        timeout_handler: Arc<TimeoutHandler>,
+    ) -> Self {
+        let broker = Arc::new(InMemoryMessageBroker::new());
+        let response_router = Arc::new(ResponseRouter::new(
+            Arc::clone(&correlation_tracker),
+            Arc::clone(&timeout_handler),
+        ));
+
+        Self {
+            broker,
+            correlation_tracker,
+            timeout_handler,
+            metrics: Arc::new(MessagingMetrics::new()),
+            response_router,
+        }
+    }
+}
+```
+
+**Also update:** Remove the old `new()` method that created CorrelationTracker and TimeoutHandler internally, if it exists.
+
+### Integration Testing Plan
+
+**Integration Test Deliverables:**
+- Create: `tests/host_system_lifecycle_integration_tests.rs`
+- Tests to include:
+  1. System Initialization Test
+  2. Component Spawn and Stop Test
+  3. Component Restart Test
+  4. Component Status Query Test
+  5. Graceful Shutdown Test
+  6. Error Handling Test
+
+**Integration Tests to Include:**
+
+1. **System Initialization Test**
+   - Test: HostSystemManager::new() initializes all infrastructure
+   - Verify: Engine, registry, spawner, messaging_service are created
+   - Verify: started flag is true
+
+2. **Component Spawn and Stop Test**
+   - Test: Spawn component, verify status, stop component
+   - Verify: Component registered after spawn
+   - Verify: Component status is Running
+   - Verify: Component unregistered after stop
+   - Verify: Component status is NotFound after stop
+
+3. **Component Restart Test**
+   - Test: Spawn component, restart it, verify still running
+   - Verify: Component status is Running after restart
+   - Verify: Component can receive messages after restart
+
+4. **Component Status Query Test**
+   - Test: Query status for multiple components
+   - Verify: Correct status for each component (Running/Stopped/NotFound)
+   - Verify: Error for nonexistent component
+
+5. **Graceful Shutdown Test**
+   - Test: Spawn multiple components, shutdown system
+   - Verify: All components stopped
+   - Verify: started flag is false
+   - Verify: Cannot spawn after shutdown
+
+6. **Error Handling Test**
+   - Test: Try to stop nonexistent component
+   - Test: Try to query status of nonexistent component
+   - Verify: Appropriate errors returned
+
+**Verification Command:**
+```bash
+# Run integration tests
+cargo test --test host_system_lifecycle_integration_tests
+# Expected: All tests pass
+
+# Verify integration test file exists
+test -f tests/host_system_lifecycle_integration_tests.rs && echo "✅ Integration test file exists" || echo "❌ Integration test file missing"
+```
+
+**Integration Test Implementation Details:**
+
+```rust
+// tests/host_system_lifecycle_integration_tests.rs
+
+use airssys_wasm::host_system::{HostSystemManager, ComponentStatus};
+use airssys_wasm::core::{ComponentId, ComponentMetadata, CapabilitySet};
+use std::path::PathBuf;
+
+#[tokio::test]
+async fn test_system_initialization() {
+    // Test: HostSystemManager initializes all infrastructure
+    let manager = HostSystemManager::new().await;
+    assert!(manager.is_ok(), "System initialization should succeed");
+    
+    let manager = manager.unwrap();
+    assert!(manager.started(), "System should be started");
+}
+
+#[tokio::test]
+async fn test_component_spawn_and_stop() {
+    // Test: Full component lifecycle (spawn → status → stop)
+    let mut manager = HostSystemManager::new().await.unwrap();
+    
+    // Load real WASM fixture
+    let fixture_path = PathBuf::from("tests/fixtures/handle-message-component.wasm");
+    let wasm_bytes = std::fs::read(fixture_path)
+        .expect("Failed to load WASM fixture");
+    
+    let component_id = ComponentId::new("test-lifecycle-component");
+    let metadata = ComponentMetadata::new(component_id.clone());
+    let capabilities = CapabilitySet::new();
+    
+    // Spawn component
+    manager.spawn_component(
+        component_id.clone(),
+        wasm_bytes,
+        metadata,
+        capabilities,
+    ).await.expect("Component spawn should succeed");
+    
+    // Query status
+    let status = manager.get_component_status(&component_id).await
+        .expect("Status query should succeed");
+    assert_eq!(status, ComponentStatus::Running, "Component should be running");
+    
+    // Stop component
+    manager.stop_component(&component_id).await
+        .expect("Component stop should succeed");
+    
+    // Verify component is unregistered
+    let result = manager.get_component_status(&component_id).await;
+    assert!(result.is_err(), "Component should not be found after stop");
+}
+
+#[tokio::test]
+async fn test_component_restart() {
+    // Test: Component restart functionality
+    let mut manager = HostSystemManager::new().await.unwrap();
+    
+    let fixture_path = PathBuf::from("tests/fixtures/handle-message-component.wasm");
+    let wasm_bytes = std::fs::read(fixture_path)
+        .expect("Failed to load WASM fixture");
+    
+    let component_id = ComponentId::new("test-restart-component");
+    let metadata = ComponentMetadata::new(component_id.clone());
+    let capabilities = CapabilitySet::new();
+    
+    // Spawn component
+    manager.spawn_component(
+        component_id.clone(),
+        wasm_bytes.clone(),
+        metadata.clone(),
+        capabilities.clone(),
+    ).await.expect("Component spawn should succeed");
+    
+    // Restart component
+    manager.restart_component(
+        &component_id,
+        wasm_bytes,
+        metadata,
+        capabilities,
+    ).await.expect("Component restart should succeed");
+    
+    // Verify component is still running
+    let status = manager.get_component_status(&component_id).await
+        .expect("Status query should succeed");
+    assert_eq!(status, ComponentStatus::Running, "Component should be running after restart");
+}
+
+#[tokio::test]
+async fn test_component_status_query() {
+    // Test: Status query for multiple components
+    let mut manager = HostSystemManager::new().await.unwrap();
+    
+    let fixture_path = PathBuf::from("tests/fixtures/handle-message-component.wasm");
+    let wasm_bytes = std::fs::read(fixture_path)
+        .expect("Failed to load WASM fixture");
+    
+    // Spawn two components
+    let component_id_1 = ComponentId::new("component-1");
+    let component_id_2 = ComponentId::new("component-2");
+    
+    let metadata_1 = ComponentMetadata::new(component_id_1.clone());
+    let metadata_2 = ComponentMetadata::new(component_id_2.clone());
+    let capabilities = CapabilitySet::new();
+    
+    manager.spawn_component(
+        component_id_1.clone(),
+        wasm_bytes.clone(),
+        metadata_1,
+        capabilities.clone(),
+    ).await.expect("Spawn should succeed");
+    
+    manager.spawn_component(
+        component_id_2.clone(),
+        wasm_bytes,
+        metadata_2,
+        capabilities,
+    ).await.expect("Spawn should succeed");
+    
+    // Query status for both components
+    let status_1 = manager.get_component_status(&component_id_1).await
+        .expect("Status query should succeed");
+    assert_eq!(status_1, ComponentStatus::Running, "Component 1 should be running");
+    
+    let status_2 = manager.get_component_status(&component_id_2).await
+        .expect("Status query should succeed");
+    assert_eq!(status_2, ComponentStatus::Running, "Component 2 should be running");
+}
+
+#[tokio::test]
+async fn test_graceful_shutdown() {
+    // Test: System graceful shutdown with multiple components
+    let mut manager = HostSystemManager::new().await.unwrap();
+    
+    let fixture_path = PathBuf::from("tests/fixtures/handle-message-component.wasm");
+    let wasm_bytes = std::fs::read(fixture_path)
+        .expect("Failed to load WASM fixture");
+    
+    // Spawn multiple components
+    for i in 0..3 {
+        let component_id = ComponentId::new(format!("shutdown-test-{}", i));
+        let metadata = ComponentMetadata::new(component_id.clone());
+        let capabilities = CapabilitySet::new();
+        
+        manager.spawn_component(
+            component_id,
+            wasm_bytes.clone(),
+            metadata,
+            capabilities,
+        ).await.expect("Spawn should succeed");
+    }
+    
+    // Shutdown system
+    manager.shutdown().await.expect("Shutdown should succeed");
+    
+    assert!(!manager.started(), "System should be stopped");
+    
+    // Verify no components can be queried
+    let component_id = ComponentId::new("shutdown-test-0");
+    let result = manager.get_component_status(&component_id).await;
+    assert!(result.is_err(), "Components should not be found after shutdown");
+}
+
+#[tokio::test]
+async fn test_error_handling() {
+    // Test: Error handling for nonexistent components
+    let manager = HostSystemManager::new().await.unwrap();
+    
+    let nonexistent_id = ComponentId::new("nonexistent-component");
+    
+    // Try to query status
+    let result = manager.get_component_status(&nonexistent_id).await;
+    assert!(result.is_err(), "Should return error for nonexistent component");
+    
+    // Try to stop component
+    let result = manager.stop_component(&nonexistent_id).await;
+    assert!(result.is_err(), "Should return error for nonexistent component");
+}
+```
+
+**Mandatory Testing Requirement Reminder:**
+Per AGENTS.md Section 8, this plan MUST include BOTH unit tests AND integration tests:
+- ✅ Unit tests: Included in Subtask 4.9 (in `#[cfg(test)]` block)
+- ✅ Integration tests: Included in this Integration Testing Plan section
+
+### Quality Standards
+
+**All subtasks must meet:**
+- ✅ Code builds without errors: `cargo build`
+- ✅ Zero compiler warnings: `cargo build` produces no warnings
+- ✅ Zero clippy warnings: `cargo clippy --all-targets --all-features -- -D warnings`
+- ✅ Follows PROJECTS_STANDARD.md §2.1-§6.4
+- ✅ Follows Rust guidelines (M-DESIGN-FOR-AI, M-MODULE-DOCS, M-CANONICAL-DOCS, etc.)
+- ✅ Unit tests in `#[cfg(test)]` blocks
+- ✅ Integration tests in `tests/` directory
+- ✅ All tests pass: `cargo test --lib host_system` and `cargo test --test host_system_lifecycle_integration_tests`
+- ✅ Documentation follows quality standards (no hyperbole)
+- ✅ Module documentation includes canonical sections
+- ✅ Standards Compliance Checklist in task file
+
+### Verification Checklist
+
+**For implementer to run after completing Phase 4:**
+
+```bash
+# 1. Build
+cd /Users/hiraq/Projects/airsstack/airssys/airssys-wasm
+cargo build
+# Expected: No warnings, builds cleanly
+
+# 2. Unit Tests
+cargo test --lib host_system
+# Expected: All unit tests pass (Subtask 4.9 tests)
+
+# 3. Integration Tests
+cargo test --test host_system_lifecycle_integration_tests
+# Expected: All integration tests pass
+
+# 4. Clippy
+cargo clippy --all-targets --all-features -- -D warnings
+# Expected: Zero warnings
+
+# 5. Verify no forbidden imports in host_system/
+echo "Checking host_system/ → security/ (FORBIDDEN)..."
+grep -rn "use crate::security" src/host_system/ 2>/dev/null
+# Expected: NO OUTPUT
+
+# 6. Verify dependency injection implemented (messaging/ no longer imports from host_system/)
+echo "Checking messaging/ → host_system/ (should be none after Phase 4)..."
+grep -rn "use crate::host_system" src/messaging/ 2>/dev/null
+# Expected: NO OUTPUT (dependency injection implemented, no direct imports)
+
+# 7. Verify no modules import from host_system/ (architectural check)
+echo "Checking for imports FROM host_system/ (should be none)..."
+# (No grep command needed - just manual verification that nothing imports host_system/)
+# Expected: Nothing imports from host_system/ (it coordinates, doesn't export for import)
+
+# 8. Verify all tests pass
+cargo test
+# Expected: All tests pass
+
+# 9. Verify manager.rs compiles and has all methods
+grep -n "pub async fn" src/host_system/manager.rs
+# Expected: new(), spawn_component(), stop_component(), restart_component(), get_component_status(), shutdown()
+
+# 10. Verify ComponentStatus enum exists
+grep -n "pub enum ComponentStatus" src/host_system/manager.rs
+# Expected: Found
+
+# 11. Verify MessagingService::new() accepts dependencies
+grep -n "pub fn new(" src/messaging/messaging_service.rs
+# Expected: Shows correlation_tracker and timeout_handler parameters
+
+# 12. Verify fixtures exist
+test -f tests/fixtures/handle-message-component.wasm && echo "✅ Fixture exists" || echo "❌ Fixture missing"
+
+# 13. Verify import organization (§2.1)
+# Check that manager.rs follows 3-layer import pattern
+# Visual inspection: std → external → internal
+
+# 14. Verify no circular dependencies
+echo "Checking runtime/ → host_system/ (FORBIDDEN)..."
+grep -rn "use crate::host_system" src/runtime/ 2>/dev/null
+# Expected: NO OUTPUT
+
+echo "Checking core/ → host_system/ (FORBIDDEN)..."
+grep -rn "use crate::host_system" src/core/ 2>/dev/null
+# Expected: NO OUTPUT
+```
+
+### Documentation Requirements
+
+**For documentation deliverables:**
+- **Follow Diátaxis guidelines**: Reference type for HostSystemManager API documentation
+- **Quality standards**: No hyperbole, professional tone, technical precision per documentation-quality-standards.md
+- **Canonical sections**: Summary, examples, errors, panics per M-CANONICAL-DOCS
+- **Module documentation**: Clear explanation of purpose and responsibilities
+- **Deprecation notices**: Update Phase 1 placeholder documentation to reflect Phase 4 implementation
+
+**Files with documentation updates:**
+
+1. **src/host_system/manager.rs**
+   - Update module-level doc to reflect Phase 4 implementation (remove Phase 1 placeholder notes)
+   - Update HostSystemManager struct documentation
+   - Update all method documentation (new, spawn_component, stop_component, restart_component, get_component_status, shutdown)
+   - Add ComponentStatus enum documentation
+
+2. **src/host_system/mod.rs**
+   - Update module documentation to list Phase 4 functionality
+
+3. **src/messaging/messaging_service.rs**
+   - Update MessagingService::new() documentation to reflect dependency injection
+
+### Standards Compliance Checklist
+
+```markdown
+## Standards Compliance Checklist - Phase 4
+
+**PROJECTS_STANDARD.md Applied:**
+- [ ] **§2.1 3-Layer Import Organization** - Evidence: All files follow std → external → internal pattern
+- [ ] **§3.2 chrono DateTime<Utc> Standard** - Evidence: If time operations used, chrono DateTime<Utc> used
+- [ ] **§4.3 Module Architecture Patterns** - Evidence: host_system/mod.rs contains only declarations and re-exports
+- [ ] **§6.1 YAGNI Principles** - Evidence: Only initialization and lifecycle implemented, no speculative features
+- [ ] **§6.2 Avoid `dyn` Patterns** - Evidence: Concrete types with Arc used, no trait objects
+- [ ] **§6.4 Implementation Quality Gates** - Evidence: Build, test, clippy all pass
+
+**Rust Guidelines Applied:**
+- [ ] **M-DESIGN-FOR-AI** - Idiomatic APIs, docs, tests
+- [ ] **M-MODULE-DOCS** - Module documentation complete with canonical sections
+- [ ] **M-CANONICAL-DOCS** - Struct/Function docs include summary, examples, errors
+- [ ] **M-STATIC-VERIFICATION** - Lints enabled, clippy passes
+- [ ] **M-ERRORS-CANONICAL-STRUCTS** - Error types follow canonical structure
+- [ ] **M-FEATURES-ADDITIVE** - Features don't break existing code
+- [ ] **M-OOTBE** - Library works out of box
+
+**Documentation Quality:**
+- [ ] **No hyperbolic terms** - Verified against forbidden list
+- [ ] **Technical precision** - All claims measurable and factual
+- [ ] **Diátaxis compliance** - Reference documentation type used correctly
+- [ ] **Canonical sections** - All public items have summary, examples, errors
+
+**Architecture Compliance (ADR-WASM-023):**
+- [ ] **host_system/ imports** - Only imports from actor/, messaging/, runtime/, core/, airssys-rt (no security/)
+- [ ] **runtime/ imports** - NO imports from host_system/ (verified clean)
+- [ ] **core/ imports** - NO imports from host_system/ (verified clean)
+- [ ] **No circular dependencies** - One-way dependency flow maintained
+- [ ] **Dependency injection** - CorrelationTracker and TimeoutHandler passed via constructor
+
+**Testing Compliance (AGENTS.md §8):**
+- [ ] **Unit tests exist** - In src/host_system/manager.rs #[cfg(test)] block
+- [ ] **Integration tests exist** - In tests/host_system_lifecycle_integration_tests.rs
+- [ ] **Tests are real** - Tests prove functionality (end-to-end), not just API validation
+- [ ] **Test coverage >80%** - All methods tested
+- [ ] **All tests pass** - cargo test --lib and cargo test --test both pass
+```
+
+### Phase 2 Architectural Debt Resolution
+
+**Status:** ✅ RESOLVED in Phase 4
+
+**What Was Debt:**
+- messaging/ module imported CorrelationTracker directly from host_system/ (lines 76, 48 in messaging_service.rs, router.rs)
+
+**Resolution in Phase 4:**
+- Subtask 4.2: HostSystemManager creates CorrelationTracker instance
+- Subtask 4.10: MessagingService::new() accepts CorrelationTracker as parameter
+- Dependency injection implemented: HostSystemManager creates and passes CorrelationTracker to MessagingService
+
+**Verification:**
+```bash
+# After Phase 4, this should return NO OUTPUT
+grep -rn "use crate::host_system::correlation_tracker" src/messaging/ 2>/dev/null
+# Expected: NO OUTPUT (dependency injection implemented)
+```
+
+**Reference:**
+- KNOWLEDGE-WASM-036 lines 145-149, 518-540 specify correct dependency injection pattern
+- Task file lines 212-218 document this debt and its resolution plan
+
