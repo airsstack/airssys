@@ -80,13 +80,16 @@
 //! No panics expected from this module in Phase 1.
 
 // Module declarations following PROJECTS_STANDARD.md §4.3
-// mod.rs contains ONLY declarations, no implementation logic
+// mod.rs contains ONLY declarations and re-exports
 
-// Submodules will be added in Phase 1 subtasks:
-// - Subtask 1.2: manager.rs (with HostSystemManager)
-// - Subtask 1.3: initialization.rs
-// - Subtask 1.4: lifecycle.rs
-// - Subtask 1.5: messaging.rs
-//
-// Note: During Phase 1, these modules are empty placeholders.
-// Full implementation will be added in later phases (2-7).
+// Module declarations (Phase 1)
+pub mod initialization;
+pub mod lifecycle;
+pub mod manager;
+pub mod messaging;
+
+// Public re-exports (Phase 1 - manager only)
+pub use manager::HostSystemManager;
+
+// Additional re-exports will be added in later phases
+// Phase 2+: correlation_tracker, timeout_handler, etc.

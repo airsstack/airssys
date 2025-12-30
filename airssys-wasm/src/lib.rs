@@ -12,9 +12,14 @@
 //!
 //! # Architecture
 //!
-//! The framework is organized into two primary modules:
+//! The framework is organized into primary modules:
 //!
 //! - **[`core`]** - Foundational abstractions, types, and trait contracts
+//! - **[`host_system`]** - System coordination, initialization, and lifecycle
+//! - **[`runtime`]** - WASM execution engine and loading
+//! - **[`actor`]** - Actor system integration and component hosting
+//! - **[`security`]** - Capability-based security and access control
+//! - **[`messaging`]** - Inter-component communication infrastructure
 //! - **[`prelude`]** - Convenient re-exports for common use cases
 //!
 //! # Quick Start
@@ -56,6 +61,9 @@
 
 // Core abstractions (foundation)
 pub mod core;
+
+// Host system coordination layer (Block 1 - WASM-TASK-013)
+pub mod host_system;
 
 // Runtime implementation layer (Block 1 - WASM-TASK-002)
 pub mod runtime;
