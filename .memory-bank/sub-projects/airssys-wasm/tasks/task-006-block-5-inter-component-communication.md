@@ -1429,3 +1429,598 @@ Timeout errors delivered to handle-callback with error status.
 
 ---
 
+
+## Consolidation Plan: Fix WASM-TASK-006 Taxonomy Violation
+
+**Created:** 2025-12-30  
+**Purpose:** Consolidate 16 scattered files into 1 canonical task file  
+**Estimated Effort:** 1-2 hours  
+**Status:** READY FOR IMPLEMENTATION
+
+---
+
+## 1. Analysis: What's in Each Scattered File
+
+### 1.1 Canonical File (KEEP)
+**File:** `task-006-block-5-inter-component-communication.md` (5.7K, 1432 lines)
+
+**Contains:**
+- Complete task overview, objectives, scope
+- Phase 1-6 implementation plan sections
+- Progress tracking with completion logs
+- Success criteria, dependencies, risks
+
+**Status:** ✅ KEEP - This is the source of truth for WASM-TASK-006
+
+---
+
+### 1.2 Backup Files (DELETE - 2 files)
+
+#### File 1.1: `task-006-block-5-inter-component-communication.md.backup`
+- **Size:** 4.8K  
+- **Reason for deletion:** Outdated backup of canonical file
+- **Content:** Old snapshot of canonical file before updates
+- **Action:** DELETE
+
+#### File 1.2: `task-006-phase-1-task-1.1-plan.md.backup`
+- **Size:** 1.4K  
+- **Reason for deletion:** Outdated backup of phase plan
+- **Content:** Old snapshot of phase 1.1 plan
+- **Action:** DELETE
+
+---
+
+### 1.3 Phase Plan Files (CONSOLIDATE - 9 files)
+
+#### File 1.3.1: `task-006-phase-1-task-1.1-plan.md` (58K, 1429 lines)
+- **Status:** COMPLETED 2025-12-20
+- **Content:** Original plan for MessageBroker Setup
+- **Key sections:**
+  - Executive Summary: MessageBroker integration foundation
+  - Implementation Steps: 4 phases (Foundation, Subscriber, Integration, Testing)
+  - Technical Design: Architecture diagrams, data structures
+  - Unit Testing Plan: MessagingService tests
+  - Integration Testing Plan: End-to-end routing tests
+  - Completion Summary: Quality score 9.5/10, 853 tests passing
+  - Remediation section (post-completion discovery of stubbed delivery)
+- **What to consolidate:**
+   - Mark Task 1.1 as COMPLETE in canonical file
+  - Note remediation completed (actual delivery implemented)
+  - Extract unique testing strategies
+
+#### File 1.3.2: `task-006-phase-1-task-1.1-remediation-plan.md` (37K, 777 lines)
+- **Status:** COMPLETED 2025-12-21
+- **Content:** Remediation plan for message delivery implementation
+- **Key sections:**
+  - Goal: Fix stubbed message routing
+  - Implementation Steps: 7 steps (mailbox_senders field, register/unregister methods)
+  - Unit Testing Plan: 4 tests for registration/unregistration
+  - Integration Testing Plan: 3 tests proving end-to-end delivery
+  - Completion Summary: 22 tests passing (15 unit + 7 integration)
+  - Quality Verification: Zero warnings, ADR-WASM-020 compliant
+- **What to consolidate:**
+  - Link remediation plan from Task 1.1 completion log
+  - Note actual message delivery is now functional
+  - Extract mailbox registration patterns
+
+#### File 1.3.3: `task-006-phase-1-task-1.2-plan.md` (48K, 1314 lines)
+- **Status:** COMPLETED 2025-12-21 (but with remediation discovery)
+- **Content:** Plan for ComponentActor Message Reception
+- **Key sections:**
+  - Executive Summary: Message reception pipeline
+  - Problem Discovery: 41 tests only validate APIs, not actual functionality
+  - Remediation Requirements: Fix parameter marshalling TODO, add real integration tests
+  - Implementation Steps: 7 phases (Infrastructure, WASM invocation, Backpressure, Testing)
+  - Completion Summary: Code exists but tests don't prove functionality
+- **What to consolidate:**
+  - Document remediation requirements
+  - Note 9 NEW integration tests created with real WASM fixtures
+  - Reference task-1.2-remediation-plan.md
+  - Document parameter marshalling TODO resolved
+
+#### File 1.3.4: `task-006-phase-1-task-1.2-remediation-plan.md` (23K, 751 lines)
+- **Status:** COMPLETED 2025-12-21
+- **Content:** Remediation plan for message reception tests
+- **Key sections:**
+  - Problem: Tests don't prove WASM invocation
+  - Solution: Create real integration tests using WASM fixtures
+  - Implementation Steps: 7 steps (Analyze TODO, implement marshalling, create tests, update fixtures)
+  - Unit Testing Plan: 2 tests for parameter marshalling
+  - Integration Testing Plan: 5 tests proving WASM invocation
+  - WASM Fixture Prerequisites: .wat source committed, .wasm compiled with build.sh
+  - Completion Summary: 9 integration tests created, all passing
+- **What to consolidate:**
+  - Link to task-1.2-plan.md completion log
+  - Document test strategy shift from API validation to functionality proof
+  - Note all 9 tests use real WASM fixtures
+
+#### File 1.3.5: `task-006-phase-1-task-1.3-plan.md` (23K, 616 lines)
+- **Status:** READY FOR IMPLEMENTATION
+- **Content:** Action plan for ActorSystem Event Subscription Infrastructure
+- **Key sections:**
+  - Goal: Internal infrastructure for MessageBroker subscription
+  - Context: ADR-WASM-020, KNOWLEDGE-WASM-024, KNOWLEDGE-WASM-026
+  - Implementation Steps: 6 steps (MessagingSubscriptionService, runtime integration, ComponentId→ActorAddress registry)
+  - Unit Testing Plan: 4 test categories (lifecycle, registration, address resolution, error handling)
+  - Integration Testing Plan: 7 tests for subscription initialization, component registration, routing, shutdown
+  - Quality Verification: Build, test, clippy checks
+  - Estimated Effort: 12 hours
+- **What to consolidate:**
+  - Add Task 1.3 to Phase 1 progress tracking
+  - Note Task 1.3 is foundational infrastructure
+  - Describe dependency on Task 1.1 and 1.2 completion
+
+#### File 1.3.6: `task-006-phase-2-task-2.2-plan.md` (23K, 408 lines)
+- **Status:** PLANNED (superseded by hotfix)
+- **Content:** Plan for handle-message Component Export
+- **Key sections:**
+  - Executive Summary: Component-side message handling
+  - Problem: WIT interface exists but implementation uses simplified parameterless invocation (TODO at component_actor.rs:2051-2052)
+  - Implementation Steps: 7 steps (Memory detection, allocation, marshalling, update fixtures, integration tests)
+  - Unit Testing Plan: 8 tests for marshalling
+  - Integration Testing Plan: 10 tests proving sender/payload passing
+  - Performance Targets: ~280ns latency (211ns routing + 49ns overhead + 20ns WASM call)
+  - WASM Fixture Prerequisites: Need to verify and update fixtures
+  - Estimated Effort: 24 hours
+- **What to consolidate:**
+  - Mark as SUPERSEDED by Architecture Hotfix Phase 2
+  - Reference task-2.2-revised-plan.md
+  - Note hotfix implemented 90% of requirements
+
+#### File 1.3.7: `task-006-phase-2-task-2.2-revised-plan.md` (18K, 465 lines)
+- **Status:** COMPLETED 2025-12-22
+- **Content:** Revised plan showing hotfix completed 90% of work
+- **Key sections:**
+  - Critical Update: Original plan written BEFORE hotfix completed
+  - What Already Implemented: WIT interface, push delivery, sender metadata, error propagation
+  - What Remains: Timestamp metadata (not in WIT, so no gap), example code
+  - Implementation Steps: 4 steps (verify existing, create example, verify docs)
+  - Unit Testing Plan: Already complete (verified)
+  - Integration Testing Plan: Already complete (verified)
+  - Completion Summary: 955 lib tests, 8 handle-message integration tests, fire_and_forget_messaging.rs example
+  - Performance Results: Single sender 1.71M msg/sec, sustained 1.87M msg/sec
+- **Reduced Effort:** ~2 hours (from 24 hours)
+- **What to consolidate:**
+  - Mark Task 2.2 as COMPLETE
+  - Document actual completion date (2025-12-22)
+  - Link to fire_and_forget_messaging.rs example
+  - Remove duplicate task-2.2-plan.md
+
+#### File 1.3.8: `task-006-phase-2-task-2.3-fire-and-forget-performance-plan.md` (21K, 442 lines)
+- **Status:** PENDING APPROVAL
+- **Content:** Performance validation plan for fire-and-forget messaging
+- **Key sections:**
+  - Goal: Validate ~280ns latency, >10,000 msg/sec throughput
+  - Performance Validation Strategy: Separation of concerns (integration tests for correctness, benchmarks for performance)
+  - Implementation Steps: 5 steps (benchmarks, correctness tests, overhead documentation, optimization if needed)
+  - Unit Testing Plan: No new unit tests (feature already implemented)
+  - Integration Testing Plan: 8 correctness-focused tests (NO timing assertions)
+  - Benchmarks Plan: 13 benchmarks (5 overhead breakdown, 4 throughput, 4 latency distribution)
+  - Performance Targets: ~280ns latency, >10,000 msg/sec, <500ns median latency, <1μs p95, <10μs p99
+  - Estimated Effort: 12-21 hours
+- **What to consolidate:**
+  - Add Task 2.3 to Phase 2 progress tracking
+  - Note separation of concerns (tests = correctness, benchmarks = performance)
+  - Document flaky test avoidance strategy
+  - Record performance targets and validation approach
+
+#### File 1.3.9: `task-006-phase-3-task-3.3-plan.md` (28K, 720 lines)
+- **Status:** READY FOR IMPLEMENTATION
+- **Content:** Timeout and cancellation plan
+- **Critical Context:** Major bug exists - request-response pattern is BROKEN (Task 3.2 marked complete but end-to-end flow broken)
+- **Problem:** SendRequestHostFunction creates (response_tx, _response_rx) but DROPS _response_rx immediately. Nobody awaits responses, callbacks never invoked.
+- **Key sections:**
+  - Part A: Fix Integration Gap (CRITICAL - 8-10 hours)
+    - Step A.1: Add engine field to SendRequestHostFunction
+    - Step A.2: Spawn response receiver task that awaits response_rx and calls call_handle_callback()
+    - Step A.3: Add ComponentHandle lookup to WasmEngine
+    - Step A.4: Write integration tests proving callback invocation
+  - Part B: Timeout and Cancellation (9-16 hours)
+    - Step B.1: Verify TimeoutHandler integration
+    - Step B.2: Add RequestError::Cancelled variant
+    - Step B.3: Implement CancelRequestHostFunction
+    - Step B.4: Add cancel() method to CorrelationTracker
+    - Step B.5: Add cancellation metrics to MessagingService
+    - Step B.6: Write Part B integration tests
+  - Unit Testing Plan: ~20 tests across 4 modules
+  - Integration Testing Plan: 9 end-to-end tests
+  - Estimated Effort: 16-20 hours
+- **What to consolidate:**
+  - Add Task 3.3 to Phase 3 progress tracking
+  - Document critical integration gap fix as Part A
+  - Note this BLOCKS Task 3.3 until Part A complete
+
+---
+
+### 1.4 Architecture/Hotfix Files (DECIDE - 3 files)
+
+#### File 1.4.1: `task-006-architecture-remediation-critical.md` (48K, 781 lines)
+- **Status:** NOT STARTED (Critical/Blocking)
+- **Content:** Comprehensive architecture remediation across 3 phases
+- **Key sections:**
+  - Phase 1: Fix Circular Dependency (2.5-4.5 hours)
+    - Task 1.1: Move ComponentMessage to core/
+    - Task 1.2: Relocate messaging_subscription.rs to actor/component/
+    - Task 1.3: Add CI layer dependency enforcement
+  - Phase 2: Fix Duplicate Runtime (24-36 hours)
+    - Task 2.1: Delete workaround code from component_actor.rs (~260 lines)
+    - Task 2.2: Add WasmEngine injection to ComponentActor (4-6 hours)
+    - Task 2.3: Rewrite Child::start() to use WasmEngine (4-6 hours)
+    - Task 2.4: Rewrite Actor::handle() for Component Model (2-4 hours)
+    - Task 2.5: Extend WasmEngine if needed (2-4 hours)
+    - Task 2.6: Update all tests (8-12 hours)
+  - Phase 3: Verification (2-4 hours)
+- **Success Criteria:** Zero circular dependencies, single WasmEngine, generated bindings used
+- **What to consolidate:**
+  - This is a MASTER hotfix file that defines ALL remediation work
+  - Can be ARCHIVED as-is - comprehensive plan already documented
+  - Reference from canonical file for context
+  - Decision point: Keep as reference or delete after consolidation
+
+#### File 1.4.2: `task-006-architecture-remediation-phase-2-duplicate-runtime.md` (37K, 645 lines)
+- **Status:** NOT STARTED (Critical/Blocking)
+- **Content:** Detailed approach for Phase 2 of hotfix (duplicate runtime remediation)
+- **Key sections:**
+  - Task 2.1: Delete Workaround Code (incremental approach - keeping backward compatibility)
+  - Task 2.2: Add WasmEngine Injection (✅ COMPLETE 2025-12-21)
+  - Task 2.3: Rewrite Child::start() (✅ COMPLETE 2025-12-21)
+  - Task 2.4: Rewrite Actor::handle() (✅ COMPLETE 2025-12-21)
+  - Task 2.5: Extend WasmEngine if needed (conditional)
+  - Task 2.6: Update All Tests (8-12 hours)
+  - Timeline: 24-36 hours
+- **What to consolidate:**
+  - This is SUB-task detail file for Phase 2 of master hotfix
+  - Supersedes tasks 2.1-2.3-2.4 (which use incremental approach)
+  - Can be ARCHIVED after consolidation
+
+#### File 1.4.3: `task-006-hotfix-module-boundary-violations.md` (48K, 216 lines)
+- **Status:** NOT COMPLETE (violations still exist)
+- **Content:** Module boundary violations audit
+- **Key sections:**
+  - Current Status: Verified violations still exist (grep results shown)
+  - Violation #1: core/ → runtime/ (import in config.rs:82)
+  - Violation #2: runtime/ → actor/ (import in messaging.rs:78)
+  - Required Module Structure: core/ imports nothing, security/ imports core/ only, runtime/ imports core/, security/ only, actor/ imports all three
+  - Fix Actions: Move types to core/, reorganize messaging_subscription.rs
+  - Verification Commands: grep must return nothing after fixes
+- **What to consolidate:**
+  - This documents CRITICAL architecture violations that MUST be fixed
+  - Should NOT be archived - needs active remediation
+  - Requires decision: Is this part of hotfix or separate remediation?
+
+---
+
+## 2. Consolidation Plan: What to Add to Canonical File
+
+### 2.1 Task Status Summary (Add to Progress Tracking section)
+
+Update the Phase Progress Tracking table in canonical file:
+
+```markdown
+### Subtasks
+| ID | Description | Status | Updated | Notes |
+|----|-------------|--------|---------|-------|
+| 1.1 | MessageBroker Setup for Components | ✅ COMPLETE | 2025-12-21 | Remediation complete, actual delivery working |
+| 1.2 | ComponentActor Message Reception | ✅ COMPLETE | 2025-12-21 | Remediation complete, 9 new integration tests with real WASM fixtures |
+| 1.3 | ActorSystem Event Subscription Infrastructure | ⏳ NOT STARTED | - | Foundation infrastructure, depends on 1.1 and 1.2 |
+| 2.1 | send-message Host Function | ✅ COMPLETE | 2025-12-21 | 8 unit + 18 integration tests, verified |
+| 2.2 | handle-message Component Export | ✅ COMPLETE | 2025-12-22 | Hotfix completed 90%, finalization done |
+| 2.3 | Fire-and-Forget Performance | ⏳ PENDING APPROVAL | - | Benchmarks + correctness tests planned |
+| 3.1 | send-request Host Function | ✅ COMPLETE | 2025-12-22 | Correlation tracking, timeout handling |
+| 3.2 | Response Routing and Callbacks | ✅ COMPLETE | 2025-12-22 | 21 unit + 8 integration tests |
+| 3.3 | Timeout and Cancellation | ⏳ READY FOR IMPLEMENTATION | - | Critical integration gap fix + timeout/cancellation |
+```
+
+### 2.2 Consolidate Progress Log Entries (Add references to scattered plans)
+
+Add to Progress Log:
+
+```markdown
+### 2025-12-30: Taxonomy Consolidation Plan Created
+
+**Status:** ✅ COMPLETE  
+**Description:** Consolidation plan created to merge 16 scattered files into canonical task file.
+
+**Actions:**
+- Created consolidation plan with file action table
+- Identified all 16 files for processing
+- Categorized files: KEEP (1), DELETE (2), CONSOLIDATE (9), DECIDE (3)
+
+**Next Steps:**
+1. Review and approve consolidation plan
+2. Execute file actions per plan
+3. Update canonical task file with consolidated content
+4. Delete scattered files
+5. Update _index.md if needed
+```
+
+### 2.3 Extract Key Implementation Patterns (Add to Implementation Notes)
+
+From scattered files, extract reusable patterns:
+
+```markdown
+## Implementation Patterns Reference
+
+### Message Delivery Pattern (Task 1.1 Remediation)
+- ActorSystemSubscriber owns mailbox_senders map for delivery
+- ComponentRegistry stays pure (identity lookup only)
+- Per ADR-WASM-020: Separation of concerns
+
+### Integration Testing Pattern (Task 1.2 Remediation)
+- Create real integration tests using WASM fixtures
+- Build fixtures with build.sh (.wat source committed, .wasm compiled)
+- Tests must prove end-to-end functionality, not just API validation
+
+### Dual-Path Strategy (Task 3.3)
+- Legacy path: core WASM API with manual marshalling
+- Component Model path: typed function API with automatic marshalling
+- Backward compatibility during migration via conditional logic
+
+### Performance Validation Separation
+- Integration tests: Correctness verification (NO timing assertions)
+- Benchmarks: Authoritative performance validation (run locally, not in CI)
+- Prevents flaky tests due to timing variability
+```
+
+---
+
+## 3. File Action Table: KEEP/ARCHIVE/DELETE for Each File
+
+| File | Action | Reason | Target Location |
+|-------|--------|--------|------------------|
+| `task-006-block-5-inter-component-communication.md` | **KEEP** | Canonical source of truth | None (keep as-is) |
+| `task-006-block-5-inter-component-communication.md.backup` | **DELETE** | Outdated backup | None |
+| `task-006-phase-1-task-1.1-plan.md.backup` | **DELETE** | Outdated backup | None |
+| `task-006-phase-1-task-1.1-plan.md` | **ARCHIVE** | Original plan, COMPLETED | `.memory-bank/sub-projects/airssys-wasm/archive/` |
+| `task-006-phase-1-task-1.1-remediation-plan.md` | **ARCHIVE** | Remediation plan, COMPLETED | `.memory-bank/sub-projects/airssys-wasm/archive/` |
+| `task-006-phase-1-task-1.2-plan.md` | **ARCHIVE** | Original plan, COMPLETED with remediation | `.memory-bank/sub-projects/airssys-wasm/archive/` |
+| `task-006-phase-1-task-1.2-remediation-plan.md` | **ARCHIVE** | Remediation plan, COMPLETED | `.memory-bank/sub-projects/airssys-wasm/archive/` |
+| `task-006-phase-1-task-1.3-plan.md` | **ARCHIVE** | Action plan, READY | `.memory-bank/sub-projects/airssys-wasm/archive/` |
+| `task-006-phase-2-task-2.2-plan.md` | **ARCHIVE** | Original plan, SUPERSEDED | `.memory-bank/sub-projects/airssys-wasm/archive/` |
+| `task-006-phase-2-task-2.2-revised-plan.md` | **ARCHIVE** | Finalized plan, COMPLETED | `.memory-bank/sub-projects/airssys-wasm/archive/` |
+| `task-006-phase-2-task-2.3-fire-and-forget-performance-plan.md` | **ARCHIVE** | Performance plan, PENDING | `.memory-bank/sub-projects/airssys-wasm/archive/` |
+| `task-006-phase-3-task-3.3-plan.md` | **ARCHIVE** | Timeout plan, READY | `.memory-bank/sub-projects/airssys-wasm/archive/` |
+| `task-006-architecture-remediation-critical.md` | **DECIDE** | Master hotfix, NOT STARTED | `.memory-bank/sub-projects/airssys-wasm/archive/` OR keep |
+| `task-006-architecture-remediation-phase-2-duplicate-runtime.md` | **DECIDE** | Hotfix Phase 2 detail, NOT STARTED | `.memory-bank/sub-projects/airssys-wasm/archive/` OR keep |
+| `task-006-hotfix-module-boundary-violations.md` | **DECIDE** | Violations NOT FIXED | `.memory-bank/sub-projects/airssys-wasm/archive/` OR remediate |
+
+---
+
+## 4. Implementation Steps: Safe Consolidation Process
+
+### Step 1: Create Archive Directory (5 minutes)
+```bash
+cd .memory-bank/sub-projects/airssys-wasm
+mkdir -p archive
+echo "Archive directory created"
+```
+
+**Success Criteria:**
+- archive/ directory exists
+- Directory is empty (ready to receive archived files)
+
+### Step 2: Create Consolidation Backup (10 minutes)
+```bash
+cd .memory-bank/sub-projects/airssys-wasm
+tar czf taxonomy-consolidation-backup-$(date +%Y%m%d-%H%M%S).tar.gz \
+  task-006-block-5-inter-component-communication.md \
+  task-006-*.md
+echo "Backup created: taxonomy-consolidation-backup-[timestamp].tar.gz"
+```
+
+**Success Criteria:**
+- Backup tarball created with timestamp
+- Contains ALL task 006 files (canonical + scattered)
+
+### Step 3: Archive Phase Plans (15 minutes)
+```bash
+cd .memory-bank/sub-projects/airssys-wasm
+
+# Move completed phase plan files
+mv task-006-phase-1-task-1.1-plan.md archive/
+mv task-006-phase-1-task-1.1-remediation-plan.md archive/
+mv task-006-phase-1-task-1.2-plan.md archive/
+mv task-006-phase-1-task-1.2-remediation-plan.md archive/
+mv task-006-phase-2-task-2.2-plan.md archive/
+mv task-006-phase-2-task-2.2-revised-plan.md archive/
+mv task-006-phase-2-task-2.3-fire-and-forget-performance-plan.md archive/
+mv task-006-phase-3-task-3.3-plan.md archive/
+
+echo "Archived 9 phase plan files"
+```
+
+**Success Criteria:**
+- 9 files moved to archive/
+- Files no longer in tasks/ directory
+- Archive contains all historical plans
+
+### Step 4: Delete Backup Files (5 minutes)
+```bash
+cd .memory-bank/sub-projects/airssys-wasm
+rm task-006-block-5-inter-component-communication.md.backup
+rm task-006-phase-1-task-1.1-plan.md.backup
+
+echo "Deleted 2 backup files"
+```
+
+**Success Criteria:**
+- Backup files deleted
+- Directory listing shows no .backup files
+
+### Step 5: Decide on Architecture/Hotfix Files (Decision Point)
+```
+REVIEW REQUIRED: Need user decision on 3 architecture/hotfix files
+
+Option A: ARCHIVE all 3 hotfix files
+- Pros: Clean slate, hotfix work documented but not executed
+- Cons: Historical reference preserved
+- Cons: Canonical file doesn't reference these heavily
+
+Option B: Keep as Active Remediation Plans
+- Pros: Ready to implement when approved
+- Cons: Shows outstanding work clearly
+- Cons: Violations are still active and blocking
+
+RECOMMENDATION: Option A unless hotfix work needs to start immediately
+```
+
+**Success Criteria:**
+- User makes decision on hotfix files
+- Consistent action taken on all 3 files
+
+### Step 6: Verify Cleanup (10 minutes)
+```bash
+cd .memory-bank/sub-projects/airssys-wasm/tasks
+
+# List remaining task 006 files
+ls -lh *006*.md
+
+# Verify no .backup files remain
+find . -name "*.backup" -type f
+
+# Verify canonical file still exists
+ls -lh task-006-block-5-inter-component-communication.md
+
+echo "Verification complete"
+```
+
+**Success Criteria:**
+- Only 1 file remains: task-006-block-5-inter-component-communication.md
+- 0 backup files remain
+- All other files either archived or deleted
+
+### Step 7: Update Task Index (5 minutes)
+```bash
+cd .memory-bank/sub-projects/airssys-wasm/tasks
+
+# Edit _index.md to remove archived files
+# Remove entries for the 9 archived phase plans
+# Keep entry for canonical file
+
+echo "Task index updated"
+```
+
+**Success Criteria:**
+- _index.md shows only canonical file
+- No broken links to archived files
+- File count in directory matches _index.md
+
+---
+
+## 5. Risk Assessment
+
+### Risk 1: Losing Valuable Implementation Details
+**Impact:** HIGH  
+**Probability:** LOW  
+**Mitigation:**
+- Archive directory preserves all content
+- Backup tarball created before any deletions
+- Git history preserves content (files are tracked)
+
+### Risk 2: Breaking Task References
+**Impact:** MEDIUM  
+**Probability:** LOW  
+**Mitigation:**
+- Update _index.md carefully after consolidation
+- Search codebase for references to phase plan files
+- Update references to point to archived location
+
+### Risk 3: Hotfix Files Not Actioned
+**Impact:** DEPENDS  
+**Probability:** N/A (requires user decision)  
+**Mitigation:**
+- Step 5 includes explicit decision point
+- Document both options clearly
+- Recommend Option A (archive) unless hotfix needed immediately
+
+### Risk 4: Archive Directory Pollution
+**Impact:** LOW  
+**Probability:** LOW  
+**Mitigation:**
+- Archive directory created at .memory-bank/sub-projects/airssys-wasm/archive/
+- Separate from tasks/ (clean separation)
+- Can be cleaned up in future if needed
+
+---
+
+## 6. Verification: Commands to Verify Cleanup
+
+### After Step 3 (Archive Phase Plans)
+```bash
+# Verify archiving worked
+cd .memory-bank/sub-projects/airssys-wasm/tasks
+ls -lh archive/ | grep -c "task-006" archive/
+
+# Expected: 9 phase plan files in archive/
+# Expected Output: 9 lines, all starting with task-006-phase
+```
+
+### After Step 4 (Delete Backups)
+```bash
+# Verify no backups remain
+cd .memory-bank/sub-projects/airssys-wasm/tasks
+find . -name "*.backup" -type f | wc -l
+
+# Expected: 0 lines (no .backup files found)
+```
+
+### After Step 6 (Final State)
+```bash
+# Verify final file count
+cd .memory-bank/sub-projects/airssys-wasm/tasks
+ls -1 | wc -l
+
+# Expected: 1 file (only canonical file)
+# Expected File: task-006-block-5-inter-component-communication.md
+```
+
+### Full Cleanup Verification Script
+```bash
+#!/bin/bash
+# Full verification of taxonomy consolidation
+
+echo "=== Taxonomy Consolidation Verification ===="
+echo ""
+echo "1. File Count Verification:"
+expected=1
+actual=$(find . -maxdepth 1 -name "task-006*.md" | wc -l)
+echo "   Expected: 1 (canonical only)"
+echo "   Actual: $actual"
+if [ "$actual" -eq "$expected" ]; then
+    echo "   ✅ PASS"
+else
+    echo "   ❌ FAIL - expected 1, got $actual"
+fi
+
+echo ""
+echo "2. Archive Directory Verification:"
+archive_count=$(ls archive/ 2>/dev/null | grep -c "task-006" | wc -l)
+echo "   Phase plans archived: $archive_count"
+if [ "$archive_count" -eq "9" ]; then
+    echo "   ✅ PASS"
+else
+    echo "   ❌ FAIL - expected 9, got $archive_count"
+fi
+
+echo ""
+echo "3. Backup File Verification:"
+backup_count=$(find . -name "*.backup" -type f | wc -l)
+echo "   Backup files remaining: $backup_count"
+if [ "$backup_count" -eq "0" ]; then
+    echo "   ✅ PASS"
+else
+    echo "   ❌ FAIL - expected 0, got $backup_count"
+fi
+
+echo ""
+echo "4. Canonical File Verification:"
+if [ -f "task-006-block-5-inter-component-communication.md" ]; then
+    echo "   ✅ PASS - canonical file exists"
+else
+    echo "   ❌ FAIL - canonical file missing"
+fi
+
+echo ""
+echo "=== Verification Complete ===="
+```
+
