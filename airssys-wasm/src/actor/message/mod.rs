@@ -22,8 +22,7 @@
 //! - `subscriber_manager` - Subscription management
 //! - `actor_system_subscriber` - Actor system integration
 //! - `request_response` - Request/response message types
-//! - `timeout_handler` - Timeout enforcement for pending requests
-
+//!
 // Module declarations
 pub mod actor_system_subscriber;
 pub mod message_broker_bridge;
@@ -32,7 +31,6 @@ pub mod message_publisher;
 pub mod message_router;
 pub mod request_response;
 pub mod subscriber_manager;
-pub mod timeout_handler;
 pub mod unified_router;
 
 // Public re-exports
@@ -50,8 +48,6 @@ pub use message_router::MessageRouter;
 pub use request_response::RequestMessage;
 #[doc(inline)]
 pub use subscriber_manager::{SubHandle, SubscriberManager};
-#[doc(inline)]
-pub use timeout_handler::TimeoutHandler;
 #[doc(inline)]
 pub use unified_router::{RoutingStats, UnifiedRouter};
 

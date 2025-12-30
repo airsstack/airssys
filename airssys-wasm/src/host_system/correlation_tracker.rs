@@ -61,7 +61,7 @@ use dashmap::DashMap;
 use tokio::time::Instant;
 
 // Layer 3: Internal module imports
-use crate::actor::message::timeout_handler::TimeoutHandler;
+use super::timeout_handler::TimeoutHandler;
 use crate::core::messaging::{CorrelationId, PendingRequest, RequestError, ResponseMessage};
 use crate::core::WasmError;
 

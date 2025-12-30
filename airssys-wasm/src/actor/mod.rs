@@ -170,10 +170,12 @@ pub use message::{
     ActorSystemSubscriber, CorrelationId, MessageBrokerBridge,
     MessageBrokerWrapper, MessagePublisher, MessageRouter, PendingRequest, RequestError,
     RequestMessage, ResponseMessage, RoutingStats, SubHandle, SubscriberManager,
-    SubscriptionHandle, TimeoutHandler, TopicFilter, UnifiedRouter,
+    SubscriptionHandle, TopicFilter, UnifiedRouter,
     MessagingSubscriptionService, SubscriptionStatus,
 };
 
-// Re-export CorrelationTracker from host_system
+// Re-export CorrelationTracker and TimeoutHandler from host_system
 #[doc(inline)]
 pub use crate::host_system::correlation_tracker::CorrelationTracker;
+#[doc(inline)]
+pub use crate::host_system::timeout_handler::TimeoutHandler;

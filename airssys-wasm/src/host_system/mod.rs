@@ -23,6 +23,7 @@
 //! - `lifecycle` - Component lifecycle management
 //! - `messaging` - Message flow coordination
 //! - `correlation_tracker` - Request-response correlation tracking
+//! - `timeout_handler` - Timeout enforcement for pending requests
 //!
 //! ## Module Responsibilities
 //!
@@ -31,6 +32,7 @@
 //! - Message routing and flow orchestration
 //! - Dependency wiring between subsystems
 //! - Request-response correlation tracking
+//! - Timeout enforcement for pending requests
 //!
 //! ## Dependencies
 //!
@@ -97,10 +99,12 @@ pub mod initialization;
 pub mod lifecycle;
 pub mod manager;
 pub mod messaging;
+pub mod timeout_handler;
 
 // Public re-exports (Phase 1 - manager only)
 pub use correlation_tracker::CorrelationTracker;
 pub use manager::HostSystemManager;
+pub use timeout_handler::TimeoutHandler;
 
 // Additional re-exports will be added in later phases
 // Phase 2+: correlation_tracker, timeout_handler, etc.
