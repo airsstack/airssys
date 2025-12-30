@@ -22,10 +22,26 @@ use tokio::time::{Duration, Instant};
 
 use airssys_wasm::actor::message::{PendingRequest, RequestError};
 use airssys_wasm::core::{ComponentId, RuntimeEngine};
+use airssys_wasm::host_system::{CorrelationTracker, TimeoutHandler};
 use airssys_wasm::messaging::MessagingService;
 use airssys_wasm::runtime::WasmEngine;
 use tokio::sync::oneshot;
 use uuid::Uuid;
+use std::sync::Arc;
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/// Helper function to create a MessagingService for tests
+fn create_messaging_service() -> MessagingService {
+    use airssys_rt::broker::InMemoryMessageBroker;
+
+    let correlation_tracker = Arc::new(CorrelationTracker::new());
+    let timeout_handler = Arc::new(TimeoutHandler::new());
+    let broker = Arc::new(InMemoryMessageBroker::new());
+    MessagingService::new(broker, correlation_tracker, timeout_handler)
+}
 
 // ============================================================================
 // ResponseRouter Integration Tests
@@ -35,7 +51,7 @@ use uuid::Uuid;
 #[tokio::test]
 async fn test_response_routing_complete_flow() {
     // 1. Create messaging service
-    let service = MessagingService::new();
+    let service = create_messaging_service();
     let tracker = service.correlation_tracker();
     let router = service.response_router();
 
@@ -80,7 +96,7 @@ async fn test_response_routing_complete_flow() {
 /// Test response routing with error result
 #[tokio::test]
 async fn test_response_routing_with_error() {
-    let service = MessagingService::new();
+    let service = create_messaging_service();
     let tracker = service.correlation_tracker();
     let router = service.response_router();
 
@@ -124,7 +140,7 @@ async fn test_response_routing_with_error() {
 /// Test multiple concurrent response routings
 #[tokio::test]
 async fn test_multiple_concurrent_responses() {
-    let service = MessagingService::new();
+    let service = create_messaging_service();
     let tracker = service.correlation_tracker();
     let router = service.response_router();
 
@@ -180,7 +196,7 @@ async fn test_multiple_concurrent_responses() {
 /// Test orphaned response (no pending request)
 #[tokio::test]
 async fn test_orphaned_response_tracking() {
-    let service = MessagingService::new();
+    let service = create_messaging_service();
     let router = service.response_router();
 
     // Try to route response for non-existent correlation ID
@@ -204,7 +220,7 @@ async fn test_orphaned_response_tracking() {
 /// Test response router stats aggregation
 #[tokio::test]
 async fn test_response_router_stats() {
-    let service = MessagingService::new();
+    let service = create_messaging_service();
     let tracker = service.correlation_tracker();
     let router = service.response_router();
 
@@ -333,7 +349,7 @@ async fn test_call_handle_callback_error_flag() {
 /// Test MessagingService includes response routing stats
 #[tokio::test]
 async fn test_messaging_service_stats_include_responses() {
-    let service = MessagingService::new();
+    let service = create_messaging_service();
     let tracker = service.correlation_tracker();
     let router = service.response_router();
 

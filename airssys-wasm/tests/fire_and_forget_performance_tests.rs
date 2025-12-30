@@ -40,6 +40,7 @@ use airssys_wasm::core::{
     Capability, CapabilitySet, ComponentId, MulticodecPrefix, TopicPattern,
     runtime::RuntimeEngine,
 };
+use airssys_wasm::host_system::{CorrelationTracker, TimeoutHandler};
 use airssys_wasm::messaging::MessagingService;
 use airssys_wasm::runtime::{
     create_host_context, SendMessageHostFunction, WasmEngine,
@@ -48,6 +49,16 @@ use airssys_wasm::runtime::{
 // ============================================================================
 // Helper Functions
 // ============================================================================
+
+/// Helper function to create a MessagingService for tests
+fn create_messaging_service() -> Arc<MessagingService> {
+    use airssys_rt::broker::InMemoryMessageBroker;
+
+    let correlation_tracker = Arc::new(CorrelationTracker::new());
+    let timeout_handler = Arc::new(TimeoutHandler::new());
+    let broker = Arc::new(InMemoryMessageBroker::new());
+    Arc::new(MessagingService::new(broker, correlation_tracker, timeout_handler))
+}
 
 /// Create encoded args for send-message host function.
 ///
@@ -96,7 +107,7 @@ fn load_fixture(name: &str) -> Vec<u8> {
 #[tokio::test]
 async fn test_end_to_end_message_delivery() {
     // Setup
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendMessageHostFunction::new(Arc::clone(&messaging));
     let context = create_messaging_context("sender-component");
 
@@ -136,7 +147,7 @@ async fn test_end_to_end_message_delivery() {
 #[tokio::test]
 async fn test_sustained_message_delivery() {
     // Setup
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendMessageHostFunction::new(Arc::clone(&messaging));
     let context = create_messaging_context("sustained-sender");
 
@@ -184,7 +195,7 @@ async fn test_sustained_message_delivery() {
 /// **NO timing assertions.**
 #[tokio::test]
 async fn test_host_validation_accepts_valid() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendMessageHostFunction::new(Arc::clone(&messaging));
     let context = create_messaging_context("validation-sender");
 
@@ -224,7 +235,7 @@ async fn test_host_validation_accepts_valid() {
 /// **NO timing assertions.**
 #[tokio::test]
 async fn test_host_validation_rejects_invalid() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendMessageHostFunction::new(Arc::clone(&messaging));
     let context = create_messaging_context("rejecting-sender");
 
@@ -302,7 +313,7 @@ async fn test_wasm_handle_message_invoked() {
 /// **NO timing assertions.**
 #[tokio::test]
 async fn test_concurrent_senders_stable() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let concurrent_senders = 5; // Reduced from 10 for resource constraints
     let messages_per_sender = 10;
 
@@ -367,7 +378,7 @@ async fn test_concurrent_senders_stable() {
 /// **NO timing assertions.**
 #[tokio::test]
 async fn test_large_payload_delivery() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendMessageHostFunction::new(Arc::clone(&messaging));
     let context = create_messaging_context("large-payload-sender");
 
@@ -409,7 +420,7 @@ async fn test_large_payload_delivery() {
 /// **NO timing assertions.**
 #[tokio::test]
 async fn test_small_payload_delivery() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendMessageHostFunction::new(Arc::clone(&messaging));
     let context = create_messaging_context("small-payload-sender");
 

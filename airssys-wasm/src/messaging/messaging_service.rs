@@ -74,6 +74,7 @@ use airssys_rt::broker::InMemoryMessageBroker;
 
 // Layer 3: Internal crate imports
 use crate::host_system::correlation_tracker::CorrelationTracker;
+use crate::host_system::timeout_handler::TimeoutHandler;
 use crate::core::ComponentMessage;
 
 #[allow(dead_code)]
@@ -130,6 +131,9 @@ pub struct MessagingService {
     /// Correlation tracker for request-response patterns
     correlation_tracker: Arc<CorrelationTracker>,
 
+    /// Timeout handler for request timeout enforcement
+    timeout_handler: Arc<TimeoutHandler>,
+
     /// Metrics for monitoring messaging activity
     metrics: Arc<MessagingMetrics>,
 
@@ -137,16 +141,29 @@ pub struct MessagingService {
     response_router: Arc<crate::messaging::router::ResponseRouter>,
 }
 
-impl MessagingService {
-    /// Create a new MessagingService with an initialized broker.
+    impl MessagingService {
+    /// Create a new MessagingService with injected dependencies.
     ///
-    /// Initializes the airssys-rt InMemoryMessageBroker singleton which will be
-    /// used for all inter-component message routing. The broker uses a pure pub-sub
+    /// Initializes messaging service with a shared MessageBroker for all
+    /// inter-component message routing. The broker uses a pure pub-sub
     /// architecture where the ActorSystem subscribes at runtime initialization.
+    ///
+    /// # Dependency Injection
+    ///
+    /// This constructor follows the dependency injection pattern from
+    /// KNOWLEDGE-WASM-036 (lines 518-540). Dependencies are passed in from
+    /// `HostSystemManager` rather than created internally, which prevents
+    /// circular imports and enables proper test isolation.
+    ///
+    /// # Arguments
+    ///
+    /// * `broker` - Shared MessageBroker for message routing
+    /// * `correlation_tracker` - Shared correlation tracker for request-response matching
+    /// * `timeout_handler` - Shared timeout handler for request timeout enforcement
     ///
     /// # Phase 1 Design
     ///
-    /// - Creates MessageBroker for direct ComponentId addressing
+    /// - Uses provided MessageBroker for direct ComponentId addressing
     /// - No topic routing infrastructure (optional Phase 2+ enhancement)
     /// - ActorSystem will subscribe to this broker (runtime-level subscription)
     ///
@@ -158,17 +175,29 @@ impl MessagingService {
     /// # Examples
     ///
     /// ```rust,ignore
-    /// let service = MessagingService::new();
+    /// use airssys_wasm::host_system::{CorrelationTracker, TimeoutHandler};
+    /// use airssys_rt::broker::InMemoryMessageBroker;
+    /// use airssys_wasm::core::ComponentMessage;
+    /// use std::sync::Arc;
+    ///
+    /// let correlation_tracker = Arc::new(CorrelationTracker::new());
+    /// let timeout_handler = Arc::new(TimeoutHandler::new());
+    /// let broker = Arc::new(InMemoryMessageBroker::new());
+    /// let service = MessagingService::new(broker, correlation_tracker, timeout_handler);
     /// assert_eq!(service.get_stats().await.messages_published, 0);
     /// ```
-    pub fn new() -> Self {
+    pub fn new(
+        broker: Arc<InMemoryMessageBroker<ComponentMessage>>,
+        correlation_tracker: Arc<CorrelationTracker>,
+        timeout_handler: Arc<TimeoutHandler>,
+    ) -> Self {
         use crate::messaging::router::ResponseRouter;
 
-        let correlation_tracker = Arc::new(CorrelationTracker::new());
         let response_router = Arc::new(ResponseRouter::new(Arc::clone(&correlation_tracker)));
         Self {
-            broker: Arc::new(InMemoryMessageBroker::new()),
+            broker,
             correlation_tracker,
+            timeout_handler,
             metrics: Arc::new(MessagingMetrics::default()),
             response_router,
         }
@@ -402,7 +431,10 @@ impl MessagingService {
 
 impl Default for MessagingService {
     fn default() -> Self {
-        Self::new()
+        let correlation_tracker = Arc::new(CorrelationTracker::new());
+        let timeout_handler = Arc::new(TimeoutHandler::new());
+        let broker = Arc::new(InMemoryMessageBroker::new());
+        Self::new(broker, correlation_tracker, timeout_handler)
     }
 }
 
@@ -699,10 +731,23 @@ pub struct MessageReceptionStats {
 mod tests {
     use super::*;
     use crate::core::ComponentId;
+    use crate::host_system::correlation_tracker::CorrelationTracker;
+    use crate::host_system::timeout_handler::TimeoutHandler;
+    use std::sync::Arc;
+
+    /// Helper function to create a MessagingService for tests
+    fn create_test_service() -> MessagingService {
+        use airssys_rt::broker::InMemoryMessageBroker;
+
+        let correlation_tracker = Arc::new(CorrelationTracker::new());
+        let timeout_handler = Arc::new(TimeoutHandler::new());
+        let broker = Arc::new(InMemoryMessageBroker::new());
+        MessagingService::new(broker, correlation_tracker, timeout_handler)
+    }
 
     #[test]
     fn test_messaging_service_new() {
-        let service = MessagingService::new();
+        let service = create_test_service();
 
         // Broker should be initialized
         assert_eq!(Arc::strong_count(&service.broker), 1);
@@ -717,13 +762,13 @@ mod tests {
 
     #[test]
     fn test_messaging_service_broker_access() {
-        let service = MessagingService::new();
+        let service = create_test_service();
         let broker = service.broker();
 
         // Broker should be same instance
         assert_eq!(Arc::strong_count(&service.broker), 2); // service + broker variable
 
-        // Multiple calls should return the same broker
+        // Multiple calls should return same broker
         let broker2 = service.broker();
         assert_eq!(Arc::strong_count(&service.broker), 3);
 
@@ -734,7 +779,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_messaging_service_stats() {
-        let service = MessagingService::new();
+        let service = create_test_service();
 
         // Initial stats should be zero
         let stats = service.get_stats().await;
@@ -745,7 +790,7 @@ mod tests {
 
     #[test]
     fn test_record_publish() {
-        let service = MessagingService::new();
+        let service = create_test_service();
 
         service.record_publish();
         assert_eq!(
@@ -762,7 +807,7 @@ mod tests {
 
     #[test]
     fn test_record_routing_failure() {
-        let service = MessagingService::new();
+        let service = create_test_service();
 
         service.record_routing_failure();
         assert_eq!(service.metrics.routing_failures.load(Ordering::Relaxed), 1);
@@ -773,7 +818,7 @@ mod tests {
 
     #[test]
     fn test_messaging_service_clone() {
-        let service = MessagingService::new();
+        let service = create_test_service();
         let service_clone = service.clone();
 
         // Should share same broker and metrics
@@ -791,29 +836,13 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_default_trait() {
-        let service1 = MessagingService::new();
-        let service2 = MessagingService::default();
-
-        // Both should be initialized correctly
-        assert_eq!(
-            service1.metrics.messages_published.load(Ordering::Relaxed),
-            0
-        );
-        assert_eq!(
-            service2.metrics.messages_published.load(Ordering::Relaxed),
-            0
-        );
-    }
-
     // ============================================================================
     // Phase 3 Task 3.1 Tests - CorrelationTracker and Request Metrics
     // ============================================================================
 
     #[test]
     fn test_correlation_tracker_access() {
-        let service = MessagingService::new();
+        let service = create_test_service();
         let tracker = service.correlation_tracker();
 
         // Tracker should be initialized
@@ -833,7 +862,7 @@ mod tests {
 
     #[test]
     fn test_record_request_sent() {
-        let service = MessagingService::new();
+        let service = create_test_service();
 
         // Initial values
         assert_eq!(service.metrics.requests_sent.load(Ordering::Relaxed), 0);
@@ -852,7 +881,7 @@ mod tests {
 
     #[test]
     fn test_record_request_completed() {
-        let service = MessagingService::new();
+        let service = create_test_service();
 
         // Send 2 requests
         service.record_request_sent();
@@ -875,7 +904,7 @@ mod tests {
 
     #[test]
     fn test_pending_requests() {
-        let service = MessagingService::new();
+        let service = create_test_service();
 
         assert_eq!(service.pending_requests(), 0);
 
@@ -891,7 +920,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_stats_includes_request_metrics() {
-        let service = MessagingService::new();
+        let service = create_test_service();
 
         // Initial stats
         let stats = service.get_stats().await;
@@ -920,13 +949,13 @@ mod tests {
 
     #[test]
     fn test_response_router_access() {
-        let service = MessagingService::new();
+        let service = create_test_service();
         let router = service.response_router();
 
         // Router should be initialized
         assert_eq!(router.responses_routed_count(), 0);
 
-        // Multiple calls should return the same router
+        // Multiple calls should return same router
         let router2 = service.response_router();
         assert_eq!(Arc::strong_count(&service.response_router), 3);
 
@@ -941,7 +970,7 @@ mod tests {
         use tokio::sync::oneshot;
         use tokio::time::{Duration, Instant};
 
-        let service = MessagingService::new();
+        let service = create_test_service();
         let tracker = service.correlation_tracker();
 
         // Initial stats

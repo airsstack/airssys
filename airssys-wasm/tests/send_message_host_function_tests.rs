@@ -30,10 +30,21 @@ use airssys_wasm::core::{
     bridge::HostFunction, Capability, CapabilitySet, ComponentId, MulticodecPrefix, TopicPattern,
     WasmError,
 };
+use airssys_wasm::host_system::{CorrelationTracker, TimeoutHandler};
 use airssys_wasm::messaging::MessagingService;
 use airssys_wasm::runtime::{
     create_host_context, AsyncHostRegistryBuilder, SendMessageHostFunction,
 };
+
+/// Helper function to create a MessagingService for tests
+fn create_messaging_service() -> Arc<MessagingService> {
+    use airssys_rt::broker::InMemoryMessageBroker;
+
+    let correlation_tracker = Arc::new(CorrelationTracker::new());
+    let timeout_handler = Arc::new(TimeoutHandler::new());
+    let broker = Arc::new(InMemoryMessageBroker::new());
+    Arc::new(MessagingService::new(broker, correlation_tracker, timeout_handler))
+}
 
 /// Helper to create encoded args for send-message host function.
 ///
@@ -64,7 +75,7 @@ fn create_prefixed_message(codec: MulticodecPrefix, payload: &[u8]) -> Vec<u8> {
 #[tokio::test]
 async fn test_send_message_end_to_end_borsh() {
     // Setup
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let registry = AsyncHostRegistryBuilder::new()
         .with_messaging_functions(Arc::clone(&messaging))
         .build();
@@ -95,7 +106,7 @@ async fn test_send_message_end_to_end_borsh() {
 /// Test 2: End-to-end with Bincode codec
 #[tokio::test]
 async fn test_send_message_end_to_end_bincode() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendMessageHostFunction::new(Arc::clone(&messaging));
 
     let mut caps = CapabilitySet::new();
@@ -114,7 +125,7 @@ async fn test_send_message_end_to_end_bincode() {
 /// Test 3: End-to-end with MessagePack codec
 #[tokio::test]
 async fn test_send_message_end_to_end_messagepack() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendMessageHostFunction::new(Arc::clone(&messaging));
 
     let mut caps = CapabilitySet::new();
@@ -133,7 +144,7 @@ async fn test_send_message_end_to_end_messagepack() {
 /// Test 4: End-to-end with Protobuf codec
 #[tokio::test]
 async fn test_send_message_end_to_end_protobuf() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendMessageHostFunction::new(Arc::clone(&messaging));
 
     let mut caps = CapabilitySet::new();
@@ -156,7 +167,7 @@ async fn test_send_message_end_to_end_protobuf() {
 /// Test 5: Invalid multicodec prefix is rejected
 #[tokio::test]
 async fn test_send_message_invalid_multicodec_rejected() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendMessageHostFunction::new(Arc::clone(&messaging));
 
     let mut caps = CapabilitySet::new();
@@ -185,7 +196,7 @@ async fn test_send_message_invalid_multicodec_rejected() {
 /// Test 6: Message too short for multicodec prefix
 #[tokio::test]
 async fn test_send_message_too_short_rejected() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendMessageHostFunction::new(Arc::clone(&messaging));
 
     let mut caps = CapabilitySet::new();
@@ -209,7 +220,7 @@ async fn test_send_message_too_short_rejected() {
 /// Test 7: Empty message is rejected
 #[tokio::test]
 async fn test_send_message_empty_rejected() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendMessageHostFunction::new(Arc::clone(&messaging));
 
     let mut caps = CapabilitySet::new();
@@ -231,7 +242,7 @@ async fn test_send_message_empty_rejected() {
 /// Test 8: No messaging capability results in denial
 #[tokio::test]
 async fn test_send_message_no_capability_denied() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendMessageHostFunction::new(Arc::clone(&messaging));
 
     // No capabilities granted
@@ -256,7 +267,7 @@ async fn test_send_message_no_capability_denied() {
 /// Test 9: Specific topic pattern capability works
 #[tokio::test]
 async fn test_send_message_specific_topic_pattern() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendMessageHostFunction::new(Arc::clone(&messaging));
 
     // Grant specific topic pattern
@@ -277,7 +288,7 @@ async fn test_send_message_specific_topic_pattern() {
 /// Test 10: Multiple topic patterns capability
 #[tokio::test]
 async fn test_send_message_multiple_topic_patterns() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendMessageHostFunction::new(Arc::clone(&messaging));
 
     // Grant multiple topic patterns
@@ -308,7 +319,7 @@ async fn test_send_message_multiple_topic_patterns() {
 /// Test 11: Invalid args - too short for target length
 #[tokio::test]
 async fn test_send_message_args_too_short() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendMessageHostFunction::new(Arc::clone(&messaging));
 
     let mut caps = CapabilitySet::new();
@@ -331,7 +342,7 @@ async fn test_send_message_args_too_short() {
 /// Test 12: Invalid args - target length exceeds available bytes
 #[tokio::test]
 async fn test_send_message_target_length_exceeds_available() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendMessageHostFunction::new(Arc::clone(&messaging));
 
     let mut caps = CapabilitySet::new();
@@ -350,7 +361,7 @@ async fn test_send_message_target_length_exceeds_available() {
 /// Test 13: Valid target with empty name (edge case)
 #[tokio::test]
 async fn test_send_message_empty_target() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendMessageHostFunction::new(Arc::clone(&messaging));
 
     let mut caps = CapabilitySet::new();
@@ -374,7 +385,7 @@ async fn test_send_message_empty_target() {
 /// Test 14: Function registered correctly via builder
 #[tokio::test]
 async fn test_send_message_registered_in_registry() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let registry = AsyncHostRegistryBuilder::new()
         .with_messaging_functions(messaging)
         .build();
@@ -391,7 +402,7 @@ async fn test_send_message_registered_in_registry() {
 /// Test 15: Builder chaining with multiple function types
 #[tokio::test]
 async fn test_registry_builder_all_functions() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let registry = AsyncHostRegistryBuilder::new()
         .with_messaging_functions(messaging)
         .with_filesystem_functions()
@@ -417,7 +428,7 @@ async fn test_registry_builder_all_functions() {
 /// upper bound (1000ns) for the test. The actual target is ~280ns.
 #[tokio::test]
 async fn test_send_message_performance() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendMessageHostFunction::new(Arc::clone(&messaging));
 
     let mut caps = CapabilitySet::new();
@@ -466,7 +477,7 @@ async fn test_send_message_performance() {
 /// Test 17: Multiple senders using same MessagingService
 #[tokio::test]
 async fn test_multiple_senders_same_service() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
 
     // Create multiple function instances (simulating multiple components)
     let func1 = SendMessageHostFunction::new(Arc::clone(&messaging));
@@ -494,7 +505,7 @@ async fn test_multiple_senders_same_service() {
 /// Test 18: Sequential messages from same sender
 #[tokio::test]
 async fn test_sequential_messages_same_sender() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendMessageHostFunction::new(Arc::clone(&messaging));
 
     let mut caps = CapabilitySet::new();

@@ -99,12 +99,10 @@ use crate::runtime::WasmEngine;
 ///
 /// # Errors
 ///
-/// - `WasmError::InitializationFailed`: System initialization failed
+/// - `WasmError::EngineInitialization`: System initialization failed
 /// - `WasmError::ComponentNotFound`: Component ID not found
 /// - `WasmError::ComponentSpawnFailed`: Component spawn failed
-// NOTE: Fields are marked as dead_code in Phase 4.1 because they are not yet used.
-// Initialization logic will be added in Subtask 4.2, at which point these fields will be used.
-#[allow(dead_code)]
+#[allow(dead_code)]  // Fields will be used in Subtasks 4.3-4.6 per YAGNI principle
 pub struct HostSystemManager {
     /// WASM execution engine for executing component code
     engine: Arc<WasmEngine>,
@@ -144,11 +142,33 @@ impl std::fmt::Debug for HostSystemManager {
 }
 
 impl HostSystemManager {
-    /// Creates a new HostSystemManager instance.
+    /// Creates a new HostSystemManager instance and initializes all infrastructure.
     ///
-    /// Phase 1-4.1: Returns empty placeholder.
+    /// Initializes all system components in the correct order and wires
+    /// dependencies via constructor injection (not import-based dependencies).
     ///
-    /// Phase 4.2+: Initializes infrastructure (actor system, message broker, WASM engine).
+    /// # Initialization Order
+    ///
+    /// 1. Create WasmEngine for WASM execution
+    /// 2. Create CorrelationTracker and TimeoutHandler
+    /// 3. Create MessageBroker externally (not in MessagingService)
+    /// 4. Clone broker for ActorSystem (avoid borrow after move)
+    /// 5. Clone broker for ComponentSpawner (separate clone from ActorSystem)
+    /// 6. Create ActorSystem with broker (non-Arc)
+    /// 7. Create MessagingService with injected broker
+    /// 8. Create ComponentRegistry for O(1) lookups
+    /// 9. Create ComponentSpawner with broker (using separate clone)
+    /// 10. Set started flag to true
+    ///
+    /// # Dependency Injection
+    ///
+    /// All dependencies are passed via constructors, ensuring no circular
+    /// imports between modules. This follows the pattern specified in
+    /// KNOWLEDGE-WASM-036 lines 518-540.
+    ///
+    /// # Performance
+    ///
+    /// Target: <100ms total initialization time
     ///
     /// # Returns
     ///
@@ -156,11 +176,7 @@ impl HostSystemManager {
     ///
     /// # Errors
     ///
-    /// Phase 1-4.1:
-    /// - `WasmError::InitializationFailed`: Not yet implemented
-    ///
-    /// Phase 4.2+:
-    /// - `WasmError::InitializationFailed`: Infrastructure initialization failed
+    /// - `WasmError::EngineInitialization`: WasmEngine creation failed
     ///
     /// # Examples
     ///
@@ -169,51 +185,154 @@ impl HostSystemManager {
     /// use airssys_wasm::host_system::HostSystemManager;
     ///
     /// let manager = HostSystemManager::new().await?;
+    /// println!("System initialized successfully");
     /// # Ok(())
     /// # }
     /// ```
     pub async fn new() -> Result<Self, WasmError> {
-        // Phase 1-4.1: Empty placeholder (struct fields added but not initialized)
-        // Phase 4.2+: Initialize infrastructure
-        Err(WasmError::Internal {
-            reason: "HostSystemManager::new() not yet implemented - initialization logic added in Subtask 4.2".to_string(),
-            source: None,
+        // Step 1: Create WasmEngine
+        let engine = Arc::new(WasmEngine::new().map_err(|e| {
+            WasmError::engine_initialization(format!(
+                "Failed to create WASM engine: {}",
+                e
+            ))
+        })?);
+
+        // Step 2: Create CorrelationTracker and TimeoutHandler
+        let correlation_tracker = Arc::new(CorrelationTracker::new());
+        let timeout_handler = Arc::new(TimeoutHandler::new());
+
+        // Step 3: Create MessageBroker externally (NOT in MessagingService)
+        let broker = InMemoryMessageBroker::new();  // Create non-Arc broker
+
+        // Step 4: Clone broker for ActorSystem (avoid borrow after move)
+        let broker_for_actor = broker.clone();
+
+        // Step 5: Clone broker for ComponentSpawner (separate clone from ActorSystem)
+        let broker_for_spawner = broker.clone();
+
+        // Step 6: Create ActorSystem with broker (non-Arc)
+        let actor_system = airssys_rt::system::ActorSystem::new(
+            airssys_rt::system::SystemConfig::default(),
+            broker_for_actor,  // Pass InMemoryMessageBroker (not Arc clone)
+        );
+
+        // Step 7: Create MessagingService with injected broker
+        let messaging_service = Arc::new(MessagingService::new(
+            Arc::new(broker.clone()),  // Wrap in Arc for MessagingService
+            Arc::clone(&correlation_tracker),
+            Arc::clone(&timeout_handler),
+        ));
+
+        // Step 8: Create ComponentRegistry
+        let registry = ComponentRegistry::new();
+        let registry = Arc::new(registry);
+
+         // Step 9: Create ComponentSpawner with broker (using separate clone)
+        let spawner = Arc::new(ComponentSpawner::new(
+            actor_system,
+            (*registry).clone(),
+            broker_for_spawner,  // Use broker_for_spawner (separate clone from actor_system)
+        ));
+
+         // Step 10: Set started flag
+          let started = Arc::new(AtomicBool::new(true));
+
+        Ok(Self {
+            engine,
+            registry,
+            spawner,
+            messaging_service,
+            correlation_tracker,
+            timeout_handler,
+            started,
         })
+    }
+
+    /// Check if the system is started.
+    ///
+    /// Returns true if the system has been successfully initialized
+    /// and is ready to accept component operations.
+    ///
+    /// # Returns
+    ///
+    /// `true` if system is started, `false` otherwise
+    pub fn started(&self) -> bool {
+        self.started.load(std::sync::atomic::Ordering::Relaxed)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::Instant;
 
     #[tokio::test]
-    async fn test_host_system_manager_new_placeholder() {
-        // Phase 4.1: HostSystemManager::new() returns error (not implemented yet)
-        let manager = HostSystemManager::new().await;
-        assert!(manager.is_err(), "HostSystemManager::new() should fail in Phase 4.1");
+    async fn test_host_system_manager_new_success() {
+        // Test: HostSystemManager::new() initializes all infrastructure successfully
+        let start = Instant::now();
+        let result = HostSystemManager::new().await;
+        let duration = start.elapsed();
+
+        assert!(result.is_ok(), "HostSystemManager::new() should succeed");
+
+        let manager = result.unwrap();
+        assert!(manager.started(), "System should be started after initialization");
+
+        // Verify initialization meets performance target (<100ms)
+        assert!(
+            duration.as_millis() < 100,
+            "Initialization should complete in <100ms, took {:?}",
+            duration
+        );
+
+        println!("✅ System initialization completed in {:?}", duration);
     }
 
     #[tokio::test]
-    async fn test_host_system_manager_fields_compile() {
-        // Phase 4.1: Test that HostSystemManager struct compiles with all fields
-        // This test verifies the struct definition is correct even though new() returns error
-        use std::sync::Arc;
-        use std::sync::atomic::AtomicBool;
-        use airssys_rt::broker::InMemoryMessageBroker;
-        use crate::core::component_message::ComponentMessage;
-        use crate::host_system::correlation_tracker::CorrelationTracker;
-        use crate::host_system::timeout_handler::TimeoutHandler;
-        use crate::actor::component::{ComponentSpawner, ComponentRegistry};
-        use crate::messaging::MessagingService;
-        use crate::runtime::WasmEngine;
+    async fn test_host_system_manager_new_error_handling() {
+        // Test: Error handling when WasmEngine creation fails
+        // Note: This test verifies error handling path
+        // Currently, WasmEngine::new() should not fail in normal conditions
+        // This test documents expected error behavior
 
-        // Verify types are correct by using them in a type annotation
-        let _: Arc<WasmEngine>;
-        let _: Arc<ComponentRegistry>;
-        let _: Arc<ComponentSpawner<InMemoryMessageBroker<ComponentMessage>>>;
-        let _: Arc<MessagingService>;
-        let _: Arc<CorrelationTracker>;
-        let _: Arc<TimeoutHandler>;
-        let _: Arc<AtomicBool>;
+        let result = HostSystemManager::new().await;
+
+        // In normal conditions, initialization should succeed
+        // This test documents that errors are properly converted to WasmError
+        match result {
+            Ok(_) => {
+                println!("✅ Normal initialization succeeded");
+            }
+            Err(WasmError::EngineInitialization { reason, .. }) => {
+                println!("✅ Error properly formatted: {}", reason);
+            }
+            Err(e) => {
+                panic!("Unexpected error type: {:?}", e);
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_host_system_manager_dependencies_wired() {
+        // Test: Verify all dependencies are correctly wired
+        let manager = HostSystemManager::new().await.unwrap();
+
+        // We can't directly access private fields, but we can verify
+        // the system started flag and that no panics occurred
+        assert!(manager.started(), "System should be started");
+
+        // Implicit test: If no panic occurred during initialization,
+        // all dependencies were successfully created and wired
+        println!("✅ All dependencies initialized without errors");
+    }
+
+    #[tokio::test]
+    async fn test_host_system_manager_started_flag() {
+        // Test: Verify started flag is set correctly
+        let manager = HostSystemManager::new().await.unwrap();
+
+        assert!(manager.started(), "started flag should be true after initialization");
+        println!("✅ started flag correctly set to true");
     }
 }

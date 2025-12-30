@@ -31,11 +31,22 @@ use airssys_wasm::core::{
     bridge::HostFunction, Capability, CapabilitySet, ComponentId, MulticodecPrefix, TopicPattern,
     WasmError,
 };
+use airssys_wasm::host_system::{CorrelationTracker, TimeoutHandler};
 use airssys_wasm::runtime::{
     create_host_context, AsyncHostRegistryBuilder, SendRequestHostFunction,
 };
 use airssys_wasm::messaging::MessagingService;
 use uuid::Uuid;
+
+/// Helper function to create a MessagingService for tests
+fn create_messaging_service() -> Arc<MessagingService> {
+    use airssys_rt::broker::InMemoryMessageBroker;
+
+    let correlation_tracker = Arc::new(CorrelationTracker::new());
+    let timeout_handler = Arc::new(TimeoutHandler::new());
+    let broker = Arc::new(InMemoryMessageBroker::new());
+    Arc::new(MessagingService::new(broker, correlation_tracker, timeout_handler))
+}
 
 /// Helper to create encoded args for send-request host function.
 ///
@@ -69,7 +80,7 @@ fn create_prefixed_request(codec: MulticodecPrefix, payload: &[u8]) -> Vec<u8> {
 #[tokio::test]
 async fn test_send_request_end_to_end() {
     // Setup
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let registry = AsyncHostRegistryBuilder::new()
         .with_messaging_functions(Arc::clone(&messaging))
         .build();
@@ -113,7 +124,7 @@ async fn test_send_request_end_to_end() {
 /// Test 2: Multiple requests generate unique IDs
 #[tokio::test]
 async fn test_send_request_generates_unique_ids() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendRequestHostFunction::new(Arc::clone(&messaging));
 
     let mut caps = CapabilitySet::new();
@@ -154,7 +165,7 @@ async fn test_send_request_generates_unique_ids() {
 /// Test 3: Pending requests are trackable via correlation tracker
 #[tokio::test]
 async fn test_send_request_pending_trackable() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendRequestHostFunction::new(Arc::clone(&messaging));
 
     let mut caps = CapabilitySet::new();
@@ -184,7 +195,7 @@ async fn test_send_request_pending_trackable() {
 /// Test 4: Invalid multicodec rejected
 #[tokio::test]
 async fn test_send_request_invalid_multicodec() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendRequestHostFunction::new(Arc::clone(&messaging));
 
     let mut caps = CapabilitySet::new();
@@ -216,7 +227,7 @@ async fn test_send_request_invalid_multicodec() {
 /// Test 5: Capability denied without proper permissions
 #[tokio::test]
 async fn test_send_request_capability_denied() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendRequestHostFunction::new(Arc::clone(&messaging));
 
     // NO capabilities granted
@@ -247,7 +258,7 @@ async fn test_send_request_capability_denied() {
 /// Test 6: Various supported codecs work
 #[tokio::test]
 async fn test_send_request_all_supported_codecs() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendRequestHostFunction::new(Arc::clone(&messaging));
 
     let mut caps = CapabilitySet::new();
@@ -282,7 +293,7 @@ async fn test_send_request_all_supported_codecs() {
 /// Test 7: Empty request payload rejected
 #[tokio::test]
 async fn test_send_request_empty_payload_rejected() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendRequestHostFunction::new(Arc::clone(&messaging));
 
     let mut caps = CapabilitySet::new();
@@ -304,7 +315,7 @@ async fn test_send_request_empty_payload_rejected() {
 /// Test 8: Args too short for target_len
 #[tokio::test]
 async fn test_send_request_args_too_short() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendRequestHostFunction::new(messaging);
 
     let mut caps = CapabilitySet::new();
@@ -327,7 +338,7 @@ async fn test_send_request_args_too_short() {
 /// Test 9: Missing timeout bytes
 #[tokio::test]
 async fn test_send_request_missing_timeout() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendRequestHostFunction::new(messaging);
 
     let mut caps = CapabilitySet::new();
@@ -347,7 +358,7 @@ async fn test_send_request_missing_timeout() {
 /// Test 10: Various timeout values accepted
 #[tokio::test]
 async fn test_send_request_various_timeouts() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendRequestHostFunction::new(Arc::clone(&messaging));
 
     let mut caps = CapabilitySet::new();
@@ -376,7 +387,7 @@ async fn test_send_request_various_timeouts() {
 /// Test 11: Both messaging functions registered
 #[tokio::test]
 async fn test_both_messaging_functions_registered() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let registry = AsyncHostRegistryBuilder::new()
         .with_messaging_functions(messaging)
         .build();
@@ -395,7 +406,7 @@ async fn test_both_messaging_functions_registered() {
 /// Test 12: Can use both messaging functions together
 #[tokio::test]
 async fn test_send_and_request_together() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let registry = AsyncHostRegistryBuilder::new()
         .with_messaging_functions(Arc::clone(&messaging))
         .build();
@@ -439,7 +450,7 @@ async fn test_send_and_request_together() {
 /// Test 13: Concurrent requests from multiple components
 #[tokio::test]
 async fn test_concurrent_requests() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     
     // Spawn multiple concurrent request tasks
     let mut handles = Vec::new();
@@ -494,7 +505,7 @@ async fn test_concurrent_requests() {
 /// upper bound for the test. The actual target is ~350ns.
 #[tokio::test]
 async fn test_send_request_performance() {
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
     let func = SendRequestHostFunction::new(Arc::clone(&messaging));
 
     let mut caps = CapabilitySet::new();

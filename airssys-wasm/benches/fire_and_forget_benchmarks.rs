@@ -49,12 +49,23 @@ use airssys_wasm::core::{
     bridge::{HostCallContext, HostFunction},
     Capability, CapabilitySet, ComponentId, MulticodecPrefix, TopicPattern,
 };
+use airssys_wasm::host_system::{CorrelationTracker, TimeoutHandler};
 use airssys_wasm::messaging::MessagingService;
 use airssys_wasm::runtime::{create_host_context, SendMessageHostFunction};
 
 // ============================================================================
 // Helper Functions
 // ============================================================================
+
+/// Helper function to create a MessagingService for benchmarks
+fn create_messaging_service() -> Arc<MessagingService> {
+    use airssys_rt::broker::InMemoryMessageBroker;
+
+    let correlation_tracker = Arc::new(CorrelationTracker::new());
+    let timeout_handler = Arc::new(TimeoutHandler::new());
+    let broker = Arc::new(InMemoryMessageBroker::new());
+    Arc::new(MessagingService::new(broker, correlation_tracker, timeout_handler))
+}
 
 /// Create encoded args for send-message host function.
 ///
@@ -91,7 +102,7 @@ fn bench_host_validation_overhead(c: &mut Criterion) {
 
     c.bench_function("fire_and_forget_host_validation", |b| {
         b.to_async(&rt).iter(|| async {
-            let messaging = Arc::new(MessagingService::new());
+            let messaging = create_messaging_service();
             let func = SendMessageHostFunction::new(Arc::clone(&messaging));
             let context = create_messaging_context("sender");
 
@@ -146,7 +157,7 @@ fn bench_total_fire_and_forget_latency(c: &mut Criterion) {
     let rt = tokio::runtime::Runtime::new().unwrap();
 
     // Pre-create messaging service for more realistic benchmark
-    let messaging = Arc::new(MessagingService::new());
+    let messaging = create_messaging_service();
 
     c.bench_function("fire_and_forget_total_latency", |b| {
         b.to_async(&rt).iter(|| {
@@ -181,7 +192,7 @@ fn bench_throughput_single_sender(c: &mut Criterion) {
 
     group.bench_function("single_sender_50_msgs", |b| {
         b.to_async(&rt).iter(|| async {
-            let messaging = Arc::new(MessagingService::new());
+            let messaging = create_messaging_service();
             let func = SendMessageHostFunction::new(Arc::clone(&messaging));
             let context = create_messaging_context("high-throughput-sender");
 
@@ -218,7 +229,7 @@ fn bench_sustained_throughput(c: &mut Criterion) {
 
     group.bench_function("sustained_100_msgs", |b| {
         b.to_async(&rt).iter(|| async {
-            let messaging = Arc::new(MessagingService::new());
+            let messaging = create_messaging_service();
             let func = SendMessageHostFunction::new(Arc::clone(&messaging));
             let context = create_messaging_context("sustained-sender");
 

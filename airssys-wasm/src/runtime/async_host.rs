@@ -210,7 +210,7 @@ impl AsyncHostRegistry {
     /// use airssys_wasm::runtime::{AsyncHostRegistryBuilder, MessagingService};
     /// use std::sync::Arc;
     ///
-    /// let messaging = Arc::new(MessagingService::new());
+    /// let messaging = create_messaging_service();
     /// let registry = AsyncHostRegistryBuilder::new()
     ///     .with_messaging_functions(messaging)
     ///     .build();
@@ -465,7 +465,7 @@ impl SendMessageHostFunction {
     /// use airssys_wasm::runtime::{SendMessageHostFunction, MessagingService};
     /// use std::sync::Arc;
     ///
-    /// let messaging = Arc::new(MessagingService::new());
+    /// let messaging = create_messaging_service();
     /// let send_fn = SendMessageHostFunction::new(messaging);
     /// ```
     pub fn new(messaging_service: Arc<MessagingService>) -> Self {
@@ -617,7 +617,7 @@ impl SendRequestHostFunction {
     /// use airssys_wasm::runtime::{SendRequestHostFunction, MessagingService};
     /// use std::sync::Arc;
     ///
-    /// let messaging = Arc::new(MessagingService::new());
+    /// let messaging = create_messaging_service();
     /// let request_fn = SendRequestHostFunction::new(messaging);
     /// ```
     pub fn new(messaging_service: Arc<MessagingService>) -> Self {
@@ -763,7 +763,7 @@ impl HostFunction for SendRequestHostFunction {
 /// use airssys_wasm::runtime::{AsyncHostRegistryBuilder, MessagingService};
 /// use std::sync::Arc;
 ///
-/// let messaging = Arc::new(MessagingService::new());
+/// let messaging = create_messaging_service();
 ///
 /// let registry = AsyncHostRegistryBuilder::new()
 ///     .with_messaging_functions(messaging)
@@ -801,7 +801,7 @@ impl AsyncHostRegistryBuilder {
     /// use airssys_wasm::runtime::{AsyncHostRegistryBuilder, MessagingService};
     /// use std::sync::Arc;
     ///
-    /// let messaging = Arc::new(MessagingService::new());
+    /// let messaging = create_messaging_service();
     /// let builder = AsyncHostRegistryBuilder::new()
     ///     .with_messaging_functions(messaging);
     /// ```
@@ -929,6 +929,17 @@ pub fn create_host_context(
 mod tests {
 
     use super::*;
+    use crate::host_system::{CorrelationTracker, TimeoutHandler};
+
+    /// Helper function to create a MessagingService for tests
+    fn create_messaging_service() -> Arc<MessagingService> {
+        use airssys_rt::broker::InMemoryMessageBroker;
+
+        let correlation_tracker = Arc::new(CorrelationTracker::new());
+        let timeout_handler = Arc::new(TimeoutHandler::new());
+        let broker = Arc::new(InMemoryMessageBroker::new());
+        Arc::new(MessagingService::new(broker, correlation_tracker, timeout_handler))
+    }
 
     #[test]
     fn test_registry_creation() {
@@ -1107,14 +1118,14 @@ mod tests {
 
     #[test]
     fn test_send_message_function_name() {
-        let messaging = Arc::new(MessagingService::new());
+        let messaging = create_messaging_service();
         let func = SendMessageHostFunction::new(messaging);
         assert_eq!(func.name(), "messaging::send");
     }
 
     #[test]
     fn test_send_message_required_capability() {
-        let messaging = Arc::new(MessagingService::new());
+        let messaging = create_messaging_service();
         let func = SendMessageHostFunction::new(messaging);
         let cap = func.required_capability();
 
@@ -1123,7 +1134,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_send_message_success() {
-        let messaging = Arc::new(MessagingService::new());
+        let messaging = create_messaging_service();
         let func = SendMessageHostFunction::new(Arc::clone(&messaging));
 
         // Create context with messaging capability (wildcard)
@@ -1153,7 +1164,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_send_message_no_capability() {
-        let messaging = Arc::new(MessagingService::new());
+        let messaging = create_messaging_service();
         let func = SendMessageHostFunction::new(Arc::clone(&messaging));
 
         // Create context WITHOUT messaging capability
@@ -1181,7 +1192,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_send_message_invalid_multicodec() {
-        let messaging = Arc::new(MessagingService::new());
+        let messaging = create_messaging_service();
         let func = SendMessageHostFunction::new(Arc::clone(&messaging));
 
         // Create context with messaging capability
@@ -1210,7 +1221,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_send_message_message_too_short() {
-        let messaging = Arc::new(MessagingService::new());
+        let messaging = create_messaging_service();
         let func = SendMessageHostFunction::new(messaging);
 
         // Create context with messaging capability
@@ -1239,7 +1250,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_send_message_bincode_codec() {
-        let messaging = Arc::new(MessagingService::new());
+        let messaging = create_messaging_service();
         let func = SendMessageHostFunction::new(Arc::clone(&messaging));
 
         // Create context with messaging capability
@@ -1267,7 +1278,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_send_message_messagepack_codec() {
-        let messaging = Arc::new(MessagingService::new());
+        let messaging = create_messaging_service();
         let func = SendMessageHostFunction::new(Arc::clone(&messaging));
 
         // Create context with messaging capability
@@ -1306,7 +1317,7 @@ mod tests {
 
     #[test]
     fn test_registry_builder_with_messaging() {
-        let messaging = Arc::new(MessagingService::new());
+        let messaging = create_messaging_service();
         let registry = AsyncHostRegistryBuilder::new()
             .with_messaging_functions(messaging)
             .build();
@@ -1348,7 +1359,7 @@ mod tests {
 
     #[test]
     fn test_registry_builder_chaining() {
-        let messaging = Arc::new(MessagingService::new());
+        let messaging = create_messaging_service();
         let registry = AsyncHostRegistryBuilder::new()
             .with_messaging_functions(messaging)
             .with_filesystem_functions()
@@ -1366,7 +1377,7 @@ mod tests {
 
     #[test]
     fn test_registry_get_function() {
-        let messaging = Arc::new(MessagingService::new());
+        let messaging = create_messaging_service();
         let registry = AsyncHostRegistryBuilder::new()
             .with_messaging_functions(messaging)
             .build();
@@ -1385,14 +1396,14 @@ mod tests {
 
     #[test]
     fn test_send_request_function_name() {
-        let messaging = Arc::new(MessagingService::new());
+        let messaging = create_messaging_service();
         let func = SendRequestHostFunction::new(messaging);
         assert_eq!(func.name(), "messaging::send_request");
     }
 
     #[test]
     fn test_send_request_required_capability() {
-        let messaging = Arc::new(MessagingService::new());
+        let messaging = create_messaging_service();
         let func = SendRequestHostFunction::new(messaging);
         let cap = func.required_capability();
 
@@ -1412,7 +1423,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_send_request_parses_args_correctly() {
-        let messaging = Arc::new(MessagingService::new());
+        let messaging = create_messaging_service();
         let func = SendRequestHostFunction::new(Arc::clone(&messaging));
 
         let mut caps = CapabilitySet::new();
@@ -1439,7 +1450,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_send_request_validates_multicodec() {
-        let messaging = Arc::new(MessagingService::new());
+        let messaging = create_messaging_service();
         let func = SendRequestHostFunction::new(Arc::clone(&messaging));
 
         let mut caps = CapabilitySet::new();
@@ -1462,7 +1473,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_send_request_generates_uuid_v4() {
-        let messaging = Arc::new(MessagingService::new());
+        let messaging = create_messaging_service();
         let func = SendRequestHostFunction::new(Arc::clone(&messaging));
 
         let mut caps = CapabilitySet::new();
@@ -1490,7 +1501,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_send_request_returns_request_id() {
-        let messaging = Arc::new(MessagingService::new());
+        let messaging = create_messaging_service();
         let func = SendRequestHostFunction::new(Arc::clone(&messaging));
 
         let mut caps = CapabilitySet::new();
@@ -1522,7 +1533,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_send_request_no_capability() {
-        let messaging = Arc::new(MessagingService::new());
+        let messaging = create_messaging_service();
         let func = SendRequestHostFunction::new(messaging);
 
         // Create context WITHOUT messaging capability
@@ -1544,7 +1555,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_send_request_args_too_short() {
-        let messaging = Arc::new(MessagingService::new());
+        let messaging = create_messaging_service();
         let func = SendRequestHostFunction::new(messaging);
 
         let mut caps = CapabilitySet::new();
@@ -1566,7 +1577,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_send_request_records_metrics() {
-        let messaging = Arc::new(MessagingService::new());
+        let messaging = create_messaging_service();
         let func = SendRequestHostFunction::new(Arc::clone(&messaging));
 
         let mut caps = CapabilitySet::new();
@@ -1595,7 +1606,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_send_request_registers_pending() {
-        let messaging = Arc::new(MessagingService::new());
+        let messaging = create_messaging_service();
         let func = SendRequestHostFunction::new(Arc::clone(&messaging));
 
         let mut caps = CapabilitySet::new();
