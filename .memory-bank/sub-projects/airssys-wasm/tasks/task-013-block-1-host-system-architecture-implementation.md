@@ -1985,3 +1985,662 @@ cargo test
 - [ ] **No circular dependencies** - One-way dependency flow maintained
 ```
 
+
+
+## Implementation Plan - Phase 3: Move TimeoutHandler to host_system/
+
+### Context & References
+
+**ADR References:**
+- **ADR-WASM-023**: Module Boundary Enforcement - Defines forbidden imports and module responsibilities. After moving TimeoutHandler to host_system/, verify that:
+  - `actor/` CAN import from `host_system/` (since host_system coordinates everything)
+  - `messaging/` CAN import from `host_system/` (since messaging depends on host_system coordination)
+  - No circular dependencies created
+  - `runtime/` DOES NOT import from `host_system/` (runtime/ depends only on core/ and security/)
+- **ADR-WASM-022**: Circular Dependency Remediation - This migration is part of resolving circular dependencies between runtime/, messaging/, and actor/
+- **ADR-WASM-018**: Three-Layer Architecture - Establishes foundation layering that host_system/ builds upon
+
+**Knowledge References:**
+- **KNOWLEDGE-WASM-036**: Three-Module Architecture - Defines TimeoutHandler as a host_system responsibility (coordinates timeout enforcement across components). Lines 466, 531 specify timeout handling belongs in host_system/
+- **KNOWLEDGE-WASM-030**: Module Architecture Hard Requirements - Specifies dependency rules and module responsibilities
+
+**System Patterns:**
+- Timeout Handling from system-patterns.md - How TimeoutHandler works with CorrelationTracker
+- Request-Response Pattern from messaging architecture - TimeoutHandler enforces request timeouts
+
+**PROJECTS_STANDARD.md Compliance:**
+- **§2.1** (3-Layer Imports): All code will follow std → external → internal import organization
+- **§4.3** (Module Architecture): mod.rs files will contain ONLY declarations and re-exports
+- **§6.1** (YAGNI Principles): Move only TimeoutHandler and related code, no over-engineering
+- **§6.2** (Avoid `dyn` Patterns): Use concrete types, no trait objects
+- **§6.4** (Implementation Quality Gates): Zero warnings, comprehensive tests, clean builds
+
+**Rust Guidelines Applied:**
+- **M-DESIGN-FOR-AI**: Idiomatic APIs, thorough docs, testable code
+- **M-MODULE-DOCS**: Module documentation with canonical sections (summary, examples, errors)
+- **M-ERRORS-CANONICAL-STRUCTS**: Error types follow canonical structure from thiserror
+- **M-STATIC-VERIFICATION**: All lints enabled, clippy passes with `-D warnings`
+- **M-CANONICAL-DOCS**: Documentation includes summary, examples, errors, panics sections
+
+**Documentation Standards:**
+- **Diátaxis Type**: Reference documentation for TimeoutHandler API
+- **Quality**: Technical language, no hyperbole per documentation-quality-standards.md
+- **Compliance**: Standards Compliance Checklist will be added to task file
+
+### Module Architecture
+
+**Code will be placed in:** `src/host_system/timeout_handler.rs`
+
+**Module responsibilities (per KNOWLEDGE-WASM-036):**
+- Enforce request timeouts with <5ms accuracy
+- Spawn background Tokio tasks for each pending request
+- Send timeout errors to response channels when timeout expires
+- Cancel timeouts when responses arrive early
+- Provide metrics (active_count) for monitoring
+
+**Allowed imports (per ADR-WASM-023 and KNOWLEDGE-WASM-036):**
+- `host_system/` → `core/` (ComponentId, CorrelationId, ResponseMessage, RequestError, WasmError)
+- `host_system/` → `std` (standard library)
+- `host_system/` → external crates (chrono, dashmap, tokio, uuid)
+- `host_system/` → `host_system/` (can import from other host_system/ modules, including CorrelationTracker)
+
+**After migration, these modules CAN import from host_system/:**
+- `actor/` CAN import `use crate::host_system::timeout_handler::TimeoutHandler` (for test usage)
+- `messaging/` CAN import from host_system/ (for host_system coordination)
+
+**Forbidden imports (per ADR-WASM-023):**
+- `runtime/` → `host_system/` (FORBIDDEN - runtime depends only on core/ and security/)
+- `core/` → anything (FORBIDDEN - core is foundation)
+
+**Important Note on Circular Dependency:**
+After Phase 3, both CorrelationTracker and TimeoutHandler will be in `host_system/`, so they can import from each other freely without creating circular dependencies across modules:
+- `host_system/correlation_tracker.rs` → `host_system/timeout_handler.rs` (ALLOWED - same module)
+- `host_system/timeout_handler.rs` → `host_system/correlation_tracker.rs` (ALLOWED - same module)
+
+**Verification command (for implementer to run):**
+```bash
+# After migration, verify correct import patterns
+echo "Checking actor/ imports from host_system/ (ALLOWED for tests)..."
+grep -r "use crate::host_system" src/actor/ 2>/dev/null | grep -v test
+# Expected: May find test imports (test files allowed)
+
+echo "Checking messaging/ imports from host_system/ (ALLOWED)..."
+grep -r "use crate::host_system" src/messaging/ 2>/dev/null
+# Expected: May find CorrelationTracker imports
+
+echo "Checking runtime/ imports from host_system/ (FORBIDDEN)..."
+grep -r "use crate::host_system" src/runtime/ 2>/dev/null
+# Expected: NO OUTPUT (forbidden)
+
+echo "Checking core/ imports from any internal module (FORBIDDEN)..."
+grep -r "use crate::" src/core/ 2>/dev/null
+# Expected: NO OUTPUT (forbidden)
+```
+
+### Phase 3 Subtasks
+
+#### Subtask 3.1: Move TimeoutHandler to host_system/
+
+**Deliverables:**
+- Move file: `src/actor/message/timeout_handler.rs` → `src/host_system/timeout_handler.rs`
+- Update all imports in the moved file (if any)
+
+**Acceptance Criteria:**
+- File successfully moved to host_system/
+- File compiles without errors
+- No broken internal imports in moved file
+- Unit tests compile and pass
+
+**ADR Constraints:**
+- ADR-WASM-023: Verify no forbidden imports after move
+- KNOWLEDGE-WASM-036: TimeoutHandler is now in correct location (host_system/)
+
+**PROJECTS_STANDARD.md Compliance:**
+- §2.1: Imports organized in 3 layers (verify moved file follows pattern)
+- §4.3: Module structure maintained
+
+**Rust Guidelines:**
+- M-CANONICAL-DOCS: Documentation updated to reflect new location
+- M-ERRORS-CANONICAL-STRUCTS: Error types follow canonical structure
+
+**Documentation:**
+- Update module-level documentation to reflect new location in host_system/
+- Update all `use airssys_wasm::actor::message::TimeoutHandler` examples to `use airssys_wasm::host_system::TimeoutHandler`
+- Update architecture diagrams to show TimeoutHandler in host_system/
+
+**Implementation Details:**
+
+```bash
+# Step 1: Move the file
+cd /Users/hiraq/Projects/airsstack/airssys/airssys-wasm
+git mv src/actor/message/timeout_handler.rs src/host_system/timeout_handler.rs
+
+# Step 2: Verify the move
+test -f src/host_system/timeout_handler.rs && echo "✅ File moved" || echo "❌ Move failed"
+test ! -f src/actor/message/timeout_handler.rs && echo "✅ Old location removed" || echo "❌ Old location still exists"
+```
+
+**Import updates needed in moved file (timeout_handler.rs):**
+- Line 23: Update from `//! use airssys_wasm::actor::message::TimeoutHandler;` to `//! use airssys_wasm::host_system::TimeoutHandler;`
+- Line 24: Update from `//! use airssys_wasm::host_system::CorrelationTracker;` to `//! use airssys_wasm::host_system::CorrelationTracker;` (no change needed, already correct)
+- Line 56: Update from `use crate::host_system::correlation_tracker::CorrelationTracker;` to `use super::correlation_tracker::CorrelationTracker;` (since both are now in host_system/)
+- Line 85: Update from `/// use airssys_wasm::actor::message::TimeoutHandler;` to `/// use airssys_wasm::host_system::TimeoutHandler;`
+- Line 86: Update from `/// use airssys_wasm::host_system::CorrelationTracker;` to `/// use airssys_wasm::host_system::CorrelationTracker;` (no change needed, already correct)
+
+**Note on module-level docs:**
+Update the module-level documentation to reflect the new location:
+```rust
+//! Timeout handling for pending requests.
+//!
+//! Manages background timeout tasks using Tokio's async runtime for
+//! automatic timeout enforcement with <5ms accuracy.
+//!
+//! # Architecture
+//!
+//! ```text
+//! TimeoutHandler (host_system/)
+//!     ├── DashMap<CorrelationId, JoinHandle> (active timeouts)
+//!     └── Tokio spawn tasks (one per timeout)
+//! ```
+//!
+//! # References
+//!
+//! - **KNOWLEDGE-WASM-036**: Three-Module Architecture (timeout handling in host_system/)
+//! - **ADR-WASM-009**: Component Communication Model (Pattern 2: Request-Response)
+```
+
+#### Subtask 3.2: Update host_system/mod.rs to include TimeoutHandler
+
+**Deliverables:**
+- Update `src/host_system/mod.rs`
+- Add `pub mod timeout_handler;` declaration
+- Add `pub use timeout_handler::TimeoutHandler;` re-export
+- Update module documentation to mention TimeoutHandler
+
+**Acceptance Criteria:**
+- mod.rs compiles without errors
+- TimeoutHandler is publicly accessible via `use airssys_wasm::host_system::TimeoutHandler`
+- Module documentation updated
+
+**ADR Constraints:**
+- ADR-WASM-023: No forbidden imports in mod.rs
+- KNOWLEDGE-WASM-036: TimeoutHandler listed as host_system responsibility
+
+**PROJECTS_STANDARD.md Compliance:**
+- §4.3: mod.rs contains ONLY declarations and re-exports
+- §2.1: Imports organized in 3 layers (if any imports needed)
+
+**Rust Guidelines:**
+- M-MODULE-DOCS: Module documentation updated to mention TimeoutHandler
+
+**Documentation:**
+- Update host_system module documentation to include TimeoutHandler in module overview
+
+**Implementation Details:**
+
+```rust
+// Update src/host_system/mod.rs
+
+// In module declarations section (after pub mod correlation_tracker;)
+pub mod timeout_handler;
+
+// In public re-exports section (after pub use correlation_tracker::CorrelationTracker;)
+#[doc(inline)]
+pub use timeout_handler::TimeoutHandler;
+```
+
+```rust
+// Update host_system module documentation (add to existing doc)
+//!
+//! ## Module Organization
+//!
+//! - `manager` - HostSystemManager - main coordination point
+//! - `initialization` - System initialization logic
+//! - `lifecycle` - Component lifecycle management
+//! - `messaging` - Message flow coordination
+//! - `correlation_tracker` - Request-response correlation tracking
+//! - `timeout_handler` - Timeout enforcement for pending requests
+//!
+//! ## Module Responsibilities
+//!
+//! - System initialization and startup
+//! - Component spawning and lifecycle management
+//! - Message routing and flow orchestration
+//! - Dependency wiring between subsystems
+//! - Request-response correlation tracking
+//! - Timeout enforcement for pending requests
+```
+
+#### Subtask 3.3: Update import in CorrelationTracker
+
+**Deliverables:**
+- Update `src/host_system/correlation_tracker.rs`
+- Change import from cross-module to same-module
+- Verify CorrelationTracker tests pass
+
+**Acceptance Criteria:**
+- CorrelationTracker compiles without errors
+- Import changed from `use crate::actor::message::timeout_handler::TimeoutHandler` to `use super::timeout_handler::TimeoutHandler`
+- CorrelationTracker tests pass
+
+**ADR Constraints:**
+- ADR-WASM-023: Verify both modules in host_system/ can import from each other (allowed - same module)
+- KNOWLEDGE-WASM-036: Both CorrelationTracker and TimeoutHandler in host_system/
+
+**PROJECTS_STANDARD.md Compliance:**
+- §2.1: Imports organized in 3 layers
+
+**Rust Guidelines:**
+- M-CANONICAL-DOCS: Update doc examples if any reference TimeoutHandler import
+
+**Implementation Details:**
+
+```rust
+// Update src/host_system/correlation_tracker.rs line 64 from:
+use crate::actor::message::timeout_handler::TimeoutHandler;
+// To:
+use super::timeout_handler::TimeoutHandler;
+```
+
+**Update module-level documentation:**
+```rust
+//! Correlation tracking for request-response patterns.
+//!
+//! This module provides high-performance correlation tracking using lock-free
+//! concurrent data structures (DashMap) for request-response patterns with
+//! automatic timeout handling.
+//!
+//! # Architecture
+//!
+//! ```text
+//! CorrelationTracker (host_system/)
+//!     ├── DashMap<CorrelationId, PendingRequest> (lock-free)
+//!     └── TimeoutHandler (background cleanup, same module)
+//! ```
+//!
+//! # Examples
+//!
+//! ```rust,ignore
+//! use airssys_wasm::host_system::CorrelationTracker;
+//! use airssys_wasm::host_system::TimeoutHandler;
+//! use tokio::sync::oneshot;
+//! use std::time::Duration;
+//!
+//! let tracker = CorrelationTracker::new();
+//! let handler = TimeoutHandler::new();
+//!
+//! // Register pending request
+//! let (tx, rx) = oneshot::channel();
+//! let corr_id = Uuid::new_v4();
+//! tracker.register_pending(PendingRequest {
+//!     correlation_id: corr_id,
+//!     response_tx: tx,
+//!     requested_at: Instant::now(),
+//!     timeout: Duration::from_secs(5),
+//!     from: comp_a,
+//!     to: comp_b,
+//! }).await?;
+//!
+//! // Register timeout
+//! handler.register_timeout(corr_id, Duration::from_secs(5), tracker.clone());
+//!
+//! // Resolve with response
+//! tracker.resolve(corr_id, response).await?;
+//! ```
+```
+
+#### Subtask 3.4: Remove TimeoutHandler from actor/message/mod.rs
+
+**Deliverables:**
+- Update `src/actor/message/mod.rs`
+- Remove `pub mod timeout_handler;` declaration
+- Remove `pub use timeout_handler::TimeoutHandler;` re-export
+- Update module documentation to remove TimeoutHandler references
+
+**Acceptance Criteria:**
+- actor/message/mod.rs compiles without errors
+- TimeoutHandler no longer exported from actor/message/
+- Module documentation updated
+
+**ADR Constraints:**
+- No ADR violations (cleanup only)
+
+**PROJECTS_STANDARD.md Compliance:**
+- §4.3: mod.rs contains ONLY declarations and re-exports
+
+**Rust Guidelines:**
+- M-MODULE-DOCS: Module documentation updated
+
+**Documentation:**
+- Update actor/message module documentation to remove TimeoutHandler from module overview
+
+**Implementation Details:**
+
+```rust
+// Update src/actor/message/mod.rs
+
+// Remove line (find exact line number):
+// pub mod timeout_handler;
+
+// Remove line (find exact line number):
+// #[doc(inline)]
+// pub use timeout_handler::TimeoutHandler;
+
+// Update module documentation (remove from Module Organization section)
+//!
+//! ## Module Organization
+//!
+//! - `actor_system_subscriber` - Actor system integration
+//! - `message_broker_bridge` - Bridge to MessageBroker
+//! - `message_filter` - Topic filtering logic
+//! - `message_publisher` - Publishing interface
+//! - `message_router` - Basic message routing
+//! - `request_response` - Request/response message types
+//! - `subscriber_manager` - Subscription management
+//! - `correlation_tracker` - Request-response correlation tracking <-- REMOVE THIS
+//! - `timeout_handler` - Timeout enforcement for pending requests <-- REMOVE THIS
+```
+
+#### Subtask 3.5: Update tests that import TimeoutHandler
+
+**Deliverables:**
+- Update all test files that import TimeoutHandler
+- Update doc examples in timeout_handler.rs
+- Verify all tests pass
+
+**Acceptance Criteria:**
+- All tests in timeout_handler.rs pass
+- All tests in correlation_tracker.rs pass
+- All integration tests pass
+- Doc examples compile
+
+**ADR Constraints:**
+- No ADR violations (cleanup only)
+
+**PROJECTS_STANDARD.md Compliance:**
+- §6.4: Comprehensive tests required
+- Mandatory testing requirement: BOTH unit and integration tests required
+
+**Rust Guidelines:**
+- M-DESIGN-FOR-AI: Testable code
+- M-CANONICAL-DOCS: Doc examples use correct import paths
+
+**Implementation Details:**
+
+**Tests in timeout_handler.rs:**
+- No imports need updating (all tests use `use super::*;`)
+- Update doc examples:
+  - Line 23: `//! use airssys_wasm::actor::message::TimeoutHandler;` → `//! use airssys_wasm::host_system::TimeoutHandler;`
+  - Line 85: `/// use airssys_wasm::actor::message::TimeoutHandler;` → `/// use airssys_wasm::host_system::TimeoutHandler;`
+
+**Tests in correlation_tracker.rs:**
+- Update line 64: `use crate::actor::message::timeout_handler::TimeoutHandler` → `use super::timeout_handler::TimeoutHandler` (already updated in Subtask 3.3)
+
+**Integration tests (if any):**
+- Search for integration tests importing TimeoutHandler:
+```bash
+grep -rn "use airssys_wasm::actor::message::TimeoutHandler" tests/ 2>/dev/null
+# If found, update to:
+# use airssys_wasm::host_system::TimeoutHandler;
+```
+
+### Integration Testing Plan
+
+**Integration Test Deliverables:**
+- Verify integration tests still pass after migration
+- No new integration tests required (existing tests cover functionality)
+
+**Integration Tests to Include:**
+1. **TimeoutHandler Integration Test** (existing)
+   - Verify TimeoutHandler works from host_system/ module
+   - Verify timeout enforcement works
+   - Verify CorrelationTracker integration works
+
+2. **CorrelationTracker Integration Tests** (existing)
+   - Verify CorrelationTracker works with new TimeoutHandler import
+   - Verify request-response pattern works
+   - Verify timeout handling works
+
+**Verification Command:**
+```bash
+# Run all unit tests
+cargo test --lib
+# Expected: All tests pass
+
+# Run all integration tests
+cargo test --test '*'
+# Expected: All tests pass
+
+# Run specific host_system tests
+cargo test --lib host_system
+# Expected: All host_system tests pass
+
+# Run specific timeout_handler tests
+cargo test --lib timeout_handler
+# Expected: All timeout_handler tests pass
+```
+
+**Mandatory Testing Requirement Reminder:**
+Per AGENTS.md Section 8, this plan MUST include BOTH unit tests AND integration tests:
+- ✅ Unit tests: Already exist in timeout_handler.rs (migrated from actor/message/)
+- ✅ Integration tests: Already exist in tests/ directory (verify they still pass)
+
+### Fixture Verification
+
+**Verification Command:**
+```bash
+ls -la /Users/hiraq/Projects/airsstack/airssys/airssys-wasm/tests/fixtures/
+```
+
+**Verification Results:**
+```
+total 152
+drwxr-xr-x  21 hiraq  staff   672 Dec 26 22:26 .
+drwxr-xr-x  53 hiraq  staff  1696 Dec 28 17:26 ..
+-rw-r--r--   1 hiraq  staff   162 Dec 26 22:26 basic-handle-message.wasm
+-rw-r--r--   1 hiraq  staff   965 Dec 26 18:49 basic-handle-message.wat
+-rwxr-xr-x   1 hiraq  staff   448 Dec 26 18:49 build.sh
+-rw-r--r--   1 hiraq  staff   630 Dec 26 22:26 callback-receiver-component.wasm
+-rw-r--r--   1 hiraq  staff  3772 Dec 26 18:49 callback-receiver-component.wat
+-rw-r--r--   1 hiraq  staff   177 Dec 26 22:26 echo-handler.wasm
+-rw-r--r--   1 hiraq  staff  1289 Dec 26 18:49 echo-handler.wat
+-rw-r--r--   1 hiraq  staff   493 Dec 26 22:26 handle-message-component.wasm
+-rw-r--r--   1 hiraq  staff  2875 Dec 26 18:49 handle-message-component.wat
+-rw-r--r--   1 hiraq  staff   149 Dec 26 22:26 hello_world.wasm
+-rw-r--r--   1 hiraq  staff   549 Dec 26 18:49 hello_world.wat
+-rw-r--r--   1 hiraq  staff    85 Dec 26 22:26 no-handle-message.wasm
+-rw-r--r--   1 hiraq  staff   498 Dec 26 18:49 no-handle-message.wat
+-rw-r--r--   1 hiraq  staff   163 Dec 26 22:26 rejecting-handler.wasm
+-rw-r--r--   1 hiraq  staff   935 Dec 26 18:49 rejecting-handler.wat
+-rw-r--r--   1 hiraq  staff   173 Dec 26 22:26 sender-validator.wasm
+-rw-r--r--   1 hiraq  staff  1062 Dec 26 18:49 sender-validator.wat
+-rw-r--r--   1 hiraq  staff   223 Dec 26 22:26 slow-handler.wasm
+-rw-r--r--   1 hiraq  staff  1165 Dec 26 18:49 slow-handler.wat
+```
+
+**Analysis:**
+- ✅ **Fixtures directory exists**: `airssys-wasm/tests/fixtures/` found
+- ✅ **15 WASM files available** (9 .wasm files + 6 .wat files + build.sh)
+- ✅ **Variety of test components**: Basic handlers, validators, slow handlers, etc.
+
+**Impact on Phase 3 Implementation:**
+- ✅ Integration tests can use existing fixtures
+- ✅ No new fixture creation required for Phase 3
+- ✅ Fixtures can be used in later phases for component lifecycle testing
+
+**Phase 3 Integration Test Usage:**
+While Phase 3 integration tests focus on module accessibility and timeout handling, the existing fixtures provide a foundation for future phases (Phase 4+) when component lifecycle integration tests will need real WASM components.
+
+### Quality Standards
+
+**All subtasks must meet:**
+- ✅ Code builds without errors: `cargo build`
+- ✅ Zero compiler warnings: `cargo build` produces no warnings
+- ✅ Zero clippy warnings: `cargo clippy --all-targets --all-features -- -D warnings`
+- ✅ Follows PROJECTS_STANDARD.md §2.1-§6.4
+- ✅ Follows Rust guidelines (M-DESIGN-FOR-AI, M-MODULE-DOCS, M-CANONICAL-DOCS, etc.)
+- ✅ Unit tests in `#[cfg(test)]` blocks
+- ✅ All tests pass: `cargo test --lib` and `cargo test --test '*'`
+- ✅ Documentation follows quality standards (no hyperbole)
+- ✅ Module documentation includes canonical sections
+- ✅ Standards Compliance Checklist in task file
+
+### Verification Checklist
+
+**For implementer to run after completing Phase 3:**
+
+```bash
+# 1. Build
+cd /Users/hiraq/Projects/airsstack/airssys/airssys-wasm
+cargo build
+# Expected: No warnings, builds cleanly
+
+# 2. Unit Tests
+cargo test --lib
+# Expected: All unit tests pass
+
+# 3. Integration Tests
+cargo test --test '*'
+# Expected: All integration tests pass
+
+# 4. Clippy
+cargo clippy --all-targets --all-features -- -D warnings
+# Expected: Zero warnings
+
+# 5. Verify file moved to correct location
+test -f src/host_system/timeout_handler.rs && echo "✅ TimeoutHandler in host_system/" || echo "❌ TimeoutHandler not found"
+test ! -f src/actor/message/timeout_handler.rs && echo "✅ Old location removed" || echo "❌ Old location still exists"
+
+# 6. Verify host_system/mod.rs updated
+grep -n "pub mod timeout_handler" src/host_system/mod.rs
+# Expected: Line found
+
+grep -n "pub use timeout_handler::TimeoutHandler" src/host_system/mod.rs
+# Expected: Line found
+
+# 7. Verify actor/message/mod.rs updated
+grep -n "timeout_handler" src/actor/message/mod.rs
+# Expected: NO OUTPUT (timeout_handler removed)
+
+# 8. Verify import in CorrelationTracker updated
+grep -n "use super::timeout_handler" src/host_system/correlation_tracker.rs
+# Expected: Line found (new import)
+
+grep -n "use crate::actor::message::timeout_handler" src/host_system/correlation_tracker.rs
+# Expected: NO OUTPUT (old import removed)
+
+# 9. Verify no forbidden imports
+echo "Checking runtime/ → host_system/ (FORBIDDEN)..."
+grep -r "use crate::host_system" src/runtime/ 2>/dev/null
+# Expected: NO OUTPUT
+
+echo "Checking core/ → internal modules (FORBIDDEN)..."
+grep -r "use crate::" src/core/ 2>/dev/null
+# Expected: NO OUTPUT
+
+echo "Checking host_system/ → internal imports (ALLOWED - same module)..."
+grep -r "use crate::" src/host_system/ 2>/dev/null
+# Expected: NO OUTPUT (host_system/ uses super:: for same-module imports)
+
+echo "Checking host_system/ → core/ (ALLOWED)..."
+grep -r "use crate::core" src/host_system/ 2>/dev/null
+# Expected: May find imports to core types
+
+echo "Checking actor/ → host_system/ (ALLOWED for tests)..."
+grep -r "use crate::host_system" src/actor/ 2>/dev/null | grep -v test
+# Expected: NO OUTPUT (actor/ only imports from host_system/ in test files)
+
+echo "Checking messaging/ → host_system/ (ALLOWED)..."
+grep -r "use crate::host_system" src/messaging/ 2>/dev/null
+# Expected: May find CorrelationTracker imports
+
+# 10. Verify module is accessible
+cargo doc --no-deps --open
+# Expected: TimeoutHandler visible in host_system/ module docs
+
+# 11. Run all tests
+cargo test
+# Expected: All tests pass
+
+# 12. Verify import organization (§2.1)
+# Check that files follow 3-layer import pattern
+# (Visual inspection or automated check)
+# Verify timeout_handler.rs has:
+# Layer 1: Standard library imports (std)
+# Layer 2: Third-party crate imports (chrono, dashmap, tokio, uuid)
+# Layer 3: Internal module imports (crate::core, super::correlation_tracker)
+
+# 13. Verify CorrelationTracker and TimeoutHandler inter-module imports
+echo "Verifying CorrelationTracker imports TimeoutHandler (ALLOWED - same module)..."
+grep -n "use super::timeout_handler::TimeoutHandler" src/host_system/correlation_tracker.rs
+# Expected: Line found
+
+echo "Verifying TimeoutHandler imports CorrelationTracker (ALLOWED - same module)..."
+grep -n "use super::correlation_tracker::CorrelationTracker" src/host_system/timeout_handler.rs
+# Expected: Line found
+```
+
+### Documentation Requirements
+
+**For documentation deliverables:**
+- **Follow Diátaxis guidelines**: Reference type for TimeoutHandler API documentation
+- **Quality standards**: No hyperbole, professional tone, technical precision per documentation-quality-standards.md
+- **Canonical sections**: Summary, examples, errors, panics per M-CANONICAL-DOCS
+- **Module documentation**: Clear explanation of purpose and responsibilities
+
+**Files with documentation updates:**
+
+1. **src/host_system/timeout_handler.rs**
+   - Update module-level doc to reflect new location
+   - Update doc examples to use new import path
+   - Update architecture diagram to show host_system/ location
+   - Update references to KNOWLEDGE-WASM-036
+
+2. **src/host_system/mod.rs**
+   - Add TimeoutHandler to module overview
+   - Add TimeoutHandler to module organization section
+
+3. **src/host_system/correlation_tracker.rs**
+   - Update module-level doc to reflect same-module import from TimeoutHandler
+   - Update architecture diagram to show both in host_system/
+   - Update doc examples to show same-module imports
+
+4. **src/actor/message/mod.rs**
+   - Remove TimeoutHandler from module overview
+   - Remove TimeoutHandler from module organization section
+
+### Standards Compliance Checklist
+
+```markdown
+## Standards Compliance Checklist - Phase 3
+
+**PROJECTS_STANDARD.md Applied:**
+- [ ] **§2.1 3-Layer Import Organization** - Evidence: All files follow std → external → internal pattern
+- [ ] **§4.3 Module Architecture Patterns** - Evidence: host_system/mod.rs contains only declarations and re-exports
+- [ ] **§6.1 YAGNI Principles** - Evidence: Only TimeoutHandler moved, no over-engineering
+- [ ] **§6.2 Avoid `dyn` Patterns** - Evidence: Concrete types used, no trait objects
+- [ ] **§6.4 Implementation Quality Gates** - Evidence: Build, test, clippy all pass
+
+**Rust Guidelines Applied:**
+- [ ] **M-DESIGN-FOR-AI** - Idiomatic APIs, docs, tests
+- [ ] **M-MODULE-DOCS** - Module documentation complete with canonical sections
+- [ ] **M-CANONICAL-DOCS** - Struct/Function docs include summary, examples, errors
+- [ ] **M-STATIC-VERIFICATION** - Lints enabled, clippy passes
+- [ ] **M-ERRORS-CANONICAL-STRUCTS** - Error types follow canonical structure
+
+**Documentation Quality:**
+- [ ] **No hyperbolic terms** - Verified against forbidden list
+- [ ] **Technical precision** - All claims measurable and factual
+- [ ] **Diátaxis compliance** - Reference documentation type used correctly
+- [ ] **Canonical sections** - All public items have summary, examples, errors
+
+**Architecture Compliance (ADR-WASM-023):**
+- [ ] **host_system/ location** - TimeoutHandler in correct module
+- [ ] **actor/ imports** - actor/ CAN import from host_system/ (test files only)
+- [ ] **messaging/ imports** - messaging/ CAN import from host_system/ (CorrelationTracker)
+- [ ] **runtime/ imports** - runtime/ DOES NOT import from host_system/
+- [ ] **Same-module imports** - CorrelationTracker and TimeoutHandler can import from each other (allowed)
+- [ ] **No circular dependencies** - One-way dependency flow maintained
+- [ ] **Module boundary verification** - All grep commands pass (no forbidden imports)
+```
+
