@@ -23,7 +23,8 @@
 //! # Examples
 //!
 //! ```rust,ignore
-//! use airssys_wasm::actor::message::{CorrelationTracker, PendingRequest};
+//! use airssys_wasm::host_system::CorrelationTracker;
+//! use airssys_wasm::core::messaging::{PendingRequest, ResponseMessage, CorrelationId, RequestError};
 //! use tokio::sync::oneshot;
 //! use std::time::Duration;
 //!
@@ -60,7 +61,7 @@ use dashmap::DashMap;
 use tokio::time::Instant;
 
 // Layer 3: Internal module imports
-use super::timeout_handler::TimeoutHandler;
+use crate::actor::message::timeout_handler::TimeoutHandler;
 use crate::core::messaging::{CorrelationId, PendingRequest, RequestError, ResponseMessage};
 use crate::core::WasmError;
 
@@ -98,7 +99,7 @@ use crate::core::WasmError;
 /// # Examples
 ///
 /// ```rust,ignore
-/// use airssys_wasm::actor::message::CorrelationTracker;
+/// use airssys_wasm::host_system::CorrelationTracker;
 ///
 /// let tracker = CorrelationTracker::new();
 ///

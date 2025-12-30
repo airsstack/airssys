@@ -21,6 +21,7 @@
 //!
 //! ```rust,ignore
 //! use airssys_wasm::actor::message::TimeoutHandler;
+//! use airssys_wasm::host_system::CorrelationTracker;
 //! use std::time::Duration;
 //!
 //! let handler = TimeoutHandler::new();
@@ -51,8 +52,8 @@ use tokio::task::JoinHandle;
 use tokio::time::{sleep, Duration};
 
 // Layer 3: Internal module imports
-use super::correlation_tracker::CorrelationTracker;
 use crate::core::messaging::{CorrelationId, RequestError, ResponseMessage};
+use crate::host_system::correlation_tracker::CorrelationTracker;
 
 /// Timeout handler managing background timeout tasks.
 ///
@@ -82,6 +83,7 @@ use crate::core::messaging::{CorrelationId, RequestError, ResponseMessage};
 ///
 /// ```rust,ignore
 /// use airssys_wasm::actor::message::TimeoutHandler;
+/// use airssys_wasm::host_system::CorrelationTracker;
 ///
 /// let handler = TimeoutHandler::new();
 ///

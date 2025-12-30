@@ -45,7 +45,7 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 
 // Layer 3: Internal crate imports
-use crate::actor::message::CorrelationTracker;
+use crate::host_system::correlation_tracker::CorrelationTracker;
 use crate::core::messaging::{CorrelationId, RequestError, ResponseMessage};
 use crate::core::ComponentId;
 use chrono::Utc;
@@ -106,7 +106,7 @@ impl ResponseRouter {
     ///
     /// ```rust,ignore
     /// use airssys_wasm::messaging::ResponseRouter;
-    /// use airssys_wasm::actor::message::CorrelationTracker;
+    /// use airssys_wasm::host_system::CorrelationTracker;
     /// use std::sync::Arc;
     ///
     /// let tracker = Arc::new(CorrelationTracker::new());

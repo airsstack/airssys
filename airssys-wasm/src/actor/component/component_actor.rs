@@ -358,7 +358,7 @@ where
     broker: Option<Arc<dyn crate::actor::message::MessageBrokerBridge>>,
 
     /// Correlation tracker for request-response patterns (Phase 5 Task 5.1)
-    correlation_tracker: Option<Arc<crate::actor::message::CorrelationTracker>>,
+    correlation_tracker: Option<Arc<crate::host_system::correlation_tracker::CorrelationTracker>>,
 
     /// Custom component state (generic type S)
     ///
@@ -1351,7 +1351,7 @@ where
     /// ```
     pub fn set_correlation_tracker(
         &mut self,
-        tracker: Arc<crate::actor::message::CorrelationTracker>,
+        tracker: Arc<crate::host_system::correlation_tracker::CorrelationTracker>,
     ) {
         self.correlation_tracker = Some(tracker);
     }

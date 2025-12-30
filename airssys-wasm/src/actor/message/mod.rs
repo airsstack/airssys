@@ -21,13 +21,11 @@
 //! - `message_filter` - Topic filtering logic
 //! - `subscriber_manager` - Subscription management
 //! - `actor_system_subscriber` - Actor system integration
-//! - `correlation_tracker` - Request-response correlation tracking
 //! - `request_response` - Request/response message types
 //! - `timeout_handler` - Timeout enforcement for pending requests
 
 // Module declarations
 pub mod actor_system_subscriber;
-pub mod correlation_tracker;
 pub mod message_broker_bridge;
 pub mod message_filter;
 pub mod message_publisher;
@@ -40,8 +38,6 @@ pub mod unified_router;
 // Public re-exports
 #[doc(inline)]
 pub use actor_system_subscriber::ActorSystemSubscriber;
-#[doc(inline)]
-pub use correlation_tracker::CorrelationTracker;
 #[doc(inline)]
 pub use message_broker_bridge::{MessageBrokerBridge, MessageBrokerWrapper, SubscriptionHandle};
 #[doc(inline)]

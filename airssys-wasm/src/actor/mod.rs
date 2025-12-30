@@ -167,9 +167,13 @@ pub use lifecycle::{
 // Message subdomain re-exports
 #[doc(inline)]
 pub use message::{
-    ActorSystemSubscriber, CorrelationId, CorrelationTracker, MessageBrokerBridge,
+    ActorSystemSubscriber, CorrelationId, MessageBrokerBridge,
     MessageBrokerWrapper, MessagePublisher, MessageRouter, PendingRequest, RequestError,
     RequestMessage, ResponseMessage, RoutingStats, SubHandle, SubscriberManager,
     SubscriptionHandle, TimeoutHandler, TopicFilter, UnifiedRouter,
     MessagingSubscriptionService, SubscriptionStatus,
 };
+
+// Re-export CorrelationTracker from host_system
+#[doc(inline)]
+pub use crate::host_system::correlation_tracker::CorrelationTracker;

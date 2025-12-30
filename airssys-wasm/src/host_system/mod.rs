@@ -16,12 +16,21 @@
 //! - `lifecycle`: Component lifecycle management
 //! - `messaging`: Message flow coordination
 //!
+//! ## Module Organization
+//!
+//! - `manager` - HostSystemManager - main coordination point
+//! - `initialization` - System initialization logic
+//! - `lifecycle` - Component lifecycle management
+//! - `messaging` - Message flow coordination
+//! - `correlation_tracker` - Request-response correlation tracking
+//!
 //! ## Module Responsibilities
 //!
 //! - System initialization and startup
 //! - Component spawning and lifecycle management
 //! - Message routing and flow orchestration
 //! - Dependency wiring between subsystems
+//! - Request-response correlation tracking
 //!
 //! ## Dependencies
 //!
@@ -83,12 +92,14 @@
 // mod.rs contains ONLY declarations and re-exports
 
 // Module declarations (Phase 1)
+pub mod correlation_tracker;
 pub mod initialization;
 pub mod lifecycle;
 pub mod manager;
 pub mod messaging;
 
 // Public re-exports (Phase 1 - manager only)
+pub use correlation_tracker::CorrelationTracker;
 pub use manager::HostSystemManager;
 
 // Additional re-exports will be added in later phases

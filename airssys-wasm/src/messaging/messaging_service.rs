@@ -73,7 +73,7 @@ use serde::{Deserialize, Serialize};
 use airssys_rt::broker::InMemoryMessageBroker;
 
 // Layer 3: Internal crate imports
-use crate::actor::message::CorrelationTracker;
+use crate::host_system::correlation_tracker::CorrelationTracker;
 use crate::core::ComponentMessage;
 
 #[allow(dead_code)]
