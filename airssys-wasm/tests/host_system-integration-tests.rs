@@ -6,37 +6,55 @@
 //! an external integration test context.
 
 use airssys_wasm::host_system::HostSystemManager;
+use airssys_wasm::core::WasmError;
 
 #[tokio::test]
 async fn test_host_system_manager_integration() {
-    // Test that HostSystemManager can be instantiated from external context
+    // Test: HostSystemManager::new() returns placeholder error (Subtask 4.1)
+    // Note: Subtask 4.2 will implement initialization, after which new() will succeed
+
     let manager = HostSystemManager::new().await;
-    assert!(manager.is_ok(), "HostSystemManager should instantiate");
 
-    let manager = manager.unwrap();
+    // Subtask 4.1: Expect error (fields added but not initialized yet)
+    assert!(manager.is_err(),
+        "Subtask 4.1: HostSystemManager::new() should return error (not yet implemented)");
 
-    // Test Debug trait implementation (integration-level verification)
-    let debug_str = format!("{:?}", manager);
-    assert!(!debug_str.is_empty(), "Debug output should not be empty");
+    let err = manager.unwrap_err();
+
+    // Verify error is Internal variant with explanation
+    assert!(matches!(err, WasmError::Internal { .. }),
+        "Error should be Internal variant explaining Subtask 4.2");
+
+    // Verify error message mentions Subtask 4.2
+    if let WasmError::Internal { reason, .. } = err {
+        assert!(reason.contains("Subtask 4.2"),
+            "Error message should mention Subtask 4.2: {}", reason);
+    }
 }
 
 #[tokio::test]
 async fn test_module_accessibility() {
-    // Test that all public types are accessible from integration context
-    // This verifies module structure and public API surface
+    // Test: Module API is accessible (even if new() returns error)
+    // Note: This verifies module structure is correct, not that new() succeeds
+
     use airssys_wasm::host_system::HostSystemManager;
 
-    // Verify we can construct types
+    // Subtask 4.1: Expect error (new() is placeholder)
     let manager = HostSystemManager::new().await;
-    assert!(manager.is_ok(), "Module API should be accessible");
+    assert!(manager.is_err(),
+        "Subtask 4.1: HostSystemManager::new() should return error");
 }
 
 #[tokio::test]
 async fn test_module_wiring() {
-    // Test that host_system module is properly wired in lib.rs
-    // This verifies the module is publicly exposed
+    // Test: Module is properly wired in lib.rs (compiles correctly)
+    // Note: This is a compile-time check - if this compiles, wiring is correct
+
     use airssys_wasm::host_system::HostSystemManager;
 
-    // If this compiles, the module is properly wired
-    let _manager = HostSystemManager::new().await;
+    // Subtask 4.1: Expect error (new() is placeholder)
+    let result = HostSystemManager::new().await;
+
+    // Just verify we can call new() (module is accessible)
+    let _ = result;  // Result may be error, that's OK for Subtask 4.1
 }
