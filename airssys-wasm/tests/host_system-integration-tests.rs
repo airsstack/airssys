@@ -383,3 +383,61 @@ async fn test_stop_and_spawn_lifecycle() {
 
     println!("✅ Stop and spawn lifecycle verified: {}", component_id.as_str());
 }
+
+#[tokio::test]
+async fn test_restart_component_integration() {
+    // Test: End-to-end component restart via HostSystemManager (Subtask 4.5 implemented)
+    let manager = HostSystemManager::new().await;
+
+    assert!(manager.is_ok(), "HostSystemManager::new() should succeed");
+
+    let mut manager = manager.unwrap();
+
+    // Setup component parameters
+    let component_id = ComponentId::new("test-restart-integration");
+    let wasm_path = PathBuf::from("tests/fixtures/hello_world.wasm");
+    let wasm_bytes = std::fs::read(&wasm_path).unwrap();
+    let metadata = ComponentMetadata {
+        name: component_id.as_str().to_string(),
+        version: "1.0.0".to_string(),
+        author: "test".to_string(),
+        description: Some("Integration test component".to_string()),
+        max_memory_bytes: 10_000_000,
+        max_fuel: 1_000_000,
+        timeout_seconds: 30,
+    };
+    let capabilities = CapabilitySet::new();
+
+    // Spawn component
+    let spawn_result = manager.spawn_component(
+        component_id.clone(),
+        wasm_path.clone(),
+        metadata.clone(),
+        capabilities.clone()
+    ).await;
+
+    assert!(spawn_result.is_ok(), "Component spawn failed: {:?}", spawn_result);
+
+    // Verify component is registered after spawn
+    assert!(manager.is_component_registered(&component_id),
+            "Component should be registered after spawn");
+
+    // Restart component with same parameters
+    let restart_result = manager.restart_component(
+        &component_id,
+        wasm_bytes,
+        metadata,
+        capabilities
+    ).await;
+
+    assert!(restart_result.is_ok(), "Component restart failed: {:?}", restart_result);
+
+    // Verify component is still registered after restart
+    assert!(manager.is_component_registered(&component_id),
+            "Component should be registered after restart");
+
+    // Cleanup
+    let _ = manager.stop_component(&component_id).await;
+
+    println!("✅ Component restarted successfully: {}", component_id.as_str());
+}

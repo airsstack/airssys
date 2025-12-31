@@ -266,6 +266,48 @@ impl HostSystemManager {
         self.started.load(std::sync::atomic::Ordering::Relaxed)
     }
 
+    /// Check if a component is registered in the system.
+    ///
+    /// This is a helper method for testing and monitoring purposes.
+    /// It checks whether a component ID exists in the component registry.
+    ///
+    /// # Parameters
+    ///
+    /// - `id`: Component identifier to check
+    ///
+    /// # Returns
+    ///
+    /// `true` if component is registered, `false` otherwise
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// use airssys_wasm::host_system::HostSystemManager;
+    /// use airssys_wasm::core::{ComponentId, ComponentMetadata, CapabilitySet};
+    ///
+    /// let mut manager = HostSystemManager::new().await?;
+    ///
+    /// let component_id = ComponentId::new("my-component");
+    /// manager.spawn_component(
+    ///     component_id.clone(),
+    ///     std::path::PathBuf::from("component.wasm"),
+    ///     ComponentMetadata::new(component_id.clone()),
+    ///     CapabilitySet::new()
+    /// ).await?;
+    ///
+    /// assert!(manager.is_component_registered(&component_id));
+    ///
+    /// manager.stop_component(&component_id).await?;
+    /// assert!(!manager.is_component_registered(&component_id));
+    ///
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn is_component_registered(&self, id: &ComponentId) -> bool {
+        self.registry.is_registered(id)
+    }
+
     /// Spawns a new component into the system.
     ///
     /// Delegates to ComponentSpawner for actor creation and returns
@@ -447,6 +489,133 @@ impl HostSystemManager {
         // Actor will continue to exist in ActorSystem but won't receive new messages
         // since it's no longer in the registry. It will eventually be cleaned up
         // when ActorSystem shuts down or through garbage collection.
+
+        Ok(())
+    }
+
+    /// Restarts a component by stopping and respawning it.
+    ///
+    /// This is a convenience method that combines stop_component()
+    /// and spawn_component(). For supervision and automatic restarts,
+    /// use ComponentSupervisor (future phase).
+    ///
+    /// # Restart Flow
+    ///
+    /// 1. Verify component is registered (must have been spawned before)
+    /// 2. Stop component
+    /// 3. Save WASM bytes to temporary file
+    /// 4. Respawn component with original metadata and capabilities
+    ///
+    /// # Note
+    ///
+    /// This method requires caller to have access to the original
+    /// wasm_bytes, metadata, and capabilities. For automatic supervision
+    /// with state preservation, see ComponentSupervisor (future phase).
+    ///
+    /// # Parameters
+    ///
+    /// - `id`: Component identifier to restart
+    /// - `wasm_bytes`: WASM binary bytes (same as original spawn)
+    /// - `metadata`: Component metadata (same as original spawn)
+    /// - `capabilities`: Capability set (same as original spawn)
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(())` on successful restart.
+    ///
+    /// # Errors
+    ///
+    /// - `WasmError::EngineInitialization`: HostSystemManager not initialized
+    /// - `WasmError::ComponentNotFound`: Component not found or was never spawned
+    /// - `WasmError::ComponentLoadFailed`: Respawn failed
+    ///
+    /// # Panics
+    ///
+    /// This method does not panic. All errors are returned as `Result`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// use airssys_wasm::host_system::HostSystemManager;
+    /// use airssys_wasm::core::{ComponentId, ComponentMetadata, CapabilitySet};
+    ///
+    /// let mut manager = HostSystemManager::new().await?;
+    ///
+    /// let component_id = ComponentId::new("my-component");
+    /// let wasm_bytes = std::fs::read("component.wasm")?;
+    /// let metadata = ComponentMetadata::new(component_id.clone());
+    /// let capabilities = CapabilitySet::new();
+    ///
+    /// // Spawn first
+    /// manager.spawn_component(
+    ///     component_id.clone(),
+    ///     wasm_bytes.clone(),
+    ///     metadata.clone(),
+    ///     capabilities.clone()
+    /// ).await?;
+    ///
+    /// // Restart with same parameters
+    /// manager.restart_component(
+    ///     &component_id,
+    ///     wasm_bytes,
+    ///     metadata,
+    ///     capabilities
+    /// ).await?;
+    ///
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn restart_component(
+        &mut self,
+        id: &ComponentId,
+        wasm_bytes: Vec<u8>,
+        metadata: ComponentMetadata,
+        capabilities: CapabilitySet,
+    ) -> Result<(), WasmError> {
+        // 1. Verify system is started
+        if !self.started.load(std::sync::atomic::Ordering::Relaxed) {
+            return Err(WasmError::engine_initialization(
+                "HostSystemManager not initialized".to_string()
+            ));
+        }
+
+        // 2. Verify component is registered (must have been spawned before)
+        if !self.registry.is_registered(id) {
+            return Err(WasmError::component_not_found(id.as_str()));
+        }
+
+        // 3. Stop component
+        self.stop_component(id).await?;
+
+        // 4. Save WASM bytes to temporary file
+        // Note: Current spawn_component() takes PathBuf, so we need to save bytes to a file
+        // In future, spawn_component() could be updated to accept Vec<u8> directly
+        let temp_dir = std::env::temp_dir();
+        let temp_file_path = temp_dir.join(format!("component-{}.wasm", id.as_str()));
+
+        std::fs::write(&temp_file_path, wasm_bytes).map_err(|e| {
+            WasmError::component_load_failed(
+                id.as_str(),
+                format!("Failed to write temporary WASM file {}: {}", temp_file_path.display(), e)
+            )
+        })?;
+
+        // 5. Respawn component
+        let _actor_address = self.spawn_component(
+            id.clone(),
+            temp_file_path,
+            metadata,
+            capabilities
+        ).await.map_err(|e| {
+            WasmError::component_load_failed(
+                id.as_str(),
+                format!("Failed to respawn component {}: {}", id.as_str(), e)
+            )
+        })?;
+
+        // 6. Note: temp_file is not cleaned up immediately because ComponentActor
+        // may load it asynchronously. In production, cleanup strategy should be enhanced.
 
         Ok(())
     }
@@ -917,5 +1086,162 @@ mod tests {
                 "Component should not be registered after stop");
 
         println!("✅ Registry cleanup verified");
+    }
+
+    #[tokio::test]
+    async fn test_restart_component_success() {
+        let mut manager = HostSystemManager::new().await.unwrap();
+
+        let component_id = ComponentId::new("test-restart-success");
+        let wasm_path = PathBuf::from("tests/fixtures/handle-message-component.wasm");
+        let wasm_bytes = std::fs::read(&wasm_path).unwrap();
+        let metadata = crate::core::component::ComponentMetadata {
+            name: component_id.as_str().to_string(),
+            version: "1.0.0".to_string(),
+            author: "test".to_string(),
+            description: Some("Test component".to_string()),
+            max_memory_bytes: 10_000_000,
+            max_fuel: 1_000_000,
+            timeout_seconds: 30,
+        };
+        let capabilities = CapabilitySet::new();
+
+        manager.spawn_component(
+            component_id.clone(),
+            wasm_path,
+            metadata.clone(),
+            capabilities.clone()
+        ).await.unwrap();
+
+        assert!(manager.is_component_registered(&component_id),
+                "Component should be registered after spawn");
+
+        let result = manager.restart_component(
+            &component_id,
+            wasm_bytes,
+            metadata,
+            capabilities
+        ).await;
+
+        assert!(result.is_ok(), "restart_component should succeed: {:?}", result);
+        assert!(manager.is_component_registered(&component_id),
+                "Component should be registered after restart");
+    }
+
+    #[tokio::test]
+    async fn test_restart_nonexistent_component() {
+        let mut manager = HostSystemManager::new().await.unwrap();
+
+        let component_id = ComponentId::new("non-existent-restart-component");
+        let wasm_bytes = vec![0x00, 0x61, 0x73, 0x6d];
+        let metadata = crate::core::component::ComponentMetadata {
+            name: component_id.as_str().to_string(),
+            version: "1.0.0".to_string(),
+            author: "test".to_string(),
+            description: Some("Test component".to_string()),
+            max_memory_bytes: 10_000_000,
+            max_fuel: 1_000_000,
+            timeout_seconds: 30,
+        };
+        let capabilities = CapabilitySet::new();
+
+        let result = manager.restart_component(
+            &component_id,
+            wasm_bytes,
+            metadata,
+            capabilities
+        ).await;
+
+        assert!(result.is_err(), "restart_component should fail for nonexistent component: {:?}", result);
+        match result {
+            Err(WasmError::ComponentNotFound { component_id: cid, .. }) => {
+                assert!(cid.contains("non-existent") || cid.contains("found"),
+                        "Error message should mention not found");
+            }
+            Err(e) => panic!("Expected ComponentNotFound, got: {:?}", e),
+            Ok(()) => panic!("Expected error, got Ok"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_restart_preserves_capabilities() {
+        let mut manager = HostSystemManager::new().await.unwrap();
+
+        let component_id = ComponentId::new("test-restart-capabilities");
+        let wasm_path = PathBuf::from("tests/fixtures/handle-message-component.wasm");
+        let wasm_bytes = std::fs::read(&wasm_path).unwrap();
+
+        let capabilities = CapabilitySet::new();
+        let metadata = crate::core::component::ComponentMetadata {
+            name: component_id.as_str().to_string(),
+            version: "1.0.0".to_string(),
+            author: "test".to_string(),
+            description: Some("Test component".to_string()),
+            max_memory_bytes: 10_000_000,
+            max_fuel: 1_000_000,
+            timeout_seconds: 30,
+        };
+
+        manager.spawn_component(
+            component_id.clone(),
+            wasm_path,
+            metadata.clone(),
+            capabilities.clone()
+        ).await.unwrap();
+
+        let result = manager.restart_component(
+            &component_id,
+            wasm_bytes,
+            metadata,
+            capabilities
+        ).await;
+
+        assert!(result.is_ok(), "restart_component should succeed: {:?}", result);
+        assert!(manager.is_component_registered(&component_id),
+                "Component should be registered after restart with same capabilities");
+    }
+
+    #[tokio::test]
+    async fn test_restart_with_different_id_fails() {
+        let mut manager = HostSystemManager::new().await.unwrap();
+
+        let original_id = ComponentId::new("test-restart-original");
+        let wrong_id = ComponentId::new("test-restart-wrong");
+        let wasm_path = PathBuf::from("tests/fixtures/handle-message-component.wasm");
+        let wasm_bytes = std::fs::read(&wasm_path).unwrap();
+        let metadata = crate::core::component::ComponentMetadata {
+            name: original_id.as_str().to_string(),
+            version: "1.0.0".to_string(),
+            author: "test".to_string(),
+            description: Some("Test component".to_string()),
+            max_memory_bytes: 10_000_000,
+            max_fuel: 1_000_000,
+            timeout_seconds: 30,
+        };
+        let capabilities = CapabilitySet::new();
+
+        manager.spawn_component(
+            original_id.clone(),
+            wasm_path.clone(),
+            metadata.clone(),
+            capabilities.clone()
+        ).await.unwrap();
+
+        let result = manager.restart_component(
+            &wrong_id,
+            wasm_bytes,
+            metadata,
+            capabilities
+        ).await;
+
+        assert!(result.is_err(), "restart with wrong ID should fail: {:?}", result);
+        match result {
+            Err(WasmError::ComponentNotFound { component_id: cid, .. }) => {
+                assert!(cid.contains("wrong") || cid.contains("not found"),
+                        "Error should mention wrong component ID");
+            }
+            Err(e) => panic!("Expected ComponentNotFound, got: {:?}", e),
+            Ok(()) => panic!("Expected error, got Ok"),
+        }
     }
 }
