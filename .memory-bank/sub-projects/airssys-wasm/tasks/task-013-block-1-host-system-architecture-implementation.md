@@ -2,12 +2,12 @@
 
 **Task ID:** WASM-TASK-013
 **Created:** 2025-12-29
-**Status:** 🔄 IN PROGRESS - PHASE 3 COMPLETE
+**Status:** 🔄 IN PROGRESS - PHASE 4 IN PROGRESS (5/7 subtasks complete, 71% overall)
 **Priority:** 🔴 CRITICAL FOUNDATION
 **Layer:** 0 - Foundation Layer
 **Block:** ALL Block 5-11 development (006, 007, 008, 009, 010, 011+)
 **Estimated Effort:** 4-6 weeks
-**Progress:** Phase 4 in progress (4/7 subtasks complete, 57% overall)
+**Progress:** Phase 4 in progress (5/7 subtasks complete, 71% overall)
 ---
 
 ## Executive Summary
@@ -3638,6 +3638,83 @@ impl HostSystemManager {
 
 ---
 
+### Subtask 4.5 Completion Summary - 2025-12-31
+
+**Status:** ✅ COMPLETE - AUDIT APPROVED
+
+**Completed Subtask:**
+- ✅ Subtask 4.5: Implement restart_component() method
+
+**Implementation Summary:**
+- ✅ Added restart_component() method to HostSystemManager (line 565)
+- ✅ Added is_component_registered() public helper method (line 307)
+- ✅ Added 4 unit tests for restart_component() (lines 1088-1243)
+- ✅ Added 1 integration test for restart_component() (line 388)
+- ✅ Added Panics section to restart_component() documentation (line 532)
+
+**Verification Results:**
+- ✅ Build: Clean, no warnings
+- ✅ Unit Tests: 35/35 passing (including 4 new restart tests)
+- ✅ Integration Tests: 11/11 passing (including 1 new restart test)
+- ✅ Clippy: Zero warnings
+- ✅ Architecture: ADR-WASM-023 compliant, no forbidden imports
+- ✅ Standards: All PROJECTS_STANDARD.md and Rust guidelines met
+
+**Audit Results:**
+- ✅ Implementer report: VERIFIED
+- ✅ Rust code review: First review REJECTED (missing integration test), Second review APPROVED
+- ✅ Formal audit: APPROVED
+- ✅ Verifier checks: All VERIFIED (implementer, fix, final review)
+
+**Standards Compliance:**
+- ✅ ADR-WASM-023: Module Boundary Enforcement
+- ✅ ADR-WASM-022: Circular Dependency Remediation
+- ✅ KNOWLEDGE-WASM-036: Four-Module Architecture (restart as composition pattern)
+- ✅ PROJECTS_STANDARD.md: §§2.1, 4.3, 6.1, 6.2, 6.4
+- ✅ Rust Guidelines: M-DESIGN-FOR-AI, M-CANONICAL-DOCS, M-ERRORS-CANONICAL-STRUCTS, M-STATIC-VERIFICATION
+
+**Documentation Quality:**
+- ✅ Diátaxis compliant (Reference documentation type)
+- ✅ Technical language, no hyperbole
+- ✅ Comprehensive (all M-CANONICAL-DOCS sections present)
+- ✅ Canonical sections: Summary, Restart Flow, Note, Parameters, Returns, Errors, Panics, Examples
+
+**Test Quality:**
+- ✅ Unit Tests: 4/4 passing, REAL tests (not stubs)
+- ✅ Integration Tests: 1/1 passing, REAL test (uses actual WASM fixture)
+- ✅ Test Coverage: 82% real functionality vs 18% helper API calls
+
+**Code Quality:**
+- ✅ Implementation: restart_component() composes stop_component() + spawn_component()
+- ✅ Error handling: Comprehensive (EngineInitialization, ComponentNotFound, ComponentLoadFailed)
+- ✅ Vec<u8> → PathBuf workaround: Clearly documented with rationale
+- ✅ Safety: Safe async patterns, proper ownership handling
+
+**Architecture Impact:**
+- ✅ HostSystemManager coordinates (doesn't implement primitives)
+- ✅ Composition pattern follows KNOWLEDGE-WASM-036 (restart as stop + spawn)
+- ✅ Module boundaries respected (ADR-WASM-023 compliant)
+- ✅ No forbidden imports
+- ✅ One-way dependency flow maintained
+
+**Files Created:**
+- `src/host_system/manager.rs` - Added restart_component() method and tests
+
+**Files Modified:**
+- `tests/host_system-integration-tests.rs` - Added integration test
+
+**Key Achievement:**
+- ✅ Component restart functionality implemented via composition pattern
+- ✅ Capabilities and metadata preserved during restart (passed as parameters)
+- ✅ Comprehensive error handling for all failure modes
+- ✅ Full test coverage (unit + integration)
+- ✅ Documentation complete with all canonical sections
+
+**Next Steps:**
+- Subtask 4.6: Implement get_component_status() method
+
+---
+
 #### Subtask 4.4: Implement stop_component() method
 
 **Deliverables:**
@@ -6568,4 +6645,539 @@ cargo clippy --all-targets --all-features -- -D warnings
 - **No Forbidden Terms**: None of the hyperbolic terms from documentation-quality-standards.md
 
 ---
+
+
+## Implementation Plan - Subtask 4.5: Implement restart_component() Method
+
+### Context & References
+
+**ADR References:**
+- **ADR-WASM-023**: Module Boundary Enforcement - HostSystemManager must NOT implement low-level operations. Must coordinate by calling stop_component() and spawn_component(). No new dependencies on runtime/ or security/ beyond existing fields.
+- **ADR-WASM-018**: Three-Layer Architecture - Foundation layering for system coordination
+- **ADR-WASM-006**: Component Isolation and Sandboxing - Restart pattern respects actor isolation and sandboxing
+
+**Knowledge References:**
+- **KNOWLEDGE-WASM-036**: Four-Module Architecture - HostSystemManager coordinates lifecycle operations. Restart is a composition pattern (stop + spawn), not a primitive operation. Lines 66-71 specify lifecycle management ownership.
+- **KNOWLEDGE-WASM-001**: Component Framework Architecture - Component lifecycle patterns including restart semantics
+- **KNOWLEDGE-WASM-031**: Foundational Architecture - Each WASM component = Actor; restart recreates actor with same capabilities
+
+**System Patterns:**
+- Component Host Pattern from system-patterns.md - Lifecycle management through orchestration
+- Runtime Deployment Engine from tech-context.md - Restart as deployment pattern
+
+**PROJECTS_STANDARD.md Compliance:**
+- **§2.1** (3-Layer Imports): Code will follow std → external → internal import organization
+- **§6.1** (YAGNI Principles): Implement only restart via stop+spawn composition. No complex supervision, automatic state preservation, or restart strategies yet.
+- **§6.2** (Avoid `dyn` Patterns): Use concrete types (ComponentId, ComponentMetadata, CapabilitySet), prefer static dispatch
+- **§6.4** (Implementation Quality Gates): Zero warnings, comprehensive tests, clean builds
+
+**Rust Guidelines Applied:**
+- **M-DESIGN-FOR-AI**: Compose existing operations (stop_component, spawn_component) for predictable API
+- **M-MODULE-DOCS**: Method documentation with canonical sections (summary, examples, errors)
+- **M-ERRORS-CANONICAL-STRUCTS**: Use WasmError for errors
+- **M-STATIC-VERIFICATION**: All lints enabled, clippy used with `-D warnings`
+- **M-CANONICAL-DOCS**: Documentation includes summary, examples, errors, panics sections
+
+**Documentation Standards:**
+- **Diátaxis Type**: Reference documentation for restart_component() method
+- **Quality**: Technical language, no hyperbole per documentation-quality-standards.md
+- **Compliance**: Standards Compliance Checklist will be included
+
+### Module Architecture
+
+**Code will be placed in:** `src/host_system/manager.rs`
+
+**Module responsibilities (per KNOWLEDGE-WASM-036):**
+- Component lifecycle management - Spawn, start, stop, restart, supervise
+- HostSystemManager coordinates operations but does not implement low-level primitives
+
+**Allowed imports (per ADR-WASM-023):**
+- All imports already present in HostSystemManager from Subtask 4.1
+- No NEW imports to runtime/, security/, or other modules
+
+**Forbidden imports (per ADR-WASM-023):**
+- ❌ No new imports to runtime/, security/, actor/, messaging/ beyond existing fields
+- ✅ HostSystemManager must use existing methods (stop_component, spawn_component)
+
+**Verification command (for implementer to run):**
+```bash
+# Verify no new imports added
+git diff HEAD src/host_system/manager.rs | grep "^[+].*use crate::"
+# Expected: No new import lines (uses existing imports from Subtask 4.1)
+
+# Verify restart_component() method added
+grep -n "pub async fn restart_component" src/host_system/manager.rs
+# Expected: Line found
+```
+
+### Subtask 4.5.1: Add restart_component() method to HostSystemManager
+
+**Deliverables:**
+- Add `restart_component()` method to HostSystemManager impl block
+- Method signature:
+  ```rust
+  pub async fn restart_component(
+      &mut self,
+      id: &ComponentId,
+      wasm_bytes: Vec<u8>,
+      metadata: ComponentMetadata,
+      capabilities: CapabilitySet,
+  ) -> Result<(), WasmError>
+  ```
+- Implementation stops and respawns component
+- Documentation follows M-CANONICAL-DOCS format
+
+**Acceptance Criteria:**
+- Method compiles without errors
+- Method signature matches specification exactly
+- Implementation calls stop_component() then spawn_component()
+- Method preserves capabilities and metadata (passed as parameters)
+- Returns Result<(), WasmError> for error handling
+- Documentation includes canonical sections
+
+**ADR Constraints:**
+- **ADR-WASM-023**: HostSystemManager MUST NOT implement low-level operations directly. MUST call stop_component() and spawn_component().
+- **KNOWLEDGE-WASM-036**: Restart is a composition pattern, not a primitive operation.
+
+**PROJECTS_STANDARD.md Compliance:**
+- **§6.1 (YAGNI)**: Implement only restart via stop+spawn, no complex supervision or state preservation
+- **§6.2 (Avoid `dyn`)**: Use concrete types (id, wasm_bytes, metadata, capabilities)
+
+**Rust Guidelines:**
+- **M-DESIGN-FOR-AI**: Compose existing operations for predictable API
+- **M-CANONICAL-DOCS**: Method documentation includes summary, examples, errors, panics
+- **M-ERRORS-CANONICAL-STRUCTS**: Use WasmError for error propagation
+
+**Documentation:**
+- **Diátaxis type**: Reference documentation
+- **Quality**: Technical language, no marketing terms
+- **Canonical sections**: Summary, Examples, Errors, Panics
+
+**Implementation Details:**
+
+```rust
+// Add to HostSystemManager impl block in src/host_system/manager.rs
+
+    /// Restarts a component by stopping and respawning it.
+    ///
+    /// This is a convenience method that combines stop_component()
+    /// and spawn_component(). For supervision and automatic restarts,
+    /// use ComponentSupervisor (future phase).
+    ///
+    /// # Restart Flow
+    ///
+    /// 1. Stop component (if registered)
+    /// 2. Respawn component with original metadata and capabilities
+    ///
+    /// # Note
+    ///
+    /// This method requires the caller to have access to the original
+    /// wasm_bytes, metadata, and capabilities. For automatic supervision
+    /// with state preservation, see ComponentSupervisor (future phase).
+    ///
+    /// # Parameters
+    ///
+    /// - `id`: Component identifier to restart
+    /// - `wasm_bytes`: WASM binary (same as original spawn)
+    /// - `metadata`: Component metadata (same as original spawn)
+    /// - `capabilities`: Capability set (same as original spawn)
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(())` on successful restart.
+    ///
+    /// # Errors
+    ///
+    /// - `WasmError::ComponentNotFound`: Component not found or stop failed
+    /// - `WasmError::ComponentSpawnFailed`: Respawn failed
+    ///
+    /// # Panics
+    ///
+    /// This method does not panic. All errors are returned as `Result`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// use airssys_wasm::host_system::HostSystemManager;
+    /// use airssys_wasm::core::{ComponentId, ComponentMetadata, CapabilitySet};
+    ///
+    /// let mut manager = HostSystemManager::new().await?;
+    ///
+    /// let component_id = ComponentId::new("my-component");
+    /// let wasm_bytes = std::fs::read("component.wasm")?;
+    /// let metadata = ComponentMetadata::new(component_id.clone());
+    /// let capabilities = CapabilitySet::new();
+    ///
+    /// // Spawn first
+    /// manager.spawn_component(
+    ///     component_id.clone(),
+    ///     wasm_bytes.clone(),
+    ///     metadata.clone(),
+    ///     capabilities.clone()
+    /// ).await?;
+    ///
+    /// // Restart with same parameters
+    /// manager.restart_component(
+    ///     &component_id,
+    ///     wasm_bytes,
+    ///     metadata,
+    ///     capabilities
+    /// ).await?;
+    ///
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn restart_component(
+        &mut self,
+        id: &ComponentId,
+        wasm_bytes: Vec<u8>,
+        metadata: ComponentMetadata,
+        capabilities: CapabilitySet,
+    ) -> Result<(), WasmError> {
+        // Stop component if running
+        if self.registry.is_registered(id) {
+            self.stop_component(id).await?;
+        }
+
+        // Respawn component
+        self.spawn_component(id.clone(), wasm_bytes, metadata, capabilities).await?;
+
+        Ok(())
+    }
+```
+
+### Unit Testing Plan
+
+**Unit Test Deliverables:**
+- Add unit tests to `#[cfg(test)]` module in `src/host_system/manager.rs`
+- Test coverage for restart_component() method
+
+**Required Unit Tests:**
+
+1. **test_restart_component_success()**
+   - **Purpose**: Verify component can be stopped and respawned
+   - **Setup**: Create HostSystemManager, spawn component
+   - **Action**: Call restart_component() with same parameters
+   - **Assertion**: Component is registered after restart
+   - **Evidence**: `registry.is_registered(id)` returns `true` after restart
+
+2. **test_restart_nonexistent_component()**
+   - **Purpose**: Verify error handling when component doesn't exist
+   - **Setup**: Create HostSystemManager, do NOT spawn component
+   - **Action**: Call restart_component() with non-existent ID
+   - **Assertion**: Returns error (stop fails because component not registered)
+   - **Evidence**: Result is `Err(WasmError::ComponentNotFound(_))`
+
+3. **test_restart_preserves_capabilities()**
+   - **Purpose**: Verify capabilities are passed to respawned component
+   - **Setup**: Create HostSystemManager, spawn component with specific capabilities
+   - **Action**: Call restart_component() with same capabilities
+   - **Assertion**: Respawned component has same capabilities
+   - **Evidence**: Component registered with identical capabilities
+
+4. **test_restart_with_different_id_fails()**
+   - **Purpose**: Verify restart uses correct component ID
+   - **Setup**: Create HostSystemManager, spawn component with ID "component-a"
+   - **Action**: Call restart_component() with ID "component-b"
+   - **Assertion**: Returns error (component-b not found)
+   - **Evidence**: Result is `Err(WasmError::ComponentNotFound(_))`
+
+**Test Implementation Pattern:**
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::{ComponentId, ComponentMetadata, CapabilitySet};
+
+    #[tokio::test]
+    async fn test_restart_component_success() {
+        // Setup: Create manager and spawn component
+        let mut manager = HostSystemManager::new().await.unwrap();
+        let component_id = ComponentId::new("test-component");
+        let wasm_bytes = vec
+![0x00, 0x61, 0x73, 0x6d]; // Minimal WASM
+        let metadata = ComponentMetadata::new(component_id.clone());
+        let capabilities = CapabilitySet::new();
+
+        // Spawn component
+        manager.spawn_component(
+            component_id.clone(),
+            wasm_bytes.clone(),
+            metadata.clone(),
+            capabilities.clone()
+        ).await.unwrap();
+
+        // Action: Restart component
+        let result = manager.restart_component(
+            &component_id,
+            wasm_bytes,
+            metadata,
+            capabilities
+        ).await;
+
+        // Assertion: Restart succeeds
+        assert!(result.is_ok(), "restart_component should succeed");
+
+        // Verify: Component still registered after restart
+        assert!(manager.registry.is_registered(&component_id), 
+                "Component should be registered after restart");
+    }
+
+    #[tokio::test]
+    async fn test_restart_nonexistent_component() {
+        // Setup: Create manager (no component spawned)
+        let mut manager = HostSystemManager::new().await.unwrap();
+        let component_id = ComponentId::new("nonexistent-component");
+        let wasm_bytes = vec
+![0x00, 0x61, 0x73, 0x6d];
+        let metadata = ComponentMetadata::new(component_id.clone());
+        let capabilities = CapabilitySet::new();
+
+        // Action: Try to restart non-existent component
+        let result = manager.restart_component(
+            &component_id,
+            wasm_bytes,
+            metadata,
+            capabilities
+        ).await;
+
+        // Assertion: Returns error (stop fails because not registered)
+        assert!(result.is_err(), "restart_component should fail for nonexistent component");
+
+        // Verify: Error is ComponentNotFound
+        match result {
+            Err(WasmError::ComponentNotFound(_)) => { /* Expected */ }
+            Err(e) => panic!("Expected ComponentNotFound, got: {:?}", e),
+            Ok(()) => panic!("Expected error, got Ok"),
+        }
+    }
+
+    // Add more tests...
+}
+```
+
+### Integration Testing Plan
+
+**Integration Test Deliverables:**
+- Add integration test to `tests/host_system-integration-tests.rs`
+- Test full restart workflow with real WASM component
+
+**Required Integration Test:**
+
+1. **test_restart_component_integration()**
+   - **Purpose**: Verify end-to-end restart workflow
+   - **Setup**: 
+     - Create HostSystemManager
+     - Load real WASM component from fixtures (e.g., `hello_world.wasm`)
+     - Spawn component
+     - Send test message to verify component is working
+   - **Action**:
+     - Call restart_component() with same parameters
+     - Send test message to verify component is working after restart
+   - **Assertion**: Component handles messages before and after restart
+   - **Evidence**: Both message sends succeed
+
+**Integration Test Implementation Pattern:**
+
+```rust
+// Add to tests/host_system-integration-tests.rs
+
+#[tokio::test]
+async fn test_restart_component_integration() {
+    use airssys_wasm::host_system::HostSystemManager;
+    use airssys_wasm::core::{ComponentId, ComponentMetadata, CapabilitySet};
+    use std::path::PathBuf;
+
+    // Setup: Create manager
+    let mut manager = HostSystemManager::new().await.unwrap();
+
+    // Load WASM fixture
+    let fixture_path = PathBuf::from("tests/fixtures/hello_world.wasm");
+    let wasm_bytes = std::fs::read(&fixture_path)
+        .expect("Failed to load WASM fixture");
+
+    // Create component metadata
+    let component_id = ComponentId::new("restart-test-component");
+    let metadata = ComponentMetadata::new(component_id.clone());
+    let capabilities = CapabilitySet::new();
+
+    // Spawn component
+    manager.spawn_component(
+        component_id.clone(),
+        wasm_bytes.clone(),
+        metadata.clone(),
+        capabilities.clone()
+    ).await.expect("Failed to spawn component");
+
+    // Verify: Component is registered
+    assert!(manager.registry.is_registered(&component_id), 
+            "Component should be registered after spawn");
+
+    // Restart component with same parameters
+    manager.restart_component(
+        &component_id,
+        wasm_bytes,
+        metadata,
+        capabilities
+    ).await.expect("Failed to restart component");
+
+    // Verify: Component is still registered after restart
+    assert!(manager.registry.is_registered(&component_id), 
+            "Component should be registered after restart");
+
+    // Verify: Component can handle operations (send message, query status, etc.)
+    // [Add component-specific verification based on WASM capabilities]
+}
+```
+
+**Verification Command:**
+```bash
+# Run integration tests
+cargo test --test host_system-integration-tests test_restart
+# Expected: All restart integration tests pass
+
+# Run all integration tests (ensure no regressions)
+cargo test --test host_system-integration-tests
+# Expected: All tests pass
+```
+
+**Mandatory Testing Requirement Reminder:**
+Per AGENTS.md Section 8, this plan MUST include BOTH unit tests AND integration tests:
+- ✅ Unit tests: Included in Unit Testing Plan (in `#[cfg(test)]` block)
+- ✅ Integration tests: Included in Integration Testing Plan (in `tests/host_system-integration-tests.rs`)
+
+### Quality Standards
+
+**All subtasks must meet:**
+- ✅ Code builds without errors: `cargo build`
+- ✅ Zero compiler warnings: `cargo build` produces no warnings
+- ✅ Zero clippy warnings: `cargo clippy --all-targets --all-features -- -D warnings`
+- ✅ Follows PROJECTS_STANDARD.md §2.1-§6.4
+- ✅ Follows Rust guidelines (M-DESIGN-FOR-AI, M-MODULE-DOCS, M-CANONICAL-DOCS, etc.)
+- ✅ Unit tests in `#[cfg(test)]` blocks
+- ✅ Integration tests in `tests/` directory
+- ✅ All tests pass: `cargo test --lib` and `cargo test --test host_system-integration-tests`
+- ✅ Documentation follows quality standards (no hyperbole)
+- ✅ Standards Compliance Checklist in task file
+
+### Verification Checklist
+
+**For implementer to run after completing Subtask 4.5:**
+
+```bash
+# 1. Build
+cd /Users/hiraq/Projects/airsstack/airssys/airssys-wasm
+cargo build
+# Expected: No warnings, builds cleanly
+
+# 2. Unit Tests
+cargo test --lib restart_component
+# Expected: All restart unit tests pass
+
+# 3. Integration Tests
+cargo test --test host_system-integration-tests test_restart
+# Expected: All restart integration tests pass
+
+# 4. Run all tests (ensure no regressions)
+cargo test
+# Expected: All tests pass
+
+# 5. Clippy
+cargo clippy --all-targets --all-features -- -D warnings
+# Expected: Zero warnings
+
+# 6. Verify restart_component() method exists
+grep -n "pub async fn restart_component" src/host_system/manager.rs
+# Expected: Line found
+
+# 7. Verify method signature
+grep -A 10 "pub async fn restart_component" src/host_system/manager.rs | grep -E "id: &ComponentId|wasm_bytes: Vec<u8>|metadata: ComponentMetadata|capabilities: CapabilitySet"
+# Expected: All parameters present
+
+# 8. Verify no new imports (uses existing imports from Subtask 4.1)
+git diff HEAD src/host_system/manager.rs | grep "^[+].*use crate::"
+# Expected: No new import lines
+
+# 9. Verify method calls stop_component and spawn_component
+grep -A 20 "pub async fn restart_component" src/host_system/manager.rs | grep -E "stop_component|spawn_component"
+# Expected: Both methods called
+
+# 10. Verify documentation follows M-CANONICAL-DOCS
+grep -B 5 "pub async fn restart_component" src/host_system/manager.rs | grep "///"
+# Expected: Documentation with summary, examples, errors sections
+
+# 11. Verify unit tests exist
+grep -n "test_restart" src/host_system/manager.rs
+# Expected: Test functions found
+
+# 12. Verify integration tests exist
+grep -n "test_restart" tests/host_system-integration-tests.rs
+# Expected: Integration test functions found
+
+# 13. Verify all tests pass
+cargo test 2>&1 | tail -5
+# Expected: "test result: ok. <count> passed; 0 failed"
+
+# 14. Verify import organization (§2.1)
+# Check that manager.rs follows 3-layer import pattern
+head -30 src/host_system/manager.rs
+# Expected: std → external → internal order maintained
+```
+
+### Documentation Requirements
+
+**For documentation deliverables:**
+- **Follow Diátaxis guidelines**: Reference type for method documentation
+- **Quality standards**: No hyperbole, professional tone, technical precision per documentation-quality-standards.md
+- **Canonical sections**: Summary, Examples, Errors, Panics per M-CANONICAL-DOCS
+- **Task documentation**: Include Standards Compliance Checklist per task-documentation-standards.md
+
+**Documentation Quality Checklist:**
+- [ ] No hyperbolic terms (e.g., "seamlessly", "effortlessly", "powerful")
+- [ ] Technical precision (all claims measurable and factual)
+- [ ] Diátaxis compliance (Reference documentation type)
+- [ ] Canonical sections (Summary, Examples, Errors, Panics)
+
+### Standards Compliance Checklist
+
+```markdown
+## Standards Compliance Checklist - Subtask 4.5
+
+**PROJECTS_STANDARD.md Applied:**
+- [ ] **§2.1 3-Layer Import Organization** - Evidence: No new imports added to manager.rs (uses existing imports from Subtask 4.1)
+- [ ] **§6.1 YAGNI Principles** - Evidence: Implemented only restart via stop+spawn composition, no complex supervision or state preservation
+- [ ] **§6.2 Avoid `dyn` Patterns** - Evidence: Uses concrete types (ComponentId, ComponentMetadata, CapabilitySet, Vec<u8>)
+- [ ] **§6.4 Implementation Quality Gates** - Evidence: Build, test, clippy all pass with zero warnings
+
+**Rust Guidelines Applied:**
+- [ ] **M-DESIGN-FOR-AI** - Evidence: Idiomatic API composes existing operations (stop_component, spawn_component)
+- [ ] **M-MODULE-DOCS** - Evidence: Method documentation includes canonical sections (summary, examples, errors, panics)
+- [ ] **M-CANONICAL-DOCS** - Evidence: Documentation includes summary, examples, errors, panics sections
+- [ ] **M-ERRORS-CANONICAL-STRUCTS** - Evidence: Uses WasmError for error propagation
+- [ ] **M-STATIC-VERIFICATION** - Evidence: All lints enabled, clippy passes with -D warnings
+
+**Documentation Quality:**
+- [ ] **No hyperbolic terms** - Verified against forbidden list (no "seamlessly", "effortlessly", etc.)
+- [ ] **Technical precision** - All claims measurable and factual (component stops, component spawns, capabilities preserved)
+- [ ] **Diátaxis compliance** - Reference documentation type for method API
+- [ ] **Canonical sections** - Summary, Examples, Errors, Panics sections present in doc
+
+**ADR Compliance (ADR-WASM-023):**
+- [ ] **Module boundary enforcement** - Evidence: HostSystemManager coordinates, does NOT implement low-level operations directly
+- [ ] **No new imports** - Evidence: No new imports to runtime/, security/, actor/, messaging/ beyond existing fields
+- [ ] **Composition pattern** - Evidence: Calls stop_component() and spawn_component() (existing methods)
+
+**KNOWLEDGE Compliance (KNOWLEDGE-WASM-036):**
+- [ ] **Restart as composition** - Evidence: Implementation is stop + spawn, not a primitive operation
+- [ ] **Lifecycle management** - Evidence: Method in host_system/ which owns lifecycle coordination
+- [ ] **Actor recreation** - Evidence: Component stopped (actor terminated) and respawned (new actor)
+
+**Testing Requirements (AGENTS.md Section 8):**
+- [ ] **Unit tests exist** - Evidence: test_restart_* functions in `#[cfg(test)]` module
+- [ ] **Integration tests exist** - Evidence: test_restart_component_integration() in tests/host_system-integration-tests.rs
+- [ ] **Tests are REAL** - Evidence: Tests create actual HostSystemManager, call restart_component(), verify behavior
+- [ ] **No stub tests** - Evidence: Tests verify actual functionality (not just API validation)
+```
 
