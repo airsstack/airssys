@@ -437,6 +437,59 @@ impl CorrelationTracker {
     pub fn timeout_count(&self) -> u64 {
         self.timeout_count.load(Ordering::Relaxed)
     }
+
+    /// Remove all pending requests for a specific component.
+    ///
+    /// When a component is stopped, all its pending requests must be cleaned up
+    /// to prevent memory leaks and timeout errors. This method removes all
+    /// pending requests where component is either the sender or the receiver.
+    ///
+    /// # Arguments
+    ///
+    /// * `component_id` - Component ID to clean up requests for
+    ///
+    /// # Performance
+    ///
+    /// O(N) where N is the number of pending requests. Each removal is ~100ns.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// # use airssys_wasm::host_system::CorrelationTracker;
+    /// # use airssys_wasm::core::ComponentId;
+    ///
+    /// // Component is being stopped
+    /// tracker.cleanup_pending_for_component(&component_id).await;
+    ///
+    /// // All requests involving this component are removed
+    /// ```
+    pub async fn cleanup_pending_for_component(&self, component_id: &crate::core::component::ComponentId) {
+        use crate::core::messaging::CorrelationId;
+
+        // Collect correlation IDs for requests involving this component
+        let to_remove: Vec<CorrelationId> = self
+            .pending
+            .iter()
+            .filter(|entry| {
+                let req = entry.value();
+                // Remove if component is sender OR receiver
+                req.from == *component_id || req.to == *component_id
+            })
+            .map(|entry| *entry.key())
+            .collect();
+
+        // Remove each pending request and cancel its timeout
+        for correlation_id in to_remove {
+            if let Some(pending) = self.remove_pending(&correlation_id) {
+                // Cancel the timeout task to prevent it from firing
+                self.timeout_handler.cancel_timeout(&correlation_id);
+
+                // Drop the response channel sender, which will send a cancellation
+                // error to any waiting receiver
+                drop(pending.response_tx);
+            }
+        }
+    }
 }
 
 impl Default for CorrelationTracker {
