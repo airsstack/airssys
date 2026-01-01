@@ -260,6 +260,83 @@ pub enum InstallationSource {
     },
 }
 
+/// Component status represents current state of a component in system.
+///
+/// This enum provides a simple way to query component health and operational state
+/// through `HostSystemManager::get_component_status()`.
+///
+/// # Status States
+///
+/// - `Registered`: Component is registered in system but not yet running
+/// - `Running`: Component is running and processing messages normally
+/// - `Stopped`: Component has been stopped and is not processing messages
+/// - `Error`: Component encountered an error with details in String
+///
+/// # Lifecycle Flow
+///
+/// ```text
+/// Registered → Running → Stopped
+///     ↑              ↓
+///     └───── Error ───┘
+/// ```
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// use airssys_wasm::core::component::{ComponentId, ComponentStatus};
+/// use airssys_wasm::host_system::HostSystemManager;
+///
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// let manager = HostSystemManager::new().await?;
+/// let component_id = ComponentId::new("my-component");
+///
+/// let status = manager.get_component_status(&component_id).await?;
+/// match status {
+///     ComponentStatus::Running => println!("Component is running"),
+///     ComponentStatus::Stopped => println!("Component is stopped"),
+///     ComponentStatus::Error(msg) => println!("Component error: {}", msg),
+///     ComponentStatus::Registered => println!("Component is registered only"),
+/// }
+/// # Ok(())
+/// # }
+/// ```
+#[derive(Debug, Clone, PartialEq)]
+pub enum ComponentStatus {
+    /// Component is registered in system
+    ///
+    /// This state indicates that component has been registered via
+    /// `HostSystemManager::spawn_component()` but has not yet
+    /// started processing messages.
+    Registered,
+
+    /// Component is running and processing messages
+    ///
+    /// This is the normal operational state for a component.
+    /// The component actor is active and receiving messages from broker.
+    Running,
+
+    /// Component has been stopped
+    ///
+    /// The component was explicitly stopped via
+    /// `HostSystemManager::stop_component()` and is no longer
+    /// processing messages.
+    Stopped,
+
+    /// Component encountered an error
+    ///
+    /// The component encountered an error during execution.
+    /// The String contains error details for diagnosis.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// if let ComponentStatus::Error(msg) = status {
+    ///     eprintln!("Component error: {}", msg);
+    /// }
+    /// ```
+    Error(String),
+}
+
 /// Component lifecycle state.
 ///
 /// Simple 2-state model per ADR-WASM-003:
@@ -420,7 +497,15 @@ pub trait Component {
     fn metadata(&self) -> &ComponentMetadata;
 }
 
-#[allow(clippy::expect_used, clippy::unwrap_used, clippy::panic, clippy::indexing_slicing, clippy::too_many_arguments, clippy::type_complexity, reason = "test code")]
+#[allow(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    reason = "test code"
+)]
 #[cfg(test)]
 mod tests {
     use super::*;

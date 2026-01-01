@@ -28,6 +28,7 @@ use crate::core::WasmError;
 use crate::core::component_message::ComponentMessage;
 use crate::core::component::ComponentId;
 use crate::core::component::ComponentMetadata;
+use crate::core::component::ComponentStatus;
 use crate::core::capability::CapabilitySet;
 use crate::host_system::correlation_tracker::CorrelationTracker;
 use crate::host_system::timeout_handler::TimeoutHandler;
@@ -618,6 +619,102 @@ impl HostSystemManager {
         // may load it asynchronously. In production, cleanup strategy should be enhanced.
 
         Ok(())
+    }
+
+    /// Queries current status of a component.
+    ///
+    /// This method provides a read-only query of component state without modifying
+    /// component. It checks if the component is registered and returns
+    /// appropriate status.
+    ///
+    /// # Status Logic
+    ///
+    /// Currently returns simplified status:
+    /// - `ComponentStatus::Running`: Component is registered and active
+    ///
+    /// **Note:** Actual state tracking (Registered → Running → Stopped transitions)
+    /// will be enhanced in Phase 5 when component state machine is implemented.
+    /// For now, all registered components return `Running` status.
+    ///
+    /// # Query Flow
+    ///
+    /// 1. Verify system is started
+    /// 2. Check if component is registered via `ComponentRegistry::is_registered()`
+    /// 3. Query actor address via `ComponentRegistry::lookup()`
+    /// 4. Return appropriate status based on registration
+    ///
+    /// # Performance
+    ///
+    /// Target: <1ms (O(1) registry lookup)
+    ///
+    /// # Parameters
+    ///
+    /// - `id`: Unique component identifier to query
+    ///
+    /// # Returns
+    ///
+    /// Returns `ComponentStatus` indicating current state of component.
+    ///
+    /// # Errors
+    ///
+    /// - `WasmError::EngineInitialization`: System not initialized (check `started()` first)
+    /// - `WasmError::ComponentNotFound`: Component ID not registered in system
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// use airssys_wasm::host_system::HostSystemManager;
+    /// use airssys_wasm::core::{ComponentId, ComponentStatus};
+    ///
+    /// // Initialize system and spawn component
+    /// let mut manager = HostSystemManager::new().await?;
+    /// let component_id = ComponentId::new("my-component");
+    /// let wasm_path = std::path::PathBuf::from("component.wasm");
+    /// let metadata = ComponentMetadata::new(component_id.clone());
+    /// let capabilities = CapabilitySet::new();
+    ///
+    /// manager.spawn_component(
+    ///     component_id.clone(),
+    ///     wasm_path,
+    ///     metadata,
+    ///     capabilities
+    /// ).await?;
+    ///
+    /// // Query component status
+    /// let status = manager.get_component_status(&component_id).await?;
+    /// assert_eq!(status, ComponentStatus::Running);
+    /// println!("Component status: {:?}", status);
+    ///
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// # Thread Safety
+    ///
+    /// This method is thread-safe and can be called concurrently from multiple threads.
+    /// The HostSystemManager and its ComponentRegistry use interior mutability
+    /// (Arc/RwLock) for safe concurrent access.
+    pub async fn get_component_status(&self, id: &ComponentId) -> Result<ComponentStatus, WasmError> {
+        // 1. Verify system is started
+        if !self.started.load(std::sync::atomic::Ordering::Relaxed) {
+            return Err(WasmError::engine_initialization(
+                "HostSystemManager not initialized".to_string()
+            ));
+        }
+
+        // 2. Check if component is registered
+        if !self.registry.is_registered(id) {
+            return Err(WasmError::component_not_found(id.as_str()));
+        }
+
+        // 3. Query actor address (verify component is accessible)
+        let _actor_address = self.registry.lookup(id)?;
+
+        // 4. Return status (simplified for Phase 4)
+        // Note: For now, return Running for all registered components
+        // TODO: Phase 5 - Implement actual state tracking (Registered → Running → Stopped)
+        Ok(ComponentStatus::Running)
     }
 }
 

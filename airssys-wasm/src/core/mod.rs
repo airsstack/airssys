@@ -195,7 +195,7 @@ pub use capability::{
 };
 pub use component::{
     Component, ComponentConfig, ComponentId, ComponentInput, ComponentMetadata, ComponentOutput,
-    ComponentState, InstallationSource,
+    ComponentState, ComponentStatus, InstallationSource,
 };
 pub use config::{
     CpuConfig, MemoryConfig, ResourceConfig, ResourceLimits, ResourceLimitsBuilder,
