@@ -32,10 +32,31 @@ You MUST read and understand the following files before proceeding:
 1. Read the prompt template at: `$PROMPT`
 2. Read the detailed conventional commits specification at: `$INSTRUCTION`
 
+## ⚠️ CRITICAL: AUTOMATIC COMMIT APPROVAL
+
+**WHEN THIS COMMAND IS USED, IT IS THE EXPLICIT APPROVAL TO COMMIT.**
+
+✅ **YOU MUST:**
+- Analyze the git state
+- Generate a conventional commit message
+- Execute `git add` for relevant files
+- Execute `git commit` with the generated message
+- Show the result to the user
+
+❌ **YOU MUST NOT:**
+- Ask the user for approval (the command itself IS the approval)
+- Present the changes and ask "should I commit?"
+- Stop or pause after analyzing
+- Show "weird" responses - just commit and show the result
+
+**The workflow is:** Analyze → Generate → Commit → Show Result
+
+**NO CONFIRMATION STEPS. NO QUESTIONS. JUST COMMIT.**
+
 # Workflow Steps
 
 1. **Analyze Git State**:
-   - **Unstaged changes**: Identify modified files and suggest `git add` commands
+   - **Unstaged changes**: Identify modified files and add them
    - **Staged changes**: Focus on these for the commit message
    - **Untracked files**: Identify files that should be committed (exclude build artifacts, IDE configs)
    - **No changes**: Inform the user there is nothing to commit
@@ -60,10 +81,10 @@ You MUST read and understand the following files before proceeding:
    - Body (if needed): Wrap at 72 chars, explain what and why
    - Footer (if needed): Reference issues, document breaking changes
 
-5. **Execute Commands**:
+5. **Execute Commands** (AUTOMATICALLY - NO APPROVAL NEEDED):
    - Add relevant files using `git add` commands
    - Execute `git commit` with the generated message
-   - Show the commit result to the user
+   - Show the commit result to the user (simple and clean)
 
 # Examples
 
@@ -96,6 +117,21 @@ execution, causing memory to accumulate over time.
 Closes #42"
 ```
 
+# Response Format
+
+After executing the commit, show the result in this simple format:
+
+```
+✅ Commit created: <commit-hash>
+
+<commit-message-summary>
+
+Files changed: <count>
+(+<added>, -<deleted>)
+```
+
+**Do not add extra text, explanations, or ask questions. Just show the result.**
+
 # Execution Notes
 
 - Generate appropriate `git add` and `git commit` commands based on the actual changes (not the examples above)
@@ -103,3 +139,4 @@ Closes #42"
 - Then execute the `git commit` command with the generated message
 - Verify the commit succeeded by checking the output
 - If commit fails, report the error to the user
+- **NEVER ASK FOR APPROVAL - THE COMMAND IS THE APPROVAL**
