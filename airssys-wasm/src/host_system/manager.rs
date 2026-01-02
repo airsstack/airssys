@@ -1612,4 +1612,179 @@ mod tests {
         let result = manager.shutdown().await;
         assert!(result.is_ok(), "Shutdown should be error-tolerant");
     }
+
+    // ==================== get_component_status() Tests ====================
+
+    #[tokio::test]
+    async fn test_get_component_status_success() {
+        // Test: get_component_status() returns Running for registered component
+        let mut manager = HostSystemManager::new().await.unwrap();
+
+        let component_id = ComponentId::new("test-component-status");
+        let wasm_path = PathBuf::from("tests/fixtures/handle-message-component.wasm");
+        let metadata = crate::core::component::ComponentMetadata {
+            name: component_id.as_str().to_string(),
+            version: "1.0.0".to_string(),
+            author: "test".to_string(),
+            description: Some("Test component".to_string()),
+            max_memory_bytes: 10_000_000,
+            max_fuel: 1_000_000,
+            timeout_seconds: 30,
+        };
+        let capabilities = CapabilitySet::new();
+
+        // Spawn component first
+        manager.spawn_component(
+            component_id.clone(),
+            wasm_path,
+            metadata,
+            capabilities
+        ).await.unwrap();
+
+        // Query status
+        let result = manager.get_component_status(&component_id).await;
+
+        assert!(result.is_ok(), "Status query should succeed");
+        let status = result.unwrap();
+        assert_eq!(status, ComponentStatus::Running, "Component should be running");
+
+        println!("✅ Status query successful: {:?}", status);
+    }
+
+    #[tokio::test]
+    async fn test_get_component_status_not_found() {
+        // Test: get_component_status() returns ComponentNotFound for nonexistent component
+        let manager = HostSystemManager::new().await.unwrap();
+
+        let component_id = ComponentId::new("nonexistent-component");
+
+        let result = manager.get_component_status(&component_id).await;
+
+        assert!(result.is_err(), "Status query should fail for nonexistent component");
+        match result {
+            Err(WasmError::ComponentNotFound { component_id: cid, .. }) => {
+                assert!(cid.contains("nonexistent") || cid.contains("not found"),
+                    "Error message should mention component not found");
+            }
+            Err(e) => panic!("Expected ComponentNotFound, got: {:?}", e),
+            Ok(_) => panic!("Expected error, got Ok"),
+        }
+
+        println!("✅ ComponentNotFound error handled correctly");
+    }
+
+    #[tokio::test]
+    async fn test_get_component_status_not_initialized() {
+        // Test: get_component_status() fails when system not started
+        let manager = HostSystemManager::new().await.unwrap();
+
+        // Manually set started flag to false (simulate shutdown)
+        manager.started.store(false, std::sync::atomic::Ordering::Relaxed);
+
+        let component_id = ComponentId::new("test-component");
+
+        let result = manager.get_component_status(&component_id).await;
+
+        assert!(result.is_err(), "Status query should fail when not initialized");
+        match result {
+            Err(WasmError::EngineInitialization { reason, .. }) => {
+                assert!(reason.contains("not initialized") || reason.contains("initialized"),
+                    "Error message should mention initialization");
+            }
+            Err(e) => panic!("Expected EngineInitialization, got: {:?}", e),
+            Ok(_) => panic!("Expected error, got Ok"),
+        }
+
+        println!("✅ Not initialized error handled correctly");
+    }
+
+    #[tokio::test]
+    async fn test_get_component_status_multiple_components() {
+        // Test: get_component_status() works with multiple registered components
+        let mut manager = HostSystemManager::new().await.unwrap();
+
+        let wasm_path = PathBuf::from("tests/fixtures/handle-message-component.wasm");
+        let metadata = crate::core::component::ComponentMetadata {
+            name: "test".to_string(),
+            version: "1.0.0".to_string(),
+            author: "test".to_string(),
+            description: Some("Test component".to_string()),
+            max_memory_bytes: 10_000_000,
+            max_fuel: 1_000_000,
+            timeout_seconds: 30,
+        };
+        let capabilities = CapabilitySet::new();
+
+        // Spawn 3 components
+        let component_ids = vec![
+            ComponentId::new("comp1"),
+            ComponentId::new("comp2"),
+            ComponentId::new("comp3"),
+        ];
+
+        for id in &component_ids {
+            manager.spawn_component(
+                id.clone(),
+                wasm_path.clone(),
+                metadata.clone(),
+                capabilities.clone()
+            ).await.unwrap();
+        }
+
+        // Query status for each component
+        for id in &component_ids {
+            let result = manager.get_component_status(id).await;
+            assert!(result.is_ok(), "Status query should succeed for {}", id.as_str());
+            let status = result.unwrap();
+            assert_eq!(status, ComponentStatus::Running,
+                "Component {} should be running", id.as_str());
+        }
+
+        println!("✅ All {} components report Running status", component_ids.len());
+    }
+
+    #[tokio::test]
+    async fn test_get_component_status_actor_address_lookup() {
+        // Test: get_component_status() queries actor address from registry
+        let mut manager = HostSystemManager::new().await.unwrap();
+
+        let component_id = ComponentId::new("test-component-actor-lookup");
+        let wasm_path = PathBuf::from("tests/fixtures/handle-message-component.wasm");
+        let metadata = crate::core::component::ComponentMetadata {
+            name: component_id.as_str().to_string(),
+            version: "1.0.0".to_string(),
+            author: "test".to_string(),
+            description: Some("Test component".to_string()),
+            max_memory_bytes: 10_000_000,
+            max_fuel: 1_000_000,
+            timeout_seconds: 30,
+        };
+        let capabilities = CapabilitySet::new();
+
+        // Spawn component
+        manager.spawn_component(
+            component_id.clone(),
+            wasm_path,
+            metadata,
+            capabilities
+        ).await.unwrap();
+
+        // Verify component is in registry
+        assert!(manager.registry.is_registered(&component_id),
+            "Component should be registered");
+
+        // Query status (which does actor address lookup)
+        let result = manager.get_component_status(&component_id).await;
+
+        assert!(result.is_ok(), "Status query should succeed");
+        let status = result.unwrap();
+        assert_eq!(status, ComponentStatus::Running,
+            "Status should be Running (actor address lookup succeeded)");
+
+        // Verify actor address is accessible (implicit via status query)
+        let actor_addr = manager.registry.lookup(&component_id);
+        assert!(actor_addr.is_ok(), "Actor address should be accessible");
+
+        println!("✅ Actor address lookup verified via status query");
+    }
 }
