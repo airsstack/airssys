@@ -29,29 +29,28 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use airssys_wasm::actor::{UnifiedRouter, ComponentRegistry};
+//! use airssys_wasm::actor::UnifiedRouter;
 //! use airssys_rt::broker::InMemoryMessageBroker;
 //! use std::sync::Arc;
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), WasmError> {
 //!     let broker = Arc::new(InMemoryMessageBroker::new());
-//!     let registry = ComponentRegistry::new();
-//!     
-//!     let router = UnifiedRouter::new(broker, registry);
-//!     
+//!
+//!     let router = UnifiedRouter::new(broker);
+//!
 //!     // Start routing
 //!     router.start().await?;
-//!     
+//!
 //!     // Route messages (automatic via ActorSystemSubscriber)
-//!     
+//!
 //!     // Query statistics
 //!     let stats = router.stats().await;
 //!     println!("Total messages: {}", stats.total_messages);
-//!     
+//!
 //!     // Stop routing
 //!     router.stop().await?;
-//!     
+//!
 //!     Ok(())
 //! }
 //! ```
@@ -70,7 +69,7 @@ use std::time::Instant;
 use tokio::sync::{Mutex, RwLock};
 
 // Layer 3: Internal module imports
-use crate::actor::component::{ComponentMessage, ComponentRegistry};
+use crate::actor::component::ComponentMessage;
 use crate::actor::message::{ActorSystemSubscriber, SubscriberManager};
 use crate::core::{ComponentId, WasmError};
 use airssys_rt::broker::MessageBroker;
@@ -98,14 +97,13 @@ use airssys_rt::broker::MessageBroker;
 /// # Examples
 ///
 /// ```rust,ignore
-/// use airssys_wasm::actor::{UnifiedRouter, ComponentRegistry};
+/// use airssys_wasm::actor::UnifiedRouter;
 /// use airssys_rt::broker::InMemoryMessageBroker;
 /// use std::sync::Arc;
 ///
 /// let broker = Arc::new(InMemoryMessageBroker::new());
-/// let registry = ComponentRegistry::new();
 ///
-/// let router = UnifiedRouter::new(broker, registry);
+/// let router = UnifiedRouter::new(broker);
 ///
 /// // Start routing
 /// router.start().await?;
@@ -135,19 +133,17 @@ impl<B: MessageBroker<ComponentMessage> + Send + Sync + 'static> UnifiedRouter<B
     /// # Arguments
     ///
     /// * `broker` - MessageBroker for pub-sub
-    /// * `registry` - ComponentRegistry for address lookup
     ///
     /// # Examples
     ///
     /// ```rust,ignore
-    /// let router = UnifiedRouter::new(broker, registry);
+    /// let router = UnifiedRouter::new(broker);
     /// ```
-    pub fn new(broker: Arc<B>, registry: ComponentRegistry) -> Self {
+    pub fn new(broker: Arc<B>) -> Self {
         let subscriber_manager = Arc::new(SubscriberManager::new());
 
         let actor_subscriber = Arc::new(Mutex::new(ActorSystemSubscriber::new(
             broker,
-            registry,
             Arc::clone(&subscriber_manager),
         )));
 
@@ -539,9 +535,8 @@ mod tests {
     #[tokio::test]
     async fn test_unified_router_creation() {
         let broker = Arc::new(InMemoryMessageBroker::new());
-        let registry = ComponentRegistry::new();
 
-        let router = UnifiedRouter::new(broker, registry);
+        let router = UnifiedRouter::new(broker);
 
         assert!(!router.is_running().await);
     }
@@ -549,9 +544,8 @@ mod tests {
     #[tokio::test]
     async fn test_unified_router_start_stop() {
         let broker = Arc::new(InMemoryMessageBroker::new());
-        let registry = ComponentRegistry::new();
 
-        let router = UnifiedRouter::new(broker, registry);
+        let router = UnifiedRouter::new(broker);
 
         // Start
         let result = router.start().await;
@@ -567,9 +561,8 @@ mod tests {
     #[tokio::test]
     async fn test_unified_router_stats() {
         let broker = Arc::new(InMemoryMessageBroker::new());
-        let registry = ComponentRegistry::new();
 
-        let router = UnifiedRouter::new(broker, registry);
+        let router = UnifiedRouter::new(broker);
 
         let stats = router.stats().await;
         assert_eq!(stats.total_messages, 0);
@@ -580,9 +573,8 @@ mod tests {
     #[tokio::test]
     async fn test_unified_router_route() {
         let broker = Arc::new(InMemoryMessageBroker::new());
-        let registry = ComponentRegistry::new();
 
-        let router = UnifiedRouter::new(broker, registry);
+        let router = UnifiedRouter::new(broker);
 
         let source = ComponentId::new("source");
         let target = ComponentId::new("target");
@@ -603,9 +595,8 @@ mod tests {
     #[tokio::test]
     async fn test_unified_router_subscriber_manager() {
         let broker = Arc::new(InMemoryMessageBroker::new());
-        let registry = ComponentRegistry::new();
 
-        let router = UnifiedRouter::new(broker, registry);
+        let router = UnifiedRouter::new(broker);
 
         let manager = router.subscriber_manager();
         assert_eq!(manager.subscription_count().await, 0);

@@ -66,7 +66,7 @@ use airssys_rt::message::MessageEnvelope;
 ///
 /// let registry = ComponentRegistry::new();
 /// let broker = Arc::new(InMemoryMessageBroker::new());
-/// let router = MessageRouter::new(registry, broker);
+/// let router = MessageRouter::new(registry.clone(), broker);
 ///
 /// // Route message to component
 /// let target = ComponentId::new("target-component");
@@ -92,7 +92,7 @@ impl<B: MessageBroker<ComponentMessage>> MessageRouter<B> {
     /// ```rust,ignore
     /// let registry = ComponentRegistry::new();
     /// let broker = Arc::new(InMemoryMessageBroker::new());
-    /// let router = MessageRouter::new(registry, broker);
+    /// let router = MessageRouter::new(registry.clone(), broker);
     /// ```
     pub fn new(registry: ComponentRegistry, broker: Arc<B>) -> Self {
         Self { registry, broker }
@@ -264,7 +264,7 @@ mod tests {
     async fn test_send_message_component_not_found() {
         let registry = ComponentRegistry::new();
         let broker = Arc::new(InMemoryMessageBroker::new());
-        let router = MessageRouter::new(registry, broker);
+        let router = MessageRouter::new(registry.clone(), broker);
 
         let target = ComponentId::new("nonexistent");
         let message = ComponentMessage::HealthCheck;
@@ -282,7 +282,7 @@ mod tests {
         registry.register(component_id.clone(), actor_addr).unwrap();
 
         let broker = Arc::new(InMemoryMessageBroker::new());
-        let router = MessageRouter::new(registry, broker);
+        let router = MessageRouter::new(registry.clone(), broker);
 
         assert!(router.component_exists(&component_id));
 
@@ -294,7 +294,7 @@ mod tests {
     async fn test_component_count() {
         let registry = ComponentRegistry::new();
         let broker = Arc::new(InMemoryMessageBroker::new());
-        let router = MessageRouter::new(registry.clone(), broker);
+        let router = MessageRouter::new(registry.clone(), Arc::clone(&broker));
 
         assert_eq!(router.component_count().unwrap(), 0);
 
@@ -315,7 +315,7 @@ mod tests {
             .unwrap();
 
         let broker = Arc::new(InMemoryMessageBroker::new());
-        let router = MessageRouter::new(registry, broker);
+        let router = MessageRouter::new(registry.clone(), broker);
 
         let targets = vec![comp1.clone(), ComponentId::new("nonexistent")];
 

@@ -279,7 +279,6 @@ impl MessagingSubscriptionService {
     ) -> Self {
         let subscriber = ActorSystemSubscriber::new(
             Arc::clone(&broker),
-            registry.clone(),
             Arc::clone(&subscriber_manager),
         );
 

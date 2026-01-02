@@ -44,30 +44,29 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use airssys_wasm::actor::{ActorSystemSubscriber, ComponentRegistry};
+//! use airssys_wasm::actor::ActorSystemSubscriber;
 //! use airssys_rt::broker::InMemoryMessageBroker;
 //! use std::sync::Arc;
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), WasmError> {
 //!     let broker = Arc::new(InMemoryMessageBroker::new());
-//!     let registry = ComponentRegistry::new();
 //!     let subscriber_manager = Arc::new(SubscriberManager::new());
-//!     
-//!     let mut subscriber = ActorSystemSubscriber::new(broker, registry, subscriber_manager);
-//!     
+//!
+//!     let mut subscriber = ActorSystemSubscriber::new(broker, subscriber_manager);
+//!
 //!     // Register component mailbox for delivery
 //!     let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
 //!     subscriber.register_mailbox(ComponentId::new("my-component"), tx).await;
-//!     
+//!
 //!     // Start subscribing and routing
 //!     subscriber.start().await?;
-//!     
+//!
 //!     // Messages automatically routed to components via registered mailbox
-//!     
+//!
 //!     // Stop routing
 //!     subscriber.stop().await?;
-//!     
+//!
 //!     Ok(())
 //! }
 //! ```
@@ -91,7 +90,6 @@ use tokio::sync::{Mutex, RwLock};
 use tokio::task::JoinHandle;
 
 // Layer 3: Internal module imports
-use crate::actor::component::ComponentRegistry;
 use crate::actor::message::SubscriberManager;
 use crate::core::ComponentMessage;
 use crate::core::{ComponentId, WasmError};
@@ -129,7 +127,7 @@ use airssys_rt::message::MessageEnvelope;
 ///
 /// # Lifecycle
 ///
-/// 1. `new()` - Create subscriber with broker, registry, and empty mailbox_senders
+/// 1. `new()` - Create subscriber with broker and empty mailbox_senders
 /// 2. `register_mailbox()` - Register MailboxSender for component (called by spawner)
 /// 3. `start()` - Subscribe to broker, spawn routing task
 /// 4. ... messages routed automatically via mailbox_senders ...
@@ -139,17 +137,15 @@ use airssys_rt::message::MessageEnvelope;
 /// # Examples
 ///
 /// ```rust,ignore
-/// use airssys_wasm::actor::{ActorSystemSubscriber, ComponentRegistry};
+/// use airssys_wasm::actor::ActorSystemSubscriber;
 /// use airssys_rt::broker::InMemoryMessageBroker;
 /// use std::sync::Arc;
 ///
 /// let broker = Arc::new(InMemoryMessageBroker::new());
-/// let registry = ComponentRegistry::new();
 /// let subscriber_manager = Arc::new(SubscriberManager::new());
 ///
 /// let mut subscriber = ActorSystemSubscriber::new(
 ///     broker,
-///     registry,
 ///     subscriber_manager,
 /// );
 ///
@@ -168,9 +164,6 @@ use airssys_rt::message::MessageEnvelope;
 pub struct ActorSystemSubscriber<B: MessageBroker<ComponentMessage>> {
     /// MessageBroker for receiving messages
     broker: Arc<B>,
-    /// ComponentRegistry for looking up component addresses (IDENTITY ONLY per ADR-WASM-020)
-    #[allow(dead_code)] // Registry kept for future topic-based routing lookup
-    registry: ComponentRegistry,
     /// SubscriberManager for topic-based routing decisions
     subscriber_manager: Arc<SubscriberManager>,
     /// Background routing task handle
@@ -193,7 +186,6 @@ impl<B: MessageBroker<ComponentMessage> + Send + Sync + 'static> ActorSystemSubs
     /// # Arguments
     ///
     /// * `broker` - MessageBroker to subscribe to
-    /// * `registry` - ComponentRegistry for address lookup (identity only per ADR-WASM-020)
     /// * `subscriber_manager` - SubscriberManager for topic-based routing
     ///
     /// # Examples
@@ -201,18 +193,15 @@ impl<B: MessageBroker<ComponentMessage> + Send + Sync + 'static> ActorSystemSubs
     /// ```rust,ignore
     /// let subscriber = ActorSystemSubscriber::new(
     ///     broker,
-    ///     registry,
     ///     subscriber_manager,
     /// );
     /// ```
     pub fn new(
         broker: Arc<B>,
-        registry: ComponentRegistry,
         subscriber_manager: Arc<SubscriberManager>,
     ) -> Self {
         Self {
             broker,
-            registry,
             subscriber_manager,
             routing_task: None,
             mailbox_senders: Arc::new(RwLock::new(HashMap::new())),
@@ -349,7 +338,8 @@ impl<B: MessageBroker<ComponentMessage> + Send + Sync + 'static> ActorSystemSubs
     /// # Examples
     ///
     /// ```rust,ignore
-    /// let mut subscriber = ActorSystemSubscriber::new(broker, registry, manager);
+    /// let subscriber_manager = Arc::new(SubscriberManager::new());
+    /// let mut subscriber = ActorSystemSubscriber::new(broker, subscriber_manager);
     /// subscriber.start().await?;
     /// ```
     pub async fn start(&mut self) -> Result<(), WasmError> {
@@ -569,10 +559,9 @@ mod tests {
     #[tokio::test]
     async fn test_actor_system_subscriber_creation() {
         let broker = Arc::new(InMemoryMessageBroker::new());
-        let registry = ComponentRegistry::new();
         let subscriber_manager = Arc::new(SubscriberManager::new());
 
-        let subscriber = ActorSystemSubscriber::new(broker, registry, subscriber_manager);
+        let subscriber = ActorSystemSubscriber::new(broker, subscriber_manager);
 
         assert!(!subscriber.is_running());
         assert_eq!(subscriber.mailbox_count().await, 0);
@@ -581,10 +570,9 @@ mod tests {
     #[tokio::test]
     async fn test_actor_system_subscriber_start() {
         let broker = Arc::new(InMemoryMessageBroker::new());
-        let registry = ComponentRegistry::new();
         let subscriber_manager = Arc::new(SubscriberManager::new());
 
-        let mut subscriber = ActorSystemSubscriber::new(broker, registry, subscriber_manager);
+        let mut subscriber = ActorSystemSubscriber::new(broker, subscriber_manager);
 
         let result = subscriber.start().await;
         assert!(result.is_ok());
@@ -597,10 +585,9 @@ mod tests {
     #[tokio::test]
     async fn test_actor_system_subscriber_stop() {
         let broker = Arc::new(InMemoryMessageBroker::new());
-        let registry = ComponentRegistry::new();
         let subscriber_manager = Arc::new(SubscriberManager::new());
 
-        let mut subscriber = ActorSystemSubscriber::new(broker, registry, subscriber_manager);
+        let mut subscriber = ActorSystemSubscriber::new(broker, subscriber_manager);
 
         subscriber.start().await.unwrap();
         assert!(subscriber.is_running());
@@ -665,10 +652,9 @@ mod tests {
     #[tokio::test]
     async fn test_register_mailbox_success() {
         let broker = Arc::new(InMemoryMessageBroker::new());
-        let registry = ComponentRegistry::new();
         let subscriber_manager = Arc::new(SubscriberManager::new());
 
-        let subscriber = ActorSystemSubscriber::new(broker, registry, subscriber_manager);
+        let subscriber = ActorSystemSubscriber::new(broker, subscriber_manager);
         let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
         let component_id = ComponentId::new("test-component");
 
@@ -687,10 +673,9 @@ mod tests {
     #[tokio::test]
     async fn test_register_mailbox_duplicate_error() {
         let broker = Arc::new(InMemoryMessageBroker::new());
-        let registry = ComponentRegistry::new();
         let subscriber_manager = Arc::new(SubscriberManager::new());
 
-        let subscriber = ActorSystemSubscriber::new(broker, registry, subscriber_manager);
+        let subscriber = ActorSystemSubscriber::new(broker, subscriber_manager);
         let component_id = ComponentId::new("test-component");
 
         // First registration succeeds
@@ -711,10 +696,9 @@ mod tests {
     #[tokio::test]
     async fn test_unregister_mailbox_success() {
         let broker = Arc::new(InMemoryMessageBroker::new());
-        let registry = ComponentRegistry::new();
         let subscriber_manager = Arc::new(SubscriberManager::new());
 
-        let subscriber = ActorSystemSubscriber::new(broker, registry, subscriber_manager);
+        let subscriber = ActorSystemSubscriber::new(broker, subscriber_manager);
         let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
         let component_id = ComponentId::new("test-component");
 
@@ -737,10 +721,9 @@ mod tests {
     #[tokio::test]
     async fn test_unregister_mailbox_not_found() {
         let broker = Arc::new(InMemoryMessageBroker::new());
-        let registry = ComponentRegistry::new();
         let subscriber_manager = Arc::new(SubscriberManager::new());
 
-        let subscriber = ActorSystemSubscriber::new(broker, registry, subscriber_manager);
+        let subscriber = ActorSystemSubscriber::new(broker, subscriber_manager);
         let component_id = ComponentId::new("nonexistent");
 
         // Unregister non-existent component returns None
@@ -887,10 +870,9 @@ mod tests {
     #[tokio::test]
     async fn test_multiple_mailbox_registrations() {
         let broker = Arc::new(InMemoryMessageBroker::new());
-        let registry = ComponentRegistry::new();
         let subscriber_manager = Arc::new(SubscriberManager::new());
 
-        let subscriber = ActorSystemSubscriber::new(broker, registry, subscriber_manager);
+        let subscriber = ActorSystemSubscriber::new(broker, subscriber_manager);
 
         // Register multiple components
         for i in 0..5 {
