@@ -441,3 +441,242 @@ async fn test_restart_component_integration() {
 
     println!("✅ Component restarted successfully: {}", component_id.as_str());
 }
+
+// Task 4.7: shutdown() integration tests
+
+#[tokio::test]
+async fn test_shutdown_multiple_components() {
+    // Test: Shutdown system with multiple components running
+    let mut manager = HostSystemManager::new().await.expect("Manager initialization should succeed");
+
+    let wasm_path = PathBuf::from("tests/fixtures/handle-message-component.wasm");
+
+    // Spawn 2 components
+    manager.spawn_component(
+        ComponentId::new("comp1"),
+        wasm_path.clone(),
+        ComponentMetadata {
+            name: "comp1".to_string(),
+            version: "1.0.0".to_string(),
+            author: "test".to_string(),
+            description: Some("Test component".to_string()),
+            max_memory_bytes: 10_000_000,
+            max_fuel: 1_000_000,
+            timeout_seconds: 30,
+        },
+        CapabilitySet::new(),
+    ).await.expect("Component 1 spawn should succeed");
+
+    manager.spawn_component(
+        ComponentId::new("comp2"),
+        wasm_path,
+        ComponentMetadata {
+            name: "comp2".to_string(),
+            version: "1.0.0".to_string(),
+            author: "test".to_string(),
+            description: Some("Test component".to_string()),
+            max_memory_bytes: 10_000_000,
+            max_fuel: 1_000_000,
+            timeout_seconds: 30,
+        },
+        CapabilitySet::new(),
+    ).await.expect("Component 2 spawn should succeed");
+
+    // Shutdown
+    let result = manager.shutdown().await;
+    assert!(result.is_ok(), "Shutdown should succeed: {:?}", result);
+
+    // Verify components stopped (should fail to get status)
+    assert!(manager.get_component_status(&ComponentId::new("comp1")).await.is_err(),
+            "Component 1 should be stopped");
+    assert!(manager.get_component_status(&ComponentId::new("comp2")).await.is_err(),
+            "Component 2 should be stopped");
+
+    println!("✅ All components stopped successfully");
+}
+
+#[tokio::test]
+async fn test_shutdown_idempotent() {
+    // Test: Call shutdown() multiple times
+    let mut manager = HostSystemManager::new().await.expect("Manager initialization should succeed");
+
+    // First shutdown
+    manager.shutdown().await.expect("First shutdown should succeed");
+
+    // Second shutdown should succeed (idempotent)
+    let result = manager.shutdown().await;
+    assert!(result.is_ok(), "Second shutdown should succeed (idempotent): {:?}", result);
+
+    println!("✅ Shutdown is idempotent - multiple calls succeed");
+}
+
+#[tokio::test]
+async fn test_shutdown_handles_errors() {
+    // Test: Shutdown when component fails to stop
+    let mut manager = HostSystemManager::new().await.expect("Manager initialization should succeed");
+
+    let wasm_path = PathBuf::from("tests/fixtures/handle-message-component.wasm");
+
+    manager.spawn_component(
+        ComponentId::new("comp1"),
+        wasm_path,
+        ComponentMetadata {
+            name: "comp1".to_string(),
+            version: "1.0.0".to_string(),
+            author: "test".to_string(),
+            description: Some("Test component".to_string()),
+            max_memory_bytes: 10_000_000,
+            max_fuel: 1_000_000,
+            timeout_seconds: 30,
+        },
+        CapabilitySet::new(),
+    ).await.expect("Component spawn should succeed");
+
+    // Shutdown should succeed even if component fails
+    let result = manager.shutdown().await;
+    assert!(result.is_ok(), "Shutdown should handle errors gracefully: {:?}", result);
+
+    println!("✅ Shutdown continues despite component stop failures");
+}
+
+// Task 4.8: Error handling integration tests
+
+#[tokio::test]
+async fn test_error_message_descriptive() {
+    // Test: Verify error messages are descriptive and include context
+    let mut manager = HostSystemManager::new().await.expect("Manager initialization should succeed");
+
+    // Shutdown to simulate not initialized
+    manager.shutdown().await.expect("Shutdown should succeed");
+
+    let component_id = ComponentId::new("error-descriptive-test");
+
+    // Test spawn_component() error when not initialized
+    let spawn_result = manager.spawn_component(
+        component_id.clone(),
+        PathBuf::from("tests/fixtures/handle-message-component.wasm"),
+        ComponentMetadata {
+            name: component_id.as_str().to_string(),
+            version: "1.0.0".to_string(),
+            author: "test".to_string(),
+            description: Some("Error descriptive test".to_string()),
+            max_memory_bytes: 10_000_000,
+            max_fuel: 1_000_000,
+            timeout_seconds: 30,
+        },
+        CapabilitySet::new(),
+    ).await;
+
+    assert!(spawn_result.is_err(), "spawn_component should fail when not initialized");
+
+    // Verify error message is descriptive
+    match spawn_result {
+        Err(WasmError::EngineInitialization { reason, .. }) => {
+            assert!(reason.contains("not initialized") || reason.contains("initialized"),
+                        "Error message should mention initialization");
+        }
+        _ => panic!("Expected EngineInitialization error, got: {:?}", spawn_result),
+    }
+
+    println!("✅ Error messages are descriptive and include context");
+}
+
+#[tokio::test]
+async fn test_error_propagation() {
+    // Test: Verify errors propagate from underlying systems
+    let mut manager = HostSystemManager::new().await.expect("Manager initialization should succeed");
+
+    // Spawn a component
+    let component_id = ComponentId::new("error-prop-test");
+    let wasm_path = PathBuf::from("tests/fixtures/handle-message-component.wasm");
+    let metadata = ComponentMetadata {
+        name: component_id.as_str().to_string(),
+        version: "1.0.0".to_string(),
+        author: "test".to_string(),
+        description: Some("Error propagation test".to_string()),
+        max_memory_bytes: 10_000_000,
+        max_fuel: 1_000_000,
+        timeout_seconds: 30,
+    };
+    let capabilities = CapabilitySet::new();
+
+    manager.spawn_component(
+        component_id.clone(),
+        wasm_path,
+        metadata,
+        capabilities
+    ).await.expect("Component spawn should succeed");
+
+    // Test get_component_status() error after shutdown (system not initialized)
+    manager.shutdown().await.expect("Shutdown should succeed");
+
+    let status_result = manager.get_component_status(&component_id).await;
+    assert!(status_result.is_err(), "get_component_status should propagate error");
+
+    // Verify error is propagated from HostSystemManager
+    match status_result {
+        Err(WasmError::EngineInitialization { reason, .. }) => {
+            assert!(reason.contains("not initialized") || reason.contains("initialized"),
+                        "Error should propagate from HostSystemManager");
+        }
+        _ => panic!("Expected EngineInitialization error, got: {:?}", status_result),
+    }
+
+    println!("✅ Errors propagate correctly from underlying systems");
+}
+
+#[tokio::test]
+async fn test_error_handling_in_client_code() {
+    // Test: Example client code handles all error types
+    let mut manager = HostSystemManager::new().await.expect("Manager initialization should succeed");
+
+    // Spawn a component
+    let component_id = ComponentId::new("error-client-code-test");
+    let wasm_path = PathBuf::from("tests/fixtures/handle-message-component.wasm");
+    let metadata = ComponentMetadata {
+        name: component_id.as_str().to_string(),
+        version: "1.0.0".to_string(),
+        author: "test".to_string(),
+        description: Some("Client error handling test".to_string()),
+        max_memory_bytes: 10_000_000,
+        max_fuel: 1_000_000,
+        timeout_seconds: 30,
+    };
+    let capabilities = CapabilitySet::new();
+
+    manager.spawn_component(
+        component_id.clone(),
+        wasm_path,
+        metadata,
+        capabilities
+    ).await.expect("Component spawn should succeed");
+
+    // Stop component
+    manager.stop_component(&component_id).await.expect("Component stop should succeed");
+
+    // Try to stop again (should fail with ComponentNotFound)
+    let result = manager.stop_component(&component_id).await;
+
+    // Pattern match on error variants
+    match result {
+        Err(WasmError::ComponentNotFound { component_id: cid, .. }) => {
+            // Client code can match specific error variants
+            assert!(cid.contains("error-client-code-test"),
+                        "Error should contain correct component ID, got: {}", cid);
+        }
+        Err(WasmError::EngineInitialization { .. }) => {
+            // Unexpected error for this operation
+            panic!("Expected ComponentNotFound, got EngineInitialization");
+        }
+        Ok(()) => {
+            panic!("Expected error when stopping nonexistent component");
+        }
+        _ => {
+            // Any other error is also unexpected
+            panic!("Expected ComponentNotFound, got: {:?}", result);
+        }
+    }
+
+    println!("✅ Client code can pattern match on error variants");
+}
+

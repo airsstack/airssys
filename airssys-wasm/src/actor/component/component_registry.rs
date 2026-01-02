@@ -376,7 +376,7 @@ impl ComponentRegistry {
 
     /// Get count of registered components (non-failing version).
     ///
-    /// Returns 0 if the lock is poisoned.
+    /// Returns 0 if lock is poisoned.
     ///
     /// # Examples
     ///
@@ -400,6 +400,52 @@ impl ComponentRegistry {
             .ok()
             .map(|instances| instances.len())
             .unwrap_or(0)
+    }
+
+    /// List all registered component IDs.
+    ///
+    /// Returns a vector of all ComponentIds currently registered in the registry.
+    /// This is useful for iterating through all components (e.g., during shutdown).
+    ///
+    /// # Returns
+    ///
+    /// Vector of all registered ComponentIds.
+    ///
+    /// # Errors
+    ///
+    /// Returns empty vector if lock is poisoned.
+    ///
+    /// # Performance
+    ///
+    /// Target: <10μs for 1000 components (collect HashMap keys + lock overhead)
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use airssys_wasm::actor::ComponentRegistry;
+    /// use airssys_wasm::core::ComponentId;
+    /// use airssys_rt::util::ActorAddress;
+    ///
+    /// let registry = ComponentRegistry::new();
+    ///
+    /// // Register components
+    /// registry.register(ComponentId::new("comp1"), ActorAddress::named("comp1")).unwrap();
+    /// registry.register(ComponentId::new("comp2"), ActorAddress::named("comp2")).unwrap();
+    ///
+    /// // List all components
+    /// let component_ids = registry.list_components();
+    /// assert_eq!(component_ids.len(), 2);
+    ///
+    /// for id in component_ids {
+    ///     println!("Registered component: {}", id.as_str());
+    /// }
+    /// ```
+    pub fn list_components(&self) -> Vec<ComponentId> {
+        self.instances
+            .read()
+            .ok()
+            .map(|instances| instances.keys().cloned().collect())
+            .unwrap_or_default()
     }
 }
 

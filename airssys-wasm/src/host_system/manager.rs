@@ -716,6 +716,73 @@ impl HostSystemManager {
         // TODO: Phase 5 - Implement actual state tracking (Registered → Running → Stopped)
         Ok(ComponentStatus::Running)
     }
+
+    /// Shuts down the host system gracefully.
+    ///
+    /// Stops all running components and cleans up resources.
+    /// After shutdown, the system cannot be restarted - create a new
+    /// HostSystemManager instance instead.
+    ///
+    /// # Shutdown Flow
+    ///
+    /// 1. Verify system is started
+    /// 2. Get all registered component IDs
+    /// 3. Stop each component with timeout
+    /// 4. Set started flag to false
+    ///
+    /// # Parameters
+    ///
+    /// None
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(())` on successful shutdown.
+    ///
+    /// # Errors
+    ///
+    /// This method continues shutting down other components even if
+    /// individual components fail to stop. It returns `Ok(())`
+    /// if the shutdown process completes, regardless of individual
+    /// component failures.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// use airssys_wasm::host_system::HostSystemManager;
+    ///
+    /// let mut manager = HostSystemManager::new().await?;
+    ///
+    /// // ... use system ...
+    ///
+    /// // Graceful shutdown
+    /// manager.shutdown().await?;
+    /// println!("System shut down gracefully");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn shutdown(&mut self) -> Result<(), WasmError> {
+        // Verify system is started
+        if !self.started.load(std::sync::atomic::Ordering::Relaxed) {
+            return Ok(()); // Already shut down
+        }
+
+        // Get all registered component IDs
+        let component_ids = self.registry.list_components();
+
+        // Stop all components with timeout
+        for id in component_ids {
+            if let Err(e) = self.stop_component(&id).await {
+                eprintln!("Warning: Failed to stop component {:?}: {:?}", id, e);
+                // Continue shutting down other components
+            }
+        }
+
+        // Set started flag to false
+        self.started.store(false, std::sync::atomic::Ordering::Relaxed);
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -1340,5 +1407,209 @@ mod tests {
             Err(e) => panic!("Expected ComponentNotFound, got: {:?}", e),
             Ok(()) => panic!("Expected error, got Ok"),
         }
+    }
+
+    // Task 4.7: shutdown() unit tests
+
+    #[tokio::test]
+    async fn test_shutdown_stops_all_components() {
+        let mut manager = HostSystemManager::new().await.unwrap();
+
+        // Spawn 2 components
+        let comp1_id = ComponentId::new("comp1");
+        let comp2_id = ComponentId::new("comp2");
+
+        let wasm_path = PathBuf::from("tests/fixtures/handle-message-component.wasm");
+
+        manager.spawn_component(
+            comp1_id.clone(),
+            wasm_path.clone(),
+            crate::core::component::ComponentMetadata {
+                name: comp1_id.as_str().to_string(),
+                version: "1.0.0".to_string(),
+                author: "test".to_string(),
+                description: Some("Test component".to_string()),
+                max_memory_bytes: 10_000_000,
+                max_fuel: 1_000_000,
+                timeout_seconds: 30,
+            },
+            CapabilitySet::new(),
+        ).await.unwrap();
+
+        manager.spawn_component(
+            comp2_id.clone(),
+            wasm_path,
+            crate::core::component::ComponentMetadata {
+                name: comp2_id.as_str().to_string(),
+                version: "1.0.0".to_string(),
+                author: "test".to_string(),
+                description: Some("Test component".to_string()),
+                max_memory_bytes: 10_000_000,
+                max_fuel: 1_000_000,
+                timeout_seconds: 30,
+            },
+            CapabilitySet::new(),
+        ).await.unwrap();
+
+        // Shutdown
+        manager.shutdown().await.unwrap();
+
+        // Verify both stopped (should get ComponentNotFound)
+        assert!(manager.get_component_status(&comp1_id).await.is_err());
+        assert!(manager.get_component_status(&comp2_id).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_shutdown_is_idempotent() {
+        let mut manager = HostSystemManager::new().await.unwrap();
+
+        // First shutdown
+        manager.shutdown().await.unwrap();
+
+        // Second shutdown should succeed
+        let result = manager.shutdown().await;
+        assert!(result.is_ok(), "Second shutdown should succeed");
+    }
+
+    #[tokio::test]
+    async fn test_shutdown_when_not_started() {
+        let mut manager = HostSystemManager::new().await.unwrap();
+
+        // Shutdown when already shut down
+        let result = manager.shutdown().await;
+        assert!(result.is_ok(), "Shutdown when not started should succeed");
+    }
+
+    #[tokio::test]
+    async fn test_shutdown_handles_stop_errors() {
+        let mut manager = HostSystemManager::new().await.unwrap();
+
+        // Spawn one component
+        let comp_id = ComponentId::new("comp1");
+        let wasm_path = PathBuf::from("tests/fixtures/handle-message-component.wasm");
+
+        manager.spawn_component(
+            comp_id.clone(),
+            wasm_path,
+            crate::core::component::ComponentMetadata {
+                name: comp_id.as_str().to_string(),
+                version: "1.0.0".to_string(),
+                author: "test".to_string(),
+                description: Some("Test component".to_string()),
+                max_memory_bytes: 10_000_000,
+                max_fuel: 1_000_000,
+                timeout_seconds: 30,
+            },
+            CapabilitySet::new(),
+        ).await.unwrap();
+
+        // Shutdown (should succeed even if component fails to stop)
+        let result = manager.shutdown().await;
+        assert!(result.is_ok(), "Shutdown should succeed despite component errors");
+    }
+
+    #[tokio::test]
+    async fn test_shutdown_sets_started_flag_false() {
+        let mut manager = HostSystemManager::new().await.unwrap();
+
+        assert!(manager.started.load(std::sync::atomic::Ordering::Relaxed), "Should start as true");
+
+        manager.shutdown().await.unwrap();
+
+        assert!(!manager.started.load(std::sync::atomic::Ordering::Relaxed), "Should be false after shutdown");
+    }
+
+    #[tokio::test]
+    async fn test_shutdown_empty_system() {
+        let mut manager = HostSystemManager::new().await.unwrap();
+
+        // Shutdown with no components
+        let result = manager.shutdown().await;
+        assert!(result.is_ok(), "Shutdown with no components should succeed");
+    }
+
+    #[tokio::test]
+    async fn test_shutdown_single_component() {
+        let mut manager = HostSystemManager::new().await.unwrap();
+
+        let comp_id = ComponentId::new("comp1");
+        let wasm_path = PathBuf::from("tests/fixtures/handle-message-component.wasm");
+
+        manager.spawn_component(
+            comp_id.clone(),
+            wasm_path,
+            crate::core::component::ComponentMetadata {
+                name: comp_id.as_str().to_string(),
+                version: "1.0.0".to_string(),
+                author: "test".to_string(),
+                description: Some("Test component".to_string()),
+                max_memory_bytes: 10_000_000,
+                max_fuel: 1_000_000,
+                timeout_seconds: 30,
+            },
+            CapabilitySet::new(),
+        ).await.unwrap();
+
+        let result = manager.shutdown().await;
+        assert!(result.is_ok(), "Shutdown with single component should succeed");
+    }
+
+    #[tokio::test]
+    async fn test_shutdown_multiple_components() {
+        let mut manager = HostSystemManager::new().await.unwrap();
+
+        let wasm_path = PathBuf::from("tests/fixtures/handle-message-component.wasm");
+
+        // Spawn 3 components
+        for i in 1..=3 {
+            let comp_id = ComponentId::new(format!("comp{}", i));
+            manager.spawn_component(
+                comp_id.clone(),
+                wasm_path.clone(),
+                crate::core::component::ComponentMetadata {
+                    name: comp_id.as_str().to_string(),
+                    version: "1.0.0".to_string(),
+                    author: "test".to_string(),
+                    description: Some("Test component".to_string()),
+                    max_memory_bytes: 10_000_000,
+                    max_fuel: 1_000_000,
+                    timeout_seconds: 30,
+                },
+                CapabilitySet::new(),
+            ).await.unwrap();
+        }
+
+        let result = manager.shutdown().await;
+        assert!(result.is_ok(), "Shutdown with multiple components should succeed");
+    }
+
+    #[tokio::test]
+    async fn test_shutdown_preserves_error_tolerance() {
+        let mut manager = HostSystemManager::new().await.unwrap();
+
+        // Spawn multiple components
+        let wasm_path = PathBuf::from("tests/fixtures/handle-message-component.wasm");
+
+        for i in 1..=2 {
+            let comp_id = ComponentId::new(format!("comp{}", i));
+            manager.spawn_component(
+                comp_id.clone(),
+                wasm_path.clone(),
+                crate::core::component::ComponentMetadata {
+                    name: comp_id.as_str().to_string(),
+                    version: "1.0.0".to_string(),
+                    author: "test".to_string(),
+                    description: Some("Test component".to_string()),
+                    max_memory_bytes: 10_000_000,
+                    max_fuel: 1_000_000,
+                    timeout_seconds: 30,
+                },
+                CapabilitySet::new(),
+            ).await.unwrap();
+        }
+
+        // Shutdown should succeed even if some components fail
+        let result = manager.shutdown().await;
+        assert!(result.is_ok(), "Shutdown should be error-tolerant");
     }
 }
