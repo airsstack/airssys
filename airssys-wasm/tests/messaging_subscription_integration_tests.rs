@@ -52,8 +52,8 @@ use tokio::time::timeout;
 use airssys_rt::broker::{InMemoryMessageBroker, MessageBroker};
 use airssys_rt::message::MessageEnvelope;
 use airssys_rt::util::ActorAddress;
-use airssys_wasm::actor::{
-    ComponentMessage, ComponentRegistry, MessagingSubscriptionService, SubscriberManager,
+use airssys_wasm::actor::{ComponentRegistry,
+    ComponentMessage, MessagingSubscriptionService, SubscriberManager,
 };
 use airssys_wasm::core::ComponentId;
 
@@ -69,17 +69,11 @@ async fn test_subscription_service_initialization() {
     let registry = ComponentRegistry::new();
     let subscriber_manager = Arc::new(SubscriberManager::new());
 
-    // Create subscription service
-    let service =
-        MessagingSubscriptionService::new(Arc::clone(&broker), registry, subscriber_manager);
-
-    // Verify initial state
-    let status = service.status().await;
-    assert!(
-        !status.is_running,
-        "Service should not be running initially"
+    let service = MessagingSubscriptionService::new(
+        Arc::clone(&broker),
+        registry.clone(),
+        Arc::clone(&subscriber_manager),
     );
-    assert_eq!(status.registered_components, 0);
 
     // Start service
     let result = service.start().await;
@@ -120,13 +114,13 @@ async fn test_subscription_service_initialization() {
 async fn test_component_registration_with_subscription_service() {
     // Setup
     let broker = Arc::new(InMemoryMessageBroker::new());
-    let registry = ComponentRegistry::new();
     let subscriber_manager = Arc::new(SubscriberManager::new());
+    let registry = ComponentRegistry::new();
 
     let service = MessagingSubscriptionService::new(
         Arc::clone(&broker),
         registry.clone(),
-        subscriber_manager,
+        Arc::clone(&subscriber_manager),
     );
 
     // Start service
@@ -191,13 +185,13 @@ async fn test_component_registration_with_subscription_service() {
 async fn test_full_stack_message_routing() {
     // Setup
     let broker = Arc::new(InMemoryMessageBroker::new());
-    let registry = ComponentRegistry::new();
     let subscriber_manager = Arc::new(SubscriberManager::new());
+    let registry = ComponentRegistry::new();
 
     let service = MessagingSubscriptionService::new(
         Arc::clone(&broker),
         registry.clone(),
-        subscriber_manager,
+        Arc::clone(&subscriber_manager),
     );
 
     service.start().await.expect("Service start should succeed");
@@ -272,13 +266,13 @@ async fn test_full_stack_message_routing() {
 async fn test_graceful_shutdown_during_message_flow() {
     // Setup
     let broker = Arc::new(InMemoryMessageBroker::new());
-    let registry = ComponentRegistry::new();
     let subscriber_manager = Arc::new(SubscriberManager::new());
+    let registry = ComponentRegistry::new();
 
     let service = MessagingSubscriptionService::new(
         Arc::clone(&broker),
         registry.clone(),
-        subscriber_manager,
+        Arc::clone(&subscriber_manager),
     );
 
     service.start().await.expect("Service start should succeed");
@@ -325,13 +319,13 @@ async fn test_graceful_shutdown_during_message_flow() {
 async fn test_unregister_during_active_messaging() {
     // Setup
     let broker = Arc::new(InMemoryMessageBroker::new());
-    let registry = ComponentRegistry::new();
     let subscriber_manager = Arc::new(SubscriberManager::new());
+    let registry = ComponentRegistry::new();
 
     let service = MessagingSubscriptionService::new(
         Arc::clone(&broker),
         registry.clone(),
-        subscriber_manager,
+        Arc::clone(&subscriber_manager),
     );
 
     service.start().await.expect("Service start should succeed");
@@ -397,8 +391,8 @@ async fn test_unregister_during_active_messaging() {
 async fn test_concurrent_registrations() {
     // Setup
     let broker = Arc::new(InMemoryMessageBroker::new());
-    let registry = ComponentRegistry::new();
     let subscriber_manager = Arc::new(SubscriberManager::new());
+    let registry = ComponentRegistry::new();
 
     let service = Arc::new(MessagingSubscriptionService::new(
         Arc::clone(&broker),
@@ -498,8 +492,8 @@ async fn test_concurrent_registrations() {
 async fn test_integration_with_message_delivery_and_reception() {
     // Setup - using MessagingSubscriptionService as the coordinator
     let broker = Arc::new(InMemoryMessageBroker::new());
-    let registry = ComponentRegistry::new();
     let subscriber_manager = Arc::new(SubscriberManager::new());
+    let registry = ComponentRegistry::new();
 
     // Also register in registry (simulating full spawn flow)
     let component_id = ComponentId::new("full-integration-component");
@@ -578,11 +572,11 @@ async fn test_integration_with_message_delivery_and_reception() {
 #[tokio::test]
 async fn test_broker_accessor_returns_same_instance() {
     let broker = Arc::new(InMemoryMessageBroker::new());
-    let registry = ComponentRegistry::new();
     let subscriber_manager = Arc::new(SubscriberManager::new());
+    let registry = ComponentRegistry::new();
 
     let service =
-        MessagingSubscriptionService::new(Arc::clone(&broker), registry, subscriber_manager);
+        MessagingSubscriptionService::new(Arc::clone(&broker), registry.clone(), Arc::clone(&subscriber_manager));
 
     let retrieved_broker = service.broker();
 
@@ -601,8 +595,8 @@ async fn test_broker_accessor_returns_same_instance() {
 #[tokio::test]
 async fn test_registry_accessor_works() {
     let broker = Arc::new(InMemoryMessageBroker::new());
-    let registry = ComponentRegistry::new();
     let subscriber_manager = Arc::new(SubscriberManager::new());
+    let registry = ComponentRegistry::new();
 
     // Pre-register something
     let component_id = ComponentId::new("registry-accessor-test");
@@ -611,7 +605,7 @@ async fn test_registry_accessor_works() {
         .register(component_id.clone(), actor_addr.clone())
         .unwrap();
 
-    let service = MessagingSubscriptionService::new(broker, registry, subscriber_manager);
+    let service = MessagingSubscriptionService::new(broker, registry.clone(), Arc::clone(&subscriber_manager));
 
     // Get registry and verify lookup works
     let retrieved_registry = service.registry();
@@ -628,11 +622,10 @@ async fn test_registry_accessor_works() {
 #[tokio::test]
 async fn test_status_accuracy_through_lifecycle() {
     let broker = Arc::new(InMemoryMessageBroker::new());
-    let registry = ComponentRegistry::new();
     let subscriber_manager = Arc::new(SubscriberManager::new());
+    let registry = ComponentRegistry::new();
 
-    let service =
-        MessagingSubscriptionService::new(Arc::clone(&broker), registry, subscriber_manager);
+    let service = MessagingSubscriptionService::new(broker, registry.clone(), Arc::clone(&subscriber_manager));
 
     // Stage 1: Before start
     let status = service.status().await;

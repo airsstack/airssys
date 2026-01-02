@@ -1,4 +1,4 @@
-#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
+#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used, unused_imports)]
 
 //! Integration tests for ActorSystem pub-sub with UnifiedRouter.
 //! - Full pub-sub flow with ActorSystem intermediation
@@ -28,17 +28,19 @@ use std::time::Duration;
 
 // Layer 3: Internal module imports
 use airssys_rt::broker::{InMemoryMessageBroker, MessageBroker};
-use airssys_wasm::actor::{ComponentMessage, ComponentRegistry, UnifiedRouter};
+use airssys_rt::message::MessageEnvelope;
+use airssys_wasm::actor::{
+    ComponentMessage, UnifiedRouter,
+};
 use airssys_wasm::core::ComponentId;
 
 /// Test 1: Full pub-sub flow with ActorSystem
 #[tokio::test]
 async fn test_full_pub_sub_flow_with_actor_system() {
     let broker = Arc::new(InMemoryMessageBroker::new());
-    let registry = ComponentRegistry::new();
 
     // Create unified router
-    let router = UnifiedRouter::new(Arc::clone(&broker), registry);
+    let router = UnifiedRouter::new(Arc::clone(&broker));
     router.start().await.expect("Failed to start router");
 
     // Create publisher and subscriber components
@@ -89,9 +91,8 @@ async fn test_full_pub_sub_flow_with_actor_system() {
 #[tokio::test]
 async fn test_multiple_subscribers_same_topic() {
     let broker = Arc::new(InMemoryMessageBroker::new());
-    let registry = ComponentRegistry::new();
 
-    let router = UnifiedRouter::new(Arc::clone(&broker), registry);
+    let router = UnifiedRouter::new(Arc::clone(&broker));
     router.start().await.expect("Failed to start router");
 
     let manager = router.subscriber_manager();
@@ -147,9 +148,8 @@ async fn test_multiple_subscribers_same_topic() {
 #[tokio::test]
 async fn test_wildcard_subscription_routing() {
     let broker = Arc::new(InMemoryMessageBroker::new());
-    let registry = ComponentRegistry::new();
 
-    let router = UnifiedRouter::new(Arc::clone(&broker), registry);
+    let router = UnifiedRouter::new(Arc::clone(&broker));
     router.start().await.expect("Failed to start router");
 
     let manager = router.subscriber_manager();
@@ -204,9 +204,8 @@ async fn test_wildcard_subscription_routing() {
 #[tokio::test]
 async fn test_component_unsubscribe_behavior() {
     let broker = Arc::new(InMemoryMessageBroker::new());
-    let registry = ComponentRegistry::new();
 
-    let router = UnifiedRouter::new(Arc::clone(&broker), registry);
+    let router = UnifiedRouter::new(Arc::clone(&broker));
     router.start().await.expect("Failed to start router");
 
     let manager = router.subscriber_manager();
@@ -252,9 +251,8 @@ async fn test_component_unsubscribe_behavior() {
 #[tokio::test]
 async fn test_routing_statistics_accuracy() {
     let broker = Arc::new(InMemoryMessageBroker::new());
-    let registry = ComponentRegistry::new();
 
-    let router = UnifiedRouter::new(Arc::clone(&broker), registry);
+    let router = UnifiedRouter::new(Arc::clone(&broker));
     router.start().await.expect("Failed to start router");
 
     // Initial stats
@@ -297,9 +295,8 @@ async fn test_routing_statistics_accuracy() {
 #[tokio::test]
 async fn test_router_lifecycle_with_subscriptions() {
     let broker = Arc::new(InMemoryMessageBroker::new());
-    let registry = ComponentRegistry::new();
 
-    let router = UnifiedRouter::new(Arc::clone(&broker), registry);
+    let router = UnifiedRouter::new(Arc::clone(&broker));
 
     // Not running initially
     assert!(!router.is_running().await);
@@ -339,9 +336,8 @@ async fn test_router_lifecycle_with_subscriptions() {
 #[tokio::test]
 async fn test_concurrent_subscription_operations() {
     let broker = Arc::new(InMemoryMessageBroker::new());
-    let registry = ComponentRegistry::new();
 
-    let router = UnifiedRouter::new(broker, registry);
+    let router = UnifiedRouter::new(broker);
     router.start().await.expect("Failed to start router");
 
     let manager = router.subscriber_manager();

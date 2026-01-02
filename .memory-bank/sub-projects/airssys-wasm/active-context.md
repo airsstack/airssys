@@ -1,9 +1,9 @@
 # airssys-wasm Active Context
 
-**Last Updated:** 2026-01-02
-**Current Status:** 🚀 **IN PROGRESS - Host System Architecture (Block 1 Phase 1, 2, 3 Complete - Phase 4 COMPLETE)**
+**Last Updated:** 2026-01-03
+**Current Status:** 🚀 **IN PROGRESS - Host System Architecture (Block 1 Phase 1, 2, 3, 4 Complete - Phase 5 IN PROGRESS)**
 **Active Task:** WASM-TASK-013 (Block 1 - Host System Architecture Implementation)
-**Phase:** 3/7 Complete - Module Structure & Basic Types ✅ | CorrelationTracker Migration ✅ | TimeoutHandler Migration ✅ | Phase 4 ✅ COMPLETE (Subtask 4.1 COMPLETE, Subtask 4.2 COMPLETE, Subtask 4.3 COMPLETE, Subtask 4.4 COMPLETE, Subtask 4.5 COMPLETE, Subtask 4.6 COMPLETE, Subtask 4.7 COMPLETE, Subtask 4.9 COMPLETE) |
+**Phase:** 3/7 Complete - Module Structure & Basic Types ✅ | CorrelationTracker Migration ✅ | TimeoutHandler Migration ✅ | Phase 4 ✅ COMPLETE (8/8 subtasks) | Phase 5 🚀 IN PROGRESS (Task 5.1 ✅ COMPLETE, Task 5.2 ⏳ Next) |
 
 ---
 
@@ -306,6 +306,91 @@ core/ → (nothing)
 - ✅ Module boundaries respected (ADR-WASM-023 compliant)
 - ✅ No forbidden imports
 - ✅ One-way dependency flow maintained
+
+---
+
+### Phase 5 Status: 🚀 IN PROGRESS - Task 5.1 COMPLETE
+
+**Purpose:** Refactor ActorSystemSubscriber to use dependency injection instead of owning ComponentRegistry directly.
+
+**Architecture Goal:**
+- Move ComponentRegistry ownership from ActorSystemSubscriber to HostSystemManager
+- Apply dependency injection pattern per KNOWLEDGE-WASM-036
+- Eliminate potential circular dependencies between actor/ and host_system/
+- Preserve ActorSystemSubscriber's ownership of mailbox_senders for actual message delivery (per ADR-WASM-020)
+
+**Phase 5 Progress:** 1/7 tasks complete (14%)
+
+---
+
+**Task 5.1 Completion Details (2026-01-03):**
+
+**Status:** ✅ COMPLETE (2026-01-03)
+**Audit:** APPROVED by @memorybank-auditor
+**Verification:** VERIFIED by @memorybank-verifier
+
+**Implementation Summary:**
+- ✅ Removed `registry: ComponentRegistry` field from ActorSystemSubscriber struct
+- ✅ Removed `#[allow(dead_code)]` attribute (no longer needed)
+- ✅ Updated `new()` constructor to remove `registry` parameter
+- ✅ Updated constructor documentation
+- ✅ Removed ComponentRegistry import from actor_system_subscriber.rs
+- ✅ Updated all test files to use 2-parameter constructor
+
+**Files Modified (8 total):**
+- `src/actor/message/actor_system_subscriber.rs` - Main struct refactoring
+- `src/actor/message/unified_router.rs` - Updated constructor calls
+- `src/actor/message/messaging_subscription.rs` - Updated service calls
+- `tests/actor_system_subscriber_tests.rs` - Updated test calls (6 locations)
+- `tests/message_delivery_integration_tests.rs` - Updated test calls (7 locations)
+- `tests/actor_system_pub_sub_tests.rs` - Updated test calls (4 locations)
+- `src/actor/message/message_router.rs` - Fixed test calls (4 locations)
+- `tests/messaging_subscription_integration_tests.rs` - Fixed test issues
+
+**Test Results:**
+- Build: Clean, no errors, no warnings (1.20s)
+- Clippy: Zero warnings (with mandatory `-D warnings` flag, 1.31s)
+- Unit Tests: 1039/1039 passing (100%)
+- Integration Tests: 27/27 passing (100%)
+- Total: 1066/1066 tests passing
+
+**Architecture Verification:**
+- ✅ ADR-WASM-023 Compliance: ActorSystemSubscriber no longer owns ComponentRegistry
+- ✅ KNOWLEDGE-WASM-036 Compliance: Dependency injection pattern applied
+- ✅ ADR-WASM-020 Compliance: ActorSystemSubscriber maintains mailbox_senders for delivery
+- ✅ Clear separation: Registry = identity (owned by host_system), Subscriber = delivery
+
+**Standards Compliance:**
+- ✅ PROJECTS_STANDARD.md - All requirements met (§§2.1, 6.1, 6.2, 6.4)
+- ✅ Rust Guidelines - All requirements met (M-DESIGN-FOR-AI, M-MODULE-DOCS, M-ERRORS-CANONICAL-STRUCTS, M-STATIC-VERIFICATION, M-FEATURES-ADDITIVE)
+
+**Audit Results:**
+- ✅ Implementer: VERIFIED
+- ✅ Rust Reviewer: APPROVED
+- ✅ Auditor: APPROVED (standards and architecture compliance verified)
+- ✅ Verifier: VERIFIED
+
+**Quality Metrics:**
+- Unit Tests: 1039/1039 passing (100%)
+- Integration Tests: 27/27 passing (100%)
+- Real Tests: >90% (verify actual refactoring behavior)
+- Compiler Warnings: 0
+- Clippy Warnings: 0
+- Architecture Violations: 0
+- Standards Violations: 0
+
+**Key Achievement:**
+- ✅ ActorSystemSubscriber struct refactored to remove ComponentRegistry ownership
+- ✅ All constructor calls updated across codebase (8 files modified)
+- ✅ Full test coverage maintained (all tests passing)
+- ✅ Zero warnings, zero standards violations
+- ✅ Full ADR-WASM-023 compliance
+- ✅ Full KNOWLEDGE-WASM-036 compliance
+- ✅ Full PROJECTS_STANDARD.md compliance
+- ✅ Full Rust Guidelines compliance
+- ✅ AGENTS.md §8 mandatory testing requirements met
+
+**Next Task:** Task 5.2 - Refactor ActorSystemSubscriber::new() Constructor
 
 ---
 

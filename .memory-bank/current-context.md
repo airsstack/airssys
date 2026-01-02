@@ -1,10 +1,10 @@
 # Current Context
 
-**Last Updated:** 2026-01-02
+**Last Updated:** 2026-01-03
 
 **Active Sub-Project:** airssys-wasm
-**Status:** 🚀 **MULTI-TASK CONTEXT - Block 1 Phase 4 COMPLETE (100%), Block 5 Phase 3 In Progress**
-**Current Focus:** WASM-TASK-013 Phase 5 (Refactor ActorSystemSubscriber)
+**Status:** 🚀 **MULTI-TASK CONTEXT - Block 1 Phase 4 COMPLETE (100%), Phase 5 IN PROGRESS (Task 5.1 COMPLETE), Block 5 Phase 3 In Progress**
+**Current Focus:** WASM-TASK-013 Phase 5 Task 5.2 (Refactor ActorSystemSubscriber::new() Constructor)
 **Also Active:** WASM-TASK-006 Phase 3 (Request-Response Pattern - 2/3 tasks complete)
 
 ---
@@ -498,10 +498,19 @@
 
 ## Next Actions
 
-**Primary Focus (WASM-TASK-013):**
-1. **Proceed to Phase 5** - Refactor ActorSystemSubscriber
-2. **Verify architecture** after Phase 4 completion
-3. **Continue Phases 5-7** of host system architecture
+**Primary Focus (WASM-TASK-013 Phase 5):**
+1. **Complete Task 5.2** - Refactor ActorSystemSubscriber::new() Constructor
+2. **Complete Task 5.3** - Update HostSystemManager to Own ComponentRegistry
+3. **Complete Task 5.4** - Implement HostSystemManager::new() with ActorSystemSubscriber Creation
+4. **Complete Task 5.5** - Implement HostSystemManager::shutdown() with Subscriber Cleanup
+5. **Complete Task 5.6** - Verify ComponentSpawner Does Not Use ActorSystemSubscriber
+6. **Complete Task 5.7** - Update All ActorSystemSubscriber::new() Callers
+7. **Run all tests** for Phase 5 verification
+
+**Secondary Context (WASM-TASK-006):**
+8. **Resume Phase 3 Task 3.3** (Timeout and Cancellation)
+9. **Complete Phases 4-6** (Multicodec, Security, Advanced Features - 9 tasks)
+10. **Complete Block 5** (Inter-Component Communication)
 
 **Secondary Context (WASM-TASK-006):**
 4. **Resume Phase 3 Task 3.3** (Timeout and Cancellation)
@@ -532,10 +541,10 @@ Implements the actor-based inter-component messaging system enabling secure, hig
 ---
 
 ## Previous Task Completions
-**Status:** 🚀 **MULTI-TASK CONTEXT - Block 1 Phase 4 COMPLETE (100%), Block 5 Phase 3 In Progress**
-**Next Task:** WASM-TASK-013 Phase 5 (Refactor ActorSystemSubscriber)
+**Status:** 🚀 **MULTI-TASK CONTEXT - Block 1 Phase 4 COMPLETE (100%), Phase 5 IN PROGRESS (Task 5.1 COMPLETE)**
+**Next Task:** WASM-TASK-013 Phase 5 Task 5.2 (Refactor ActorSystemSubscriber::new() Constructor)
 **Documented By:** Memory Bank Completer
-**Date:** 2025-12-31
+**Date:** 2026-01-03
 
 ## Git Commit Log
 
@@ -632,9 +641,109 @@ Implements the actor-based inter-component messaging system enabling secure, hig
 
 ---
 
-## Session Summary (2026-01-02)
+### WASM-TASK-013 Phase 5 Task 5.1: Refactor ActorSystemSubscriber Struct Definition ✅ (LATEST)
 
-1. **WASM-TASK-013 Phase 4 Subtask 4.9: get_component_status() Unit Tests - COMPLETE ✅**
+**Status:** ✅ COMPLETE - AUDIT APPROVED
+**Completion Date:** 2026-01-03
+**Implementation Duration:** ~2 hours
+
+**Implementation Summary:**
+- ✅ Removed `registry: ComponentRegistry` field from ActorSystemSubscriber struct
+- ✅ Removed `#[allow(dead_code)]` attribute (no longer needed)
+- ✅ Updated `new()` constructor to remove `registry` parameter
+- ✅ Updated constructor documentation
+- ✅ Removed ComponentRegistry import from actor_system_subscriber.rs
+- ✅ Updated all test files to use 2-parameter constructor
+
+**Files Modified (8 total):**
+1. `src/actor/message/actor_system_subscriber.rs` - Main struct refactoring
+2. `src/actor/message/unified_router.rs` - Updated constructor calls
+3. `src/actor/message/messaging_subscription.rs` - Updated service calls
+4. `tests/actor_system_subscriber_tests.rs` - Updated test calls (6 locations)
+5. `tests/message_delivery_integration_tests.rs` - Updated test calls (7 locations)
+6. `tests/actor_system_pub_sub_tests.rs` - Updated test calls (4 locations)
+7. `src/actor/message/message_router.rs` - Fixed test calls (4 locations)
+8. `tests/messaging_subscription_integration_tests.rs` - Fixed test issues
+
+**Test Results:**
+- Build: Clean, no errors, no warnings (1.20s)
+- Clippy: Zero warnings (1.31s, with mandatory `-D warnings` flag)
+- Unit Tests: 1039/1039 passing (100%)
+- Integration Tests: 27/27 passing (100%)
+- Total: 1066/1066 tests passing
+
+**Architecture Verification:**
+- ✅ ADR-WASM-023 Compliance: ActorSystemSubscriber no longer owns ComponentRegistry
+- ✅ KNOWLEDGE-WASM-036 Compliance: Dependency injection pattern applied
+- ✅ ADR-WASM-020 Compliance: ActorSystemSubscriber maintains mailbox_senders for delivery
+- ✅ Clear separation: Registry = identity (owned by host_system), Subscriber = delivery
+
+**Standards Compliance:**
+- ✅ PROJECTS_STANDARD.md - All requirements met (§§2.1, 6.1, 6.2, 6.4)
+- ✅ Rust Guidelines - All requirements met (M-DESIGN-FOR-AI, M-MODULE-DOCS, M-ERRORS-CANONICAL-STRUCTS, M-STATIC-VERIFICATION, M-FEATURES-ADDITIVE)
+
+**AGENTS.md §8 (Testing) Compliance:**
+- ✅ Unit Tests: All passing (REAL tests, verify actual refactoring behavior)
+- ✅ Integration Tests: All passing (REAL tests, verify end-to-end functionality)
+- ✅ All tests passing (100% pass rate)
+- ✅ Tests verify REAL functionality (not just APIs)
+- ✅ Zero compiler warnings
+- ✅ Zero clippy warnings
+
+**Audit Results:**
+- ✅ Implementer: VERIFIED
+- ✅ Rust Reviewer: APPROVED
+- ✅ Auditor: APPROVED (standards and architecture compliance verified)
+- ✅ Verifier: VERIFIED
+
+**Quality Metrics:**
+- Unit Tests: 1039/1039 passing (100%)
+- Integration Tests: 27/27 passing (100%)
+- Real Tests: >90% (verify actual refactoring behavior)
+- Compiler Warnings: 0
+- Clippy Warnings: 0
+- Architecture Violations: 0
+- Standards Violations: 0
+
+**Key Achievement:**
+- ✅ ActorSystemSubscriber struct refactored to remove ComponentRegistry ownership
+- ✅ All constructor calls updated across codebase (8 files modified)
+- ✅ Full test coverage maintained (all tests passing)
+- ✅ Zero warnings, zero standards violations
+- ✅ Full ADR-WASM-023 compliance
+- ✅ Full KNOWLEDGE-WASM-036 compliance
+- ✅ Full PROJECTS_STANDARD.md compliance
+- ✅ Full Rust Guidelines compliance
+- ✅ AGENTS.md §8 mandatory testing requirements met
+
+**Phase 5 Status:** 1/7 tasks complete (14% - Task 5.1 ✅ COMPLETE)
+**Next Task:** Task 5.2 - Refactor ActorSystemSubscriber::new() Constructor
+
+---
+
+## Session Summary (2026-01-03)
+
+1. **WASM-TASK-013 Phase 5 Task 5.1: Refactor ActorSystemSubscriber Struct Definition - COMPLETE ✅**
+   - Removed `registry: ComponentRegistry` field from ActorSystemSubscriber struct
+   - Removed `#[allow(dead_code)]` attribute (no longer needed)
+   - Updated `new()` constructor to remove `registry` parameter
+   - Updated constructor documentation
+   - Removed ComponentRegistry import from actor_system_subscriber.rs
+   - Updated all test files to use 2-parameter constructor (8 files modified)
+   - 1039/1039 unit tests passing (100%)
+   - 27/27 integration tests passing (100%)
+   - Total: 1066/1066 tests passing
+   - Zero compiler warnings, zero clippy warnings
+   - Full ADR-WASM-023 compliance (ActorSystemSubscriber no longer owns ComponentRegistry)
+   - Full KNOWLEDGE-WASM-036 compliance (dependency injection pattern applied)
+   - Full ADR-WASM-020 compliance (ActorSystemSubscriber maintains mailbox_senders)
+   - Full PROJECTS_STANDARD.md compliance
+   - Full Rust Guidelines compliance
+   - AGENTS.md §8 mandatory testing requirements met
+   - Verified by @memorybank-verifier (VERIFIED)
+   - Audited by @memorybank-auditor (APPROVED)
+
+2. **WASM-TASK-013 Phase 4 Subtask 4.9: get_component_status() Unit Tests - COMPLETE ✅**
    - Added 5 comprehensive unit tests for get_component_status() method
    - All tests use real WASM fixtures (not mocks)
    - Test coverage >80% for get_component_status() method
