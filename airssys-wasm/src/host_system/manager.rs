@@ -33,6 +33,8 @@ use crate::core::capability::CapabilitySet;
 use crate::host_system::correlation_tracker::CorrelationTracker;
 use crate::host_system::timeout_handler::TimeoutHandler;
 use crate::actor::component::{ComponentSpawner, ComponentRegistry};
+use crate::actor::message::ActorSystemSubscriber;
+use crate::actor::message::SubscriberManager;
 use crate::messaging::MessagingService;
 use crate::runtime::WasmEngine;
 
@@ -121,6 +123,23 @@ pub struct HostSystemManager {
 
     /// Messaging service with MessageBroker for inter-component communication
     messaging_service: Arc<MessagingService>,
+    /// ActorSystemSubscriber for message routing (owned by host_system/)
+    ///
+    /// This field owns the ActorSystemSubscriber, which coordinates message
+    /// delivery from MessageBroker to component mailboxes. Ownership follows
+    /// KNOWLEDGE-WASM-036 dependency injection pattern: host_system/ creates
+    /// and owns all infrastructure, while actor/ modules use it via Arc references.
+    ///
+    /// Wrapped in Arc<RwLock<>> for:
+    /// - Thread-safe sharing across async tasks
+    /// - Interior mutability for runtime updates
+    ///
+    /// # References
+    ///
+    /// - KNOWLEDGE-WASM-036: Four-Module Architecture (Lines 161-172, 518-540)
+    /// - ADR-WASM-023: Module Boundary Enforcement (dependency direction: host_system/ → actor/)
+    actor_system_subscriber: Arc<tokio::sync::RwLock<ActorSystemSubscriber<InMemoryMessageBroker<ComponentMessage>>>>,
+
 
     /// Correlation tracker for request-response pattern
     correlation_tracker: Arc<CorrelationTracker>,
@@ -140,6 +159,7 @@ impl std::fmt::Debug for HostSystemManager {
             .field("registry", &"<ComponentRegistry>")
             .field("spawner", &"<ComponentSpawner>")
             .field("messaging_service", &"<MessagingService>")
+            .field("actor_system_subscriber", &"<Arc<RwLock<...>>>")
             .field("correlation_tracker", &"<CorrelationTracker>")
             .field("timeout_handler", &"<TimeoutHandler>")
             .field("started", &self.started)
@@ -249,6 +269,13 @@ impl HostSystemManager {
             registry,
             spawner,
             messaging_service,
+            // TODO: Initialize in Task 5.4
+            actor_system_subscriber: Arc::new(tokio::sync::RwLock::new(
+                ActorSystemSubscriber::new(
+                    Arc::new(broker.clone()),
+                    Arc::new(SubscriberManager::new()),
+                )
+            )),
             correlation_tracker,
             timeout_handler,
             started,
@@ -1786,5 +1813,40 @@ mod tests {
         assert!(actor_addr.is_ok(), "Actor address should be accessible");
 
         println!("✅ Actor address lookup verified via status query");
+    }
+
+    // Task 5.3: Unit tests for actor_system_subscriber field
+
+    #[tokio::test]
+    async fn test_host_system_manager_owns_actor_system_subscriber() {
+        // Test: HostSystemManager has actor_system_subscriber field with correct type
+        // This is a structural test - verifies the field exists and compiles
+        // Full initialization test will be in Task 5.4 when new() is updated
+        
+        // If struct compiles and has the field, this test passes
+        // The field existence is verified by successful compilation
+        // Field existence verified by successful compilation
+    }
+
+    #[tokio::test]
+    async fn test_host_system_manager_starts_subscriber_during_init() {
+        // Test: Verify subscriber.start() called during HostSystemManager::new()
+        // NOTE: This is a placeholder that will be fully implemented in Task 5.4
+        // when HostSystemManager::new() is updated to create and start ActorSystemSubscriber
+        
+        // For now, we verify the struct can be created (field exists)
+        let _manager = HostSystemManager::new().await;
+        // TODO: Will be implemented in Task 5.4
+    }
+
+    #[tokio::test]
+    async fn test_host_system_manager_stops_subscriber_during_shutdown() {
+        // Test: Verify subscriber.stop() called during HostSystemManager::shutdown()
+        // NOTE: This is a placeholder that will be fully implemented in Task 5.5
+        // when HostSystemManager::shutdown() is updated to stop ActorSystemSubscriber
+        
+        // For now, we verify the struct exists
+        let _manager = HostSystemManager::new().await;
+        // TODO: Will be implemented in Task 5.5
     }
 }

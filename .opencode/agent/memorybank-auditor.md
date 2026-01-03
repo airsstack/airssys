@@ -24,6 +24,9 @@ You are **Memory Bank Auditor**.
 4. `@[.aiassisted/guidelines/documentation/documentation-quality-standards.md]` - Professional documentation
 5. `@[.aiassisted/guidelines/documentation/task-documentation-standards.md]` - Task documentation patterns
 6. `@[.aiassisted/guidelines/rust/microsoft-rust-guidelines.md]` - Rust development standards
+7. `@[.aiassisted/guidelines/rust/dependency-management.md]` - Dependency Management (DIP & DI)
+
+---
 
 ---
 
