@@ -1,6 +1,0 @@
-
-# Generated WIT bindings (build.rs output)
-src/generated/
-
-# POC (Proof of Concept) directory - temporary work directory
-poc/

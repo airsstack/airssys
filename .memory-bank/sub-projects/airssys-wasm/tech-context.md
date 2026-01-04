@@ -1,374 +1,223 @@
 # airssys-wasm Tech Context
 
-## Strategic Technology Vision
+**Last Updated:**2026-01-04
 
-**airssys-wasm** is a **WASM Component Framework for Pluggable Systems**. This framework provides infrastructure for component-based architectures, enabling runtime deployment patterns inspired by smart contract systems for general-purpose computing.
+---
 
-## Core Technology Architecture
+## Status
+**Current State:** 🚀 **FRESH START - CODEBASE DELETED**
+**Active Sub-Project:** airssys-wasm
 
-### Framework Foundation
-- **Wasmtime**: Primary WASM runtime engine with Component Model support
-- **WebAssembly Component Model**: Advanced component composition and interface types
-- **WIT (WebAssembly Interface Types)**: Language-agnostic interface definition
-- **WASI Preview 2**: Standardized system interface for capabilities
+---
 
-### Runtime Deployment Technology
-- **Live Component Registry**: Runtime component management without system restart
-- **Deployment Strategies**: Blue-Green, Canary, Rolling update patterns
-- **Version Management**: Git-like versioning with rollback capabilities
-- **Traffic Routing**: Load balancing and traffic splitting for component deployment
+## What Happened
+**Critical Event:** PROJECT CATASTROPHE (2026-01-04)
 
-## Core Architectural Patterns
+**Root Cause:**
+Complete airssys-wasm codebase was deleted due to repeated, irrecoverable architectural violations across multiple tasks (WASM-TASK-014 Phase 4, etc.)
 
-### Component Interface
-```rust
-// Language-agnostic component interface for general-purpose use
-pub trait Component {
-    // Component lifecycle
-    fn init(&mut self, config: ComponentConfig) -> Result<(), ComponentError>;
-    fn execute(&self, input: ComponentInput) -> Result<ComponentOutput, ComponentError>;
-    fn shutdown(&mut self) -> Result<(), ComponentError>;
-    
-    // Component introspection  
-    fn metadata(&self) -> ComponentMetadata;
-    fn required_capabilities(&self) -> Vec<Capability>;
-    fn health_status(&self) -> HealthStatus;
-}
+**Violations Discovered:**
+- `core/` → `runtime/` ❌ (FORBIDDEN - ADR-WASM-023)
+- `runtime/` → `actor/` ❌ (FORBIDDEN - ADR-WASM-023)
+- `security/` → `runtime/` ❌ (FORBIDDEN - ADR-WASM-023)
+- `security/ → `actor/` ❌ (FORBIDDEN - ADR-WASM-023)
+- `core/` → ANY MODULE ❌ (FORBIDDEN - core/ must import NOTHING)
+
+**AI Agent Failures:**
+- Claims of "verified" without evidence (grep output)
+- Plans didn't reference ADRs/Knowledges
+- Implementation proceeded without reading architecture documentation
+- Stub tests created instead of REAL tests
+- Multiple "hotfix" attempts made violations worse
+
+**Impact:**
+- Loss of 10+ days of development work
+- Complete loss of user trust in AI agents
+- Architecture broken beyond repair
+- Project deletion (entire codebase)
+
+**User Response:**
+- Demanded complete rebuild from scratch
+- Enforced new task management format with strict single-action rule
+- Plans MUST reference ADRs and Knowledges
+- Verification workflow is non-negotiable
+
+---
+
+## Current Recovery Work
+
+### Task Management Refactoring (2026-01-04)
+**Completed:**
+- ✅ Updated Memory Bank instructions file with new task format
+  - Enforced: `tasks/<task-id>/` directory structure
+  - Enforced: Two files per task (task.md + plans.md)
+  - Enforced: SINGLE action per task rule
+  - Enforced: Plans MUST reference ADRs and Knowledges
+
+**Key Changes:**
+- Old format: Multi-phase tasks with scattered files
+- New format: Single-action tasks in directories with task.md + plans.md
+
+### Task Creation (2026-01-04)
+**Completed:**
+- ✅ Created WASM-TASK-001 (setup-project-directory)
+  - Task directory: `tasks/wasm-task-001-setup-project-directory/`
+  - Task file: `wasm-task-001-setup-project-directory.md`
+  - Plans file: `wasm-task-001-setup-project-directory.plans.md`
+  - Task index: Updated `tasks/_index.md`
+
+**Status:** pending (task ready to implement, not started)
+
+**Deliverables:**
+- Task file contains objectives, deliverables, success criteria
+- Plans file contains 5 implementation actions with ADR/Knowledge references
+- Both reference 22 ADRs and 22 Knowledge documents
+- All plans reference architecture documentation
+- Single clear objective: "Setup airssys-wasm project directory"
+
+---
+
+## Recovery State
+
+### What We Have Left
+**Architecture Documentation (100% Intact)**
+- ✅ 22 Architecture Decision Records (ADRs)
+- ✅ 22 Knowledge Documents
+- ✅ All critical ADR-WASM-023 (Module Boundary Enforcement)
+- ✅ All critical KNOWLEDGE-WASM-030 (Module Architecture Requirements)
+- ✅ All critical KNOWLEDGE-WASM-031 (Foundational Architecture)
+- ✅ KNOWLEDGE-WASM-001 (Component Framework Architecture)
+- ✅ Multiple historical ADRs on messaging, runtime, security, integration
+
+**Memory Bank Structure (Intact)**
+- ✅ Updated instructions file with new task format
+- ✅ Task management refactored for single-action enforcement
+  ✅ Task directory structure established
+
+**Project Context Files (To Be Rebuilt)**
+- ✅ project-brief.md (defines what airssys-wasm is)
+- ✅ product-context.md (why airssys-wasm exists)
+- ✅ active-context.md (current work focus)
+- ✅ system-patterns.md (core architecture)
+- ✅ tech-context.md (technologies used)
+- ✅ progress.md (what's done)
+
+**Workspace Files**
+- ✅ Cargo.toml (provides all dependencies)
+- ✅ PROJECTS_STANDARD.md (workspace standards)
+
+**NO SOURCE CODE:**
+- airssys-wasm/src/ directory DOES NOT EXIST
+- airssys-wasm/tests/ directory DOES NOT EXIST
+- airssys-wasm/wit/ directory DOES NOT EXIST
+
+---
+
+## Recovery Approach
+
+### Phase 1: Foundation (Current: WASM-TASK-001)
+**Objective:** Establish clean project foundation
+
+**Strategy:**
+1. Implement WASM-TASK-001 following plans.md exactly
+2. Run ALL verification commands (grep for architecture, cargo build, clippy)
+3. Only mark complete when ALL verifications pass
+4. Trigger @memorybank-verifier for all subagent reports
+
+**Next Tasks (Sequence based on ADR-WASM-010 implementation order):**
+1. Core types (KNOWLEDGE-WASM-003 → KNOWLEDGE-WASM-001 → KNOWLEDGE-WASM-002)
+2. Security module (KNOWLEDGE-WASM-020 → KNOWLEDGE-WASM-005)
+3. Runtime module (ADR-WASM-002)
+4. Actor integration (KNOWLEDGE-WASM-018)
+
+**Critical:**
+- MUST follow ADR-WASM-023 module boundaries
+- MUST read ALL relevant ADRs before any implementation
+- MUST run verification commands and show ACTUAL output
+- MUST write REAL tests, not stubs
+- Plans MUST reference documentation with full citations
+
+**Risk Mitigation:**
+- Verification workflow is non-negotiable
+- All subagent reports MUST be verified by @memorybank-verifier
+- Implementation will be audited by @memorybank-auditor
+- Auditor reports will be verified by @memorybank-verifier
+- Only complete when ALL verifications pass
+
+---
+
+## Standards Compliance
+
+### Workspace Standards (PROJECTS_STANDARD.md)
+**MUST BE FOLLOWED:**
+- ✅ §2.1 3-Layer Import Organization
+- ✅ §3.2 chrono DateTime<Utc> Standard
+- ✅ §4.3 Module Architecture Patterns
+- ✅ §5.1 Dependency Management
+- ✅ §6.1 YAGNI Principles
+- ✅ §6.2 Avoid `dyn` Patterns
+- ✅ §6.4 Implementation Quality Gates
+
+### Architecture Compliance (ADR-WASM-023)
+**MUST BE FOLLOWED:**
+- ✅ core/ imports NOTHING
+- ✅ security/ imports core/ ONLY
+- ✅ runtime/ imports core/, security/ ONLY
+- ✅ actor/ imports core/, security/, runtime/
+- ✅ NO reverse imports
+
+**Verification Commands (MUST PASS):**
+```bash
+grep -rn "use crate::runtime" src/core/
+grep -rn "use crate::actor" src/core/
+grep -rn "use crate::runtime" src/security/
+grep -rn "use crate::actor" src/security/
+grep -rn "use crate::actor" src/runtime/
 ```
+**Expected:** ALL return empty
 
-### Runtime Deployment Engine
-```rust
-// Runtime component deployment system
-pub struct RuntimeDeploymentEngine {
-    component_registry: Arc<RwLock<LiveComponentRegistry>>,
-    deployment_strategies: HashMap<String, Box<dyn DeploymentStrategy>>,
-    version_manager: ComponentVersionManager,
-    traffic_router: TrafficRouter,
-}
+---
 
-pub enum DeploymentStrategy {
-    BlueGreen,          // Switchover to new version
-    CanaryDeploy,       // Gradual traffic shifting  
-    RollingUpdate,      // Progressive replacement
-    ImmediateReplace,   // Direct replacement for development
-}
-```
+## Success Criteria
 
-### Capability-Based Security
-```rust
-// Fine-grained capability system
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Capability {
-    FileRead(PathBuf),
-    FileWrite(PathBuf),
-    NetworkOutbound(String),
-    NetworkInbound(u16),
-    SystemCall(String),
-    Custom(String, serde_json::Value),  // Extensible for any domain
-}
-```
+WASM-TASK-001 is COMPLETE when:
+- [ ] Cargo.toml created
+- [ ] Module directories match ADR-WASM-011 four-module structure
+- [ ] lib.rs entry point created
+- [ ] All verification commands pass
+- [ ] All module boundary checks pass
+- [ ] Zero compiler/clippy warnings
 
-## Framework Design Principles
+**Definition of Done:**
+- [ ] All deliverables complete
+- [ ] Architecture verified (all grep commands empty)
+- [ ] Zero warnings
+- [ ] Documentation updated
 
-### 1. General-Purpose Design
-- **Domain Agnostic**: Framework supports AI, web services, IoT, gaming, etc.
-- **Language Agnostic**: Support for any WASM-compatible language
-- **Cross-Platform**: Run on cloud, edge, desktop, embedded systems
+---
 
-### 2. Runtime Deployment Model
-- **Runtime Loading**: Deploy/update components without system restart
-- **Immutable Versions**: Component versions are immutable and auditable
-- **Capability-Based Security**: Fine-grained permission system inspired by smart contract capabilities
+## Current Focus
 
-### 3. Developer Experience First
-- **Rich SDK**: Derive macros and builder patterns for easy development
-- **Visual Composition**: Drag-and-drop component pipeline building
-- **Instant Feedback**: Fast testing, building, and deployment cycles
+**Priority:** Execute WASM-TASK-001
+- Read plans.md carefully
+- Reference ALL 22 ADRs and 22 Knowledge documents before each action
+- Run verification after each action
+- Show ACTUAL grep/cargo output as proof
 
-### 4. Production Ready
-- **Built-in Monitoring**: Performance metrics, health checks, alerting
-- **Security by Default**: Deny-by-default with explicit capability grants
-- **Operational Excellence**: Logging, tracing, configuration management
+**We will NOT:**
+- Skip reading ADRs/Knowledges
+- Create stub tests
+- Make assumptions
+- Violate ADR-WASM-023
+- Claim "verified" without evidence
+- Mark tasks "complete" without actual verification
 
-### Primary Dependencies
-```toml
-# Core WASM Runtime Foundation
-wasmtime = { version = "24.0", features = ["component-model", "async", "cranelift"] }
-wasmtime-wasi = { version = "24.0" }
-wit-bindgen = { version = "0.30" }
-wit-component = { version = "0.200" }
-
-# AirsSys Ecosystem Integration
-airssys-osl = { workspace = true }   # OS layer bridge for secure system access
-airssys-rt = { workspace = true }    # Runtime system bridge for actor hosting
-
-# Async Runtime & Concurrency
-tokio = { workspace = true, features = ["full"] }
-futures = { version = "0.3" }
-async-trait = { version = "0.1" }
-
-# Security & Capabilities
-cap-std = { version = "3.0" }        # Capability-based filesystem access
-ring = { version = "0.17" }          # Cryptographic primitives
-
-# Serialization & Data Management
-serde = { workspace = true, features = ["derive"] }
-serde_json = { version = "1.0" }
-chrono = { workspace = true, features = ["serde"] }  # Workspace standard §3.2
-
-# Monitoring & Observability
-tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
-prometheus = { version = "0.13" }
-
-# Error Handling & Utilities
-thiserror = { workspace = true }
-anyhow = { version = "1.0" }
-```
-
-## Project Structure Architecture
-
-### Simplified Workspace Integration
-```rust
-airssys-wasm/                       # Single crate in airssys workspace
-├── src/
-│   ├── core/                      # Core framework functionality
-│   │   ├── runtime/               # WASM runtime management
-│   │   ├── registry/              # Runtime component registry
-│   │   ├── security/              # Capability-based security
-│   │   ├── deployment/            # Runtime deployment system
-│   │   ├── composition/           # Component orchestration
-│   │   ├── monitoring/            # Observability system
-│   │   └── integration/           # AirsSys ecosystem bridges
-│   ├── sdk/                       # Developer SDK & tooling
-│   │   ├── macros/                # Component derive macros
-│   │   ├── types/                 # Standard types & interfaces
-│   │   ├── testing/               # Testing framework
-│   │   └── builder/               # Component builders
-│   └── runtime/                   # Standalone runtime server
-│       ├── server/                # HTTP/gRPC/WebSocket APIs
-│       ├── config/                # Runtime configuration
-│       └── launcher/              # Runtime initialization
-├── wit/                           # WIT interface definitions
-│   ├── component/                 # Core component interfaces
-│   ├── host/                      # Host capability interfaces
-│   ├── security/                  # Security interfaces
-│   ├── deployment/                # Deployment interfaces
-│   └── examples/                  # Domain-specific examples
-├── examples/                      # Reference implementations
-└── docs/                          # mdBook documentation
-```
-- **Imports/Exports**: Fine-grained capability exposure
-
-### Security Architecture
-```rust
-// Capability-based security implementation
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ComponentCapabilities {
-    pub wasi: WasiCapabilities,
-    pub airssys: AirsSysCapabilities,
-    pub custom: CustomCapabilities,
-}
-
-pub struct WasiCapabilities {
-    pub filesystem: FilesystemCapabilities,
-    pub network: NetworkCapabilities,
-    pub clocks: ClocksCapabilities,
-    pub random: RandomCapabilities,
-}
-
-pub struct AirsSysCapabilities {
-    pub osl_operations: OSLCapabilities,
-    pub rt_messaging: RTCapabilities,
-    pub custom_resources: Vec<CustomResource>,
-}
-```
-
-### Performance Targets
-- **Component Instantiation**: <10ms for typical components
-- **Memory Overhead**: <512KB baseline per component
-- **Function Call Overhead**: <1μs for simple function calls
-- **Component Communication**: <100μs for inter-component messages
-
-## Security Implementation
-
-### Sandbox Architecture
-- **Memory Isolation**: Complete memory isolation between components and host
-- **Capability Enforcement**: Runtime capability checking for all system access
-- **Resource Limits**: CPU time, memory, and I/O bandwidth limits per component
-- **Audit Logging**: Comprehensive logging of all component operations
-
-### Threat Model
-- **Malicious Components**: Assume components may be adversarial
-- **Resource Exhaustion**: Protection against DoS through resource consumption
-- **Data Exfiltration**: Prevent unauthorized data access and exfiltration
-- **Privilege Escalation**: Prevent components from gaining additional capabilities
-
-## Integration Architecture
-
-### airssys-osl Integration
-```rust
-// Secure system access through airssys-osl
-pub struct WASMOSLBridge {
-    osl_context: airssys_osl::SecurityContext,
-    component_capabilities: HashMap<ComponentId, CapabilitySet>,
-}
-
-impl WASMOSLBridge {
-    pub async fn handle_file_operation(
-        &self,
-        component_id: ComponentId,
-        operation: FileOperation,
-    ) -> Result<FileResult, BridgeError> {
-        // Validate component capability
-        let capabilities = self.component_capabilities.get(&component_id)
-            .ok_or(BridgeError::UnknownComponent)?;
-            
-        if !capabilities.can_perform_operation(&operation) {
-            return Err(BridgeError::InsufficientCapabilities);
-        }
-        
-        // Delegate to airssys-osl with security context
-        self.osl_context.execute_file_operation(operation).await
-            .map_err(BridgeError::OSLError)
-    }
-}
-```
-
-### airssys-rt Integration
-```rust
-// Component hosting through actor system
-pub struct ComponentActorHost {
-    actor_system: airssys_rt::ActorSystem,
-    component_actors: HashMap<ComponentId, ActorId>,
-}
-
-impl ComponentActorHost {
-    pub async fn spawn_component_actor(
-        &mut self,
-        component: CompiledComponent,
-        capabilities: CapabilitySet,
-    ) -> Result<ComponentId, HostError> {
-        let component_id = ComponentId::new();
-        
-        let actor = ComponentActor::new(component, capabilities);
-        let actor_id = self.actor_system.spawn_actor(actor).await?;
-        
-        self.component_actors.insert(component_id, actor_id);
-        Ok(component_id)
-    }
-}
-```
-
-## Performance Optimization
-
-### Runtime Optimizations
-- **JIT Compilation**: Wasmtime Cranelift JIT for high-performance execution
-- **Module Caching**: Compiled module caching for faster instantiation  
-- **Memory Pool**: Pre-allocated memory pools for component instances
-- **Function Call Optimization**: Direct function call optimization for hot paths
-
-### Component Pool Management
-```rust
-pub struct ComponentPool<T> {
-    template: ComponentTemplate,
-    available: VecDeque<PooledComponent<T>>,
-    in_use: HashMap<ComponentId, PooledComponent<T>>,
-    max_size: usize,
-}
-
-impl<T> ComponentPool<T> {
-    pub async fn acquire(&mut self) -> Result<ComponentId, PoolError> {
-        // Reuse existing instance or create new one
-        match self.available.pop_front() {
-            Some(component) => {
-                let id = ComponentId::new();
-                self.in_use.insert(id, component);
-                Ok(id)
-            }
-            None => self.create_new_instance().await,
-        }
-    }
-}
-```
-
-## Development and Testing
-
-### Component Development
-- **wit-bindgen**: Automatic binding generation from WIT interfaces
-- **Component Tooling**: Integration with wasm-tools for component manipulation
-- **Language Support**: Rust, C/C++, JavaScript, Go, Python via WASM
-- **Hot Reloading**: Component hot-reloading for development workflows
-
-### Testing Strategy
-```rust
-// Component testing framework
-pub struct ComponentTestHarness {
-    runtime: ComponentRuntime,
-    test_capabilities: CapabilitySet,
-}
-
-impl ComponentTestHarness {
-    pub async fn test_component(
-        &mut self,
-        component_bytes: &[u8],
-        test_cases: Vec<TestCase>,
-    ) -> TestResults {
-        let component_id = self.runtime
-            .load_component(component_bytes, self.test_capabilities.clone())
-            .await?;
-            
-        let mut results = TestResults::new();
-        
-        for test_case in test_cases {
-            let result = self.execute_test_case(component_id, test_case).await;
-            results.add_result(result);
-        }
-        
-        results
-    }
-}
-```
-
-### Security Testing
-- **Fuzzing**: Component fuzzing for security vulnerability discovery
-- **Capability Testing**: Automated testing of capability enforcement
-- **Resource Limit Testing**: Testing of resource limits and enforcement
-- **Penetration Testing**: Security testing of component sandbox
-
-## Monitoring and Observability
-
-### Component Metrics
-- **Execution Time**: Function execution time and component performance
-- **Resource Usage**: Memory, CPU, and I/O usage per component
-- **Communication Patterns**: Inter-component communication analysis
-- **Security Events**: Capability violations and security incidents
-
-### Integration with AirsSys Monitoring
-```rust
-// Monitoring integration with airssys-osl logging
-pub struct WASMMonitor {
-    osl_logger: airssys_osl::ActivityLogger,
-    metrics_collector: MetricsCollector,
-}
-
-impl WASMMonitor {
-    pub async fn log_component_event(
-        &self,
-        component_id: ComponentId,
-        event: ComponentEvent,
-    ) -> Result<(), MonitorError> {
-        // Log to airssys-osl for unified logging
-        self.osl_logger.log_activity(ActivityEvent::ComponentEvent {
-            component_id,
-            event: event.clone(),
-            timestamp: Utc::now(),
-        }).await?;
-        
-        // Collect metrics for performance analysis
-        self.metrics_collector.record_component_event(component_id, event).await?;
-        
-        Ok(())
-    }
-}
-```
+**We WILL:**
+- Read ALL documentation before any action
+- Run ALL verification commands
+- Show ACTUAL output (grep, cargo build, clippy)
+- Write REAL tests (not stubs)
+- Only mark complete when ALL verifications pass
+- Trigger @memorybank-verifier for every subagent report
+- Trigger @memorybank-auditor after implementation
+- Trigger @memorybank-verifier after auditor

@@ -383,111 +383,254 @@ flowchart TD
 - Evolution of project decisions
 - Tool usage patterns
 
-## Tasks Management
+## Tasks Management (REFACTORED 2026-01-04)
 
-### Task Taxonomy & Hierarchy
+### Task Structure (MANDATORY - NEW FORMAT)
 
-**CRITICAL**: All tasks MUST follow a standardized taxonomy to ensure consistency across all sub-projects.
+**CRITICAL RULE:**
+- Each task = ONE directory
+- Two files per task: task file + plans file
+- **SINGLE action per task** - DO ONE THING, DO IT RIGHT
+- Plans MUST reference ADRs and Knowledge documents
 
-#### Hierarchy Levels
+### Directory Structure
 
 ```
-TASK (Top Level)
-  └─ PHASE (Optional: For tasks >4 weeks)
-      └─ SUBTASK (Mandatory: Granular work units)
+tasks/
+├── _index.md                              # Task registry
+└── <task-identifier>/                    # Task directory (e.g., wasm-task-001/)
+    ├── <task-identifier>.md              # Task file (objectives, deliverables, checklist)
+    └── <task-identifier>.plans.md          # Plans file (actions with ADR/Knowledge references)
 ```
 
-#### Level Definitions
+### Task File Format (<task-identifier>.md)
 
-| Level | ID Format | Example | Duration | When to Use | Max Count |
-|-------|-----------|---------|----------|-------------|-----------|
-| **Task** | `[PREFIX]-TASK-###` | `WASM-TASK-004` | 1-12 weeks | Top-level work item | N/A |
-| **Phase** | `Phase N` | `Phase 1`, `Phase 2` | 1-4 weeks | Major milestone within task (>4 weeks total) | 8 per task |
-| **Subtask** | `N.M` | `1.1`, `1.2`, `3.5` | <1 week | Granular work unit | 10 per phase |
-
-#### Hierarchy Rules
-
-1. **Task**: Always required. One file = one task.
-2. **Phase**: Optional. Use ONLY if total task duration >4 weeks. Maximum 8 phases per task.
-3. **Subtask**: Always required. Each phase (or task if no phases) MUST have subtasks. Maximum 10 subtasks per phase.
-4. **No Deeper Nesting**: Subtasks CANNOT have sub-subtasks. Use checklists within subtasks if needed.
-5. **Numbering**:
-   - Phases: Sequential integers (`Phase 1`, `Phase 2`, `Phase 3`, ...)
-   - Subtasks: `Phase.Subtask` format (`1.1`, `1.2`, `2.1`, `2.2`, ...)
-   - If no phases: Use `1.1, 1.2, 1.3, ...` directly under task
-
-#### Examples
-
-**Example 1: Simple Task (No Phases)**
-```
-TASK-001: Implement User Login
-  ├─ Subtask 1.1: Create login form UI
-  ├─ Subtask 1.2: Add authentication API endpoint
-  ├─ Subtask 1.3: Implement session management
-  └─ Subtask 1.4: Add login tests
-```
-
-**Example 2: Complex Task (With Phases)**
-```
-WASM-TASK-004: Actor System Integration (6 phases, 18 subtasks)
-  ├─ Phase 1: ComponentActor Foundation
-  │   ├─ Subtask 1.1: ComponentActor struct design
-  │   ├─ Subtask 1.2: Child trait WASM lifecycle
-  │   ├─ Subtask 1.3: Actor trait message handling
-  │   └─ Subtask 1.4: Health check implementation
-  ├─ Phase 2: ActorSystem Integration
-  │   ├─ Subtask 2.1: ActorSystem spawning
-  │   ├─ Subtask 2.2: Component registry
-  │   └─ Subtask 2.3: Performance optimization
-  ... (continues through Phase 6)
-```
-
-### Single File Per Task Mandate
-
-**CRITICAL RULE**: Each task MUST be tracked in **ONE canonical file**: `tasks/task-[id]-[name].md`
-
-#### What MUST Be in the Task File
-
-ALL of the following MUST be in the single task file:
+**Contains:**
 - Task metadata (status, dates, priority, duration)
 - Original request
-- Thought process and architectural decisions
-- **Complete implementation plan** (all phases, all subtasks)
-- **All progress tracking tables** (one per phase if multi-phase)
-- **All progress logs** (chronological, consolidated)
-- **All completion summaries** (inline, not separate files)
-- Dependencies and integration points
+- Thought process
+- Deliverables checklist
+- Success criteria
+- Progress tracking
 - Standards compliance checklist
-- Definition of done criteria
+- Definition of done
 
-#### What is FORBIDDEN
+**Example:**
+```markdown
+# WASM-TASK-001: Setup airssys-wasm Project Directory
 
-The following patterns are **STRICTLY PROHIBITED**:
-- ❌ Separate plan files per phase/subtask (e.g., `task-004-phase-1-plan.md`)
-- ❌ Separate completion files per phase/subtask (e.g., `task-004-phase-1-completion.md`)
-- ❌ Separate status tracking files (e.g., `TASK-004-STATUS.md`)
-- ❌ Separate checkpoint files (e.g., `task-004-checkpoint-1.md`)
-- ❌ Separate audit/review files (e.g., `task-004-audit-report.md`)
-- ❌ Any pattern that scatters task information across multiple files
+**Status:** pending  
+**Added:** 2026-01-04  
+**Updated:** 2026-01-04  
+**Priority:** high  
+**Estimated Duration:** 1 day
 
-#### Allowed Exceptions
+## Original Request
+Setup airssys-wasm project directory including Cargo.toml and src/ structure.
 
-The following are the ONLY exceptions to the single-file rule:
-- ✅ External reference documentation (ADRs in `docs/adr/`, knowledge docs in `docs/knowledges/`)
-- ✅ Technical debt tracking (DEBT files in `docs/debts/`)
-- ✅ Historical snapshots (in `.memory-bank/context-snapshots/`)
-- ✅ Task index file (`tasks/_index.md`)
+## Thought Process
+This is the foundation task for rebuilding airssys-wasm from scratch. Must establish project structure before any code can be written.
 
-### Task File Structure
+## Deliverables
+- [ ] airssys-wasm/Cargo.toml created
+- [ ] airssys-wasm/src/ directory structure created
+- [ ] airssys-wasm/src/core/, security/, runtime/, actor/ modules created
+- [ ] airssys-wasm/tests/ directory created
+- [ ] airssys-wasm/wit/ directory created
 
-Each sub-project's `tasks/` folder contains:
-- `tasks/_index.md` - Master list of all tasks with IDs, names, and statuses
-- `tasks/task-[id]-[name].md` - Individual files for each task (e.g., `task-001-implement-login.md`)
+## Success Criteria
+- [ ] `cargo build -p airssys-wasm` succeeds
+- [ ] Module structure matches ADR-WASM-023 (core/security/runtime/actor)
+- [ ] No compiler warnings
+- [ ] Directory structure is complete
 
-#### Task Index Structure
+## Progress Tracking
+**Overall Status:** 0% complete
+
+## Progress Log
+[Chronological entries here]
+
+## Standards Compliance Checklist
+- [ ] §2.1 3-Layer Import Organization
+- [ ] §4.3 Module Architecture Patterns (mod.rs only declarations)
+- [ ] §5.1 Dependency Management
+- [ ] ADR-WASM-023 Module Boundary Enforcement
+- [ ] KNOWLEDGE-WASM-030 Module Architecture Requirements
+
+## Definition of Done
+- [ ] All deliverables complete
+- [ ] All success criteria met
+- [ ] Code quality verified (zero warnings)
+- [ ] Architecture compliance verified
+```
+
+### Plans File Format (<task-identifier>.plans.md)
+
+**Contains:**
+- Detailed implementation plan
+- Step-by-step actions
+- References to ADRs and Knowledge documents
+- Verification commands to run
+
+**Example:**
+```markdown
+# WASM-TASK-001: Implementation Plans
+
+## Plan References
+- **ADR-WASM-023:** Module Boundary Enforcement
+- **KNOWLEDGE-WASM-030:** Module Architecture Hard Requirements
+- **KNOWLEDGE-WASM-031:** Foundational Architecture
+- **ADR-WASM-011:** Module Structure Organization
+
+## Implementation Actions
+
+### Action 1: Create airssys-wasm/Cargo.toml
+**Objective:** Define package dependencies and workspace integration
+
+**Steps:**
+1. Create Cargo.toml with package metadata
+2. Add dependencies from workspace:
+   - airssys-osl (security integration)
+   - airssys-rt (actor system)
+   - wasmtime 24.0 with component-model feature
+   - wit-bindgen 0.47.0
+3. Reference ADR-WASM-002 for WASM runtime selection
+4. Reference workspace Cargo.toml for dependency versions
+
+**Verification:**
+```bash
+cargo build -p airssys-wasm
+```
+
+### Action 2: Create module structure
+**Objective:** Establish four-module architecture per ADR-WASM-023
+
+**Steps:**
+1. Create airssys-wasm/src/ directory
+2. Create subdirectories: core/, security/, runtime/, actor/
+3. Each module gets mod.rs with only declarations (§4.3 compliance)
+4. Reference KNOWLEDGE-WASM-030 for module responsibilities
+
+**Architecture Compliance (MANDATORY):**
+- core/ imports NOTHING (only std)
+- security/ imports core/ ONLY
+- runtime/ imports core/, security/ ONLY
+- actor/ imports core/, security/, runtime/
+
+**Verification:**
+```bash
+# Module boundary checks (must return empty)
+grep -rn "use crate::runtime" src/core/
+grep -rn "use crate::actor" src/core/
+grep -rn "use crate::actor" src/security/
+grep -rn "use crate::actor" src/runtime/
+```
+
+### Action 3: Create lib.rs entry point
+**Objective:** Define library structure and prelude
+
+**Steps:**
+1. Create src/lib.rs
+2. Re-export from all four modules
+3. Define prelude with common imports
+4. Reference ADR-WASM-011 for module structure
+
+**Verification:**
+```bash
+cargo build -p airssys-wasm
+```
+
+## Verification Commands
+
+Run after ALL actions complete:
+```bash
+# 1. Build check
+cargo build -p airssys-wasm
+
+# 2. Module architecture verification
+grep -rn "use crate::runtime" src/core/
+grep -rn "use crate::actor" src/core/
+grep -rn "use crate::runtime" src/security/
+grep -rn "use crate::actor" src/security/
+grep -rn "use crate::actor" src/runtime/
+
+# 3. Lint check
+cargo clippy -p airssys-wasm --all-targets -- -D warnings
+```
+
+## Success Criteria
+- All verification commands pass
+- Module structure matches ADR-WASM-023
+- Zero compiler/clippy warnings
+- Dependencies from workspace are correctly referenced
+```
+
+### Task Registry (_index.md)
 
 ```markdown
 # Tasks Index
+
+## Pending
+- [wasm-task-001] setup-project-directory - Setup airssys-wasm project structure (2026-01-04)
+
+## In Progress
+*(none)*
+
+## Completed
+*(none)*
+
+## Abandoned
+*(none)*
+```
+
+### Single Action Rule (MANDATORY)
+
+**CRITICAL:**
+- Each task contains EXACTLY ONE action
+- NO multiple objectives per task
+- NO mixed deliverables
+- DO ONE THING, DO IT RIGHT
+
+**Examples:**
+- ✅ CORRECT: "Setup airssys-wasm project directory" (single action)
+- ✅ CORRECT: "Implement core/ types module" (single action)
+- ✅ CORRECT: "Write unit tests for ComponentMessage" (single action)
+- ❌ WRONG: "Setup project AND implement core types" (two actions - split into two tasks)
+- ❌ WRONG: "Implement actor system integration" (too broad - break into smaller tasks)
+
+### Plan References Rule (MANDATORY)
+
+**CRITICAL:**
+- EVERY plan MUST reference relevant ADRs
+- EVERY plan MUST reference relevant Knowledge documents
+- NO assumptions - all decisions backed by documentation
+
+**Required References per Task Type:**
+
+| Task Type | Required ADRs | Required Knowledge |
+|-----------|----------------|-------------------|
+| Module structure | ADR-WASM-011, ADR-WASM-023 | KNOWLEDGE-WASM-012, KNOWLEDGE-WASM-030 |
+| Runtime code | ADR-WASM-002 | KNOWLEDGE-WASM-001, KNOWLEDGE-WASM-003 |
+| Security code | ADR-WASM-005 | KNOWLEDGE-WASM-020 |
+| Actor code | ADR-WASM-006, ADR-WASM-018 | KNOWLEDGE-WASM-016, KNOWLEDGE-WASM-018 |
+| Messaging | ADR-WASM-009 | KNOWLEDGE-WASM-005, KNOWLEDGE-WASM-024 |
+| Storage | ADR-WASM-007 | KNOWLEDGE-WASM-007, KNOWLEDGE-WASM-008 |
+
+### Task Update Protocol
+
+When working on a task:
+1. Update `<task-id>.md` progress tracking
+2. Add progress log entry with date
+3. Update task status (pending/in_progress/complete)
+4. Update `_index.md` task list
+5. NEVER modify `<task-id>.plans.md` after approved
+
+### Task Commands
+
+- `show-tasks [sub-project]` - Display all tasks
+- `show-task [sub-project] [task-id]` - Display task details and plans
+- `update-task [sub-project] [task-id]` - Update task progress
+
 
 ## In Progress
 - [task-003] implement-user-authentication - Working on OAuth integration (Phase 2/3)

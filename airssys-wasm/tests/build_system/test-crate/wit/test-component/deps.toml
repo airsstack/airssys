@@ -1,2 +1,0 @@
-[dependencies]
-"test:types" = { path = "../test-types" }

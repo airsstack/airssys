@@ -1,8 +1,0 @@
-package airssys:test-types@1.0.0;
-
-interface basic {
-    record operation-result {
-        success: bool,
-        message: string,
-    }
-}

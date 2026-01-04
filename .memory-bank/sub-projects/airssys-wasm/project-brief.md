@@ -1,174 +1,252 @@
 # airssys-wasm Project Brief
 
+**Last Updated:** 2026-01-04
+
+---
+
 ## Project Overview
-`airssys-wasm` is a **WASM Component Framework for Pluggable Systems** that enables runtime component deployment for general-purpose computing. Inspired by smart contract deployment patterns (like CosmWasm), it enables developers to build secure, composable, language-agnostic components that can be loaded and updated during runtime.
 
-## Workspace Structure
+**Status:** 🚀 **REBUILDING FROM SCRATCH**
 
-**The airssys-wasm ecosystem consists of three distinct sub-projects** in the AirsSys workspace:
+**What is airssys-wasm?**
+airssys-wasm is a **WASM Component Framework for Pluggable Systems**. It provides infrastructure for component-based architectures, enabling runtime deployment patterns inspired by smart contract systems for general-purpose computing.
 
-### 1. airssys-wasm (Core Framework Library)
-**Location**: `airssys/airssys-wasm/`  
-**Type**: Library crate (`[lib]`)  
-**Implementation Tasks**: Blocks 1-9 (WASM-TASK-002 through WASM-TASK-010)  
-**Status**: 95% of Layer 1 complete
+**Core Value Proposition:**
+- **Cross-Platform Component Framework** - Support any WASM-compatible language (Rust, C/C++, JavaScript, Go, Python)
+- **Runtime Deployment** - Components can be loaded/updated without system restart
+- **Immutable Versions** - Component versions are immutable and auditable
+- **Capability-Based Security** - Fine-grained permission system (deny-by-default)
+- **Language Agnostic** - WIT-based interfaces work across languages
 
-**Responsibilities**:
-- Component runtime (Wasmtime-based WASM execution)
-- Security system (capability-based sandboxing)
-- Storage system (persistent component state)
-- Messaging system (inter-component communication)
-- Actor integration (ComponentActor with airssys-rt)
-- Deployment engine (runtime component updates)
-- Monitoring (observability and metrics)
+---
 
-### 2. airssys-wasm-component (Procedural Macro Crate)
-**Location**: `airssys/airssys-wasm-component/`  
-**Type**: Procedural macro crate (`[lib] proc-macro = true`)  
-**Implementation Task**: Block 10 (WASM-TASK-011)  
-**Status**: 25% foundation complete
+## Project Recovery Status
 
-**Responsibilities**:
-- `#[component]` macro for zero-boilerplate development
-- `#[derive(ComponentOperation)]` for message types
-- `#[derive(ComponentResult)]` for result types
-- `#[derive(ComponentConfig)]` for configuration
-- Code generation (`extern "C"` functions, memory management)
-- Follows **serde pattern** (separation from core types)
+### 2026-01-04: CATASTROPHIC EVENT - PROJECT DELETION
+**What happened:**
+The entire airssys-wasm codebase was deleted due to repeated architectural violations that could not be fixed despite multiple "hotfix" attempts.
 
-### 3. airssys-wasm-cli (Command-Line Tool)
-**Location**: `airssys/airssys-wasm-cli/`  
-**Type**: Binary crate (`[[bin]] name = "airssys-wasm"`)  
-**Implementation Task**: Block 11 (WASM-TASK-012)  
-**Status**: 10% foundation complete
+**Root Cause:**
+- Repeated violations of ADR-WASM-023 (Module Boundary Enforcement)
+  - `core/` importing from `runtime/` (FORBIDDEN)
+- `runtime/` importing from `actor/` (FORBIDDEN)
+- Circular dependencies that created architectural tangles
 
-**Responsibilities**:
-- 14 comprehensive commands for component lifecycle
-- Cryptographic operations (Ed25519 keygen, signing, verification)
-- Project management (init, build)
-- Installation (multi-source: Git/Local/URL)
-- Operations (list, info, status, logs)
-- Configuration and shell completions
+**Documentation of violations:**
+- KNOWLEDGE-WASM-027: Duplicate WASM Runtime - Fatal Architecture Violation
+- KNOWLEDGE-Wasm-028: Circular Dependency actor/runtime
+- KNOWLEDGE-WASM-032: Module Boundary Violations Audit
 
-### Dependency Relationships
+**Attempts to fix:**
+- Multiple hotfix tasks (WASM-TASK-006, etc.) all claimed "fixed" but violations still existed
+- Claims of "verified" without showing actual grep output
+- Plans didn't reference ADRs/Knowledges
+- Implementer proceeded without checking architecture
+
+**User Response:**
+- After discovering violations persisted despite multiple fix attempts, user deleted entire codebase
+- Demanded complete rebuild from scratch
+
+**Impact:**
+- Loss of 10+ days of development work
+- Complete destruction of user trust in AI agents
+- Project deletion
+
+---
+
+## Recovery Strategy
+
+### Current Phase: Fresh Start
+**Objective:** Rebuild airssys-wasm from scratch with strict verification-first approach
+
+**New Task Management Format (ENFORCED):**
+- Tasks in directories: `tasks/<task-identifier>/`
+- Two files per task:
+  - `<task-id>.md` - Task file (objectives, deliverables, checklist)
+  - `<task-id>.plans.md` - Plans file (actions with ADR/Knowledge references)
+- SINGLE action per task - DO ONE THING, DO IT RIGHT
+- Plans MUST reference ADRs and Knowledge documents
+
+**Verification Rules:**
+- Read ADRs/Knowledges BEFORE planning
+- Run architecture verification commands and show ACTUAL output
+- Write REAL tests, not stubs
+- Only proceed when verification passes
+
+### First Task
+**Task ID:** WASM-TASK-001
+**Task Name:** Setup airssys-wasm Project Directory
+**Status:** pending
+**Priority:** high
+**Description:** Create basic project structure (Cargo.toml, src/ directories) as foundation for all subsequent tasks
+
+**Why First:**
+- Must establish correct project structure before any code implementation
+- Architecture violations from previous project must NOT be repeated
+- Foundation tasks must reference existing ADRs and Knowledges
+
+---
+
+## Core Technologies
+
+### WASM Runtime (ADR-WASM-002)
+- **Engine:** Wasmtime 24.0 with Component Model support
+- **Features:** async, cranelift JIT, fuel metering, memory limits
+- **Purpose:** Execute WASM components with proper sandboxing
+
+### AirsSys Integration
+**airssys-rt:** Actor system for component hosting (ADR-WASM-018)
+- **airssys-osl:** Security layer for system access (ADR-WASM-005)
+
+---
+
+## Project Structure (After WASM-TASK-001 Complete)
+
 ```
-airssys-wasm (Core) ← Used by both
-         ↑              ↑
-         │              │
-airssys-wasm-component  airssys-wasm-cli
-   (Macros)             (CLI Tool)
+airssys-wasm/
+├── src/
+│   ├── core/      # Shared types (imports NOTHING)
+│   ├── security/  # Security logic (imports core/)
+│   ├── runtime/   # WASM execution (imports core/, security/)
+│   └── actor/     # Actor integration (imports core/, security/, runtime/)
+├── tests/         # Integration tests
+│   └── wit/           # WIT interfaces
+└── Cargo.toml
+└── README.md
 ```
 
-**📚 Complete Reference**: See **KNOWLEDGE-WASM-015: Project Structure and Workspace Architecture** for comprehensive documentation of the three sub-projects and their relationships.
+**Dependency Hierarchy (MANDATORY - ADR-WASM-023):**
+```
+ALLOWED:
+  ✅ actor/ → runtime/
+  ✅ actor/ → security/
+  ✅ actor/ → core/
+  ✅ runtime/ → security/
+  ✅ runtime/ → core/
+  ✅ security/ → core/
 
-## Project Vision
-This framework provides infrastructure for building pluggable systems with WebAssembly components, enabling secure isolation and runtime component management. Rather than building application-specific plugin systems, airssys-wasm provides a foundational platform for component-based architectures across multiple domains.
+FORBIDDEN (NEVER):
+  ❌ runtime/ → actor/
+  ❌ security/ → runtime/
+  ❌ security/ → actor/
+  ❌ core/ → ANY MODULE
+```
 
-## Core Value Propositions
-1. **Cross-Platform Component Framework**: Language-agnostic component development with standard WIT interfaces
-2. **Runtime Deployment**: Components can be loaded and updated during runtime without system restart
-3. **Capability-Based Security**: Sandbox isolation by default with fine-grained permissions
-4. **Language-Agnostic Development**: Support for any WASM-compatible language (Rust, C++, Go, Python, etc.)
-5. **Component Composition**: Chain and orchestrate components for complex processing pipelines
+---
 
-## Key Capabilities
-- Component orchestration and isolation
-- Runtime component deployment and management
-- Secure, composable component execution with capability-based security
+## Key Constraints
 
-## Core Responsibilities
+### MANDATORY Standards (PROJECTS_STANDARD.md)
+- **§2.1 3-Layer Import Organization** - All imports organized std → external → internal
+- **§3.2 chrono DateTime<Utc>** - All time operations use Utc
+- **§4.3 Module Architecture** - mod.rs only declarations (no implementation)
+- **§5.1 Dependency Management** - Dependencies ordered by layer (workspace, then external)
+- **§6.1 YAGNI** - Only necessary features
+- **§6.2 Avoid `dyn`** - Use generics instead
+- **§6.4 Quality Gates** - Zero warnings, >90% coverage
 
-### Component Framework
-- Language-agnostic component development with WIT interfaces
-- Component lifecycle management (init, execute, shutdown)
-- Component composition and orchestration engine
-- Dependency resolution and graph execution
+### ADR-WASM-023 (Module Boundary Enforcement) - MANDATORY
+- NO forbidden imports in any direction
 
-### Runtime Deployment System  
-- Components can be loaded and updated during runtime
-- Multiple deployment strategies (Blue-Green, Canary, Rolling)
-- Version management with rollback capabilities
-- Traffic routing and load balancing for component deployment
+---
 
-### Security & Isolation
-- Capability-based security with deny-by-default policies
-- Fine-grained permission system for resource access
-- Component sandboxing and memory isolation
-- Security audit logging and policy enforcement
+## Architecture Documentation (INTACT - 22 ADRs, 22 Knowledge docs)
 
-### AirsSys Ecosystem Integration
-- Deep integration with airssys-osl for secure system access
-- Integration with airssys-rt for actor-based component hosting
-- Unified logging and configuration management
-- Host system interface and capability bridging
+### Critical Documents (MUST READ)
+**Foundation:**
+- KNOWLEDGE-WASM-031: Foundational Architecture (READ FIRST)
+- KNOWLEDGE-WASM-030: Module Architecture Requirements (MANDATORY)
 
-## Target Use Cases & Domains
+**Module Structure:**
+- ADR-WASM-011: Module Structure Organization
+- KNOWLEDGE-WASM-012: Module Structure Architecture
 
-### Target Use Cases (Examples)
-- **AI Agents**: Secure, composable AI agent systems
-- **MCP Tools**: Model Context Protocol tools as WASM components
-- **Microservices**: Lightweight microservices with runtime updates
-- **Data Processors**: ETL and data transformation pipelines
-- **IoT Controllers**: Edge device controllers and processors
-- **Plugin Systems**: Secure plugin architectures for applications
+**Security:**
+- ADR-WASM-005: Capability-Based Security Model
+- KNOWLEDGE-WASM-020: AirsSys Security Integration
 
-### Applicable Domains
-- Enterprise software with secure plugin ecosystems
-- Edge computing with lightweight, secure functions
-- AI/ML infrastructure with composable model pipelines
-- Gaming platforms with secure mod systems
-- Web platforms with secure extensions
+**Messaging:**
+- ADR-WASM-009: Component Communication Model
+- KNOWLEDGE-WASM-005: Messaging Architecture
 
-## Technical Requirements
+**Integration:**
+- ADR-WASM-018: Three-Layer Architecture
+- KNOWLEDGE-WASM-018: Component Definitions
+- KNOWLEDGE-WASM-016: Actor System Integration
 
-### Core Framework Requirements
-- General-purpose component interface supporting multiple domains
-- Runtime deployment engine for component loading and updates
-- Capability-based security system with fine-grained permissions
-- Component composition engine for pipeline orchestration
-- Version management with rollback capabilities
+**Lessons Learned:**
+- KNOWLEDGE-WASM-033: AI Fatal Mistakes
 
-### Performance Requirements
-- Component instantiation < 10ms (cold start time)
-- Component deployment < 1 second (runtime loading)
-- Memory isolation 100% (no component cross-access)
-- Rollback time < 5 seconds
-- Throughput > 10,000 component calls/second
+---
 
-### Developer Experience Requirements
-- Rich SDK with derive macros for easy development
-- WIT interface system for language-agnostic contracts
-- Comprehensive testing framework and utilities
-- Visual component composition and pipeline building
-- Complete documentation with examples across domains
+## Dependencies
 
-### Integration Requirements
-- Deep airssys-osl integration for secure system access
-- airssys-rt integration for actor-based hosting
-- WASI Preview 2 support for system interface
-- Monitoring and observability built-in
-- Configuration management and service discovery
-- Efficient resource sharing and reuse
+### AirsSys Dependencies
+- **airssys-osl:** Security layer for system access
+- **airssys-rt:** Actor system for component hosting
 
-### Compatibility Requirements
-- WebAssembly Component Model compatibility
-- WASI preview 2 support for system interface
-- Multiple WASM language support (Rust, C/C++, JavaScript, etc.)
-- Integration with existing WASM toolchains and package managers
+### External Dependencies
+- **Wasmtime:** WASM runtime engine (24.0)
+- **wit-bindgen:** WIT code generation (0.47.0)
 
-## Architecture Constraints
-- Follow workspace standards (§2.1, §3.2, §4.3, §5.1)
-- Rust-based implementation with wasmtime or similar runtime
-- Zero unsafe code blocks without security review
-- Comprehensive security policy validation and enforcement
-
-## Integration Points
-- **airssys-osl**: Secure system access through OS layer abstraction
-- **airssys-rt**: Actor-based component hosting and lifecycle management
-- **Component Ecosystem**: Integration with WASM component registries and tooling
+---
 
 ## Success Criteria
-- Pass comprehensive security audit for component isolation
-- Achieve target performance metrics for component execution
-- Successful demonstration of polyglot component composition
-- Seamless integration with airssys-osl and airssys-rt components
+
+### For Fresh Start Success
+- [ ] Project structure created (Cargo.toml + modules)
+- [ ] All modules follow four-module architecture
+- [ ] Architecture verified (all grep commands clean)
+- [ ] Zero compiler warnings
+- [ ] Zero clippy warnings
+- [ ] All documentation referenced in plans
+
+### For Subsequent Tasks
+- [ ] ADR-WASM-023 compliance verified
+- [ ] KNOWLEDGE-WASM-033 lessons understood
+- [ ] STRICT verification workflow followed
+
+---
+
+## Next Steps
+
+1. **Implement WASM-TASK-001** (Setup Project Directory)
+   - Follow implementation plans in plans.md
+   - Verify each action before marking complete
+   - Run grep commands after implementation
+   - Show ACTUAL output as proof
+
+2. **Create foundational tasks** (in order based on ADR-WASM-010 build order)
+   - Each task will have single action
+   - Each task will reference ADRs/Knowledges
+   - Each plan will reference documentation with citations
+
+3. **Verification MANDATORY**
+   - Read ALL relevant ADRs before planning
+   - Run ALL architecture verification commands
+   - Show ACTUAL grep output (not just "verified")
+   - Write REAL tests (not stubs)
+
+---
+
+## Notes
+
+**Why previous project failed:**
+- Multi-phase tasks led to complexity and loss of focus
+- No single-action enforcement
+- Plans didn't reference documentation
+- Claims without evidence
+- Verification commands not run or shown
+- Architecture violations accumulated without correction
+
+**What's different now:**
+- Single-action tasks enforce clear objectives
+- Plans MUST reference documentation
+- Verification workflow is mandatory
+- Architecture verification is automated and evidence-based
+
+**Commitment:**
+- We will NOT repeat the same mistakes
+- We will ALWAYS read ADRs/Knowledges before planning
+- We will ALWAYS run verification commands and show output
+- We will write REAL tests, not stubs
