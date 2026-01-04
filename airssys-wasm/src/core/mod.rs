@@ -168,6 +168,8 @@ pub mod component_message; // ADR-WASM-022: Component messages moved from actor/
 pub mod multicodec; // Phase 1 Task 1.3: Multicodec support for message serialization
 pub mod multicodec_prefix; // WASM-TASK-006 Phase 2: ADR-WASM-001 multicodec prefix validation
 pub mod rate_limiter; // DEBT-WASM-004 Item #3: Rate limiting for message security
+pub mod correlation_trait; // WASM-TASK-014 Phase 1: DIP implementation
+pub mod timeout_trait; // WASM-TASK-014 Phase 1: DIP implementation
 
 // Permission System (WASM-TASK-003 Phase 3 Task 3.2: Complete)
 pub mod manifest;
@@ -237,3 +239,5 @@ pub use security::{
 };
 pub use storage::{StorageBackend, StorageOperation};
 pub use component_message::{ComponentMessage, ComponentHealthStatus};
+pub use correlation_trait::CorrelationTrackerTrait; // WASM-TASK-014 Phase 1
+pub use timeout_trait::TimeoutHandlerTrait; // WASM-TASK-014 Phase 1

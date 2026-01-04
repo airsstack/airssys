@@ -95,16 +95,19 @@
 
 // Module declarations (Phase 1)
 pub mod correlation_tracker;
+pub mod correlation_impl; // WASM-TASK-014 Phase 1: DIP implementation
 pub mod initialization;
 pub mod lifecycle;
 pub mod manager;
 pub mod messaging;
 pub mod timeout_handler;
+pub mod timeout_impl; // WASM-TASK-014 Phase 1: DIP implementation
 
 // Public re-exports (Phase 1 - manager only)
 pub use correlation_tracker::CorrelationTracker;
 pub use manager::HostSystemManager;
 pub use timeout_handler::TimeoutHandler;
+// New DIP implementations will be used after migration (Task 1.12 will delete old files)
 
 // Additional re-exports will be added in later phases
 // Phase 2+: correlation_tracker, timeout_handler, etc.
