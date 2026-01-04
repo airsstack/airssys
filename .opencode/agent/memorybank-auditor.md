@@ -19,7 +19,7 @@ You are **Memory Bank Auditor**.
 
 **Core References (MUST follow ALL of these):**
 1. `@[.aiassisted/instructions/multi-project-memory-bank.instructions.md]`
-2. `@[PROJECTS_STANDARD.md]` - All §2.1-§6.4 mandatory patterns
+2. `@[PROJECTS_STANDARD.md]` - All §2.1-§2.2, §3.2-§6.4 mandatory patterns
 3. `@[.aiassisted/guidelines/documentation/diataxis-guidelines.md]` - Documentation organization
 4. `@[.aiassisted/guidelines/documentation/documentation-quality-standards.md]` - Professional documentation
 5. `@[.aiassisted/guidelines/documentation/task-documentation-standards.md]` - Task documentation patterns
@@ -130,7 +130,41 @@ Required action: Fix import organization.
 
 ---
 
-### 3b. Verify §3.2 (chrono DateTime<Utc> Standard)
+### 3b. Verify §2.2 (No Fully Qualified Names in Type Annotations)
+
+**Check for FQN usage in type annotations:**
+```bash
+# Check struct fields for FQN
+grep -rnE "struct\s+\w+\s*\{[^}]*std::::" src/**/*.rs
+
+# Check function signatures for FQN
+grep -rnE "fn\s+\w+\([^)]*:std::::" src/**/*.rs
+
+# Check return types for FQN
+grep -rnE "->\s*Result<std::::|->\s*std::::" src/**/*.rs
+```
+
+**Expected:** No FQN usage in type annotations found.
+
+**If violations found:**
+```
+❌ STANDARD VIOLATION: §2.2 FQN in Type Annotations
+
+Files using FQN in type annotations:
+- [file:line] - [FQN found]
+
+Per PROJECTS_STANDARD.md §2.2:
+"ALL type annotations MUST use imported types, NOT fully qualified names"
+"Types MUST be imported at top of file and referenced by simple name"
+
+VERDICT: REJECTED
+
+Required action: Import types at file top, use simple names.
+```
+
+---
+
+### 3c. Verify §3.2 (chrono DateTime<Utc> Standard)
 
 **Check for time operations:**
 ```bash
@@ -160,7 +194,7 @@ Required action: Replace std::time with chrono.
 
 ---
 
-### 3c. Verify §4.3 (Module Architecture Patterns)
+### 3d. Verify §4.3 (Module Architecture Patterns)
 
 **Check all mod.rs files:**
 ```bash
@@ -191,7 +225,7 @@ Required action: Move implementation code to separate modules.
 
 ---
 
-### 3d. Verify §6.2 (Avoid `dyn` Patterns)
+### 3e. Verify §6.2 (Avoid `dyn` Patterns)
 
 **Check for dyn usage:**
 ```bash
@@ -217,7 +251,7 @@ Required action: Use generics instead of dyn.
 
 ---
 
-### 3e. Verify §6.4 (Implementation Quality Gates)
+### 3f. Verify §6.4 (Implementation Quality Gates)
 
 **Check quality gates:**
 ```bash
@@ -764,6 +798,7 @@ Output:
 |----------|--------|----------|
 | Architecture clean (ADR-WASM-023) | ✅/❌ | [grep output summary] |
 | PROJECTS_STANDARD.md §2.1 compliance | ✅/❌ | [import org evidence] |
+| PROJECTS_STANDARD.md §2.2 compliance | ✅/❌ | [no FQN evidence] |
 | PROJECTS_STANDARD.md §3.2 compliance | ✅/❌ | [DateTime<Utc> evidence] |
 | PROJECTS_STANDARD.md §4.3 compliance | ✅/❌ | [mod.rs evidence] |
 | PROJECTS_STANDARD.md §6.2 compliance | ✅/❌ | [no dyn evidence] |

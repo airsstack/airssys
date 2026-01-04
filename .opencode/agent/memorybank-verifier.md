@@ -17,7 +17,7 @@ Independently verify reports from @memorybank-planner, @memorybank-auditor, and 
 **Core References:**
 You MUST refer to and follow:
 1. `@[.aiassisted/instructions/multi-project-memory-bank.instructions.md]`
-2. `@[PROJECTS_STANDARD.md]` - All §2.1-§6.4 mandatory patterns
+2. `@[PROJECTS_STANDARD.md]` - All §2.1-§2.2, §3.2-§6.4 mandatory patterns
 3. `@[.aiassisted/guidelines/rust/microsoft-rust-guidelines.md]` - Rust development standards
 4. `@[.aiassisted/guidelines/rust/dependency-management.md]` - Dependency Management (DIP & DI)
 
@@ -185,6 +185,12 @@ Look for these in the plan:
 ```markdown
 - Does plan specify this standard will be followed?
 - Does plan include verification for import organization?
+```
+
+**§2.2 (No Fully Qualified Names in Type Annotations):**
+```
+- Does plan specify types will be imported, not FQN?
+- Does plan include verification for FQN usage?
 ```
 
 **§3.2 (chrono DateTime<Utc> Standard):**
@@ -381,6 +387,7 @@ Required action: Planner must provide specific deliverables.
 | Section | In Plan? | Specific? |
 |---------|-----------|----------|
 | §2.1 (3-Layer Imports) | ✅/❌ | ✅/❌ |
+| §2.2 (No FQN) | ✅/❌ | ✅/❌ |
 | §3.2 (DateTime<Utc>) | ✅/❌ | ✅/❌ |
 | §4.3 (Module Architecture) | ✅/❌ | ✅/❌ |
 | §6.2 (Avoid `dyn`) | ✅/❌ | ✅/❌ |
@@ -614,6 +621,14 @@ For each standard auditor verified:
 # Does auditor report show actual import structure analysis?
 ```
 
+**§2.2 (No FQN):**
+```bash
+# Verify auditor checked this
+grep -rnE "struct\s+\w+\s*\{[^}]*std::::" src/**/*.rs
+grep -rnE "fn\s+\w+\([^)]*:std::::" src/**/*.rs
+grep -rnE "->\s*Result<std::::|->\s*std::::" src/**/*.rs
+```
+
 **§3.2 (DateTime<Utc>):**
 ```bash
 # Verify auditor checked this
@@ -716,6 +731,7 @@ VERDICT: PARTIAL
 | Standard | Auditor Checked? | My Check | Status |
 |-----------|------------------|----------|--------|
 | §2.1 | [yes/no] | [output] | ✅/❌ |
+| §2.2 | [yes/no] | [output] | ✅/❌ |
 | §3.2 | [yes/no] | [output] | ✅/❌ |
 | §6.2 | [yes/no] | [output] | ✅/❌ |
 
@@ -1026,6 +1042,14 @@ for file in src/**/*.rs; do
 done
 ```
 
+**§2.2 (No FQN):**
+```bash
+# Check for FQN usage in type annotations
+grep -rnE "struct\s+\w+\s*\{[^}]*std::::" src/**/*.rs
+grep -rnE "fn\s+\w+\([^)]*:std::::" src/**/*.rs
+grep -rnE "->\s*Result<std::::|->\s*std::::" src/**/*.rs
+```
+
 **§3.2 (DateTime<Utc>):**
 ```bash
 # Check if chrono is used
@@ -1153,6 +1177,7 @@ Required action: Implementer must rewrite tests as REAL.
 | Standard | Implementer Checked? | My Check | Status |
 |-----------|----------------------|----------|--------|
 | §2.1 | [yes/no] | [my verification] | ✅/❌ |
+| §2.2 | [yes/no] | [my verification] | ✅/❌ |
 | §3.2 | [yes/no] | [my verification] | ✅/❌ |
 | §6.2 | [yes/no] | [my verification] | ✅/❌ |
 

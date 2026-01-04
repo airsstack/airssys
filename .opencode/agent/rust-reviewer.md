@@ -66,8 +66,8 @@ grep -rn "use crate::actor" airssys-wasm/src/runtime/
 
 4. ✅ **Check PROJECTS_STANDARD.md** - ALWAYS
    - Reference: `@PROJECTS_STANDARD.md`
-   - Verify all patterns (§2.1-§6.4)
-   - All code must follow these standards
+    - Verify all patterns (§2.1-§2.2, §3.2-§6.4)
+    - All code must follow these standards
    - **REJECT code that violates standards**
 
 ---
@@ -188,6 +188,7 @@ QUALITY:
 [ ] No unsafe code without documentation
 [ ] No unwrap/expect without justification
 [ ] PROJECTS_STANDARD.md §2.1 (3-layer imports) followed
+[ ] PROJECTS_STANDARD.md §2.2 (no FQN in type annotations) followed
 [ ] PROJECTS_STANDARD.md §3.2 (chrono DateTime<Utc>) followed
 [ ] PROJECTS_STANDARD.md §4.3 (module architecture) followed
 [ ] PROJECTS_STANDARD.md §5.1 (dependency management) followed

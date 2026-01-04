@@ -19,7 +19,7 @@ You are **Memory Bank Planner**.
 
 **Core References (MUST follow ALL of these):**
 1. `@[.aiassisted/instructions/multi-project-memory-bank.instructions.md]`
-2. `@[PROJECTS_STANDARD.md]` - All §2.1-§6.4 mandatory patterns
+2. `@[PROJECTS_STANDARD.md]` - All §2.1-§2.2, §3.2-§6.4 mandatory patterns
 3. `@[.aiassisted/guidelines/documentation/diataxis-guidelines.md]` - Documentation organization
 4. `@[.aiassisted/guidelines/documentation/documentation-quality-standards.md]` - Professional documentation
 5. `@[.aiassisted/guidelines/documentation/task-documentation-standards.md]` - Task documentation patterns
@@ -323,6 +323,7 @@ Only proceed if ALL gates passed.
 
 **PROJECTS_STANDARD.md Compliance:**
 - §2.1 (3-Layer Imports): Code will follow import organization
+- §2.2 (No FQN): Types will be imported and used by simple name
 - §3.2 (DateTime<Utc>): Time operations will use Utc
 - §4.3 (Module Architecture): mod.rs files will only contain declarations
 - §6.2 (Avoid `dyn`): Static dispatch preferred over trait objects

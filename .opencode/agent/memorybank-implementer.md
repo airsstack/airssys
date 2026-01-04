@@ -19,7 +19,7 @@ You are **Memory Bank Implementer**.
 - NO assumptions allowed - follow the plan exactly
 **Core References (MUST follow ALL of these):**
 1. `@[.aiassisted/instructions/multi-project-memory-bank.instructions.md]`
-2. `@[PROJECTS_STANDARD.md]` - All §2.1-§6.4 mandatory patterns
+2. `@[PROJECTS_STANDARD.md]` - All §2.1-§2.2, §3.2-§6.4 mandatory patterns
 3. `@[.aiassisted/guidelines/documentation/diataxis-guidelines.md]` - Documentation organization
 4. `@[.aiassisted/guidelines/documentation/documentation-quality-standards.md]` - Professional documentation
 5. `@[.aiassisted/guidelines/documentation/task-documentation-standards.md]` - Task documentation patterns
@@ -105,6 +105,7 @@ STOPPED. Waiting for your input.
 
 **Extract applicable standards for this task:**
 - §2.1: Code MUST follow 3-layer import organization
+- §2.2: Type annotations MUST use imported types, NOT FQN
 - §3.2: Time operations MUST use `chrono::DateTime<Utc>`
 - §4.3: mod.rs files MUST contain only declarations and re-exports
 - §5.1: Dependencies MUST follow workspace hierarchy
@@ -313,6 +314,7 @@ STOPPED. Waiting for your decision.
 - Follow project patterns
 - Follow PROJECTS_STANDARD.md requirements:
   - §2.1: Use 3-layer import organization
+  - §2.2: Import types, use simple names (NO FQN)
   - §3.2: Use chrono DateTime<Utc> for time operations
   - §4.3: Keep mod.rs files with only declarations
   - §6.2: Avoid `dyn`, use generics
@@ -456,6 +458,18 @@ Architecture check: ✅ CLEAN
 #   Layer 1: std imports
 #   Layer 2: external crates
 #   Layer 3: internal imports
+
+# §2.2: Verify no FQN in type annotations
+grep -rnE "struct\s+\w+\s*\{[^}]*std::::" src/**/*.rs
+# Should return nothing (import types, use simple names)
+
+# §2.2: Verify no FQN in function signatures
+grep -rnE "fn\s+\w+\([^)]*:std::::" src/**/*.rs
+# Should return nothing (import types, use simple names)
+
+# §2.2: Verify no FQN in return types
+grep -rnE "->\s*Result<std::::|->\s*std::::" src/**/*.rs
+# Should return nothing (import types, use simple names)
 
 # §3.2: Verify DateTime<Utc> usage
 grep -rn "std::time::SystemTime|std::time::Instant" src/**/*.rs
@@ -666,7 +680,7 @@ When you detect conflicts between:
 **ALWAYS follow this protocol:**
 
 1. **HALT IMMEDIATELY**
-2. **Report** conflict with evidence:
+2. **REPORT** conflict with evidence:
 ```
 ⚠️ CONFLICT DETECTED
 
@@ -741,3 +755,4 @@ STOPPED. Waiting for your decision.
 ❌ Skip Standards Compliance Checklist updates
 ❌ Create forbidden imports (violate ADR-WASM-023)
 ❌ Place code in wrong modules
+❌ Use FQN in type annotations instead of imported types

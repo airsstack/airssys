@@ -18,6 +18,72 @@ use crate::shared::protocol::core::McpMethod;
 use crate::transport::http::config::HttpConfig;
 ```
 
+### §2.2 No Fully Qualified Names in Type Annotations (MANDATORY)
+**ALL type annotations MUST use imported types, NOT fully qualified names (FQN):**
+
+This policy enforces consistency with §2.1 (3-Layer Import Organization). Types MUST be imported at the top of the file and referenced by their simple name throughout the code.
+
+**✅ CORRECT - Import types, use simple names:**
+```rust
+use std::path::PathBuf;
+use std::fs::File;
+use std::collections::HashMap;
+
+struct Config {
+    path: PathBuf,           // ✅ Uses imported type
+    files: Vec<File>,        // ✅ Uses imported type
+    cache: HashMap<String, u32>,  // ✅ Uses imported type
+}
+
+fn process(file: File) -> Result<PathBuf, Error> {  // ✅ Uses imported types
+    // implementation
+}
+```
+
+**❌ FORBIDDEN - Fully qualified names in type annotations:**
+```rust
+struct Config {
+    path: std::path::PathBuf,    // ❌ FQN - must be imported
+    files: Vec<std::fs::File>,   // ❌ FQN - must be imported
+    cache: std::collections::HashMap<String, u32>,  // ❌ FQN - must be imported
+}
+
+fn process(file: std::fs::File) -> Result<std::path::PathBuf, Error> {  // ❌ FQN
+    // implementation
+}
+```
+
+**❌ FORBIDDEN - Mixed imports and FQN:**
+```rust
+use std::path::PathBuf;
+
+struct Config {
+    path: PathBuf,                         // ✅ Uses imported type
+    files: Vec<std::fs::File>,            // ❌ Inconsistent - FQN
+    cache: std::collections::HashMap<...>,  // ❌ Inconsistent - FQN
+}
+```
+
+**Rationale:**
+- **Readability**: Simple type names are easier to read than long FQNs
+- **Consistency**: Follows §2.1's requirement for organized imports
+- **Maintainability**: All type dependencies are visible at file top
+- **Clarity**: Clear separation between import section and implementation
+
+**Exceptions (RARE):**
+- Type alias imports that would create name conflicts AND no suitable renaming available
+- Foreign function interface (FFI) types where FQN is standard practice
+- **Note**: These exceptions MUST be justified with code comments
+
+**Verification:**
+```bash
+# Check for FQN usage in struct fields, function signatures, type aliases
+grep -rnE "struct\s+\w+\s*\{[^}]*std::::" src/**/*.rs
+grep -rnE "fn\s+\w+\([^)]*:std::::" src/**/*.rs
+grep -rnE "->\s*Result<std::::|->\s*std::::" src/**/*.rs
+```
+**Expected:** No FQN usage in type annotations found.
+
 ### §3.2 chrono DateTime<Utc> Standard (MANDATORY)
 **ALL time operations MUST use chrono DateTime<Utc>:**
 ```rust
@@ -138,7 +204,6 @@ pub fn process(handler: Box<dyn MyTrait>) -> Result<(), MyError>;
 2. **Generics with constraints** - Use `impl Trait` or `<T: Trait>` for flexibility
 3. **`dyn` only as last resort** - When generics become a nesting problem
 
-
 ### §6.4 Implementation Quality Gates (MANDATORY)
 **All implementations must meet these criteria:**
 - **Safety First**: No `unsafe` blocks without thorough justification
@@ -146,4 +211,3 @@ pub fn process(handler: Box<dyn MyTrait>) -> Result<(), MyError>;
 - **Comprehensive Tests**: >90% code coverage with unit and integration tests
 - **Security Logging**: All operations must generate audit trails
 - **Resource Management**: Proper cleanup and lifecycle management
-
