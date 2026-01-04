@@ -38,11 +38,11 @@ You must pass ALL gates before writing ANY code.
 
 **1a. Find task file:**
 ```bash
-find .memory-bank/sub-projects/[project]/tasks -name "*[task-id]*"
+find .memory-bank/sub-projects/[project]/tasks -type d -name "[task-id]*"
 ```
 
 **1b. Read the plan completely:**
-- Implementation Plan section
+- Plans file content
 - All subtasks and deliverables
 - ADR references
 - Knowledge references

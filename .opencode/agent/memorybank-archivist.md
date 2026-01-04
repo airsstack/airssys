@@ -21,7 +21,7 @@ You MUST refer to and follow: `@[.aiassisted/instructions/multi-project-memory-b
 **Context Needed**: Active Project, Timestamp, Workspace Context, Sub-project Context.
 
 **Execution**:
-- **Format Filename**: `.memory-bank/context-snapshots/[YYYY-MM-DD]-[Description].md`. (Use 'snapshot' if no description).
+- **Format Filename**: `.memory-bank/context-snapshots/[YYYY-MM-DD]-[Description].md` (NEW STRUCTURE) (Use 'snapshot' if no description).
 - **Construct Content**:
     ```markdown
     # Context Snapshot: [Description]

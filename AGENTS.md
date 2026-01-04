@@ -97,7 +97,7 @@ The ONLY exception is when the user explicitly requests in their initial message
 
 **Agents MUST:**
 1. ✅ **READ** `.aiassisted/instructions/multi-project-memory-bank.instructions.md` BEFORE creating ANY documentation
-2. ✅ **FOLLOW** the structure defined in lines 71-122 (Core Files, tasks/, docs/ structure)
+2. ✅ **FOLLOW** the structure defined (Core Files, tasks/, docs/ structure)
 3. ✅ **USE** kebab-case naming for ALL files
 4. ✅ **PLACE** files in ONLY the designated locations
 5. ✅ **ASK** the user if uncertain about classification or location
@@ -111,35 +111,50 @@ The ONLY exception is when the user explicitly requests in their initial message
 
 ### Allowed File Locations (Exhaustive)
 
-Per instructions lines 71-122:
-
 ```
-.memory-bank/sub-projects/{project}/
-├── (6 CORE FILES ONLY - NO OTHER FILES AT ROOT)
-│   ├── active-context.md
-│   ├── product-context.md  
-│   ├── progress.md
+.memory-bank/
+├── current-context.md               # Active sub-project tracker
+├── workspace/                      # Workspace-level shared files
 │   ├── project-brief.md
-│   ├── system-patterns.md
-│   └── tech-context.md
-│
-├── tasks/                          # Task planning & tracking
-│   ├── task-[id]-[name].md
-│   └── _index.md
-│
-├── docs/                           # Technical documentation
-│   ├── knowledges/                # Architectural knowledge
-│   │   ├── [files following template]
-│   │   └── _index.md
-│   ├── adr/                       # Architecture decisions
-│   │   ├── [files following template]
-│   │   └── _index.md
-│   └── debts/                     # Technical debt
-│       ├── [files following template]
-│       └── _index.md
-│
-└── context-snapshots/              # Historical session context
-    └── YYYY-MM-DD-[description].md
+│   ├── shared-patterns.md
+│   ├── workspace-architecture.md
+│   └── workspace-progress.md
+├── templates/                      # Documentation templates
+│   └── docs/
+│       ├── technical-debt-template.md
+│       ├── knowledge-template.md
+│       ├── adr-template.md
+│       ├── documentation-guidelines.md
+│       ├── debt-index-template.md
+│       └── adr-index-template.md
+├── context-snapshots/              # Historical session context
+│   └── YYYY-MM-DD-[description].md
+└── sub-projects/
+    └── {project}/
+        ├── (6 CORE FILES ONLY)
+        │   ├── active-context.md
+        │   ├── product-context.md
+        │   ├── progress.md
+        │   ├── project-brief.md
+        │   ├── system-patterns.md
+        │   └── tech-context.md
+        ├── tasks/                          # Task planning & tracking
+        │   ├── _index.md                   # Task registry
+        │   └── <task-identifier>/          # Task directory (NEW FORMAT)
+        │       ├── <task-identifier>.md    # Task file (objectives, deliverables)
+        │       └── <task-identifier>.plans.md # Plans file (actions, ADR refs)
+        ├── docs/                           # Technical documentation
+        │   ├── knowledges/                # Architectural knowledge
+        │   │   ├── [files following template]
+        │   │   └── _index.md
+        │   ├── adr/                       # Architecture decisions
+        │   │   ├── [files following template]
+        │   │   └── _index.md
+        │   └── debts/                     # Technical debt
+        │       ├── [files following template]
+        │       └── _index.md
+        └── context-snapshots/              # Sub-project session context
+            └── YYYY-MM-DD-[description].md
 ```
 
 **NO OTHER FILES OR DIRECTORIES ARE ALLOWED!**
@@ -150,15 +165,15 @@ All files use **kebab-case** naming:
 
 | Type | Location | Convention | Example |
 |------|----------|------------|---------|
-| **Task** | `tasks/` | `task-[id]-[name].md` | `task-005-block-4-security-and-isolation-layer.md` |
+| **Task Directory** | `tasks/` | `<task-identifier>/` | `wasm-task-001/` |
+| **Task File** | `tasks/<id>/` | `<task-identifier>.md` | `wasm-task-001.md` |
+| **Plans File** | `tasks/<id>/` | `<task-identifier>.plans.md` | `wasm-task-001.plans.md` |
 | **Knowledge** | `docs/knowledges/` | Per template guidelines | `knowledge-wasm-020-airssys-osl-security-integration.md` |
 | **ADR** | `docs/adr/` | Per template guidelines | `adr-wasm-005-capability-based-security-model.md` |
 | **Debt** | `docs/debts/` | Per template guidelines | `debt-wasm-004-task-1.3-deferred-implementation.md` |
 | **Snapshot** | `context-snapshots/` | `YYYY-MM-DD-[description].md` | `2025-12-17-wasm-task-005-phase-1-planning-session.md` |
 
 ### Templates (MUST Use)
-
-Per instructions lines 124-173:
 
 - **Technical Debt**: Use `templates/docs/technical-debt-template.md`
 - **Knowledge**: Use `templates/docs/knowledge-template.md`
@@ -193,8 +208,8 @@ Per instructions lines 124-173:
 
 **This agent commits to:**
 - ✅ Read Memory Bank instructions before creating ANY file
-- ✅ Follow the structure EXACTLY as defined (lines 71-122)
-- ✅ Use templates from `templates/docs/` as specified (lines 56-63, 124-173)
+- ✅ Follow the structure EXACTLY as defined
+- ✅ Use templates from `templates/docs/` as specified
 - ✅ Never create files outside designated locations
 - ✅ Always ask if uncertain
 - ✅ 100% compliance with NO EXCEPTIONS
@@ -203,7 +218,105 @@ Per instructions lines 124-173:
 
 ---
 
-## 8. Mandatory Testing Requirements (CRITICAL - NO EXCEPTIONS)
+## 8. Task Management (NEW STRUCTURE - UPDATED 2026-01-04)
+
+### Task Structure (MANDATORY - NEW FORMAT)
+
+**CRITICAL RULE:**
+- Each task = ONE directory
+- Two files per task: task file + plans file
+- **SINGLE action per task** - DO ONE THING, DO IT RIGHT
+- Plans MUST reference ADRs and Knowledge documents
+
+### Directory Structure
+
+```
+tasks/
+├── _index.md                              # Task registry
+└── <task-identifier>/                    # Task directory (e.g., wasm-task-001/)
+    ├── <task-identifier>.md              # Task file (objectives, deliverables, checklist)
+    └── <task-identifier>.plans.md        # Plans file (actions with ADR/Knowledge references)
+```
+
+### Task File Format (<task-identifier>.md)
+
+**Contains:**
+- Task metadata (status, dates, priority, duration)
+- Original request
+- Thought process
+- Deliverables checklist
+- Success criteria
+- Progress tracking
+- Standards compliance checklist
+- Definition of done
+
+### Plans File Format (<task-identifier>.plans.md)
+
+**Contains:**
+- Detailed implementation plan
+- Step-by-step actions
+- References to ADRs and Knowledge documents
+- Verification commands to run
+
+### Task Registry (_index.md)
+
+**Format:**
+```markdown
+# Tasks Index
+
+## Pending
+- [task-001] task-name - Task description (YYYY-MM-DD)
+
+## In Progress
+- [task-002] task-name - Task description (YYYY-MM-DD)
+
+## Completed
+- [task-003] task-name - Task description (YYYY-MM-DD)
+
+## Abandoned
+- [task-004] task-name - Task description (YYYY-MM-DD)
+```
+
+### Single Action Rule (MANDATORY)
+
+**CRITICAL:**
+- Each task contains EXACTLY ONE action
+- NO multiple objectives per task
+- NO mixed deliverables
+- DO ONE THING, DO IT RIGHT
+
+**Examples:**
+- ✅ CORRECT: "Setup airssys-wasm project directory" (single action)
+- ✅ CORRECT: "Implement core/ types module" (single action)
+- ✅ CORRECT: "Write unit tests for ComponentMessage" (single action)
+- ❌ WRONG: "Setup project AND implement core types" (two actions - split into two tasks)
+- ❌ WRONG: "Implement actor system integration" (too broad - break into smaller tasks)
+
+### Plan References Rule (MANDATORY)
+
+**CRITICAL:**
+- EVERY plan MUST reference relevant ADRs
+- EVERY plan MUST reference relevant Knowledge documents
+- NO assumptions - all decisions backed by documentation
+
+### Task Update Protocol
+
+When working on a task:
+1. Update `<task-id>.md` progress tracking
+2. Add progress log entry with date
+3. Update task status (pending/in_progress/complete)
+4. Update `_index.md` task list
+5. NEVER modify `<task-id>.plans.md` after approved
+
+### Task Commands
+
+- `show-tasks [sub-project]` - Display all tasks
+- `show-task [sub-project] [task-id]` - Display task details and plans
+- `update-task [sub-project] [task-id]` - Update task progress
+
+---
+
+## 9. Mandatory Testing Requirements (CRITICAL - NO EXCEPTIONS)
 
 ### The Testing Mandate
 
@@ -345,7 +458,7 @@ cargo clippy --all-targets --all-features -- -D warnings
 
 ---
 
-## 9. Project High-Level Overview (CRITICAL - MUST UNDERSTAND)
+## 10. Project High-Level Overview (CRITICAL - MUST UNDERSTAND)
 
 ### ⚠️ MANDATORY: Understand What Each Project IS Before Any Work
 
@@ -353,7 +466,7 @@ cargo clippy --all-targets --all-features -- -D warnings
 
 ---
 
-### 9.1 airssys-wasm: WASM Plugin/Extension Platform
+### 10.1 airssys-wasm: WASM Plugin/Extension Platform
 
 **What It Is:**
 A WebAssembly-based plugin/extension platform similar to smart contracts on NEAR or Polkadot. It allows third-party developers to write sandboxed, secure extensions that run within a host application.
@@ -398,7 +511,7 @@ A WebAssembly-based plugin/extension platform similar to smart contracts on NEAR
 
 ---
 
-### 9.2 airssys-rt: Erlang-Actor Model Runtime
+### 10.2 airssys-rt: Erlang-Actor Model Runtime
 
 **What It Is:**
 A lightweight actor system inspired by Erlang/BEAM. Provides the foundation for concurrent, fault-tolerant applications.
@@ -416,7 +529,7 @@ A lightweight actor system inspired by Erlang/BEAM. Provides the foundation for 
 
 ---
 
-### 9.3 airssys-osl: OS Layer Framework
+### 10.3 airssys-osl: OS Layer Framework
 
 **What It Is:**
 Operating system abstraction layer providing secure access to filesystem, network, and process management with comprehensive audit logging.
@@ -429,13 +542,13 @@ Operating system abstraction layer providing secure access to filesystem, networ
 
 ---
 
-## 10. Module Responsibility Maps (CRITICAL - MUST FOLLOW)
+## 11. Module Responsibility Maps (CRITICAL - MUST FOLLOW)
 
 ### ⚠️ MANDATORY: Know Module Boundaries Before Writing ANY Code
 
 ---
 
-### 10.1 airssys-wasm Module Architecture
+### 11.1 airssys-wasm Module Architecture
 
 **The Four Root Modules:**
 
@@ -487,7 +600,7 @@ grep -rn "use crate::runtime" airssys-wasm/src/security/
 
 ---
 
-## 11. MANDATORY ADR/Knowledge Reference Requirement (CRITICAL - NO ASSUMPTIONS)
+## 12. MANDATORY ADR/Knowledge Reference Requirement (CRITICAL - NO ASSUMPTIONS)
 
 ### ⚠️ THE GOLDEN RULE: NO ADR/KNOWLEDGE = NO ASSUMPTIONS = ASK USER
 
@@ -580,13 +693,13 @@ Result: Correct implementation, no architecture violations
 
 ---
 
-## 12. Architecture Verification Requirements (CRITICAL - MANDATORY FOR ALL CODE)
+## 13. Architecture Verification Requirements (CRITICAL - MANDATORY FOR ALL CODE)
 
 ### ⚠️ EVERY Code Change MUST Pass Architecture Verification
 
 **Before ANY code is considered complete, run these verification commands:**
 
-### 12.1 airssys-wasm Architecture Verification
+### 13.1 airssys-wasm Architecture Verification
 
 ```bash
 # Module Boundary Check (ADR-WASM-023)
@@ -607,7 +720,7 @@ grep -rn "use crate::actor" airssys-wasm/src/runtime/
 
 **If ANY command returns results → CODE IS REJECTED**
 
-### 12.2 Enforcement at Each Stage
+### 13.2 Enforcement at Each Stage
 
 **PLANNING** (@memorybank-planner):
 - ❌ REJECT plans that would create forbidden imports
@@ -631,5 +744,4 @@ grep -rn "use crate::actor" airssys-wasm/src/runtime/
 
 ---
 
-**Reference:** `.aiassisted/instructions/multi-project-memory-bank.instructions.md` (lines 11-822)
-
+**Reference:** `.aiassisted/instructions/multi-project-memory-bank.instructions.md`

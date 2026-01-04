@@ -36,7 +36,7 @@ You are **Memory Bank Auditor**.
 
 ```bash
 # Find task file
-find .memory-bank/sub-projects/[project]/tasks -name "*[task-id]*"
+find .memory-bank/sub-projects/[project]/tasks -type d -name "[task-id]*"
 
 # Read task file completely
 # Extract:
@@ -55,7 +55,7 @@ find .memory-bank/sub-projects/[project]/tasks -name "*[task-id]*"
 
 ---
 
-## Step 2: Architecture Verification (RUN FIRST)
+## Step 2: Architecture Verification (RUN FIRST - BEFORE ALL ELSE)
 
 **For airssys-wasm tasks only:**
 

@@ -64,7 +64,9 @@ TASK (Top Level)
 
 ## Single File Per Task Mandate
 
-**CRITICAL**: Each task tracked in ONE canonical file: `tasks/task-[id]-[name].md`
+**CRITICAL**: Each task tracked in ONE directory with TWO files:
+   - `tasks/<task-id>/<task-id>.md` (Task file: objectives, deliverables, checklist)
+   - `tasks/<task-id>/<task-id>.plans.md` (Plans file: actions with ADR/Knowledge references)
 
 **In the Task File:**
 - Complete implementation plan (all phases, all subtasks)
@@ -173,10 +175,15 @@ Project Level
 
 ### For Project-Level Task List:
 - **Path**: `.memory-bank/sub-projects/[Active-Project]/tasks/_index.md`
+
+### For Task-Level Plan/Subtask List:
+- **Path**: `.memory-bank/sub-projects/[Active-Project]/tasks/task-[ID]-[name].md`
+- **Path for Plans**: `.memory-bank/sub-projects/[Active-Project]/tasks/task-[ID]-[name].plans.md` (NEW: separate plans file)
 - **Example**: For `airssys-wasm`, read `.memory-bank/sub-projects/airssys-wasm/tasks/_index.md`
 - **Validation**:
     - If NOT found: 🛑 **HALT**. Output: "❌ **Task index not found** for project [Active-Project]."
     - If FOUND: Proceed.
+- **Plans file check**: Look for `.plans.md` file alongside task file (NEW structure)
 
 ### For Task-Level Phase/Subtask List:
 - **Path**: `.memory-bank/sub-projects/[Active-Project]/tasks/task-[ID]-[name].md`

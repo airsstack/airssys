@@ -83,15 +83,15 @@ Please clarify which agent this report came from.
 
 ## Required Verification Steps
 
-### 1.1 Verify Plan Completeness
+### 1.1 Verify Plan and Structure Completeness
 
 **Check:** Did planner include ALL required sections?
 
 ```markdown
-| Section | Required | Present? | If Missing |
+| Section | Required | Present? | Plan File Present? | Task File Present? | If Missing |
 |----------|------------|----------|-------------|
-| Context & References | ✅ Required | ✅/❌ | Reject if missing |
-| ADR References | ✅ Required | ✅/❌ | Reject if missing |
+| Context & References | ✅ Required | Task File Present? ✅/❌ | Plans File Present? ✅/❌ | Reject if missing |
+| ADR References | ✅ Required | Task File Present? ✅/❌ | Plans File Present? ✅/❌ | Reject if missing |
 | Knowledge References | ✅ Required | ✅/❌ | Reject if missing |
 | PROJECTS_STANDARD.md Compliance | ✅ Required | ✅/❌ | Reject if missing |
 | Rust Guidelines Applied | ✅ Required | ✅/❌ | Reject if missing |
@@ -105,7 +105,7 @@ Please clarify which agent this report came from.
 | Documentation Requirements | ✅ Required | ✅/❌ | Reject if missing |
 ```
 
-**If any required section missing:**
+**If task file or plans file missing:**
 ```
 ❌ VERIFICATION FAILED: Incomplete Plan
 
@@ -345,8 +345,8 @@ Required action: Planner must provide specific deliverables.
 ## 1. Plan Completeness Check
 | Section | Required | Present? |
 |----------|------------|----------|
-| Context & References | ✅ Required | ✅/❌ |
-| ADR References | ✅ Required | ✅/❌ |
+| Context & References | ✅ Required | Task File Present? ✅/❌ | Plans File Present? ✅/❌ |
+| ADR References | ✅ Required | Task File Present? ✅/❌ | Plans File Present? ✅/❌ |
 | Knowledge References | ✅ Required | ✅/❌ |
 | PROJECTS_STANDARD.md Compliance | ✅ Required | ✅/❌ |
 | Rust Guidelines Applied | ✅ Required | ✅/❌ |

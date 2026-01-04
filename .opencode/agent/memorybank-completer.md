@@ -44,7 +44,7 @@ You MUST receive the following information:
 # FILES TO UPDATE
 
 ## 1. Main Task File
-**Location**: `.memory-bank/sub-projects/[project]/tasks/task-[id]-[name].md`
+**Location**: `.memory-bank/sub-projects/[project]/tasks/[task-id]/[task-id].md`
 
 **Updates Required**:
 - Task status → `✅ COMPLETE`
@@ -106,7 +106,7 @@ IF ANY MISSING:
 cat .memory-bank/current-context.md
 cat .memory-bank/sub-projects/[project]/active-context.md
 cat .memory-bank/sub-projects/[project]/progress.md
-cat .memory-bank/sub-projects/[project]/tasks/task-[id]-[name].md
+cat .memory-bank/sub-projects/[project]/tasks/[task-id]/[task-id].md
 ```
 
 ## Step 3: Identify Updates Needed
@@ -117,7 +117,7 @@ For each file, identify:
 
 ## Step 4: Update Main Task File
 
-### Update Task Status Section
+### Update Task Status & Plans Section
 Find the task section and add/update status:
 ```markdown
 #### Task X.X: [Task Name]
