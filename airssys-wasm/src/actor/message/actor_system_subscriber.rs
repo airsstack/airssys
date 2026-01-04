@@ -196,10 +196,7 @@ impl<B: MessageBroker<ComponentMessage> + Send + Sync + 'static> ActorSystemSubs
     ///     subscriber_manager,
     /// );
     /// ```
-    pub fn new(
-        broker: Arc<B>,
-        subscriber_manager: Arc<SubscriberManager>,
-    ) -> Self {
+    pub fn new(broker: Arc<B>, subscriber_manager: Arc<SubscriberManager>) -> Self {
         Self {
             broker,
             subscriber_manager,

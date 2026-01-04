@@ -98,7 +98,7 @@ use tracing::{debug, trace, warn};
 // Layer 3: Internal module imports
 use super::component_actor::ActorState;
 use crate::actor::component::ComponentActor;
-use crate::core::{ComponentMessage, ComponentHealthStatus as HealthStatus};
+use crate::core::{ComponentHealthStatus as HealthStatus, ComponentMessage};
 // NOTE: extract_wasm_results and prepare_wasm_params unused after legacy code removal (WASM-TASK-006-HOTFIX)
 // NOTE: encode_multicodec unused after legacy code removal (WASM-TASK-006-HOTFIX)
 use crate::core::{decode_multicodec, WasmError};
@@ -843,13 +843,19 @@ where
     }
 }
 
-#[allow(clippy::expect_used, clippy::unwrap_used, clippy::panic, clippy::indexing_slicing, clippy::too_many_arguments, clippy::type_complexity, reason = "test code")]
+#[allow(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    reason = "test code"
+)]
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::{
-        encode_multicodec, CapabilitySet, Codec, ComponentId, ComponentMetadata
-    };
+    use crate::core::{encode_multicodec, CapabilitySet, Codec, ComponentId, ComponentMetadata};
     use airssys_rt::supervisor::Child;
 
     fn create_test_metadata() -> ComponentMetadata {
@@ -969,7 +975,11 @@ mod tests {
         };
 
         match msg {
-            ComponentMessage::InterComponent { sender: s, to, payload } => {
+            ComponentMessage::InterComponent {
+                sender: s,
+                to,
+                payload,
+            } => {
                 assert_eq!(s, sender);
                 assert_eq!(to, target);
                 assert_eq!(payload, vec![10, 20, 30]);

@@ -31,11 +31,9 @@ pub mod type_conversion;
 
 // Public re-exports
 #[doc(inline)]
-pub use crate::core::{ComponentMessage, ComponentHealthStatus as HealthStatus};
+pub use crate::core::{ComponentHealthStatus as HealthStatus, ComponentMessage};
 #[doc(inline)]
-pub use component_actor::{
-    ActorState, ComponentActor, MessageReceptionConfig,
-};
+pub use component_actor::{ActorState, ComponentActor, MessageReceptionConfig};
 #[doc(inline)]
 pub use component_registry::ComponentRegistry;
 #[doc(inline)]

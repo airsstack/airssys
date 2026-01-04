@@ -353,7 +353,28 @@ grep -rn "use crate::host_system" src/messaging/
 
 ---
 
-### Phase 1: Full DIP Implementation (10 Subtasks - 3-4 hours)
+### Phase 1: Full DIP Implementation (12 Subtasks - 3-4 hours)
+
+#### DI/DIP Approach for Phase 1
+
+This phase implements Dependency Injection & Dependency Inversion following the comprehensive guide at `.aiassisted/guidelines/rust/rust-dependency-injection-dip-guide.md`.
+
+**Primary Pattern:** **Direct Constructor Injection (Pattern 1)**
+- Most subtasks use Direct Constructor Injection for simplicity
+- All dependencies injected via constructor parameters
+- Traits used as `Arc<dyn Trait>` where appropriate
+- Generics `<T: Trait>` used for performance when type is known
+
+**Special Case:** Subtask 1.8 (HostSystemManager)
+- Uses Direct Constructor Injection pattern (not Builder as originally planned)
+- Creates concrete implementations in `new()` and converts to trait objects
+- This is simpler than a full Builder pattern and sufficient for this use case
+
+**Benefits:**
+- All dependencies can be mocked for testing
+- Clean separation of concerns (traits in core/, implementations in host_system/)
+- No forbidden imports (ADR-WASM-023 compliant)
+- Follows rust-dependency-injection-dip-guide.md best practices
 
 #### Subtask 1.1: Read Actual Implementation Files ✅ COMPLETE
 
@@ -379,6 +400,18 @@ grep -rn "use crate::host_system" src/messaging/
 - ✅ All method signatures extracted
 - ✅ All type names verified
 - ✅ All parameter counts verified
+
+## Reference: DI/DIP Guide
+
+This subtask follows the Dependency Injection & Dependency Inversion Pattern guidelines.
+
+**Authority:** `.aiassisted/guidelines/rust/rust-dependency-injection-dip-guide.md`
+
+**Key Principles Applied:**
+- Dependencies injected via constructor, not created internally
+- Traits used as `Arc<dyn Trait>` where appropriate
+- Generics `<T: Trait>` used for performance when type is known
+- Can create mocks for testing
 
 ---
 
@@ -413,6 +446,18 @@ grep -rn "use crate::host_system" src/messaging/
 - Clippy: Zero warnings (with mandatory `-D warnings` flag)
 - Zero architecture violations (ADR-WASM-023 compliant)
 - Zero forbidden imports in trait definition
+
+## Reference: DI/DIP Guide
+
+This subtask follows the Dependency Injection & Dependency Inversion Pattern guidelines.
+
+**Authority:** `.aiassisted/guidelines/rust/rust-dependency-injection-dip-guide.md`
+
+**Key Principles Applied:**
+- Dependencies injected via constructor, not created internally
+- Traits used as `Arc<dyn Trait>` where appropriate
+- Generics `<T: Trait>` used for performance when type is known
+- Can create mocks for testing
 
 ---
 
@@ -451,6 +496,22 @@ grep -rn "use crate::host_system" src/messaging/
 - Zero forbidden imports in trait definition
 - Generic parameters used instead of dyn (PROJECTS_STANDARD.md §6.2 compliant)
 
+## Reference: DI/DIP Guide
+
+This subtask follows the Dependency Injection & Dependency Inversion Pattern guidelines.
+
+**Authority:** `.aiassisted/guidelines/rust/rust-dependency-injection-dip-guide.md`
+
+**Key Principles Applied:**
+- Dependencies injected via constructor, not created internally
+- Traits used as `Arc<dyn Trait>` where appropriate
+- Generics `<T: Trait>` used for performance when type is known
+- Can create mocks for testing
+
+**Pattern Applied:**
+- **Pattern 1: Direct Constructor Injection** - Simple trait with no complex dependencies
+- **Reference:** Section 1: Rust-Specific DI Patterns → Pattern 1: Direct Constructor Injection
+
 ---
 
 #### Subtask 1.4: Create CorrelationTracker Implementation in host_system/ ✅ COMPLETE
@@ -482,6 +543,22 @@ grep -rn "use crate::host_system" src/messaging/
 - Unit Tests: 13/13 passing (100%)
 - Zero architecture violations (ADR-WASM-023 compliant)
 - All trait methods implemented with exact signatures
+
+## Reference: DI/DIP Guide
+
+This subtask follows the Dependency Injection & Dependency Inversion Pattern guidelines.
+
+**Authority:** `.aiassisted/guidelines/rust/rust-dependency-injection-dip-guide.md`
+
+**Key Principles Applied:**
+- Dependencies injected via constructor, not created internally
+- Traits used as `Arc<dyn Trait>` where appropriate
+- Generics `<T: Trait>` used for performance when type is known
+- Can create mocks for testing
+
+**Pattern Applied:**
+- **Pattern 1: Direct Constructor Injection** - Simple implementation with no complex dependencies
+- **Reference:** Section 1: Rust-Specific DI Patterns → Pattern 1: Direct Constructor Injection
 
 ---
 
@@ -519,6 +596,22 @@ grep -rn "use crate::host_system" src/messaging/
 - Zero architecture violations (ADR-WASM-023 compliant)
 - All trait methods implemented with exact signatures
 
+## Reference: DI/DIP Guide
+
+This subtask follows the Dependency Injection & Dependency Inversion Pattern guidelines.
+
+**Authority:** `.aiassisted/guidelines/rust/rust-dependency-injection-dip-guide.md`
+
+**Key Principles Applied:**
+- Dependencies injected via constructor, not created internally
+- Traits used as `Arc<dyn Trait>` where appropriate
+- Generics `<T: Trait>` used for performance when type is known
+- Can create mocks for testing
+
+**Pattern Applied:**
+- **Pattern 1: Direct Constructor Injection** - Simple implementation with generic parameters
+- **Reference:** Section 1: Rust-Specific DI Patterns → Pattern 1: Direct Constructor Injection
+
 ---
 
 #### Subtask 1.6: Update core/mod.rs ✅ COMPLETE
@@ -547,6 +640,22 @@ grep -rn "use crate::host_system" src/messaging/
 - Build: Clean, no errors, no warnings
 - Clippy: Zero warnings (with mandatory `-D warnings` flag)
 
+## Reference: DI/DIP Guide
+
+This subtask follows the Dependency Injection & Dependency Inversion Pattern guidelines.
+
+**Authority:** `.aiassisted/guidelines/rust/rust-dependency-injection-dip-guide.md`
+
+**Key Principles Applied:**
+- Dependencies injected via constructor, not created internally
+- Traits used as `Arc<dyn Trait>` where appropriate
+- Generics `<T: Trait>` used for performance when type is known
+- Can create mocks for testing
+
+**Pattern Applied:**
+- **Module Re-export Pattern** - Traits re-exported from core/ for easy access
+- **Reference:** Section 1: Rust-Specific DI Patterns → Pattern 1: Direct Constructor Injection
+
 ---
 
 #### Subtask 1.7: Update host_system/mod.rs ✅ COMPLETE
@@ -574,6 +683,22 @@ grep -rn "use crate::host_system" src/messaging/
 **Test Results:**
 - Build: Clean, no errors, no warnings
 - Clippy: Zero warnings (with mandatory `-D warnings` flag)
+
+## Reference: DI/DIP Guide
+
+This subtask follows the Dependency Injection & Dependency Inversion Pattern guidelines.
+
+**Authority:** `.aiassisted/guidelines/rust/rust-dependency-injection-dip-guide.md`
+
+**Key Principles Applied:**
+- Dependencies injected via constructor, not created internally
+- Traits used as `Arc<dyn Trait>` where appropriate
+- Generics `<T: Trait>` used for performance when type is known
+- Can create mocks for testing
+
+**Pattern Applied:**
+- **Module Re-export Pattern** - Implementations re-exported from host_system/ for easy access
+- **Reference:** Section 1: Rust-Specific DI Patterns → Pattern 1: Direct Constructor Injection
 
 ---
 
@@ -633,6 +758,40 @@ impl HostSystemManager {
 4. ✅ Code compiles without errors
 5. ✅ All functionality preserved
 
+## Reference: DI/DIP Guide
+
+This subtask follows the Dependency Injection & Dependency Inversion Pattern guidelines.
+
+**Authority:** `.aiassisted/guidelines/rust/rust-dependency-injection-dip-guide.md`
+
+**Key Principles Applied:**
+- Dependencies injected via constructor, not created internally
+- Traits used as `Arc<dyn Trait>` where appropriate
+- Generics `<T: Trait>` used for performance when type is known
+- Can create mocks for testing
+
+**Pattern Applied:**
+- **Pattern 1: Direct Constructor Injection** - Simple dependencies injected via constructor
+- **Reference:** Section 1: Rust-Specific DI Patterns → Pattern 1: Direct Constructor Injection
+
+**Implementation Approach:**
+- The task plan originally specified `TimeoutHandlerTrait` would need modification to be object-safe, so a new `TimeoutHandlerObjectSafeTrait` was created
+- This enables `Arc<dyn TimeoutHandlerObjectSafeTrait>` usage in HostSystemManager
+- HostSystemManager's `new()` method creates concrete implementations and converts to trait objects
+
+### DI/DIP Compliance Verification
+
+Before completing this subtask, verify:
+
+- [ ] No `::new()` or `::default()` called on dependencies in constructors (only in factory methods)
+- [ ] All dependencies injected via constructor parameters or builder
+- [ ] Dependencies are `Arc<dyn Trait>` where appropriate for DI
+- [ ] Can create mocks of all traits used
+- [ ] Follows pattern specified in `rust-dependency-injection-dip-guide.md`
+- [ ] All tests pass
+- [ ] Zero clippy warnings
+- [ ] ADR-WASM-023 compliant (no forbidden imports)
+
 ---
 
 #### Subtask 1.9: Update actor/ to use Traits
@@ -651,6 +810,35 @@ impl HostSystemManager {
 3. ✅ Code compiles without errors
 4. ✅ No circular dependencies introduced
 
+## Reference: DI/DIP Guide
+
+This subtask follows the Dependency Injection & Dependency Inversion Pattern guidelines.
+
+**Authority:** `.aiassisted/guidelines/rust/rust-dependency-injection-dip-guide.md`
+
+**Key Principles Applied:**
+- Dependencies injected via constructor, not created internally
+- Traits used as `Arc<dyn Trait>` where appropriate
+- Generics `<T: Trait>` used for performance when type is known
+- Can create mocks for testing
+
+**Pattern Applied:**
+- **Pattern 1: Direct Constructor Injection** - Module updates to use traits instead of concrete types
+- **Reference:** Section 1: Rust-Specific DI Patterns → Pattern 1: Direct Constructor Injection
+
+### DI/DIP Compliance Verification
+
+Before completing this subtask, verify:
+
+- [ ] No `::new()` or `::default()` called on dependencies in constructors
+- [ ] All dependencies injected via constructor parameters or builder
+- [ ] Dependencies are `Arc<dyn Trait>` where appropriate for DI
+- [ ] Can create mocks of all traits used
+- [ ] Follows pattern specified in `rust-dependency-injection-dip-guide.md`
+- [ ] All tests pass
+- [ ] Zero clippy warnings
+- [ ] ADR-WASM-023 compliant (no forbidden imports)
+
 ---
 
 #### Subtask 1.10: Update runtime/ to use Traits
@@ -667,6 +855,35 @@ impl HostSystemManager {
 2. ✅ Trait imports added from `core/`
 3. ✅ Code compiles without errors
 4. ✅ No circular dependencies introduced
+
+## Reference: DI/DIP Guide
+
+This subtask follows the Dependency Injection & Dependency Inversion Pattern guidelines.
+
+**Authority:** `.aiassisted/guidelines/rust/rust-dependency-injection-dip-guide.md`
+
+**Key Principles Applied:**
+- Dependencies injected via constructor, not created internally
+- Traits used as `Arc<dyn Trait>` where appropriate
+- Generics `<T: Trait>` used for performance when type is known
+- Can create mocks for testing
+
+**Pattern Applied:**
+- **Pattern 1: Direct Constructor Injection** - Module updates to use traits instead of concrete types
+- **Reference:** Section 1: Rust-Specific DI Patterns → Pattern 1: Direct Constructor Injection
+
+### DI/DIP Compliance Verification
+
+Before completing this subtask, verify:
+
+- [ ] No `::new()` or `::default()` called on dependencies in constructors
+- [ ] All dependencies injected via constructor parameters or builder
+- [ ] Dependencies are `Arc<dyn Trait>` where appropriate for DI
+- [ ] Can create mocks of all traits used
+- [ ] Follows pattern specified in `rust-dependency-injection-dip-guide.md`
+- [ ] All tests pass
+- [ ] Zero clippy warnings
+- [ ] ADR-WASM-023 compliant (no forbidden imports)
 
 ---
 
@@ -697,6 +914,35 @@ impl HostSystemManager {
 3. ✅ Code compiles without errors
 4. ✅ No circular dependencies introduced
 
+## Reference: DI/DIP Guide
+
+This subtask follows the Dependency Injection & Dependency Inversion Pattern guidelines.
+
+**Authority:** `.aiassisted/guidelines/rust/rust-dependency-injection-dip-guide.md`
+
+**Key Principles Applied:**
+- Dependencies injected via constructor, not created internally
+- Traits used as `Arc<dyn Trait>` where appropriate
+- Generics `<T: Trait>` used for performance when type is known
+- Can create mocks for testing
+
+**Pattern Applied:**
+- **Pattern 1: Direct Constructor Injection** - Module updates to use traits instead of concrete types
+- **Reference:** Section 1: Rust-Specific DI Patterns → Pattern 1: Direct Constructor Injection
+
+### DI/DIP Compliance Verification
+
+Before completing this subtask, verify:
+
+- [ ] No `::new()` or `::default()` called on dependencies in constructors
+- [ ] All dependencies injected via constructor parameters or builder
+- [ ] Dependencies are `Arc<dyn Trait>` where appropriate for DI
+- [ ] Can create mocks of all traits used
+- [ ] Follows pattern specified in `rust-dependency-injection-dip-guide.md`
+- [ ] All tests pass
+- [ ] Zero clippy warnings
+- [ ] ADR-WASM-023 compliant (no forbidden imports)
+
 ---
 
 #### Subtask 1.12: Delete Old Files
@@ -718,6 +964,35 @@ rm src/host_system/timeout_handler.rs
 2. ✅ New files created and working
 3. ✅ Code compiles without errors
 4. ✅ All tests pass
+
+## Reference: DI/DIP Guide
+
+This subtask follows the Dependency Injection & Dependency Inversion Pattern guidelines.
+
+**Authority:** `.aiassisted/guidelines/rust/rust-dependency-injection-dip-guide.md`
+
+**Key Principles Applied:**
+- Dependencies injected via constructor, not created internally
+- Traits used as `Arc<dyn Trait>` where appropriate
+- Generics `<T: Trait>` used for performance when type is known
+- Can create mocks for testing
+
+**Pattern Applied:**
+- **Code Cleanup Pattern** - Removing old implementation files after DIP refactoring
+- **Reference:** Section 1: Rust-Specific DI Patterns → Pattern 1: Direct Constructor Injection
+
+### DI/DIP Compliance Verification
+
+Before completing this subtask, verify:
+
+- [ ] No `::new()` or `::default()` called on dependencies in constructors
+- [ ] All dependencies injected via constructor parameters or builder
+- [ ] Dependencies are `Arc<dyn Trait>` where appropriate for DI
+- [ ] Can create mocks of all traits used
+- [ ] Follows pattern specified in `rust-dependency-injection-dip-guide.md`
+- [ ] All tests pass
+- [ ] Zero clippy warnings
+- [ ] ADR-WASM-023 compliant (no forbidden imports)
 
 ---
 

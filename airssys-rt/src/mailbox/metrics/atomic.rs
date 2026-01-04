@@ -16,11 +16,11 @@
 //! use chrono::Utc;
 //!
 //! let metrics = AtomicMetrics::default();
-//! 
+//!
 //! // Fast, lock-free operations
 //! metrics.record_sent();
 //! metrics.record_received();
-//! 
+//!
 //! assert_eq!(metrics.sent_count(), 1);
 //! assert_eq!(metrics.received_count(), 1);
 //! ```
@@ -71,7 +71,7 @@ use super::MetricsRecorder;
 /// use std::thread;
 ///
 /// let metrics = Arc::new(AtomicMetrics::default());
-/// 
+///
 /// // Can be safely shared across threads
 /// let m1 = Arc::clone(&metrics);
 /// let h1 = thread::spawn(move || {

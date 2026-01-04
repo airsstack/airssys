@@ -53,8 +53,14 @@ use wasmtime::{Config, Engine};
 // Layer 3: Internal module imports
 use crate::core::{
     error::{WasmError, WasmResult},
-    runtime::{ComponentHandle, ExecutionContext, ResourceUsage, RuntimeEngine},
-    ComponentId, ComponentInput, ComponentOutput,
+    // Note: RuntimeEngine uses these types internally
+    runtime::{
+        ComponentHandle, ExecutionContext, ResourceUsage, RuntimeEngine,
+        RuntimeMessageHandlerEngine,
+    },
+    ComponentId,
+    ComponentInput,
+    ComponentOutput,
 };
 use crate::runtime::store_manager::StoreWrapper;
 
@@ -740,6 +746,36 @@ impl RuntimeEngine for WasmEngine {
             fuel_consumed: 0,
             execution_time_ms: 0,
         }
+    }
+}
+
+#[async_trait]
+impl RuntimeMessageHandlerEngine for WasmEngine {
+    /// Call a component's `handle-message` export.
+    ///
+    /// Delegates to WasmEngine::call_handle_message() which uses
+    /// Wasmtime's Component Model typed function API.
+    async fn call_handle_message(
+        &self,
+        handle: &ComponentHandle,
+        sender: &crate::core::component::ComponentId,
+        payload: &[u8],
+    ) -> WasmResult<()> {
+        WasmEngine::call_handle_message(self, handle, sender, payload).await
+    }
+
+    /// Call a component's `handle-callback` export.
+    ///
+    /// Delegates to WasmEngine::call_handle_callback() which uses
+    /// Wasmtime's Component Model typed function API.
+    async fn call_handle_callback(
+        &self,
+        handle: &ComponentHandle,
+        request_id: &str,
+        payload: &[u8],
+        is_error: i32,
+    ) -> WasmResult<()> {
+        WasmEngine::call_handle_callback(self, handle, request_id, payload, is_error).await
     }
 }
 

@@ -35,6 +35,7 @@ use tokio::time::{sleep, Duration};
 // Layer 3: Internal module imports
 use crate::core::correlation_trait::CorrelationTrackerTrait;
 use crate::core::messaging::{CorrelationId, RequestError, ResponseMessage};
+use crate::core::timeout_trait::TimeoutHandlerObjectSafeTrait;
 
 // Import test-only type (avoid top-level unused import warning)
 #[cfg(test)]
@@ -222,10 +223,66 @@ impl crate::core::timeout_trait::TimeoutHandlerTrait for TimeoutHandler {
     }
 }
 
+/// Implement object-safe trait for dependency injection
+impl TimeoutHandlerObjectSafeTrait for TimeoutHandler {
+    /// Register timeout with correlation tracker as trait object.
+    ///
+    /// Implements timeout logic directly to work with `dyn CorrelationTrackerTrait`.
+    /// Duplicates timeout task logic because generic `register_timeout<T>`
+    /// requires `T: Sized`, but `dyn Trait` is not `Sized`.
+    fn register_timeout(
+        &self,
+        correlation_id: CorrelationId,
+        timeout: Duration,
+        tracker: Arc<dyn CorrelationTrackerTrait>,
+    ) {
+        let corr_id = correlation_id;
+        let active_timeouts = Arc::clone(&self.active_timeouts);
+
+        let handle = tokio::spawn(async move {
+            // Wait for timeout duration
+            sleep(timeout).await;
+
+            // Check if request still pending (may have been resolved)
+            if let Some(pending) = tracker.remove_pending(&corr_id) {
+                // Send timeout error to response channel
+                let _ = pending.response_tx.send(ResponseMessage {
+                    correlation_id: corr_id,
+                    from: pending.to.clone(),
+                    to: pending.from.clone(),
+                    result: Err(RequestError::Timeout),
+                    timestamp: Utc::now(),
+                });
+            }
+
+            // Remove self from active timeouts
+            active_timeouts.remove(&corr_id);
+        });
+
+        // Store handle for cancellation if response arrives early
+        self.active_timeouts.insert(correlation_id, handle);
+    }
+
+    /// Cancel timeout for correlation ID.
+    ///
+    /// Delegates to the underlying TimeoutHandler implementation.
+    fn cancel_timeout(&self, correlation_id: &CorrelationId) {
+        self.cancel_timeout(correlation_id);
+    }
+
+    /// Get active timeout count.
+    ///
+    /// Delegates to the underlying TimeoutHandler implementation.
+    fn active_count(&self) -> usize {
+        self.active_count()
+    }
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used, clippy::clone_on_ref_ptr)]
 mod tests {
     use super::*;
+    use crate::core::messaging::CorrelationId;
     use crate::core::messaging::PendingRequest;
     use crate::core::ComponentId;
     use tokio::sync::oneshot;
@@ -368,5 +425,53 @@ mod tests {
         }
 
         assert_eq!(handler.active_count(), 5);
+    }
+
+    #[tokio::test]
+    async fn test_timeout_handler_implements_object_safe_trait() {
+        use std::sync::Arc;
+        let tracker = Arc::new(CorrelationTracker::new());
+        let handler = Arc::new(TimeoutHandler::new());
+
+        // Use as trait object
+        let handler_dyn: Arc<dyn TimeoutHandlerObjectSafeTrait> = handler.clone();
+
+        // Register timeout
+        let correlation_id: CorrelationId = Uuid::new_v4();
+        handler_dyn.register_timeout(correlation_id, Duration::from_secs(1), tracker);
+
+        // Verify timeout is active
+        assert_eq!(handler_dyn.active_count(), 1);
+
+        // Cancel timeout
+        handler_dyn.cancel_timeout(&correlation_id);
+
+        // Verify timeout is cancelled
+        assert_eq!(handler_dyn.active_count(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_object_safe_trait_delegates_to_implementation() {
+        use std::sync::Arc;
+        let tracker = Arc::new(CorrelationTracker::new());
+        let handler = Arc::new(TimeoutHandler::new());
+
+        let correlation_id: CorrelationId = Uuid::new_v4();
+
+        // Use generic trait
+        let handler_generic: Arc<TimeoutHandler> = handler.clone();
+        handler_generic.register_timeout(
+            correlation_id,
+            Duration::from_millis(100),
+            tracker.clone(),
+        );
+
+        // Use object-safe trait
+        let handler_dyn: Arc<dyn TimeoutHandlerObjectSafeTrait> = handler.clone();
+        assert_eq!(handler_dyn.active_count(), 1);
+
+        // Cancel with object-safe trait
+        handler_dyn.cancel_timeout(&correlation_id);
+        assert_eq!(handler_dyn.active_count(), 0);
     }
 }

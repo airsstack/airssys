@@ -133,7 +133,7 @@ impl ProcessSpawnOperation {
     ///
     /// let mut env = HashMap::new();
     /// env.insert("RUST_LOG".to_string(), "debug".to_string());
-    /// 
+    ///
     /// let op = ProcessSpawnOperation::new("cargo")
     ///     .with_env(env);
     /// ```
@@ -213,9 +213,9 @@ impl Operation for ProcessSpawnOperation {
     }
 
     fn operation_id(&self) -> String {
-        self.operation_id.clone().unwrap_or_else(|| {
-            format!("{}:{}", self.operation_type().as_str(), Uuid::new_v4())
-        })
+        self.operation_id
+            .clone()
+            .unwrap_or_else(|| format!("{}:{}", self.operation_type().as_str(), Uuid::new_v4()))
     }
 
     fn requires_elevated_privileges(&self) -> bool {
@@ -253,9 +253,7 @@ mod tests {
 
     #[test]
     fn test_process_spawn_with_args() {
-        let op = ProcessSpawnOperation::new("echo")
-            .arg("Hello")
-            .arg("World");
+        let op = ProcessSpawnOperation::new("echo").arg("Hello").arg("World");
         assert_eq!(op.command, "echo");
         assert_eq!(op.args, vec!["Hello", "World"]);
     }
@@ -272,8 +270,7 @@ mod tests {
 
     #[test]
     fn test_process_spawn_with_working_dir() {
-        let op = ProcessSpawnOperation::new("cargo")
-            .working_dir("/tmp/project");
+        let op = ProcessSpawnOperation::new("cargo").working_dir("/tmp/project");
         assert_eq!(op.working_dir, Some("/tmp/project".to_string()));
     }
 

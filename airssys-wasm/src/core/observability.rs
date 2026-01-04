@@ -624,7 +624,15 @@ impl HealthStatus {
     }
 }
 
-#[allow(clippy::expect_used, clippy::unwrap_used, clippy::panic, clippy::indexing_slicing, clippy::too_many_arguments, clippy::type_complexity, reason = "test code")]
+#[allow(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    reason = "test code"
+)]
 #[cfg(test)]
 mod tests {
     use super::*;

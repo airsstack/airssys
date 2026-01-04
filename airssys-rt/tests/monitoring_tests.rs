@@ -56,9 +56,7 @@ async fn test_multiple_monitors_coordination() {
     system_monitor
         .record(SystemEvent {
             timestamp: Utc::now(),
-            event_kind: SystemEventKind::ActorRegistered {
-                actor_id,
-            },
+            event_kind: SystemEventKind::ActorRegistered { actor_id },
             metadata: HashMap::new(),
         })
         .await
@@ -517,9 +515,7 @@ async fn test_supervision_event_tracking() {
             timestamp: Utc::now(),
             supervisor_id: supervisor_id.clone(),
             child_id: Some(child_id.clone()),
-            event_kind: SupervisionEventKind::ChildRestarted {
-                restart_count: 1,
-            },
+            event_kind: SupervisionEventKind::ChildRestarted { restart_count: 1 },
             metadata: HashMap::new(),
         })
         .await

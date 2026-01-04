@@ -97,7 +97,9 @@ mod path_traversal_attacks {
         });
 
         let ctx = create_test_context("malicious-traversal", capabilities);
-        checker.register_component(ctx).expect("registration failed");
+        checker
+            .register_component(ctx)
+            .expect("registration failed");
 
         // Attempt 1: Direct path traversal to /etc/passwd (normalized by host)
         // Host function SHOULD normalize before checking
@@ -126,7 +128,9 @@ mod path_traversal_attacks {
         });
 
         let ctx = create_test_context("malicious-absolute", capabilities);
-        checker.register_component(ctx).expect("registration failed");
+        checker
+            .register_component(ctx)
+            .expect("registration failed");
 
         // Attempt to access absolute path outside sandbox
         let result = checker.check("malicious-absolute", "/etc/passwd", "read");
@@ -161,7 +165,9 @@ mod privilege_escalation {
         });
 
         let ctx = create_test_context("malicious-inflate", capabilities);
-        checker.register_component(ctx).expect("registration failed");
+        checker
+            .register_component(ctx)
+            .expect("registration failed");
 
         // Legitimate read should work
         let result = checker.check("malicious-inflate", "/app/data/config.json", "read");
@@ -193,7 +199,9 @@ mod privilege_escalation {
         });
 
         let ctx_a = create_test_context("component-a", cap_a);
-        checker.register_component(ctx_a).expect("registration failed");
+        checker
+            .register_component(ctx_a)
+            .expect("registration failed");
 
         // Component B with its own storage namespace
         let cap_b = WasmCapabilitySet::new().grant(WasmCapability::Storage {
@@ -202,7 +210,9 @@ mod privilege_escalation {
         });
 
         let ctx_b = create_test_context("component-b", cap_b);
-        checker.register_component(ctx_b).expect("registration failed");
+        checker
+            .register_component(ctx_b)
+            .expect("registration failed");
 
         // Component A can access its own namespace
         let result = checker.check("component-a", "component:A:data:config", "read");
@@ -249,7 +259,10 @@ mod quota_manipulation {
 
         // Verify usage is tracked correctly
         let usage = tracker.get_usage();
-        assert_eq!(usage.storage_used, 512, "Usage should reflect tracked amount");
+        assert_eq!(
+            usage.storage_used, 512,
+            "Usage should reflect tracked amount"
+        );
     }
 
     /// Test: Integer overflow in quota is prevented.
@@ -299,10 +312,16 @@ mod pattern_vulnerabilities {
         });
 
         let ctx = create_test_context("wildcard-component", capabilities);
-        checker.register_component(ctx).expect("registration failed");
+        checker
+            .register_component(ctx)
+            .expect("registration failed");
 
         // Access within declared scope should work
-        let result = checker.check("wildcard-component", "/app/data/deep/nested/file.txt", "read");
+        let result = checker.check(
+            "wildcard-component",
+            "/app/data/deep/nested/file.txt",
+            "read",
+        );
         assert!(
             result.is_granted(),
             "Legitimate recursive access should work"
@@ -316,10 +335,7 @@ mod pattern_vulnerabilities {
         );
 
         let result = checker.check("wildcard-component", "/root/.ssh/id_rsa", "read");
-        assert_blocked(
-            result.is_denied(),
-            "wildcard expansion to sensitive files",
-        );
+        assert_blocked(result.is_denied(), "wildcard expansion to sensitive files");
 
         cleanup_component(&checker, "wildcard-component");
     }
@@ -339,7 +355,9 @@ mod pattern_vulnerabilities {
         });
 
         let ctx = create_test_context("empty-pattern", capabilities);
-        checker.register_component(ctx).expect("registration failed");
+        checker
+            .register_component(ctx)
+            .expect("registration failed");
 
         // Attempt to access with empty pattern
         let result = checker.check("empty-pattern", "/etc/passwd", "read");
@@ -421,7 +439,10 @@ mod trust_bypass {
     fn test_devmode_distinct_from_trusted() {
         // Create registry with DevMode disabled (default)
         let registry = TrustRegistry::new();
-        assert!(!registry.is_dev_mode(), "DevMode should be disabled by default");
+        assert!(
+            !registry.is_dev_mode(),
+            "DevMode should be disabled by default"
+        );
 
         // Enable DevMode
         registry.set_dev_mode(true);

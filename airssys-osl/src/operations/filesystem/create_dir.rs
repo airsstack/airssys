@@ -31,13 +31,13 @@ use crate::core::operation::{Operation, OperationType, Permission};
 pub struct DirectoryCreateOperation {
     /// Path to the directory to create
     pub path: String,
-    
+
     /// Whether to create parent directories recursively
     pub recursive: bool,
-    
+
     /// When this operation was created
     pub created_at: DateTime<Utc>,
-    
+
     /// Optional operation ID
     pub operation_id: Option<String>,
 }
@@ -65,7 +65,7 @@ impl DirectoryCreateOperation {
             operation_id: None,
         }
     }
-    
+
     /// Enable recursive directory creation (create parent directories).
     ///
     /// # Examples
@@ -81,9 +81,13 @@ impl DirectoryCreateOperation {
         self.recursive = true;
         self
     }
-    
+
     /// Create with explicit timestamp (for testing).
-    pub fn with_timestamp(path: impl Into<String>, recursive: bool, created_at: DateTime<Utc>) -> Self {
+    pub fn with_timestamp(
+        path: impl Into<String>,
+        recursive: bool,
+        created_at: DateTime<Utc>,
+    ) -> Self {
         Self {
             path: path.into(),
             recursive,
@@ -91,7 +95,7 @@ impl DirectoryCreateOperation {
             operation_id: None,
         }
     }
-    
+
     /// Set custom operation ID.
     pub fn with_operation_id(mut self, id: impl Into<String>) -> Self {
         self.operation_id = Some(id.into());
@@ -103,25 +107,29 @@ impl Operation for DirectoryCreateOperation {
     fn operation_type(&self) -> OperationType {
         OperationType::Filesystem
     }
-    
+
     fn required_permissions(&self) -> Vec<Permission> {
         vec![Permission::FilesystemWrite(self.path.clone())]
     }
-    
+
     fn created_at(&self) -> DateTime<Utc> {
         self.created_at
     }
-    
+
     fn operation_id(&self) -> String {
-        self.operation_id.clone().unwrap_or_else(|| {
-            format!("{}:{}", self.operation_type().as_str(), Uuid::new_v4())
-        })
+        self.operation_id
+            .clone()
+            .unwrap_or_else(|| format!("{}:{}", self.operation_type().as_str(), Uuid::new_v4()))
     }
 }
 
 impl fmt::Display for DirectoryCreateOperation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mode = if self.recursive { "recursive" } else { "single" };
+        let mode = if self.recursive {
+            "recursive"
+        } else {
+            "single"
+        };
         write!(f, "DirectoryCreate({}, mode={})", self.path, mode)
     }
 }
@@ -149,6 +157,9 @@ mod tests {
         let op = DirectoryCreateOperation::new("/tmp/newdir");
         let permissions = op.required_permissions();
         assert_eq!(permissions.len(), 1);
-        assert_eq!(permissions[0], Permission::FilesystemWrite("/tmp/newdir".to_string()));
+        assert_eq!(
+            permissions[0],
+            Permission::FilesystemWrite("/tmp/newdir".to_string())
+        );
     }
 }

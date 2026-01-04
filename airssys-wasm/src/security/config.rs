@@ -1154,7 +1154,7 @@ impl ConfigManager {
 
         // Copy current config to backup
         tokio::fs::copy(&self.config_path, &backup_path).await?;
-        
+
         // Ensure the backup is flushed to disk before returning
         let file = tokio::fs::OpenOptions::new()
             .write(true)
@@ -1220,7 +1220,7 @@ impl ConfigManager {
 
         // Restore backup
         tokio::fs::copy(backup_path, &self.config_path).await?;
-        
+
         // Ensure the file is flushed to disk before returning
         // This prevents race conditions where subsequent reads might see stale data
         let file = tokio::fs::OpenOptions::new()
@@ -1364,7 +1364,15 @@ impl ConfigManager {
     }
 }
 
-#[allow(clippy::expect_used, clippy::unwrap_used, clippy::panic, clippy::indexing_slicing, clippy::too_many_arguments, clippy::type_complexity, reason = "test code")]
+#[allow(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    reason = "test code"
+)]
 #[cfg(test)]
 mod tests {
     use super::*;

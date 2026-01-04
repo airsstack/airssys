@@ -133,7 +133,7 @@ impl<M: Message + serde::Serialize> MessageBroker<M> for InMemoryMessageBroker<M
     ) -> Result<Option<MessageEnvelope<R>>, Self::Error> {
         // Generate correlation ID
         let correlation_id = uuid::Uuid::new_v4();
-        
+
         // Set correlation_id on envelope for subscribers to see
         envelope.correlation_id = Some(correlation_id);
 

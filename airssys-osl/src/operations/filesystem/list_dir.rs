@@ -25,10 +25,10 @@ use crate::core::operation::{Operation, OperationType, Permission};
 pub struct DirectoryListOperation {
     /// Path to the directory to list
     pub path: String,
-    
+
     /// When this operation was created
     pub created_at: DateTime<Utc>,
-    
+
     /// Optional operation ID
     pub operation_id: Option<String>,
 }
@@ -55,7 +55,7 @@ impl DirectoryListOperation {
             operation_id: None,
         }
     }
-    
+
     /// Create with explicit timestamp (for testing).
     pub fn with_timestamp(path: impl Into<String>, created_at: DateTime<Utc>) -> Self {
         Self {
@@ -64,7 +64,7 @@ impl DirectoryListOperation {
             operation_id: None,
         }
     }
-    
+
     /// Set custom operation ID.
     pub fn with_operation_id(mut self, id: impl Into<String>) -> Self {
         self.operation_id = Some(id.into());
@@ -76,19 +76,19 @@ impl Operation for DirectoryListOperation {
     fn operation_type(&self) -> OperationType {
         OperationType::Filesystem
     }
-    
+
     fn required_permissions(&self) -> Vec<Permission> {
         vec![Permission::FilesystemRead(self.path.clone())]
     }
-    
+
     fn created_at(&self) -> DateTime<Utc> {
         self.created_at
     }
-    
+
     fn operation_id(&self) -> String {
-        self.operation_id.clone().unwrap_or_else(|| {
-            format!("{}:{}", self.operation_type().as_str(), Uuid::new_v4())
-        })
+        self.operation_id
+            .clone()
+            .unwrap_or_else(|| format!("{}:{}", self.operation_type().as_str(), Uuid::new_v4()))
     }
 }
 
@@ -114,6 +114,9 @@ mod tests {
         let op = DirectoryListOperation::new("/var/log");
         let permissions = op.required_permissions();
         assert_eq!(permissions.len(), 1);
-        assert_eq!(permissions[0], Permission::FilesystemRead("/var/log".to_string()));
+        assert_eq!(
+            permissions[0],
+            Permission::FilesystemRead("/var/log".to_string())
+        );
     }
 }

@@ -34,13 +34,13 @@ use serde::{Deserialize, Serialize};
 pub struct LoggerConfig {
     /// Minimum log level to record
     pub level: LogLevel,
-    
+
     /// Output format for log entries
     pub format: LogFormat,
-    
+
     /// Buffer size for batching log entries (0 = unbuffered)
     pub buffer_size: usize,
-    
+
     /// Automatic flush interval in milliseconds (0 = manual flush only)
     pub flush_interval_ms: u64,
 }
@@ -67,16 +67,16 @@ impl Default for LoggerConfig {
 pub enum LogLevel {
     /// Only log errors and critical failures
     Error,
-    
+
     /// Log warnings and errors
     Warn,
-    
+
     /// Log informational messages, warnings, and errors (default)
     Info,
-    
+
     /// Log debug information and all higher levels
     Debug,
-    
+
     /// Log all activity including detailed tracing information
     Trace,
 }
@@ -117,10 +117,10 @@ impl std::fmt::Display for LogLevel {
 pub enum LogFormat {
     /// Structured JSON format for machine processing
     Json,
-    
+
     /// Human-readable pretty format for development
     Pretty,
-    
+
     /// Compact single-line format for space efficiency
     Compact,
 }

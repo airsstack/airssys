@@ -26,8 +26,8 @@ use uuid::Uuid;
 // Layer 3: Internal module imports
 use airssys_rt::broker::InMemoryMessageBroker;
 use airssys_rt::system::{ActorSystem, SystemConfig};
-use airssys_wasm::actor::{ComponentRegistry, ComponentSpawner};
 use airssys_wasm::actor::message::RequestMessage;
+use airssys_wasm::actor::{ComponentRegistry, ComponentSpawner};
 use airssys_wasm::core::{CapabilitySet, ComponentId, ComponentMetadata};
 use airssys_wasm::core::{PendingRequest, RequestError, ResponseMessage};
 use airssys_wasm::host_system::CorrelationTracker;

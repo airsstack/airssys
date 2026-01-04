@@ -23,9 +23,9 @@
 //! This trait is dependency-free (no external imports), allowing any module
 //! to depend on the abstraction without transitive dependencies.
 
-use async_trait::async_trait;
 use crate::core::messaging::{CorrelationId, PendingRequest, ResponseMessage};
 use crate::core::WasmError;
+use async_trait::async_trait;
 
 /// Correlation tracking for request-response patterns.
 ///
@@ -154,5 +154,8 @@ pub trait CorrelationTrackerTrait: Send + Sync {
     /// # Arguments
     ///
     /// * `component_id` - Component ID to clean up requests for
-    async fn cleanup_pending_for_component(&self, component_id: &crate::core::component::ComponentId);
+    async fn cleanup_pending_for_component(
+        &self,
+        component_id: &crate::core::component::ComponentId,
+    );
 }

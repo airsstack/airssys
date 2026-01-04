@@ -30,7 +30,9 @@ use airssys_wasm::core::{
     bridge::HostFunction, Capability, CapabilitySet, ComponentId, MulticodecPrefix, TopicPattern,
     WasmError,
 };
-use airssys_wasm::host_system::{CorrelationTracker, TimeoutHandler};
+use airssys_wasm::host_system::{
+    correlation_impl::CorrelationTracker, timeout_impl::TimeoutHandler,
+};
 use airssys_wasm::messaging::MessagingService;
 use airssys_wasm::runtime::{
     create_host_context, AsyncHostRegistryBuilder, SendMessageHostFunction,
@@ -43,7 +45,11 @@ fn create_messaging_service() -> Arc<MessagingService> {
     let correlation_tracker = Arc::new(CorrelationTracker::new());
     let timeout_handler = Arc::new(TimeoutHandler::new());
     let broker = Arc::new(InMemoryMessageBroker::new());
-    Arc::new(MessagingService::new(broker, correlation_tracker, timeout_handler))
+    Arc::new(MessagingService::new(
+        broker,
+        correlation_tracker,
+        timeout_handler,
+    ))
 }
 
 /// Helper to create encoded args for send-message host function.
@@ -100,7 +106,10 @@ async fn test_send_message_end_to_end_borsh() {
 
     // Verify: Message was published
     let stats = messaging.get_stats().await;
-    assert_eq!(stats.messages_published, 1, "Should have 1 message published");
+    assert_eq!(
+        stats.messages_published, 1,
+        "Should have 1 message published"
+    );
 }
 
 /// Test 2: End-to-end with Bincode codec
@@ -375,7 +384,10 @@ async fn test_send_message_empty_target() {
     let result = func.execute(&context, args).await;
 
     // Empty target is technically valid - ComponentId::new("") works
-    assert!(result.is_ok(), "Empty target should still work at this layer");
+    assert!(
+        result.is_ok(),
+        "Empty target should still work at this layer"
+    );
 }
 
 // ============================================================================
@@ -494,9 +506,18 @@ async fn test_multiple_senders_same_service() {
     let msg = create_prefixed_message(MulticodecPrefix::Borsh, b"test");
 
     // Send from multiple senders
-    func1.execute(&ctx1, encode_send_args("target", &msg)).await.unwrap();
-    func2.execute(&ctx2, encode_send_args("target", &msg)).await.unwrap();
-    func3.execute(&ctx3, encode_send_args("target", &msg)).await.unwrap();
+    func1
+        .execute(&ctx1, encode_send_args("target", &msg))
+        .await
+        .unwrap();
+    func2
+        .execute(&ctx2, encode_send_args("target", &msg))
+        .await
+        .unwrap();
+    func3
+        .execute(&ctx3, encode_send_args("target", &msg))
+        .await
+        .unwrap();
 
     // All should be counted
     assert_eq!(messaging.get_stats().await.messages_published, 3);
@@ -517,7 +538,7 @@ async fn test_sequential_messages_same_sender() {
         let payload = format!("message {}", i);
         let message = create_prefixed_message(MulticodecPrefix::Borsh, payload.as_bytes());
         let args = encode_send_args("target", &message);
-        
+
         let result = func.execute(&context, args).await;
         assert!(result.is_ok(), "Message {} should succeed", i);
     }

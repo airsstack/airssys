@@ -54,25 +54,25 @@ use super::error::LogError;
 pub struct ActivityLog {
     /// UTC timestamp when the activity occurred (§3.2 compliance)
     pub timestamp: DateTime<Utc>,
-    
+
     /// Unique identifier for this specific operation instance
     pub operation_id: String,
-    
+
     /// String representation of the operation type (e.g., "file_read", "process_spawn")
     pub operation_type: String,
-    
+
     /// Optional user/principal context information
     pub user_context: Option<String>,
-    
+
     /// Result status and details (success/failure with context)
     pub result: String,
-    
+
     /// Duration of operation execution in milliseconds
     pub duration_ms: u64,
-    
+
     /// Additional structured metadata about the operation
     pub metadata: HashMap<String, serde_json::Value>,
-    
+
     /// Flag indicating if this operation requires security audit trail
     pub security_relevant: bool,
 }
@@ -84,7 +84,7 @@ impl ActivityLog {
     ///
     /// ```rust
     /// use airssys_osl::middleware::logger::ActivityLog;
-    /// 
+    ///
     /// let log = ActivityLog::new(
     ///     "op_123".to_string(),
     ///     "file_read".to_string(),
@@ -111,15 +111,15 @@ impl ActivityLog {
             security_relevant: false,
         }
     }
-    
+
     /// Mark this activity as security-relevant for audit trails.
     pub fn mark_security_relevant(mut self) -> Self {
         self.security_relevant = true;
         self
     }
-    
+
     /// Add metadata key-value pair to the activity log.
-    pub fn with_metadata<V>(mut self, key: String, value: V) -> Self 
+    pub fn with_metadata<V>(mut self, key: String, value: V) -> Self
     where
         V: Into<serde_json::Value>,
     {
@@ -130,7 +130,7 @@ impl ActivityLog {
 
 /// Core trait for pluggable activity logging destinations.
 ///
-/// Implementations can target different output destinations (console, file, 
+/// Implementations can target different output destinations (console, file,
 /// tracing, external systems) while maintaining a consistent interface.
 /// All methods are async to support non-blocking I/O operations.
 ///
@@ -145,9 +145,9 @@ impl ActivityLog {
 ///
 /// ```rust,ignore
 /// use airssys_osl::middleware::logger::{ActivityLog, ActivityLogger};
-/// 
+///
 /// struct MyLogger;
-/// 
+///
 /// #[async_trait::async_trait]
 /// impl ActivityLogger for MyLogger {
 ///     async fn log_activity(&self, log: ActivityLog) -> Result<(), LogError> {
@@ -173,7 +173,7 @@ pub trait ActivityLogger: std::fmt::Debug + Send + Sync + 'static {
     /// Returns `LogError` if the logging operation fails. Implementations
     /// should provide detailed error context for debugging.
     async fn log_activity(&self, log: ActivityLog) -> Result<(), LogError>;
-    
+
     /// Flush any buffered log entries.
     ///
     /// This method ensures that all pending log entries are written to their

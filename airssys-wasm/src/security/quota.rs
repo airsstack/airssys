@@ -240,12 +240,12 @@ pub struct ResourceQuota {
 impl Default for ResourceQuota {
     fn default() -> Self {
         Self {
-            max_storage_bytes: 100 * 1024 * 1024,      // 100 MB
-            max_message_rate: 1000,                    // 1000 msg/sec
-            max_network_bandwidth: 10 * 1024 * 1024,   // 10 MB/sec
-            max_cpu_time_ms: 1000,                     // 1000 ms/sec (100%)
-            max_memory_bytes: 256 * 1024 * 1024,       // 256 MB
-            reset_period: Duration::from_secs(1),      // 1 second
+            max_storage_bytes: 100 * 1024 * 1024,    // 100 MB
+            max_message_rate: 1000,                  // 1000 msg/sec
+            max_network_bandwidth: 10 * 1024 * 1024, // 10 MB/sec
+            max_cpu_time_ms: 1000,                   // 1000 ms/sec (100%)
+            max_memory_bytes: 256 * 1024 * 1024,     // 256 MB
+            reset_period: Duration::from_secs(1),    // 1 second
         }
     }
 }
@@ -373,8 +373,11 @@ impl ResourceQuota {
         let size = size.trim().to_uppercase();
 
         // Extract numeric part and unit
-        let (num_part, unit) = size
-            .split_at(size.chars().position(|c| !c.is_ascii_digit()).unwrap_or(size.len()));
+        let (num_part, unit) = size.split_at(
+            size.chars()
+                .position(|c| !c.is_ascii_digit())
+                .unwrap_or(size.len()),
+        );
 
         let value: u64 = num_part
             .parse()
@@ -707,7 +710,8 @@ impl QuotaTracker {
     /// assert_eq!(tracker.get_usage().network_bandwidth_used, 1024);
     /// ```
     pub fn consume_network_bandwidth(&self, bytes: u64) {
-        self.network_bandwidth_used.fetch_add(bytes, Ordering::Relaxed);
+        self.network_bandwidth_used
+            .fetch_add(bytes, Ordering::Relaxed);
     }
 
     /// Check if CPU time quota allows the given milliseconds.
@@ -894,7 +898,10 @@ impl QuotaTracker {
             storage: QuotaResourceStatus {
                 used: usage.storage_used,
                 limit: self.quota.max_storage_bytes,
-                available: self.quota.max_storage_bytes.saturating_sub(usage.storage_used),
+                available: self
+                    .quota
+                    .max_storage_bytes
+                    .saturating_sub(usage.storage_used),
                 percentage: calculate_percentage(usage.storage_used, self.quota.max_storage_bytes),
             },
             message_rate: QuotaResourceStatus {
@@ -932,7 +939,10 @@ impl QuotaTracker {
             memory: QuotaResourceStatus {
                 used: usage.memory_used,
                 limit: self.quota.max_memory_bytes,
-                available: self.quota.max_memory_bytes.saturating_sub(usage.memory_used),
+                available: self
+                    .quota
+                    .max_memory_bytes
+                    .saturating_sub(usage.memory_used),
                 percentage: calculate_percentage(usage.memory_used, self.quota.max_memory_bytes),
             },
         }
@@ -1162,7 +1172,15 @@ pub enum QuotaError {
     },
 }
 
-#[allow(clippy::expect_used, clippy::unwrap_used, clippy::panic, clippy::indexing_slicing, clippy::too_many_arguments, clippy::type_complexity, reason = "test code")]
+#[allow(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    reason = "test code"
+)]
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1202,11 +1220,20 @@ mod tests {
 
     #[test]
     fn test_parse_storage() {
-        assert_eq!(ResourceQuota::parse_storage("100MB").unwrap(), 100 * 1024 * 1024);
-        assert_eq!(ResourceQuota::parse_storage("1GB").unwrap(), 1024 * 1024 * 1024);
+        assert_eq!(
+            ResourceQuota::parse_storage("100MB").unwrap(),
+            100 * 1024 * 1024
+        );
+        assert_eq!(
+            ResourceQuota::parse_storage("1GB").unwrap(),
+            1024 * 1024 * 1024
+        );
         assert_eq!(ResourceQuota::parse_storage("500KB").unwrap(), 500 * 1024);
         assert_eq!(ResourceQuota::parse_storage("1024B").unwrap(), 1024);
-        assert_eq!(ResourceQuota::parse_storage("1TB").unwrap(), 1024 * 1024 * 1024 * 1024);
+        assert_eq!(
+            ResourceQuota::parse_storage("1TB").unwrap(),
+            1024 * 1024 * 1024 * 1024
+        );
     }
 
     #[test]
@@ -1218,9 +1245,18 @@ mod tests {
 
     #[test]
     fn test_parse_bandwidth() {
-        assert_eq!(ResourceQuota::parse_bandwidth("10MB/s").unwrap(), 10 * 1024 * 1024);
-        assert_eq!(ResourceQuota::parse_bandwidth("1GB/s").unwrap(), 1024 * 1024 * 1024);
-        assert_eq!(ResourceQuota::parse_bandwidth("500KB/s").unwrap(), 500 * 1024);
+        assert_eq!(
+            ResourceQuota::parse_bandwidth("10MB/s").unwrap(),
+            10 * 1024 * 1024
+        );
+        assert_eq!(
+            ResourceQuota::parse_bandwidth("1GB/s").unwrap(),
+            1024 * 1024 * 1024
+        );
+        assert_eq!(
+            ResourceQuota::parse_bandwidth("500KB/s").unwrap(),
+            500 * 1024
+        );
     }
 
     #[test]
@@ -1317,8 +1353,7 @@ mod tests {
 
     #[test]
     fn test_message_rate_window_reset() {
-        let quota = ResourceQuota::new()
-            .with_message_rate(10);
+        let quota = ResourceQuota::new().with_message_rate(10);
         // Create tracker with short reset period for testing
         let tracker = QuotaTracker::new(quota);
         tracker.set_window_duration_for_testing(Duration::from_millis(100));

@@ -84,8 +84,8 @@ use tracing::{debug, trace};
 
 // Layer 3: Internal module imports
 use crate::core::runtime::ComponentHandle;
+use crate::core::RuntimeMessageHandlerEngine;
 use crate::core::{CapabilitySet, ComponentId, ComponentMetadata, WasmError};
-use crate::runtime::WasmEngine;
 
 // =============================================================================
 // LEGACY CODE DELETED (WASM-TASK-006-HOTFIX Phase 2 Task 2.1)
@@ -483,7 +483,7 @@ where
     /// // Pass to ComponentActor during creation
     /// let actor = ComponentActor::with_engine(engine.clone(), ...);
     /// ```
-    component_engine: Option<Arc<WasmEngine>>,
+    component_engine: Option<Arc<dyn crate::core::RuntimeMessageHandlerEngine>>,
 
     /// Handle to loaded component instance (Component Model API).
     ///
@@ -1054,7 +1054,7 @@ where
     /// - Uses Component Model API (wasmtime::component)
     /// - Enables compilation caching across components
     /// - Supports WIT interfaces and typed calls
-    pub fn with_component_engine(mut self, engine: Arc<WasmEngine>) -> Self {
+    pub fn with_component_engine(mut self, engine: Arc<dyn RuntimeMessageHandlerEngine>) -> Self {
         self.component_engine = Some(engine);
         self
     }
@@ -1065,7 +1065,7 @@ where
     ///
     /// # Returns
     ///
-    /// - `Some(&Arc<WasmEngine>)` - Engine is configured
+    /// - `Some(&Arc<dyn RuntimeMessageHandlerEngine>)` - Engine is configured
     /// - `None` - Engine not set (legacy mode)
     ///
     /// # Example
@@ -1075,7 +1075,7 @@ where
     ///     let handle = engine.load_component(&id, &bytes).await?;
     /// }
     /// ```
-    pub fn component_engine(&self) -> Option<&Arc<WasmEngine>> {
+    pub fn component_engine(&self) -> Option<&Arc<dyn crate::core::RuntimeMessageHandlerEngine>> {
         self.component_engine.as_ref()
     }
 
@@ -2758,7 +2758,8 @@ mod tests {
     fn test_with_component_engine_builder() {
         use crate::runtime::WasmEngine;
 
-        let engine = Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
+        let engine: Arc<dyn RuntimeMessageHandlerEngine> =
+            Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
 
         let actor = ComponentActor::new(
             ComponentId::new("test"),
@@ -2945,10 +2946,10 @@ mod tests {
     /// (Task 2.5 implemented WasmEngine::call_handle_message)
     #[tokio::test]
     async fn test_component_model_handle_message_invocation() {
-        use crate::core::runtime::RuntimeEngine;
         use crate::runtime::WasmEngine;
 
-        let engine = Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
+        let engine: Arc<dyn RuntimeMessageHandlerEngine> =
+            Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
 
         // Load handle-message-component.wasm which has handle-message export
         let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -2993,10 +2994,10 @@ mod tests {
     /// Test Component Model path fails gracefully when component lacks handle-message export
     #[tokio::test]
     async fn test_component_model_handle_message_no_export() {
-        use crate::core::runtime::RuntimeEngine;
         use crate::runtime::WasmEngine;
 
-        let engine = Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
+        let engine: Arc<dyn RuntimeMessageHandlerEngine> =
+            Arc::new(WasmEngine::new().expect("Failed to create WasmEngine"));
 
         // Load hello_world.wasm which does NOT have handle-message export
         let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))

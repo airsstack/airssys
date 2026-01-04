@@ -35,8 +35,7 @@ use std::time::Duration;
 // Layer 3: Internal module imports
 use airssys_rt::broker::{InMemoryMessageBroker, MessageBroker};
 use airssys_wasm::actor::{
-    ActorSystemSubscriber, ComponentMessage, RoutingStats, SubscriberManager,
-    UnifiedRouter,
+    ActorSystemSubscriber, ComponentMessage, RoutingStats, SubscriberManager, UnifiedRouter,
 };
 use airssys_wasm::core::ComponentId;
 
@@ -46,8 +45,7 @@ async fn test_actor_system_subscribes_to_broker() {
     let broker = Arc::new(InMemoryMessageBroker::new());
     let subscriber_manager = Arc::new(SubscriberManager::new());
 
-    let mut subscriber =
-        ActorSystemSubscriber::new(Arc::clone(&broker), subscriber_manager);
+    let mut subscriber = ActorSystemSubscriber::new(Arc::clone(&broker), subscriber_manager);
 
     // Start subscription
     let result = subscriber.start().await;
@@ -78,10 +76,8 @@ async fn test_message_routes_to_mailbox() {
     let broker = Arc::new(InMemoryMessageBroker::new());
     let subscriber_manager = Arc::new(SubscriberManager::new());
 
-    let mut subscriber = ActorSystemSubscriber::new(
-        Arc::clone(&broker),
-        Arc::clone(&subscriber_manager),
-    );
+    let mut subscriber =
+        ActorSystemSubscriber::new(Arc::clone(&broker), Arc::clone(&subscriber_manager));
 
     // Start subscriber
     subscriber
@@ -185,8 +181,7 @@ async fn test_error_handling_unreachable_component() {
     let broker = Arc::new(InMemoryMessageBroker::new());
     let subscriber_manager = Arc::new(SubscriberManager::new());
 
-    let mut subscriber =
-        ActorSystemSubscriber::new(Arc::clone(&broker), subscriber_manager);
+    let mut subscriber = ActorSystemSubscriber::new(Arc::clone(&broker), subscriber_manager);
 
     // Start subscriber
     subscriber.start().await.expect("Failed to start");
@@ -318,8 +313,7 @@ async fn test_multiple_messages_sequential() {
     let broker = Arc::new(InMemoryMessageBroker::new());
     let subscriber_manager = Arc::new(SubscriberManager::new());
 
-    let mut subscriber =
-        ActorSystemSubscriber::new(Arc::clone(&broker), subscriber_manager);
+    let mut subscriber = ActorSystemSubscriber::new(Arc::clone(&broker), subscriber_manager);
 
     subscriber.start().await.expect("Failed to start");
 

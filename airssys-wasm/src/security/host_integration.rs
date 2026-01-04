@@ -381,7 +381,15 @@ pub fn custom_operation(resource_id: &str) -> Result<String, CapabilityCheckErro
     todo!("Actual custom operation implementation")
 }
 
-#[allow(clippy::expect_used, clippy::unwrap_used, clippy::panic, clippy::indexing_slicing, clippy::too_many_arguments, clippy::type_complexity, reason = "test code")]
+#[allow(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    reason = "test code"
+)]
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -419,10 +427,8 @@ mod tests {
     #[test]
     fn test_filesystem_read_pattern_denied() {
         // Setup: Register component with NO filesystem capabilities
-        let security_ctx = WasmSecurityContext::new(
-            "fs-read-denied".to_string(),
-            WasmCapabilitySet::new(),
-        );
+        let security_ctx =
+            WasmSecurityContext::new("fs-read-denied".to_string(), WasmCapabilitySet::new());
         register_component(security_ctx).expect("registration failed");
 
         let _guard = ComponentContextGuard::new("fs-read-denied".to_string());
@@ -465,10 +471,8 @@ mod tests {
     #[test]
     fn test_network_connect_pattern_denied() {
         // Setup
-        let security_ctx = WasmSecurityContext::new(
-            "net-connect-denied".to_string(),
-            WasmCapabilitySet::new(),
-        );
+        let security_ctx =
+            WasmSecurityContext::new("net-connect-denied".to_string(), WasmCapabilitySet::new());
         register_component(security_ctx).expect("registration failed");
 
         let _guard = ComponentContextGuard::new("net-connect-denied".to_string());
@@ -507,10 +511,8 @@ mod tests {
     #[test]
     fn test_storage_get_pattern_denied() {
         // Setup
-        let security_ctx = WasmSecurityContext::new(
-            "storage-denied".to_string(),
-            WasmCapabilitySet::new(),
-        );
+        let security_ctx =
+            WasmSecurityContext::new("storage-denied".to_string(), WasmCapabilitySet::new());
         register_component(security_ctx).expect("registration failed");
 
         let _guard = ComponentContextGuard::new("storage-denied".to_string());

@@ -14,9 +14,8 @@ async fn main() -> Result<(), OSError> {
     println!("=== AirsSys OSL Helper Functions Example ===\n");
 
     // Create temporary directory for examples
-    let temp_dir = TempDir::new().map_err(|e| {
-        OSError::execution_failed(format!("Failed to create temp directory: {e}"))
-    })?;
+    let temp_dir = TempDir::new()
+        .map_err(|e| OSError::execution_failed(format!("Failed to create temp directory: {e}")))?;
     let temp_path = temp_dir.path();
 
     // ==========================================

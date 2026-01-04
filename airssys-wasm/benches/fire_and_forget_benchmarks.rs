@@ -49,7 +49,9 @@ use airssys_wasm::core::{
     bridge::{HostCallContext, HostFunction},
     Capability, CapabilitySet, ComponentId, MulticodecPrefix, TopicPattern,
 };
-use airssys_wasm::host_system::{CorrelationTracker, TimeoutHandler};
+use airssys_wasm::host_system::{
+    correlation_impl::CorrelationTracker, timeout_impl::TimeoutHandler,
+};
 use airssys_wasm::messaging::MessagingService;
 use airssys_wasm::runtime::{create_host_context, SendMessageHostFunction};
 
@@ -64,7 +66,11 @@ fn create_messaging_service() -> Arc<MessagingService> {
     let correlation_tracker = Arc::new(CorrelationTracker::new());
     let timeout_handler = Arc::new(TimeoutHandler::new());
     let broker = Arc::new(InMemoryMessageBroker::new());
-    Arc::new(MessagingService::new(broker, correlation_tracker, timeout_handler))
+    Arc::new(MessagingService::new(
+        broker,
+        correlation_tracker,
+        timeout_handler,
+    ))
 }
 
 /// Create encoded args for send-message host function.

@@ -23,9 +23,8 @@ async fn main() -> Result<(), OSError> {
     tracing_subscriber::fmt::init();
 
     // Create temporary directory for examples
-    let temp_dir = TempDir::new().map_err(|e| {
-        OSError::execution_failed(format!("Failed to create temp directory: {e}"))
-    })?;
+    let temp_dir = TempDir::new()
+        .map_err(|e| OSError::execution_failed(format!("Failed to create temp directory: {e}")))?;
     let temp_path = temp_dir.path();
 
     // ==========================================
@@ -88,9 +87,7 @@ async fn main() -> Result<(), OSError> {
     println!("Executing file write with chained middleware...");
     let _result = executor.execute(operation, &context).await?;
     println!("✓ Operation completed successfully");
-    println!(
-        "✓ Logs written to both console and file: {log_file_path:?}\n"
-    );
+    println!("✓ Logs written to both console and file: {log_file_path:?}\n");
 
     // ==========================================
     // Example 3: Middleware with Different Operations

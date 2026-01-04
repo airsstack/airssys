@@ -322,7 +322,15 @@ impl std::fmt::Display for MulticodecPrefix {
     }
 }
 
-#[allow(clippy::expect_used, clippy::unwrap_used, clippy::panic, clippy::indexing_slicing, clippy::too_many_arguments, clippy::type_complexity, reason = "test code")]
+#[allow(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    reason = "test code"
+)]
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -367,7 +375,10 @@ mod tests {
     fn test_from_prefix_too_short_empty() {
         let data: [u8; 0] = [];
         let err = MulticodecPrefix::from_prefix(&data).unwrap_err();
-        assert!(matches!(err, MulticodecPrefixError::MessageTooShort { actual: 0 }));
+        assert!(matches!(
+            err,
+            MulticodecPrefixError::MessageTooShort { actual: 0 }
+        ));
         assert!(err.to_string().contains("0"));
     }
 
@@ -375,14 +386,20 @@ mod tests {
     fn test_from_prefix_too_short_one_byte() {
         let data = [0x07];
         let err = MulticodecPrefix::from_prefix(&data).unwrap_err();
-        assert!(matches!(err, MulticodecPrefixError::MessageTooShort { actual: 1 }));
+        assert!(matches!(
+            err,
+            MulticodecPrefixError::MessageTooShort { actual: 1 }
+        ));
     }
 
     #[test]
     fn test_from_prefix_unknown() {
         let data = [0xFF, 0xFF, 0x00, 0x00];
         let err = MulticodecPrefix::from_prefix(&data).unwrap_err();
-        assert!(matches!(err, MulticodecPrefixError::UnknownPrefix { prefix: 0xFFFF }));
+        assert!(matches!(
+            err,
+            MulticodecPrefixError::UnknownPrefix { prefix: 0xFFFF }
+        ));
         assert!(err.to_string().contains("FFFF"));
     }
 
@@ -481,7 +498,10 @@ mod tests {
     fn test_get_payload_too_short() {
         let data = [0x07];
         let err = MulticodecPrefix::get_payload(&data).unwrap_err();
-        assert!(matches!(err, MulticodecPrefixError::MessageTooShort { actual: 1 }));
+        assert!(matches!(
+            err,
+            MulticodecPrefixError::MessageTooShort { actual: 1 }
+        ));
     }
 
     // ============================================================================
@@ -506,7 +526,7 @@ mod tests {
     fn test_create_message_round_trip() {
         let payload = b"round trip test";
         let message = MulticodecPrefix::Bincode.create_message(payload);
-        
+
         let (codec, len) = MulticodecPrefix::from_prefix(&message).unwrap();
         assert_eq!(codec, MulticodecPrefix::Bincode);
         assert_eq!(&message[len..], payload);

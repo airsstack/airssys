@@ -463,7 +463,10 @@ impl CorrelationTracker {
     ///
     /// // All requests involving this component are removed
     /// ```
-    pub async fn cleanup_pending_for_component(&self, component_id: &crate::core::component::ComponentId) {
+    pub async fn cleanup_pending_for_component(
+        &self,
+        component_id: &crate::core::component::ComponentId,
+    ) {
         use crate::core::messaging::CorrelationId;
 
         // Collect correlation IDs for requests involving this component

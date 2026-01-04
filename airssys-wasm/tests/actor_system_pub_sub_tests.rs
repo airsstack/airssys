@@ -1,4 +1,9 @@
-#![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used, unused_imports)]
+#![allow(
+    clippy::panic,
+    clippy::expect_used,
+    clippy::unwrap_used,
+    unused_imports
+)]
 
 //! Integration tests for ActorSystem pub-sub with UnifiedRouter.
 //! - Full pub-sub flow with ActorSystem intermediation
@@ -29,9 +34,7 @@ use std::time::Duration;
 // Layer 3: Internal module imports
 use airssys_rt::broker::{InMemoryMessageBroker, MessageBroker};
 use airssys_rt::message::MessageEnvelope;
-use airssys_wasm::actor::{
-    ComponentMessage, UnifiedRouter,
-};
+use airssys_wasm::actor::{ComponentMessage, UnifiedRouter};
 use airssys_wasm::core::ComponentId;
 
 /// Test 1: Full pub-sub flow with ActorSystem

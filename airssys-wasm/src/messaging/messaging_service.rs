@@ -73,9 +73,9 @@ use serde::{Deserialize, Serialize};
 use airssys_rt::broker::InMemoryMessageBroker;
 
 // Layer 3: Internal crate imports
-use crate::host_system::correlation_tracker::CorrelationTracker;
-use crate::host_system::timeout_handler::TimeoutHandler;
 use crate::core::ComponentMessage;
+use crate::host_system::correlation_impl::CorrelationTracker;
+use crate::host_system::timeout_impl::TimeoutHandler;
 
 #[allow(dead_code)]
 /// Service managing MessageBroker integration for inter-component communication.
@@ -141,7 +141,7 @@ pub struct MessagingService {
     response_router: Arc<crate::messaging::router::ResponseRouter>,
 }
 
-    impl MessagingService {
+impl MessagingService {
     /// Create a new MessagingService with injected dependencies.
     ///
     /// Initializes messaging service with a shared MessageBroker for all
@@ -731,8 +731,8 @@ pub struct MessageReceptionStats {
 mod tests {
     use super::*;
     use crate::core::ComponentId;
-    use crate::host_system::correlation_tracker::CorrelationTracker;
-    use crate::host_system::timeout_handler::TimeoutHandler;
+    use crate::host_system::correlation_impl::CorrelationTracker;
+    use crate::host_system::timeout_impl::TimeoutHandler;
     use std::sync::Arc;
 
     /// Helper function to create a MessagingService for tests

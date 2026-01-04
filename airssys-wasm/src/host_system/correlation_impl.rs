@@ -332,7 +332,10 @@ impl CorrelationTracker {
     /// # Performance
     ///
     /// O(N) where N is the number of pending requests. Each removal is ~100ns.
-    pub async fn cleanup_pending_for_component(&self, component_id: &crate::core::component::ComponentId) {
+    pub async fn cleanup_pending_for_component(
+        &self,
+        component_id: &crate::core::component::ComponentId,
+    ) {
         use crate::core::messaging::CorrelationId;
 
         // Collect correlation IDs for requests involving this component
@@ -378,7 +381,11 @@ impl CorrelationTrackerTrait for CorrelationTracker {
         self.register_pending(request).await
     }
 
-    async fn resolve(&self, correlation_id: CorrelationId, response: ResponseMessage) -> Result<(), WasmError> {
+    async fn resolve(
+        &self,
+        correlation_id: CorrelationId,
+        response: ResponseMessage,
+    ) -> Result<(), WasmError> {
         self.resolve(correlation_id, response).await
     }
 
@@ -406,7 +413,10 @@ impl CorrelationTrackerTrait for CorrelationTracker {
         self.timeout_count()
     }
 
-    async fn cleanup_pending_for_component(&self, component_id: &crate::core::component::ComponentId) {
+    async fn cleanup_pending_for_component(
+        &self,
+        component_id: &crate::core::component::ComponentId,
+    ) {
         self.cleanup_pending_for_component(component_id).await
     }
 }

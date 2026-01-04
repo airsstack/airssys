@@ -519,9 +519,7 @@ where
             // Escalate to parent supervisor
             // For now, we log the error. In future phases, this can trigger
             // parent supervision strategies.
-            eprintln!(
-                "Supervisor {supervisor_id} escalating error to parent {parent_id}: {error}"
-            );
+            eprintln!("Supervisor {supervisor_id} escalating error to parent {parent_id}: {error}");
             Ok(())
         } else {
             // Root supervisor - no parent to escalate to

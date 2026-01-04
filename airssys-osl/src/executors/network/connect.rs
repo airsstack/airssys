@@ -68,11 +68,10 @@ impl OSExecutor<NetworkConnectOperation> for NetworkExecutor {
         }
         .into_bytes();
 
-        let mut result =
-            ExecutionResult::success_with_timing(output, started_at, completed_at)
-                .with_metadata("address".to_string(), operation.address.clone())
-                .with_metadata("executor".to_string(), self.name.clone())
-                .with_metadata("user".to_string(), context.principal().to_string());
+        let mut result = ExecutionResult::success_with_timing(output, started_at, completed_at)
+            .with_metadata("address".to_string(), operation.address.clone())
+            .with_metadata("executor".to_string(), self.name.clone())
+            .with_metadata("user".to_string(), context.principal().to_string());
 
         if let Some(local) = local_addr {
             result = result.with_metadata("local_address".to_string(), local);

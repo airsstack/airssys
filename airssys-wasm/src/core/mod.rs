@@ -162,13 +162,13 @@
 // Universal Abstractions (Phase 1-5: Complete)
 pub mod capability;
 pub mod component;
-pub mod config;
-pub mod error;
 pub mod component_message; // ADR-WASM-022: Component messages moved from actor/ to core/
+pub mod config;
+pub mod correlation_trait; // WASM-TASK-014 Phase 1: DIP implementation
+pub mod error;
 pub mod multicodec; // Phase 1 Task 1.3: Multicodec support for message serialization
 pub mod multicodec_prefix; // WASM-TASK-006 Phase 2: ADR-WASM-001 multicodec prefix validation
 pub mod rate_limiter; // DEBT-WASM-004 Item #3: Rate limiting for message security
-pub mod correlation_trait; // WASM-TASK-014 Phase 1: DIP implementation
 pub mod timeout_trait; // WASM-TASK-014 Phase 1: DIP implementation
 
 // Permission System (WASM-TASK-003 Phase 3 Task 3.2: Complete)
@@ -199,19 +199,21 @@ pub use component::{
     Component, ComponentConfig, ComponentId, ComponentInput, ComponentMetadata, ComponentOutput,
     ComponentState, ComponentStatus, InstallationSource,
 };
+pub use component_message::{ComponentHealthStatus, ComponentMessage};
 pub use config::{
-    CpuConfig, MemoryConfig, ResourceConfig, ResourceLimits, ResourceLimitsBuilder,
-    ComponentConfigToml, ComponentMetadataToml, ConfigError, CpuConfigToml, MemoryConfigToml,
+    ComponentConfigToml, ComponentMetadataToml, ConfigError, CpuConfig, CpuConfigToml,
+    MemoryConfig, MemoryConfigToml, ResourceConfig, ResourceLimits, ResourceLimitsBuilder,
     ResourcesConfigToml, RuntimeConfig, SecurityConfig, SecurityMode,
     StorageBackend as StorageBackendType, StorageConfig, DEFAULT_MAX_MESSAGE_SIZE,
 };
+pub use correlation_trait::CorrelationTrackerTrait; // WASM-TASK-014 Phase 1
 pub use error::{WasmError, WasmResult};
 pub use interface::{FunctionSignature, WitInterface};
 pub use lifecycle::{LifecycleEvent, LifecycleState, UpdateStrategy, VersionInfo};
 pub use management::{ComponentQuery, ComponentRegistry, InstallationMetadata, RegistryOperation};
 pub use manifest::{ComponentManifest, PackageInfo, RuntimeConfig as ManifestRuntimeConfig};
-pub use messaging::{DeliveryGuarantee, MessageEnvelope, MessageType};
 pub use messaging::{CorrelationId, PendingRequest, RequestError, ResponseMessage};
+pub use messaging::{DeliveryGuarantee, MessageEnvelope, MessageType};
 pub use multicodec::{decode_multicodec, encode_multicodec, Codec};
 pub use multicodec_prefix::{MulticodecPrefix, MulticodecPrefixError};
 pub use observability::{
@@ -232,12 +234,11 @@ pub use permission_wit::{
 pub use rate_limiter::{MessageRateLimiter, RateLimiterConfig, DEFAULT_RATE_LIMIT};
 pub use runtime::{
     ComponentHandle, ExecutionContext, ExecutionState, ResourceUsage, RuntimeEngine,
+    RuntimeMessageHandlerEngine,
 };
 pub use security::{
     IsolationBoundary, PermissionRequest, PermissionResult, SecurityContext, SecurityPolicy,
     TrustLevel,
 };
 pub use storage::{StorageBackend, StorageOperation};
-pub use component_message::{ComponentMessage, ComponentHealthStatus};
-pub use correlation_trait::CorrelationTrackerTrait; // WASM-TASK-014 Phase 1
-pub use timeout_trait::TimeoutHandlerTrait; // WASM-TASK-014 Phase 1
+pub use timeout_trait::{TimeoutHandlerObjectSafeTrait, TimeoutHandlerTrait}; // WASM-TASK-014 Phase 1

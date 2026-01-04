@@ -929,7 +929,7 @@ pub fn create_host_context(
 mod tests {
 
     use super::*;
-    use crate::host_system::{CorrelationTracker, TimeoutHandler};
+    use crate::host_system::{correlation_impl::CorrelationTracker, timeout_impl::TimeoutHandler};
 
     /// Helper function to create a MessagingService for tests
     fn create_messaging_service() -> Arc<MessagingService> {
@@ -938,7 +938,11 @@ mod tests {
         let correlation_tracker = Arc::new(CorrelationTracker::new());
         let timeout_handler = Arc::new(TimeoutHandler::new());
         let broker = Arc::new(InMemoryMessageBroker::new());
-        Arc::new(MessagingService::new(broker, correlation_tracker, timeout_handler))
+        Arc::new(MessagingService::new(
+            broker,
+            correlation_tracker,
+            timeout_handler,
+        ))
     }
 
     #[test]

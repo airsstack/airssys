@@ -54,12 +54,11 @@ impl OSExecutor<NetworkListenOperation> for NetworkExecutor {
             });
 
             let output = format!("Listening on Unix socket: {socket_path}").into_bytes();
-            let mut result =
-                ExecutionResult::success_with_timing(output, started_at, completed_at)
-                    .with_metadata("socket_path".to_string(), socket_path.clone())
-                    .with_metadata("socket_type".to_string(), "unix".to_string())
-                    .with_metadata("executor".to_string(), self.name.clone())
-                    .with_metadata("user".to_string(), context.principal().to_string());
+            let mut result = ExecutionResult::success_with_timing(output, started_at, completed_at)
+                .with_metadata("socket_path".to_string(), socket_path.clone())
+                .with_metadata("socket_type".to_string(), "unix".to_string())
+                .with_metadata("executor".to_string(), self.name.clone())
+                .with_metadata("user".to_string(), context.principal().to_string());
 
             if let Some(backlog) = operation.backlog {
                 result = result.with_metadata("backlog".to_string(), backlog.to_string());
@@ -85,13 +84,12 @@ impl OSExecutor<NetworkListenOperation> for NetworkExecutor {
             .unwrap_or_else(|_| operation.address.clone());
 
         let output = format!("Listening on {local_addr}").into_bytes();
-        let mut result =
-            ExecutionResult::success_with_timing(output, started_at, completed_at)
-                .with_metadata("address".to_string(), operation.address.clone())
-                .with_metadata("local_address".to_string(), local_addr)
-                .with_metadata("socket_type".to_string(), "tcp".to_string())
-                .with_metadata("executor".to_string(), self.name.clone())
-                .with_metadata("user".to_string(), context.principal().to_string());
+        let mut result = ExecutionResult::success_with_timing(output, started_at, completed_at)
+            .with_metadata("address".to_string(), operation.address.clone())
+            .with_metadata("local_address".to_string(), local_addr)
+            .with_metadata("socket_type".to_string(), "tcp".to_string())
+            .with_metadata("executor".to_string(), self.name.clone())
+            .with_metadata("user".to_string(), context.principal().to_string());
 
         if let Some(backlog) = operation.backlog {
             result = result.with_metadata("backlog".to_string(), backlog.to_string());
@@ -241,12 +239,11 @@ mod tests {
 
         // Create existing socket
         let _ = std::fs::remove_file(&socket_path);
-        let _first = tokio::net::UnixListener::bind(&socket_path)
-            .expect("Failed to create first socket");
+        let _first =
+            tokio::net::UnixListener::bind(&socket_path).expect("Failed to create first socket");
         drop(_first);
 
-        let operation =
-            NetworkListenOperation::new("unix-listener").with_socket_path(&socket_path);
+        let operation = NetworkListenOperation::new("unix-listener").with_socket_path(&socket_path);
         let context = ExecutionContext::new(SecurityContext::new("test-user".to_string()));
 
         let result = executor

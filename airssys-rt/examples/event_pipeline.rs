@@ -99,7 +99,10 @@
 //! - [`supervisor_basic.rs`] - Basic supervisor and child management
 //! - [User Guide: Supervisor Patterns](../docs/src/guides/supervisor-patterns.md)
 
-#![expect(clippy::expect_used, reason = "expect is acceptable in example code for demonstration purposes")]
+#![expect(
+    clippy::expect_used,
+    reason = "expect is acceptable in example code for demonstration purposes"
+)]
 
 use airssys_rt::monitoring::{InMemoryMonitor, MonitoringConfig};
 use airssys_rt::supervisor::{
@@ -174,7 +177,10 @@ impl IngestStage {
     ///
     /// Applies backpressure if transform queue is full.
     fn ingest_event(&mut self, event: Event) -> Result<(), StageError> {
-        let mut queue = self.transform_queue.lock().expect("Failed to acquire transform queue lock");
+        let mut queue = self
+            .transform_queue
+            .lock()
+            .expect("Failed to acquire transform queue lock");
 
         // Backpressure: check queue capacity
         if queue.len() >= self.max_queue_size {
@@ -250,10 +256,13 @@ impl TransformStage {
         loop {
             // Acquire locks, process one event, then drop locks before await
             let event_opt = {
-                let mut transform_queue = self.transform_queue.lock().expect("Failed to acquire transform queue lock");
+                let mut transform_queue = self
+                    .transform_queue
+                    .lock()
+                    .expect("Failed to acquire transform queue lock");
                 transform_queue.pop_front()
             };
-            
+
             let mut event = match event_opt {
                 Some(e) => e,
                 None => break, // No more events
@@ -278,7 +287,10 @@ impl TransformStage {
             // Enrich event and push to output queue
             event.enriched = true;
             {
-                let mut output_queue = self.output_queue.lock().expect("Failed to acquire output queue lock");
+                let mut output_queue = self
+                    .output_queue
+                    .lock()
+                    .expect("Failed to acquire output queue lock");
                 output_queue.push_back(event);
             }
             self.processed_count.fetch_add(1, Ordering::Relaxed);
@@ -339,10 +351,13 @@ impl OutputStage {
         loop {
             // Acquire lock, get one event, then drop lock before await
             let event_opt = {
-                let mut queue = self.output_queue.lock().expect("Failed to acquire output queue lock");
+                let mut queue = self
+                    .output_queue
+                    .lock()
+                    .expect("Failed to acquire output queue lock");
                 queue.pop_front()
             };
-            
+
             let event = match event_opt {
                 Some(e) => e,
                 None => break, // No more events
@@ -597,9 +612,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Step 6: Display statistics
     // ==========================================================================
     println!("=== Pipeline Statistics ===");
-    let transform_pending = transform_queue.lock().expect("Failed to lock transform queue").len();
-    let output_pending = output_queue.lock().expect("Failed to lock output queue").len();
-    
+    let transform_pending = transform_queue
+        .lock()
+        .expect("Failed to lock transform queue")
+        .len();
+    let output_pending = output_queue
+        .lock()
+        .expect("Failed to lock output queue")
+        .len();
+
     println!("Transform queue: {} events pending", transform_pending);
     println!("Output queue: {} events pending", output_pending);
     println!();

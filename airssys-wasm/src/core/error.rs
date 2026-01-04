@@ -536,7 +536,6 @@ pub enum WasmError {
     // ========================================================================
     // Routing-Specific Errors (WASM-TASK-006 Task 1.3)
     // ========================================================================
-
     /// Message routing failed because target component is not registered.
     ///
     /// Occurs when ActorSystemSubscriber cannot find a mailbox for the target
@@ -594,7 +593,9 @@ pub enum WasmError {
     /// assert!(err.to_string().contains("Shutdown"));
     /// assert!(err.to_string().contains("cannot be routed"));
     /// ```
-    #[error("Routing failed: message type '{message_type}' cannot be routed (no target component)")]
+    #[error(
+        "Routing failed: message type '{message_type}' cannot be routed (no target component)"
+    )]
     RoutingInvalidMessageType {
         /// Message type that cannot be routed
         message_type: String,
@@ -1234,7 +1235,15 @@ impl WasmError {
     }
 }
 
-#[allow(clippy::expect_used, clippy::unwrap_used, clippy::panic, clippy::indexing_slicing, clippy::too_many_arguments, clippy::type_complexity, reason = "test code")]
+#[allow(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    reason = "test code"
+)]
 #[cfg(test)]
 mod tests {
     use super::*;

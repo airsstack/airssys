@@ -142,9 +142,9 @@ use dashmap::DashMap;
 use thiserror::Error;
 
 // Layer 3: Internal module imports
+use crate::security::audit::{WasmAuditLogger, WasmCapabilityAuditLog};
 use crate::security::WasmSecurityContext;
 use airssys_osl::middleware::security::audit::ConsoleSecurityAuditLogger;
-use crate::security::audit::{WasmAuditLogger, WasmCapabilityAuditLog};
 
 /// Result of a capability check operation.
 ///
@@ -203,9 +203,9 @@ impl CapabilityCheckResult {
     pub fn to_result(self) -> Result<(), CapabilityCheckError> {
         match self {
             CapabilityCheckResult::Granted => Ok(()),
-            CapabilityCheckResult::Denied(reason) => Err(CapabilityCheckError::AccessDenied {
-                reason,
-            }),
+            CapabilityCheckResult::Denied(reason) => {
+                Err(CapabilityCheckError::AccessDenied { reason })
+            }
         }
     }
 
@@ -476,7 +476,10 @@ impl CapabilityChecker {
         let component_id = security_context.component_id.clone();
 
         // DashMap::insert returns Some(old_value) if key existed
-        match self.contexts.insert(component_id.clone(), Arc::new(security_context)) {
+        match self
+            .contexts
+            .insert(component_id.clone(), Arc::new(security_context))
+        {
             Some(_) => {
                 // Key already existed, restore the old value and return error
                 Err(CapabilityCheckError::ComponentAlreadyRegistered { component_id })
@@ -529,10 +532,11 @@ impl CapabilityChecker {
     /// assert!(result.is_err());
     /// ```
     pub fn unregister_component(&self, component_id: &str) -> Result<(), CapabilityCheckError> {
-        self.contexts.remove(component_id)
-            .ok_or_else(|| CapabilityCheckError::ComponentNotFound {
+        self.contexts.remove(component_id).ok_or_else(|| {
+            CapabilityCheckError::ComponentNotFound {
                 component_id: component_id.to_string(),
-            })?;
+            }
+        })?;
         Ok(())
     }
 
@@ -631,7 +635,11 @@ impl CapabilityChecker {
         // DashMap reference is automatically released here
 
         // 2. Fast path: If component has no capabilities, deny immediately
-        if security_context.capabilities.to_acl_entries(component_id).is_empty() {
+        if security_context
+            .capabilities
+            .to_acl_entries(component_id)
+            .is_empty()
+        {
             return CapabilityCheckResult::Denied(format!(
                 "Component '{}' has no capabilities declared",
                 component_id
@@ -652,7 +660,8 @@ impl CapabilityChecker {
                 // For WASM components, additional auth is not supported
                 // Components must declare all capabilities upfront
                 CapabilityCheckResult::Denied(
-                    "Additional authentication required (not supported for WASM components)".to_string()
+                    "Additional authentication required (not supported for WASM components)"
+                        .to_string(),
                 )
             }
         }
@@ -731,7 +740,6 @@ pub fn set_global_audit_logger(logger: WasmAuditLogger) -> Result<(), String> {
         .set(logger)
         .map_err(|_| "Global audit logger already set".to_string())
 }
-
 
 /// Get or initialize the global capability checker.
 ///
@@ -892,12 +900,7 @@ pub fn check_capability(
     // Audit log the capability check (best-effort, non-blocking)
     let log = match &result {
         Ok(_) => WasmCapabilityAuditLog::granted(component_id, resource, permission),
-        Err(e) => WasmCapabilityAuditLog::denied(
-            component_id,
-            resource,
-            permission,
-            e.to_string(),
-        ),
+        Err(e) => WasmCapabilityAuditLog::denied(component_id, resource, permission, e.to_string()),
     };
 
     // Spawn async logging task if Tokio runtime is available (best-effort)
@@ -1215,21 +1218,26 @@ impl Drop for ComponentContextGuard {
 macro_rules! require_capability {
     ($resource:expr, $permission:expr) => {{
         // Get current component ID from thread-local storage
-        let component_id = $crate::security::enforcement::get_component_context()
-            .map_err(|e| $crate::security::enforcement::CapabilityCheckError::AccessDenied {
+        let component_id = $crate::security::enforcement::get_component_context().map_err(|e| {
+            $crate::security::enforcement::CapabilityCheckError::AccessDenied {
                 reason: format!("Failed to get component context: {}", e),
-            })?;
+            }
+        })?;
 
         // Perform capability check (3-parameter API)
-        $crate::security::enforcement::check_capability(
-            &component_id,
-            $resource,
-            $permission,
-        )
+        $crate::security::enforcement::check_capability(&component_id, $resource, $permission)
     }};
 }
 
-#[allow(clippy::expect_used, clippy::unwrap_used, clippy::panic, clippy::indexing_slicing, clippy::too_many_arguments, clippy::type_complexity, reason = "test code")]
+#[allow(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    reason = "test code"
+)]
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1408,8 +1416,7 @@ mod tests {
             permissions: vec!["read".to_string()], // Only read, not write
         });
 
-        let security_ctx =
-            WasmSecurityContext::new("test-perm-mismatch".to_string(), capabilities);
+        let security_ctx = WasmSecurityContext::new("test-perm-mismatch".to_string(), capabilities);
         checker
             .register_component(security_ctx)
             .expect("registration failed");
@@ -1445,11 +1452,10 @@ mod tests {
             let checker_clone = Arc::clone(&checker);
             let handle = thread::spawn(move || {
                 let component_id = format!("thread-comp-{}", i);
-                let capabilities =
-                    WasmCapabilitySet::new().grant(WasmCapability::Filesystem {
-                        paths: vec![format!("/app/data-{}/*", i)],
-                        permissions: vec!["read".to_string()],
-                    });
+                let capabilities = WasmCapabilitySet::new().grant(WasmCapability::Filesystem {
+                    paths: vec![format!("/app/data-{}/*", i)],
+                    permissions: vec!["read".to_string()],
+                });
 
                 let security_ctx = WasmSecurityContext::new(component_id.clone(), capabilities);
                 checker_clone
@@ -1527,14 +1533,14 @@ mod tests {
         fn test_function() -> Result<(), String> {
             let _guard = ComponentContextGuard::new("early-return".to_string());
             assert_eq!(get_component_context().unwrap(), "early-return");
-            
+
             // Early return - guard should still clean up
             Err("early error".to_string())
         }
 
         clear_component_context();
         let _ = test_function();
-        
+
         // Context should be cleared even after early return
         assert!(get_component_context().is_err());
     }
@@ -1554,7 +1560,7 @@ mod tests {
             // Set context in spawned thread
             set_component_context("spawned-thread".to_string());
             assert_eq!(get_component_context().unwrap(), "spawned-thread");
-            
+
             clear_component_context();
         });
 
@@ -1562,7 +1568,7 @@ mod tests {
 
         // Main thread context should be unaffected
         assert_eq!(get_component_context().unwrap(), "main-thread");
-        
+
         clear_component_context();
     }
 
@@ -1617,10 +1623,8 @@ mod tests {
     #[test]
     fn test_macro_require_capability_denied() {
         // Setup: Register component with no capabilities
-        let security_ctx = WasmSecurityContext::new(
-            "macro-denied".to_string(),
-            WasmCapabilitySet::new(),
-        );
+        let security_ctx =
+            WasmSecurityContext::new("macro-denied".to_string(), WasmCapabilitySet::new());
         register_component(security_ctx).expect("registration failed");
 
         // Set component context

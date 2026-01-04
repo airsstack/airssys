@@ -91,7 +91,9 @@ mod positive_tests {
         });
 
         let ctx = create_test_context("test-fs-exact", capabilities);
-        checker.register_component(ctx).expect("registration failed");
+        checker
+            .register_component(ctx)
+            .expect("registration failed");
 
         // Exact path match should be granted
         let result = checker.check("test-fs-exact", "/app/data/config.json", "read");
@@ -113,7 +115,9 @@ mod positive_tests {
         });
 
         let ctx = create_test_context("test-fs-glob", capabilities);
-        checker.register_component(ctx).expect("registration failed");
+        checker
+            .register_component(ctx)
+            .expect("registration failed");
 
         // Files matching glob pattern should be granted
         let result = checker.check("test-fs-glob", "/app/data/config.json", "read");
@@ -138,7 +142,9 @@ mod positive_tests {
         });
 
         let ctx = create_test_context("test-fs-recursive", capabilities);
-        checker.register_component(ctx).expect("registration failed");
+        checker
+            .register_component(ctx)
+            .expect("registration failed");
 
         // Files in nested directories should be granted
         let result = checker.check("test-fs-recursive", "/app/data/logs/app.log", "read");
@@ -163,7 +169,9 @@ mod positive_tests {
         });
 
         let ctx = create_test_context("test-fs-read", capabilities);
-        checker.register_component(ctx).expect("registration failed");
+        checker
+            .register_component(ctx)
+            .expect("registration failed");
 
         // Read operation should be granted
         let result = checker.check("test-fs-read", "/app/data/file.txt", "read");
@@ -185,7 +193,9 @@ mod positive_tests {
         });
 
         let ctx = create_test_context("test-fs-write", capabilities);
-        checker.register_component(ctx).expect("registration failed");
+        checker
+            .register_component(ctx)
+            .expect("registration failed");
 
         // Write operation should be granted
         let result = checker.check("test-fs-write", "/app/data/output.txt", "write");
@@ -207,7 +217,9 @@ mod positive_tests {
         });
 
         let ctx = create_test_context("test-net-exact", capabilities);
-        checker.register_component(ctx).expect("registration failed");
+        checker
+            .register_component(ctx)
+            .expect("registration failed");
 
         // Exact endpoint match should be granted
         let result = checker.check("test-net-exact", "api.example.com:443", "connect");
@@ -229,7 +241,9 @@ mod positive_tests {
         });
 
         let ctx = create_test_context("test-storage-exact", capabilities);
-        checker.register_component(ctx).expect("registration failed");
+        checker
+            .register_component(ctx)
+            .expect("registration failed");
 
         // Storage within namespace should be granted
         let result = checker.check(
@@ -274,7 +288,9 @@ mod negative_tests {
         });
 
         let ctx = create_test_context("test-fs-outside", capabilities);
-        checker.register_component(ctx).expect("registration failed");
+        checker
+            .register_component(ctx)
+            .expect("registration failed");
 
         // Access outside pattern should be denied
         let result = checker.check("test-fs-outside", "/etc/passwd", "read");
@@ -301,14 +317,19 @@ mod negative_tests {
         });
 
         let ctx = create_test_context("test-fs-traversal", capabilities);
-        checker.register_component(ctx).expect("registration failed");
+        checker
+            .register_component(ctx)
+            .expect("registration failed");
 
         // Path with traversal components - matches pattern literally
         // (Host function should normalize before checking)
         let result = checker.check("test-fs-traversal", "/app/data/../../../etc/passwd", "read");
         // This currently grants because the pattern `/app/data/*` matches literally
         // SECURITY NOTE: Host functions MUST normalize paths before checking
-        assert_granted(&result, "filesystem path with traversal components (literal match)");
+        assert_granted(
+            &result,
+            "filesystem path with traversal components (literal match)",
+        );
 
         // However, a normalized path outside the pattern would be denied
         let result = checker.check("test-fs-traversal", "/etc/passwd", "read");
@@ -330,7 +351,9 @@ mod negative_tests {
         });
 
         let ctx = create_test_context("test-fs-empty", capabilities);
-        checker.register_component(ctx).expect("registration failed");
+        checker
+            .register_component(ctx)
+            .expect("registration failed");
 
         // Empty path should be denied
         let result = checker.check("test-fs-empty", "", "read");
@@ -354,7 +377,9 @@ mod negative_tests {
         });
 
         let ctx = create_test_context("test-fs-special-chars", capabilities);
-        checker.register_component(ctx).expect("registration failed");
+        checker
+            .register_component(ctx)
+            .expect("registration failed");
 
         // Resource with special characters (brackets) - pattern matching handles these
         // The pattern /app/data/* will match literal filenames containing brackets
@@ -384,7 +409,9 @@ mod negative_tests {
         });
 
         let ctx = create_test_context("test-net-not-whitelisted", capabilities);
-        checker.register_component(ctx).expect("registration failed");
+        checker
+            .register_component(ctx)
+            .expect("registration failed");
 
         // Endpoint not in whitelist should be denied
         let result = checker.check(
@@ -410,7 +437,9 @@ mod negative_tests {
         });
 
         let ctx = create_test_context("test-net-port-mismatch", capabilities);
-        checker.register_component(ctx).expect("registration failed");
+        checker
+            .register_component(ctx)
+            .expect("registration failed");
 
         // Same domain, different port should be denied
         let result = checker.check("test-net-port-mismatch", "api.example.com:80", "connect");
@@ -436,7 +465,9 @@ mod negative_tests {
         });
 
         let ctx = create_test_context("test-storage-not-whitelisted", capabilities);
-        checker.register_component(ctx).expect("registration failed");
+        checker
+            .register_component(ctx)
+            .expect("registration failed");
 
         // Namespace not in whitelist should be denied
         let result = checker.check(
@@ -466,7 +497,9 @@ mod negative_tests {
         });
 
         let ctx = create_test_context("test-perm-readonly", capabilities);
-        checker.register_component(ctx).expect("registration failed");
+        checker
+            .register_component(ctx)
+            .expect("registration failed");
 
         // Write operation with read-only permission should be denied
         let result = checker.check("test-perm-readonly", "/app/data/file.txt", "write");

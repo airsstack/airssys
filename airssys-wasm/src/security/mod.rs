@@ -189,5 +189,7 @@ pub use enforcement::{
     CapabilityCheckResult, CapabilityChecker, ComponentContextGuard,
 };
 pub use parser::{ComponentManifestParser, ParseError, ParseResult};
-pub use quota::{QuotaError, QuotaResourceStatus, QuotaStatus, QuotaTracker, QuotaUsage, ResourceQuota};
+pub use quota::{
+    QuotaError, QuotaResourceStatus, QuotaStatus, QuotaTracker, QuotaUsage, ResourceQuota,
+};
 pub use trust::{ComponentSource, TrustError, TrustLevel, TrustRegistry, TrustResult, TrustSource};

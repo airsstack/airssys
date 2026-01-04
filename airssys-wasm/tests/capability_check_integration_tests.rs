@@ -141,7 +141,11 @@ fn test_no_capabilities_denied() {
 
     // Any access attempt should be denied
     let result = checker.check("test-no-caps", "/app/data/file.json", "read");
-    assert!(result.is_denied(), "Expected access denied, got: {:?}", result);
+    assert!(
+        result.is_denied(),
+        "Expected access denied, got: {:?}",
+        result
+    );
     assert!(result
         .denial_reason()
         .unwrap()
@@ -156,11 +160,12 @@ fn test_unregistered_component_denied() {
     let checker = CapabilityChecker::new();
 
     let result = checker.check("unregistered-component", "/app/data/file.json", "read");
-    assert!(result.is_denied(), "Expected access denied, got: {:?}", result);
-    assert!(result
-        .denial_reason()
-        .unwrap()
-        .contains("not registered"));
+    assert!(
+        result.is_denied(),
+        "Expected access denied, got: {:?}",
+        result
+    );
+    assert!(result.denial_reason().unwrap().contains("not registered"));
 }
 
 /// Test: Component unregistration.
@@ -218,7 +223,11 @@ fn test_pattern_mismatch_denied() {
 
     // Attempt to access resource outside pattern
     let result = checker.check("test-pattern-mismatch", "/etc/passwd", "read");
-    assert!(result.is_denied(), "Expected access denied, got: {:?}", result);
+    assert!(
+        result.is_denied(),
+        "Expected access denied, got: {:?}",
+        result
+    );
 }
 
 /// Test: Permission mismatch - component cannot use undeclared permissions.
@@ -244,7 +253,11 @@ fn test_permission_mismatch_denied() {
 
     // Write access should be denied
     let result = checker.check("test-perm-mismatch", "/app/data/file.json", "write");
-    assert!(result.is_denied(), "Expected access denied, got: {:?}", result);
+    assert!(
+        result.is_denied(),
+        "Expected access denied, got: {:?}",
+        result
+    );
 }
 
 /// Test: Glob pattern matching - wildcard in path.
@@ -442,7 +455,7 @@ fn test_concurrent_registration() {
         let handle = thread::spawn(move || {
             let component_id = format!("concurrent-reg-{}", i);
             let capabilities = WasmCapabilitySet::new().grant(WasmCapability::Filesystem {
-                paths: vec![format!("/app/data-{}/*", i)],  // Fixed: Add wildcard
+                paths: vec![format!("/app/data-{}/*", i)], // Fixed: Add wildcard
                 permissions: vec!["read".to_string()],
             });
 
@@ -526,7 +539,7 @@ fn test_concurrent_mixed_operations() {
             let component_id = format!("concurrent-mixed-{}", i);
             let resource = format!("/app/data-{}/file.json", i);
             let capabilities = WasmCapabilitySet::new().grant(WasmCapability::Filesystem {
-                paths: vec![format!("/app/data-{}/*", i)],  // Fixed: Add wildcard
+                paths: vec![format!("/app/data-{}/*", i)], // Fixed: Add wildcard
                 permissions: vec!["read".to_string()],
             });
 
@@ -605,7 +618,10 @@ fn test_result_conversion() {
     let denied = CapabilityCheckResult::Denied("Access denied".to_string());
     let result = denied.to_result();
     assert!(result.is_err());
-    assert!(matches!(result, Err(CapabilityCheckError::AccessDenied { .. })));
+    assert!(matches!(
+        result,
+        Err(CapabilityCheckError::AccessDenied { .. })
+    ));
 }
 
 // ============================================================================
@@ -617,11 +633,14 @@ fn test_result_conversion() {
 /// Verifies that the global convenience API works correctly.
 #[test]
 fn test_global_register_component() {
-    let component_id = format!("global-test-{}", std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_nanos());
-    
+    let component_id = format!(
+        "global-test-{}",
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    );
+
     let capabilities = WasmCapabilitySet::new().grant(WasmCapability::Filesystem {
         paths: vec!["/app/data/*".to_string()],
         permissions: vec!["read".to_string()],
@@ -640,10 +659,13 @@ fn test_global_register_component() {
 /// Verifies that the global check function works correctly.
 #[test]
 fn test_global_check_capability() {
-    let component_id = format!("global-check-{}", std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_nanos());
+    let component_id = format!(
+        "global-check-{}",
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    );
 
     let capabilities = WasmCapabilitySet::new().grant(WasmCapability::Filesystem {
         paths: vec!["/app/data/*".to_string()],
@@ -666,10 +688,13 @@ fn test_global_check_capability() {
 /// Verifies that the global unregister function works correctly.
 #[test]
 fn test_global_unregister_component() {
-    let component_id = format!("global-unreg-{}", std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_nanos());
+    let component_id = format!(
+        "global-unreg-{}",
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    );
 
     let security_ctx = WasmSecurityContext::new(component_id.clone(), WasmCapabilitySet::new());
     register_component(security_ctx).expect("registration failed");

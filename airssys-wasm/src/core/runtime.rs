@@ -38,7 +38,7 @@
 //!     let handle = engine.load_component(&component_id, bytes).await?;
 //!     
 //!     // Create execution context
-//!     let context = ExecutionContext {
+//!     let ctx = ExecutionContext {
 //!         component_id: component_id.clone(),
 //!         limits: ResourceLimits {
 //!             max_memory_bytes: 64 * 1024 * 1024,
@@ -255,7 +255,7 @@ pub trait RuntimeEngine: Send + Sync {
     ///
     /// ```rust,ignore
     /// let input = ComponentInput::new(b"hello");
-    /// let context = ExecutionContext {
+    /// let ctx = ExecutionContext {
     ///     component_id: component_id.clone(),
     ///     limits: ResourceLimits::default(),
     ///     capabilities: CapabilitySet::new(),
@@ -297,6 +297,135 @@ pub trait RuntimeEngine: Send + Sync {
     fn resource_usage(&self, handle: &ComponentHandle) -> ResourceUsage;
 }
 
+/// Message handling trait for component message and callback delivery.
+///
+/// This trait extends runtime engine capabilities for components that need to handle
+/// incoming messages and callbacks. It should be implemented by runtime engines that
+/// support message-based communication patterns.
+///
+/// # Design Rationale
+///
+/// Following ADR-WASM-009 (Component Communication Model), components can receive:
+/// - **Messages**: Async notifications from other components (fire-and-forget style)
+/// - **Callbacks**: Responses to previous requests (request-response pattern)
+///
+/// Objects that need both basic execution AND message/callback handling should depend
+/// on `RuntimeMessageHandlerEngine`. Objects that only need basic execution methods
+/// should depend on `RuntimeEngine`.
+///
+/// # Implementation Notes
+///
+/// Implementors must ensure:
+/// - `call_handle_message()` invokes the component's `handle-message` export
+/// - `call_handle_callback()` invokes the component's `handle-callback` export
+/// - Both methods use the same fuel metering and timeout mechanisms as `execute()`
+/// - Failures are categorized with structured error types
+///
+/// # Example
+///
+/// ```rust,ignore
+/// struct MyEngine { /* ... */ }
+///
+/// #[async_trait]
+/// impl RuntimeMessageHandlerEngine for MyEngine {
+///     async fn call_handle_message(
+///         &self,
+///         handle: &ComponentHandle,
+///         sender: &ComponentId,
+///         payload: &[u8],
+///     ) -> WasmResult<()> {
+///         // Invoke component's handle-message export
+///         todo!("Implementation")
+///     }
+///
+///     async fn call_handle_callback(
+///         &self,
+///         handle: &ComponentHandle,
+///         request_id: &str,
+///         payload: &[u8],
+///         is_error: i32,
+///     ) -> WasmResult<()> {
+///         // Invoke component's handle-callback export
+///         todo!("Implementation")
+///     }
+/// }
+/// ```
+#[async_trait]
+pub trait RuntimeMessageHandlerEngine: RuntimeEngine {
+    /// Call the handle-message export on a component.
+    ///
+    /// Invokes the `handle-message` export defined in component-lifecycle.wit:
+    /// ```wit
+    /// handle-message: func(sender: component-id, message: list<u8>) -> result<_, component-error>;
+    /// ```
+    ///
+    /// # Parameters
+    ///
+    /// - `handle`: Component handle from `RuntimeEngine::load_component`
+    /// - `sender`: Sender component ID
+    /// - `payload`: Message payload bytes
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(())` - Message handled successfully
+    /// - `Err(WasmError)` - Execution failed (trap, timeout, capability denied, etc.)
+    ///
+    /// # Errors
+    ///
+    /// - `WasmError::ExecutionFailed`: Function invocation failed
+    /// - `WasmError::ComponentTrapped`: Component execution trapped
+    /// - `WasmError::ExecutionTimeout`: Execution exceeded timeout
+    /// - `WasmError::ResourceLimitExceeded`: Resource limit exceeded
+    ///
+    /// # References
+    ///
+    /// - **KNOWLEDGE-WASM-029**: Messaging Patterns (message handling)
+    /// - **WASM-TASK-006 Phase 3 Task 3.1**: Handle-message Implementation
+    async fn call_handle_message(
+        &self,
+        handle: &ComponentHandle,
+        sender: &ComponentId,
+        payload: &[u8],
+    ) -> WasmResult<()>;
+
+    /// Call the handle-callback export on a component.
+    ///
+    /// Invokes the `handle-callback` export to deliver responses for previous
+    /// `send-request` calls. This implements the request-response pattern defined
+    /// in KNOWLEDGE-WASM-029.
+    ///
+    /// # Parameters
+    ///
+    /// - `handle`: Component handle from `RuntimeEngine::load_component`
+    /// - `request_id`: Correlation ID from the original request (UUID string)
+    /// - `payload`: Response payload bytes
+    /// - `is_error`: Whether the response is an error (1) or success (0)
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(())` - Callback handled successfully
+    /// - `Err(WasmError)` - Execution failed (trap, timeout, capability denied, etc.)
+    ///
+    /// # Errors
+    ///
+    /// - `WasmError::ExecutionFailed`: Function invocation failed
+    /// - `WasmError::ComponentTrapped`: Component execution trapped
+    /// - `WasmError::ExecutionTimeout`: Execution exceeded timeout
+    /// - `WasmError::ResourceLimitExceeded`: Resource limit exceeded
+    ///
+    /// # References
+    ///
+    /// - **KNOWLEDGE-WASM-029**: Messaging Patterns (response routing)
+    /// - **WASM-TASK-006 Phase 3 Task 3.2**: Response Routing and Callbacks
+    async fn call_handle_callback(
+        &self,
+        handle: &ComponentHandle,
+        request_id: &str,
+        payload: &[u8],
+        is_error: i32,
+    ) -> WasmResult<()>;
+}
+
 /// Execution context passed to runtime engine.
 ///
 /// Contains all information needed for secure, resource-controlled component execution.
@@ -308,7 +437,6 @@ pub trait RuntimeEngine: Send + Sync {
 /// - `limits`: Resource limits (memory, fuel)
 /// - `capabilities`: Granted capabilities for permission checking
 /// - `timeout_ms`: Maximum execution time in milliseconds
-///
 /// # Example
 ///
 /// ```rust
@@ -316,7 +444,7 @@ pub trait RuntimeEngine: Send + Sync {
 ///     ExecutionContext, ComponentId, ResourceLimits, CapabilitySet, Capability, PathPattern,
 /// };
 ///
-/// let context = ExecutionContext {
+/// let ctx = ExecutionContext {
 ///     component_id: ComponentId::new("my-component"),
 ///     limits: ResourceLimits {
 ///         max_memory_bytes: 64 * 1024 * 1024,
@@ -450,7 +578,15 @@ pub struct ResourceUsage {
     pub execution_time_ms: u64,
 }
 
-#[allow(clippy::expect_used, clippy::unwrap_used, clippy::panic, clippy::indexing_slicing, clippy::too_many_arguments, clippy::type_complexity, reason = "test code")]
+#[allow(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    reason = "test code"
+)]
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -466,16 +602,16 @@ mod tests {
 
     #[test]
     fn test_execution_context_creation() {
-        let context = ExecutionContext {
+        let ctx = ExecutionContext {
             component_id: ComponentId::new("test-component"),
             limits: test_resource_limits(),
             capabilities: CapabilitySet::new(),
             timeout_ms: 5000,
         };
 
-        assert_eq!(context.component_id.as_str(), "test-component");
-        assert_eq!(context.timeout_ms, 5000);
-        assert!(context.capabilities.is_empty());
+        assert_eq!(ctx.component_id.as_str(), "test-component");
+        assert_eq!(ctx.timeout_ms, 5000);
+        assert!(ctx.capabilities.is_empty());
     }
 
     #[test]
@@ -520,29 +656,29 @@ mod tests {
         let mut capabilities = CapabilitySet::new();
         capabilities.grant(Capability::FileRead(PathPattern::new("data/*")));
 
-        let context = ExecutionContext {
+        let ctx = ExecutionContext {
             component_id: ComponentId::new("secure-component"),
             limits: test_resource_limits(),
             capabilities,
             timeout_ms: 10_000,
         };
 
-        assert!(!context.capabilities.is_empty());
-        assert!(context
+        assert!(!ctx.capabilities.is_empty());
+        assert!(ctx
             .capabilities
             .has(&Capability::FileRead(PathPattern::new("data/*"))));
     }
 
     #[test]
     fn test_execution_context_clone() {
-        let context = ExecutionContext {
+        let ctx = ExecutionContext {
             component_id: ComponentId::new("clone-test"),
             limits: test_resource_limits(),
             capabilities: CapabilitySet::new(),
             timeout_ms: 3000,
         };
 
-        let cloned = context.clone();
+        let cloned = ctx.clone();
         assert_eq!(cloned.component_id.as_str(), "clone-test");
         assert_eq!(cloned.timeout_ms, 3000);
     }

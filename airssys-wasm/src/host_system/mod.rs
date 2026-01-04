@@ -94,8 +94,8 @@
 // mod.rs contains ONLY declarations and re-exports
 
 // Module declarations (Phase 1)
-pub mod correlation_tracker;
 pub mod correlation_impl; // WASM-TASK-014 Phase 1: DIP implementation
+pub mod correlation_tracker;
 pub mod initialization;
 pub mod lifecycle;
 pub mod manager;

@@ -52,8 +52,8 @@ use tokio::time::timeout;
 use airssys_rt::broker::{InMemoryMessageBroker, MessageBroker};
 use airssys_rt::message::MessageEnvelope;
 use airssys_rt::util::ActorAddress;
-use airssys_wasm::actor::{ComponentRegistry,
-    ComponentMessage, MessagingSubscriptionService, SubscriberManager,
+use airssys_wasm::actor::{
+    ComponentMessage, ComponentRegistry, MessagingSubscriptionService, SubscriberManager,
 };
 use airssys_wasm::core::ComponentId;
 
@@ -575,8 +575,11 @@ async fn test_broker_accessor_returns_same_instance() {
     let subscriber_manager = Arc::new(SubscriberManager::new());
     let registry = ComponentRegistry::new();
 
-    let service =
-        MessagingSubscriptionService::new(Arc::clone(&broker), registry.clone(), Arc::clone(&subscriber_manager));
+    let service = MessagingSubscriptionService::new(
+        Arc::clone(&broker),
+        registry.clone(),
+        Arc::clone(&subscriber_manager),
+    );
 
     let retrieved_broker = service.broker();
 
@@ -605,7 +608,11 @@ async fn test_registry_accessor_works() {
         .register(component_id.clone(), actor_addr.clone())
         .unwrap();
 
-    let service = MessagingSubscriptionService::new(broker, registry.clone(), Arc::clone(&subscriber_manager));
+    let service = MessagingSubscriptionService::new(
+        broker,
+        registry.clone(),
+        Arc::clone(&subscriber_manager),
+    );
 
     // Get registry and verify lookup works
     let retrieved_registry = service.registry();
@@ -625,7 +632,11 @@ async fn test_status_accuracy_through_lifecycle() {
     let subscriber_manager = Arc::new(SubscriberManager::new());
     let registry = ComponentRegistry::new();
 
-    let service = MessagingSubscriptionService::new(broker, registry.clone(), Arc::clone(&subscriber_manager));
+    let service = MessagingSubscriptionService::new(
+        broker,
+        registry.clone(),
+        Arc::clone(&subscriber_manager),
+    );
 
     // Stage 1: Before start
     let status = service.status().await;

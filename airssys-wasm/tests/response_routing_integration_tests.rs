@@ -22,12 +22,14 @@ use tokio::time::{Duration, Instant};
 
 use airssys_wasm::actor::message::{PendingRequest, RequestError};
 use airssys_wasm::core::{ComponentId, RuntimeEngine};
-use airssys_wasm::host_system::{CorrelationTracker, TimeoutHandler};
+use airssys_wasm::host_system::{
+    correlation_impl::CorrelationTracker, timeout_impl::TimeoutHandler,
+};
 use airssys_wasm::messaging::MessagingService;
 use airssys_wasm::runtime::WasmEngine;
+use std::sync::Arc;
 use tokio::sync::oneshot;
 use uuid::Uuid;
-use std::sync::Arc;
 
 // ============================================================================
 // Helper Functions

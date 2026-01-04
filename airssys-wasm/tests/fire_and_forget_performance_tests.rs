@@ -37,14 +37,14 @@ use std::sync::Arc;
 // Layer 3: Internal module imports
 use airssys_wasm::core::{
     bridge::{HostCallContext, HostFunction},
-    Capability, CapabilitySet, ComponentId, MulticodecPrefix, TopicPattern,
     runtime::RuntimeEngine,
+    Capability, CapabilitySet, ComponentId, MulticodecPrefix, TopicPattern,
 };
-use airssys_wasm::host_system::{CorrelationTracker, TimeoutHandler};
+use airssys_wasm::host_system::{
+    correlation_impl::CorrelationTracker, timeout_impl::TimeoutHandler,
+};
 use airssys_wasm::messaging::MessagingService;
-use airssys_wasm::runtime::{
-    create_host_context, SendMessageHostFunction, WasmEngine,
-};
+use airssys_wasm::runtime::{create_host_context, SendMessageHostFunction, WasmEngine};
 
 // ============================================================================
 // Helper Functions
@@ -57,7 +57,11 @@ fn create_messaging_service() -> Arc<MessagingService> {
     let correlation_tracker = Arc::new(CorrelationTracker::new());
     let timeout_handler = Arc::new(TimeoutHandler::new());
     let broker = Arc::new(InMemoryMessageBroker::new());
-    Arc::new(MessagingService::new(broker, correlation_tracker, timeout_handler))
+    Arc::new(MessagingService::new(
+        broker,
+        correlation_tracker,
+        timeout_handler,
+    ))
 }
 
 /// Create encoded args for send-message host function.
@@ -87,9 +91,8 @@ fn load_fixture(name: &str) -> Vec<u8> {
     let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("tests/fixtures")
         .join(name);
-    std::fs::read(&fixture_path).unwrap_or_else(|e| {
-        panic!("Failed to read fixture '{}': {}", fixture_path.display(), e)
-    })
+    std::fs::read(&fixture_path)
+        .unwrap_or_else(|e| panic!("Failed to read fixture '{}': {}", fixture_path.display(), e))
 }
 
 // ============================================================================
@@ -120,8 +123,15 @@ async fn test_end_to_end_message_delivery() {
     let result = func.execute(&context, args).await;
 
     // Verify: Success with empty response
-    assert!(result.is_ok(), "End-to-end delivery should succeed: {:?}", result.err());
-    assert!(result.unwrap().is_empty(), "Fire-and-forget returns empty response");
+    assert!(
+        result.is_ok(),
+        "End-to-end delivery should succeed: {:?}",
+        result.err()
+    );
+    assert!(
+        result.unwrap().is_empty(),
+        "Fire-and-forget returns empty response"
+    );
 
     // Verify: Message was published to broker
     let stats = messaging.get_stats().await;

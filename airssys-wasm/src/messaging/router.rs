@@ -45,9 +45,9 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 
 // Layer 3: Internal crate imports
-use crate::host_system::correlation_tracker::CorrelationTracker;
 use crate::core::messaging::{CorrelationId, RequestError, ResponseMessage};
 use crate::core::ComponentId;
+use crate::host_system::correlation_impl::CorrelationTracker;
 use chrono::Utc;
 
 #[allow(dead_code)]

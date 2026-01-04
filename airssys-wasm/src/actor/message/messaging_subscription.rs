@@ -277,10 +277,8 @@ impl MessagingSubscriptionService {
         registry: ComponentRegistry,
         subscriber_manager: Arc<SubscriberManager>,
     ) -> Self {
-        let subscriber = ActorSystemSubscriber::new(
-            Arc::clone(&broker),
-            Arc::clone(&subscriber_manager),
-        );
+        let subscriber =
+            ActorSystemSubscriber::new(Arc::clone(&broker), Arc::clone(&subscriber_manager));
 
         Self {
             subscriber: Arc::new(RwLock::new(subscriber)),

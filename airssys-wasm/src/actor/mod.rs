@@ -134,14 +134,13 @@ pub mod supervisor;
 
 // Component subdomain re-exports
 #[doc(inline)]
-pub use crate::core::{ComponentMessage, ComponentHealthStatus as HealthStatus};
+pub use crate::core::{ComponentHealthStatus as HealthStatus, ComponentMessage};
 #[doc(inline)]
 pub use component::{
-    extract_wasm_results, prepare_wasm_params, ActorState, ComponentActor,
-    ComponentRegistry, ComponentSpawner, ComponentSupervisor,
-    MessageReceptionConfig, 
-    RestartDecision, SupervisionHandle, SupervisionState, SupervisionStatistics, 
-    SupervisionTree, SupervisionTreeNode,
+    extract_wasm_results, prepare_wasm_params, ActorState, ComponentActor, ComponentRegistry,
+    ComponentSpawner, ComponentSupervisor, MessageReceptionConfig, RestartDecision,
+    SupervisionHandle, SupervisionState, SupervisionStatistics, SupervisionTree,
+    SupervisionTreeNode,
 };
 
 // Supervisor subdomain re-exports
@@ -167,11 +166,10 @@ pub use lifecycle::{
 // Message subdomain re-exports
 #[doc(inline)]
 pub use message::{
-    ActorSystemSubscriber, CorrelationId, MessageBrokerBridge,
-    MessageBrokerWrapper, MessagePublisher, MessageRouter, PendingRequest, RequestError,
+    ActorSystemSubscriber, CorrelationId, MessageBrokerBridge, MessageBrokerWrapper,
+    MessagePublisher, MessageRouter, MessagingSubscriptionService, PendingRequest, RequestError,
     RequestMessage, ResponseMessage, RoutingStats, SubHandle, SubscriberManager,
-    SubscriptionHandle, TopicFilter, UnifiedRouter,
-    MessagingSubscriptionService, SubscriptionStatus,
+    SubscriptionHandle, SubscriptionStatus, TopicFilter, UnifiedRouter,
 };
 
 // Re-export CorrelationTracker and TimeoutHandler from host_system

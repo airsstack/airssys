@@ -31,11 +31,13 @@ use airssys_wasm::core::{
     bridge::HostFunction, Capability, CapabilitySet, ComponentId, MulticodecPrefix, TopicPattern,
     WasmError,
 };
-use airssys_wasm::host_system::{CorrelationTracker, TimeoutHandler};
+use airssys_wasm::host_system::{
+    correlation_impl::CorrelationTracker, timeout_impl::TimeoutHandler,
+};
+use airssys_wasm::messaging::MessagingService;
 use airssys_wasm::runtime::{
     create_host_context, AsyncHostRegistryBuilder, SendRequestHostFunction,
 };
-use airssys_wasm::messaging::MessagingService;
 use uuid::Uuid;
 
 /// Helper function to create a MessagingService for tests
@@ -45,7 +47,11 @@ fn create_messaging_service() -> Arc<MessagingService> {
     let correlation_tracker = Arc::new(CorrelationTracker::new());
     let timeout_handler = Arc::new(TimeoutHandler::new());
     let broker = Arc::new(InMemoryMessageBroker::new());
-    Arc::new(MessagingService::new(broker, correlation_tracker, timeout_handler))
+    Arc::new(MessagingService::new(
+        broker,
+        correlation_tracker,
+        timeout_handler,
+    ))
 }
 
 /// Helper to create encoded args for send-request host function.
@@ -100,23 +106,33 @@ async fn test_send_request_end_to_end() {
     let result = request_fn.execute(&context, args).await;
 
     // Verify: Success with request ID returned
-    assert!(result.is_ok(), "Send request should succeed: {:?}", result.err());
-    
+    assert!(
+        result.is_ok(),
+        "Send request should succeed: {:?}",
+        result.err()
+    );
+
     let response = result.unwrap();
     assert!(!response.is_empty(), "Should return request ID");
-    
+
     // Verify: Request ID is valid UUID
     let request_id_str = String::from_utf8(response).expect("Should be valid UTF-8");
     let request_id = Uuid::parse_str(&request_id_str).expect("Should be valid UUID");
-    
+
     // Verify: Request was registered in correlation tracker
     let tracker = messaging.correlation_tracker();
-    assert!(tracker.contains(&request_id), "Request should be pending in tracker");
+    assert!(
+        tracker.contains(&request_id),
+        "Request should be pending in tracker"
+    );
     assert_eq!(tracker.pending_count(), 1);
 
     // Verify: Message was published
     let stats = messaging.get_stats().await;
-    assert_eq!(stats.messages_published, 1, "Should have 1 message published");
+    assert_eq!(
+        stats.messages_published, 1,
+        "Should have 1 message published"
+    );
     assert_eq!(stats.requests_sent, 1, "Should have 1 request sent");
     assert_eq!(stats.requests_pending, 1, "Should have 1 pending request");
 }
@@ -132,19 +148,19 @@ async fn test_send_request_generates_unique_ids() {
     let context = create_host_context(ComponentId::new("sender"), caps);
 
     let request = create_prefixed_request(MulticodecPrefix::Borsh, b"test");
-    
+
     // Send 100 requests and collect IDs
     let mut request_ids = HashSet::new();
-    
+
     for i in 0..100 {
         let args = encode_request_args(&format!("target-{}", i), 5000, &request);
         let result = func.execute(&context, args).await;
-        
+
         assert!(result.is_ok(), "Request {} should succeed", i);
-        
+
         let id_str = String::from_utf8(result.unwrap()).unwrap();
         let uuid = Uuid::parse_str(&id_str).expect("Should be valid UUID");
-        
+
         // Verify uniqueness
         assert!(
             request_ids.insert(uuid),
@@ -153,10 +169,10 @@ async fn test_send_request_generates_unique_ids() {
             uuid
         );
     }
-    
+
     // Verify all 100 unique
     assert_eq!(request_ids.len(), 100);
-    
+
     // Verify all 100 registered in tracker
     let tracker = messaging.correlation_tracker();
     assert_eq!(tracker.pending_count(), 100);
@@ -219,7 +235,7 @@ async fn test_send_request_invalid_multicodec() {
     // Verify nothing was registered
     let tracker = messaging.correlation_tracker();
     assert_eq!(tracker.pending_count(), 0);
-    
+
     // Verify no message published
     assert_eq!(messaging.get_stats().await.messages_published, 0);
 }
@@ -275,9 +291,9 @@ async fn test_send_request_all_supported_codecs() {
     for codec in codecs {
         let request = create_prefixed_request(codec, b"test payload");
         let args = encode_request_args("target", 5000, &request);
-        
+
         let result = func.execute(&context, args).await;
-        
+
         assert!(
             result.is_ok(),
             "Codec {:?} should be accepted: {:?}",
@@ -348,7 +364,7 @@ async fn test_send_request_missing_timeout() {
     // target_len = 5, but only 4 bytes of target and no timeout
     let mut args = (5u32).to_le_bytes().to_vec();
     args.extend_from_slice(b"hello"); // 5 bytes target
-    // Missing 8 bytes for timeout
+                                      // Missing 8 bytes for timeout
 
     let result = func.execute(&context, args).await;
 
@@ -373,11 +389,14 @@ async fn test_send_request_various_timeouts() {
     for (i, timeout) in timeouts.iter().enumerate() {
         let args = encode_request_args(&format!("target-{}", i), *timeout, &request);
         let result = func.execute(&context, args).await;
-        
+
         assert!(result.is_ok(), "Timeout {}ms should be accepted", timeout);
     }
 
-    assert_eq!(messaging.correlation_tracker().pending_count(), timeouts.len());
+    assert_eq!(
+        messaging.correlation_tracker().pending_count(),
+        timeouts.len()
+    );
 }
 
 // ============================================================================
@@ -419,11 +438,11 @@ async fn test_send_and_request_together() {
     let send_fn = registry.get_function("messaging::send").unwrap();
     let mut message = MulticodecPrefix::Borsh.prefix_bytes().to_vec();
     message.extend_from_slice(b"fire-and-forget");
-    
+
     let mut send_args = (6u32).to_le_bytes().to_vec(); // "target" length
     send_args.extend_from_slice(b"target");
     send_args.extend_from_slice(&message);
-    
+
     let send_result = send_fn.execute(&context, send_args).await;
     assert!(send_result.is_ok());
     assert!(send_result.unwrap().is_empty()); // Fire-and-forget returns empty
@@ -432,7 +451,7 @@ async fn test_send_and_request_together() {
     let request_fn = registry.get_function("messaging::send_request").unwrap();
     let request = create_prefixed_request(MulticodecPrefix::Borsh, b"request");
     let request_args = encode_request_args("target", 5000, &request);
-    
+
     let request_result = request_fn.execute(&context, request_args).await;
     assert!(request_result.is_ok());
     assert!(!request_result.unwrap().is_empty()); // Request returns correlation ID
@@ -451,25 +470,22 @@ async fn test_send_and_request_together() {
 #[tokio::test]
 async fn test_concurrent_requests() {
     let messaging = create_messaging_service();
-    
+
     // Spawn multiple concurrent request tasks
     let mut handles = Vec::new();
-    
+
     for i in 0..10 {
         let messaging_clone = Arc::clone(&messaging);
-        
+
         let handle = tokio::spawn(async move {
             let func = SendRequestHostFunction::new(messaging_clone);
-            
+
             let mut caps = CapabilitySet::new();
             caps.grant(Capability::Messaging(TopicPattern::new("*")));
-            let context = create_host_context(
-                ComponentId::new(format!("component-{}", i)),
-                caps,
-            );
+            let context = create_host_context(ComponentId::new(format!("component-{}", i)), caps);
 
             let request = create_prefixed_request(MulticodecPrefix::Borsh, b"concurrent request");
-            
+
             // Each component sends 10 requests
             for j in 0..10 {
                 let args = encode_request_args(&format!("target-{}-{}", i, j), 5000, &request);
@@ -477,19 +493,19 @@ async fn test_concurrent_requests() {
                 assert!(result.is_ok(), "Request {}-{} should succeed", i, j);
             }
         });
-        
+
         handles.push(handle);
     }
-    
+
     // Wait for all
     for handle in handles {
         handle.await.unwrap();
     }
-    
+
     // Verify all 100 requests registered
     let tracker = messaging.correlation_tracker();
     assert_eq!(tracker.pending_count(), 100);
-    
+
     let stats = messaging.get_stats().await;
     assert_eq!(stats.messages_published, 100);
     assert_eq!(stats.requests_sent, 100);

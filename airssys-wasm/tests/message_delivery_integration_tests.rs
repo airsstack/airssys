@@ -38,9 +38,7 @@ use tokio::time::timeout;
 // Layer 3: Internal module imports
 use airssys_rt::broker::{InMemoryMessageBroker, MessageBroker};
 use airssys_rt::message::MessageEnvelope;
-use airssys_wasm::actor::{
-    ActorSystemSubscriber, ComponentMessage, SubscriberManager,
-};
+use airssys_wasm::actor::{ActorSystemSubscriber, ComponentMessage, SubscriberManager};
 use airssys_wasm::core::ComponentId;
 
 // ============================================================================
@@ -58,8 +56,7 @@ async fn test_end_to_end_message_delivery() {
     let subscriber_manager = Arc::new(SubscriberManager::new());
 
     // Step 1: Create ActorSystemSubscriber
-    let mut subscriber =
-        ActorSystemSubscriber::new(Arc::clone(&broker), subscriber_manager);
+    let mut subscriber = ActorSystemSubscriber::new(Arc::clone(&broker), subscriber_manager);
 
     // Step 2: Create channel to receive messages (simulates component mailbox)
     let (tx, mut rx) = mpsc::unbounded_channel::<ComponentMessage>();
@@ -127,8 +124,7 @@ async fn test_multiple_messages_delivered_in_order() {
     let broker = Arc::new(InMemoryMessageBroker::new());
     let subscriber_manager = Arc::new(SubscriberManager::new());
 
-    let mut subscriber =
-        ActorSystemSubscriber::new(Arc::clone(&broker), subscriber_manager);
+    let mut subscriber = ActorSystemSubscriber::new(Arc::clone(&broker), subscriber_manager);
 
     let (tx, mut rx) = mpsc::unbounded_channel::<ComponentMessage>();
     let target_id = ComponentId::new("ordered-target");
@@ -185,8 +181,7 @@ async fn test_message_to_unregistered_component_handled_gracefully() {
     let broker = Arc::new(InMemoryMessageBroker::new());
     let subscriber_manager = Arc::new(SubscriberManager::new());
 
-    let mut subscriber =
-        ActorSystemSubscriber::new(Arc::clone(&broker), subscriber_manager);
+    let mut subscriber = ActorSystemSubscriber::new(Arc::clone(&broker), subscriber_manager);
 
     // Do NOT register any mailbox
     subscriber.start().await.expect("Failed to start");
@@ -310,8 +305,7 @@ async fn test_message_delivery_with_correlation_id() {
     let broker = Arc::new(InMemoryMessageBroker::new());
     let subscriber_manager = Arc::new(SubscriberManager::new());
 
-    let mut subscriber =
-        ActorSystemSubscriber::new(Arc::clone(&broker), subscriber_manager);
+    let mut subscriber = ActorSystemSubscriber::new(Arc::clone(&broker), subscriber_manager);
 
     let (tx, mut rx) = mpsc::unbounded_channel::<ComponentMessage>();
     let target_id = ComponentId::new("correlation-target");
@@ -369,8 +363,7 @@ async fn test_multiple_components_independent_messages() {
     let broker = Arc::new(InMemoryMessageBroker::new());
     let subscriber_manager = Arc::new(SubscriberManager::new());
 
-    let subscriber =
-        ActorSystemSubscriber::new(Arc::clone(&broker), subscriber_manager);
+    let subscriber = ActorSystemSubscriber::new(Arc::clone(&broker), subscriber_manager);
 
     // Register 3 components
     let (tx_a, rx_a) = mpsc::unbounded_channel::<ComponentMessage>();
@@ -497,8 +490,7 @@ async fn test_mailbox_registration_lifecycle() {
     let broker = Arc::new(InMemoryMessageBroker::new());
     let subscriber_manager = Arc::new(SubscriberManager::new());
 
-    let subscriber =
-        ActorSystemSubscriber::new(Arc::clone(&broker), subscriber_manager);
+    let subscriber = ActorSystemSubscriber::new(Arc::clone(&broker), subscriber_manager);
 
     let component_id = ComponentId::new("lifecycle-test");
 

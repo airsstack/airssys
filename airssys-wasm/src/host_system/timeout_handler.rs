@@ -52,8 +52,8 @@ use tokio::task::JoinHandle;
 use tokio::time::{sleep, Duration};
 
 // Layer 3: Internal module imports
-use crate::core::messaging::{CorrelationId, RequestError, ResponseMessage};
 use super::correlation_tracker::CorrelationTracker;
+use crate::core::messaging::{CorrelationId, RequestError, ResponseMessage};
 
 /// Timeout handler managing background timeout tasks.
 ///

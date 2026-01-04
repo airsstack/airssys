@@ -172,7 +172,9 @@ pub trait Message: Send + Sync + Clone + Debug + 'static {
 /// assert!(MessagePriority::High > MessagePriority::Normal);
 /// assert!(MessagePriority::Normal > MessagePriority::Low);
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default,
+)]
 pub enum MessagePriority {
     /// Background processing (lowest priority)
     ///

@@ -83,8 +83,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Use the test fixture - handle-message-component.wasm
     // In production, you would load your own compiled component.
-    let fixture_path = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("tests/fixtures/handle-message-component.wasm");
+    let fixture_path =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/handle-message-component.wasm");
 
     let bytes = match std::fs::read(&fixture_path) {
         Ok(bytes) => {
@@ -119,7 +119,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  From: {}", sender1.as_str());
     println!("  Payload: \"{}\"", String::from_utf8_lossy(payload1));
 
-    match engine.call_handle_message(&handle, &sender1, payload1).await {
+    match engine
+        .call_handle_message(&handle, &sender1, payload1)
+        .await
+    {
         Ok(()) => println!("  ✓ Message delivered successfully"),
         Err(e) => println!("  ✗ Delivery failed: {}", e),
     }
@@ -131,7 +134,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  From: {}", sender2.as_str());
     println!("  Payload: {} bytes of binary data", payload2.len());
 
-    match engine.call_handle_message(&handle, &sender2, &payload2).await {
+    match engine
+        .call_handle_message(&handle, &sender2, &payload2)
+        .await
+    {
         Ok(()) => println!("  ✓ Message delivered successfully"),
         Err(e) => println!("  ✗ Delivery failed: {}", e),
     }
@@ -143,7 +149,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  From: {}", sender3.as_str());
     println!("  Payload: (empty - used for signaling)");
 
-    match engine.call_handle_message(&handle, &sender3, payload3).await {
+    match engine
+        .call_handle_message(&handle, &sender3, payload3)
+        .await
+    {
         Ok(()) => println!("  ✓ Signal delivered successfully"),
         Err(e) => println!("  ✗ Signal failed: {}", e),
     }
@@ -155,7 +164,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  From: {}", sender4.as_str());
     println!("  Payload: {} bytes", payload4.len());
 
-    match engine.call_handle_message(&handle, &sender4, &payload4).await {
+    match engine
+        .call_handle_message(&handle, &sender4, &payload4)
+        .await
+    {
         Ok(()) => println!("  ✓ Large message delivered successfully"),
         Err(e) => println!("  ✗ Large message failed: {}", e),
     }
@@ -165,8 +177,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Try to call handle-message on a component that doesn't export it
     println!("\nAttempting to call handle-message on hello_world.wasm (no export)...");
-    let hello_fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("tests/fixtures/hello_world.wasm");
+    let hello_fixture =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/hello_world.wasm");
 
     if let Ok(hello_bytes) = std::fs::read(&hello_fixture) {
         let hello_id = ComponentId::new("hello-component");

@@ -1,5 +1,11 @@
 //! Example: DevMode Security Bypass Workflow
-#![allow(clippy::panic, clippy::unwrap_used, clippy::expect_used, reason = "example code")]//!
+#![allow(
+    clippy::panic,
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "example code"
+)]
+//!
 //! This example demonstrates the DevMode security bypass workflow that allows
 //! rapid local development without security friction. DevMode should **NEVER**
 //! be enabled in production environments!

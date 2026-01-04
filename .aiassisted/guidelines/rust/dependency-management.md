@@ -1,3 +1,18 @@
+# ⚠️ THIS DOCUMENT HAS BEEN SUPERSEDED
+
+**New Guide:** See `rust-dependency-injection-dip-guide.md` for comprehensive, Rust-specific DI/DIP patterns.
+
+**Why the Change:**
+- This document provides high-level SOLID theory
+- The new guide provides practical, Rust-specific DI patterns based on community best practices
+- The new guide includes working code examples for: Builder, Factory, Constructor Injection, Mocking
+
+**For New Work:**
+- Use `.aiassisted/guidelines/rust/rust-dependency-injection-dip-guide.md` as the authority document
+- This document is retained for historical reference only
+
+---
+
 # Dependency Management Guidelines
 
 ## Overview
