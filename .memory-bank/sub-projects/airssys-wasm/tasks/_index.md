@@ -1,7 +1,6 @@
 # Tasks Index
 
 ## Pending
-- [wasm-task-002] setup-wit-directory-structure - Setup WIT directory structure (2026-01-05) [Phase 1]
 - [wasm-task-003] create-types-wit - Create types.wit foundation interface (2026-01-05) [Phase 1]
 - [wasm-task-004] create-errors-wit - Create errors.wit error definitions (2026-01-05) [Phase 1]
 - [wasm-task-005] create-capabilities-wit - Create capabilities.wit security model (2026-01-05) [Phase 1]
@@ -18,6 +17,7 @@
 
 ## Completed
 - [wasm-task-001] setup-project-directory - Setup airssys-wasm project structure (2026-01-05)
+- [wasm-task-002] setup-wit-directory-structure - Setup WIT directory structure (2026-01-05) [Phase 1]
 
 ## Abandoned
 *(none)*
