@@ -1,6 +1,6 @@
 # airssys-wasm System Patterns
 
-**Last Updated:** 2026-01-04
+**Last Updated:** 2026-01-05
 
 ---
 
@@ -20,35 +20,46 @@
 
 ## Current Implementation Status
 
-### Module Structure (Rebuilding from scratch)
+### Module Structure (Clean-Slate Rebuild - Six Modules)
+
+**Reference:** KNOWLEDGE-WASM-037, ADR-WASM-025
 
 ```
 airssys-wasm/src/
-├── core/      # Foundation - imports NOTHING (empty now)
-├── security/  # Security logic - imports core/
-├── runtime/   # WASM execution - imports core/, security/
-├── actor/     # Actor integration - imports core/, security/, runtime/
-└── wit/        # WIT interfaces
+├── core/           # LAYER 1: Foundation - imports std ONLY
+├── security/       # LAYER 2A: Security logic - imports core/
+├── runtime/        # LAYER 2B: WASM execution - imports core/, security/
+├── component/      # LAYER 3A: airssys-rt integration - imports core/ traits
+├── messaging/      # LAYER 3B: Messaging patterns - imports core/ traits
+├── system/         # LAYER 4: Coordinator - imports ALL, injects concrete types
+└── wit/            # WIT interfaces
 ```
 
-### Dependency Rules (ADR-WASM-023 - MANDATORY)
+### Dependency Rules (ADR-WASM-025, KNOWLEDGE-WASM-037)
+
+**Dependency Inversion Principle:**
+- Modules depend on TRAITS (defined in core/\<module\>/traits.rs), not concrete implementations
+- `system/` is the only module that knows about concrete types
+- `system/` injects dependencies into lower layers
 
 **ALLOWED:**
 ```
-✅ actor/    → runtime/
-✅ actor/    → security/
-✅ actor/    → core/
-✅ runtime/  → security/
-✅ runtime/  → core/
-✅ security/ → core/
+✅ system/    → ALL modules (coordinator knows all concrete types)
+✅ component/ → core/ traits + airssys-rt
+✅ messaging/ → core/ traits + airssys-rt
+✅ runtime/   → security/, core/
+✅ security/  → core/
+✅ core/      → std ONLY
 ```
 
 **FORBIDDEN:**
 ```
-❌ runtime/  → actor/
-❌ security/ → runtime/
-❌ security/ → actor/
-❌ core/     → ANY MODULE
+❌ component/ → runtime/ concrete (use RuntimeEngine trait from core/)
+❌ messaging/ → runtime/ concrete
+❌ runtime/   → component/
+❌ runtime/   → messaging/
+❌ security/  → runtime/
+❌ core/      → ANY MODULE
 ```
 
 ### Module Responsibilities
@@ -150,9 +161,11 @@ pub struct WasmEngine {
 ## Architecture Decisions (ADRs)
 
 ### Critical ADRs (READ FIRST)
+- **ADR-WASM-025:** Clean-Slate Rebuild Architecture (CRITICAL - NEW)
+- **ADR-WASM-026:** Implementation Roadmap (7 phases, 53 tasks)
+- **ADR-WASM-027:** WIT Interface Design (Phase 1 specifications)
 - **ADR-WASM-002:** WASM Runtime Engine Selection (Wasmtime 24.0, Component Model)
 - **ADR-WASM-005:** Capability-Based Security Model
-- **ADR-WASM-011:** Module Structure Organization
 - **ADR-WASM-023:** Module Boundary Enforcement (MANDATORY)
 
 ### Implementation ADRs
@@ -161,8 +174,9 @@ pub struct WasmEngine {
 - **ADR-WASM-019:** Runtime Dependency Management
 
 ### Knowledge Documents (READ BEFORE IMPLEMENTATION)
-- **KNOWLEDGE-WASM-031:** Foundational Architecture (READ FIRST)
-- **KNOWLEDGE-WASM-030:** Module Architecture Hard Requirements (MANDATORY)
+- **KNOWLEDGE-WASM-037:** Rebuild Architecture - Clean Slate Design (READ FIRST - NEW)
+- **KNOWLEDGE-WASM-030:** Module Architecture Hard Requirements (superseded by KNOWLEDGE-WASM-037)
+- **KNOWLEDGE-WASM-031:** Foundational Architecture  
 - **KNOWLEDGE-WASM-012:** Module Structure Architecture
 - **KNOWLEDGE-WASM-001:** Component Framework Architecture
 - **KNOWLEDGE-WASM-005:** Messaging Architecture
@@ -172,14 +186,24 @@ pub struct WasmEngine {
 
 ## Implementation Approach
 
-### Phase 1: Foundation (WASM-TASK-001)
-**Objective:** Create basic project structure
-**Actions:**
-1. Create Cargo.toml with workspace dependencies
-2. Create four-module directory structure (core/, security/, runtime/, actor/)
-3. Create lib.rs entry point
-4. Create tests/fixtures/ directory
-5. Create wit/ directory structure
+### Phase 1: WIT Interface System (WASM-TASK-002 through WASM-TASK-012)
+**Objective:** Define complete WIT interface contract
+**Reference:** ADR-WASM-027 (WIT Interface Design)
+
+**Status:** Ready to Start (all 11 tasks created)
+
+**Tasks (All Pending):**
+1. WASM-TASK-002: Setup WIT Directory Structure
+2. WASM-TASK-003: Create types.wit
+3. WASM-TASK-004: Create errors.wit
+4. WASM-TASK-005: Create capabilities.wit
+5. WASM-TASK-006: Create component-lifecycle.wit
+6. WASM-TASK-007: Create host-messaging.wit
+7. WASM-TASK-008: Create host-services.wit
+8. WASM-TASK-009: Create storage.wit
+9. WASM-TASK-010: Create world.wit
+10. WASM-TASK-011: Validate WIT package
+11. WASM-TASK-012: Setup wit-bindgen integration
 
 **Verification:**
 ```bash

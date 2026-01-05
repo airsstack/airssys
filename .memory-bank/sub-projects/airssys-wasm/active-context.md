@@ -2,39 +2,52 @@
 
 **Last Updated:** 2026-01-05
 **Active Sub-Project:** airssys-wasm
-**Current Status:** 🚀 **REBUILDING - FOUNDATION COMPLETE**
+**Current Status:** 🚀 **PHASE 1: WIT INTERFACE SYSTEM - READY TO START**
 
 ## Current Focus
 
-### Primary Task
-**Task ID:** WASM-TASK-001
-**Task Name:** Setup airssys-wasm Project Directory
-**Status:** ✅ COMPLETE (2026-01-05)
-**Priority:** high
-**Estimated Duration:** 1 day
+### Phase 1 Tasks Created
+**Status:** ✅ ALL 11 TASKS CREATED (202026-01-05)
+**Phase:** WIT Interface System (WASM-TASK-002 through WASM-TASK-012)
+**Reference:** [ADR-WASM-026](docs/adr/adr-wasm-026-implementation-roadmap-clean-slate-rebuild.md)
 
-**Description:**
-This was the foundational task for rebuilding airssys-wasm from scratch. The entire airssys-wasm codebase was deleted due to repeated architectural violations. This task created the basic project structure (Cargo.toml, src/ directory with modules) before any code implementation could begin.
+**Tasks Created:**
+1. WASM-TASK-002: Setup WIT Directory Structure
+2. WASM-TASK-003: Create types.wit
+3. WASM-TASK-004: Create errors.wit
+4. WASM-TASK-005: Create capabilities.wit
+5. WASM-TASK-006: Create component-lifecycle.wit
+6. WASM-TASK-007: Create host-messaging.wit
+7. WASM-TASK-008: Create host-services.wit
+8. WASM-TASK-009: Create storage.wit
+9. WASM-TASK-010: Create world.wit
+10. WASM-TASK-011: Validate WIT package
+11. WASM-TASK-012: Setup wit-bindgen integration
 
-### Completion Summary
-- ✅ airssys-wasm/Cargo.toml created with full dependency configuration
-- ✅ Four-module directory structure (core/, security/, runtime/, actor/)
-- ✅ lib.rs with module declarations and 3-layer import organization
-- ✅ prelude.rs for ergonomic imports
-- ✅ tests/fixtures/ directory with README
-- ✅ wit/ directory with README
-- ✅ Build: Clean, zero clippy warnings
-- ✅ Architecture: Verified clean (zero ADR-WASM-023 violations)
-
-### Verification Chain
-- ✅ Audited by @memorybank-auditor (APPROVED)
-- ✅ Verified by @memorybank-verifier (VERIFIED)
-- ✅ All success criteria met
-- ✅ All definition of done criteria satisfied
+**Key Achievement:**
+- All tasks follow single-action rule (one objective per task)
+- All tasks have task.md + plans.md structure
+- All plans reference ADR-WASM-027 (WIT Interface Design)
+- All plans reference KNOWLEDGE-WASM-037 (Clean Slate Architecture)
+- All plans reference ADR-WASM-026 (Implementation Roadmap)
 
 ---
 
 ## Recent Work
+
+### 2026-01-05: Phase 1 WIT Interface System Tasks Created ✅
+**Completed:**
+- ✅ Created 11 task directories (wasm-task-002 through wasm-task-012)
+- ✅ Created 11 task.md files with objectives, deliverables, success criteria
+- ✅ Created 11 plans.md files with implementation actions and ADR references
+- ✅ Updated tasks/_index.md to register all Phase 1 tasks
+- ✅ All tasks marked as pending and ready for implementation
+
+**Documentation References:**
+- **ADR-WASM-027:** WIT Interface Design (detailed specifications for all .wit files)
+- **ADR-WASM-026:** Implementation Roadmap (master plan for 7 phases, 53 tasks)
+- **ADR-WASM-025:** Clean-Slate Rebuild Architecture (decision record)
+- **KNOWLEDGE-WASM-037:** Rebuild Architecture - Clean Slate Design (technical reference)
 
 ### 2026-01-05: WASM-TASK-001 COMPLETE - Foundation Established ✅
 **Completed:**
@@ -47,135 +60,75 @@ This was the foundational task for rebuilding airssys-wasm from scratch. The ent
 - ✅ Build: Clean, zero clippy warnings
 - ✅ Architecture: Verified clean (zero ADR-WASM-023 violations)
 
-**Key Achievement:**
-- First task completed successfully using new single-action format
-- Architecture verified clean with ACTUAL grep output
-- Zero violations - strict adherence to ADR-WASM-023
-- All success criteria met
-- Audit approved by @memorybank-auditor
-- Verification approved by @memorybank-verifier
-
-### 2026-01-04: Task Creation & Memory Bank Refactoring
-**Completed:**
-- ✅ Updated Memory Bank instructions with new task management format
-- ✅ Created task structure: `tasks/wasm-task-001-setup-project-directory/`
-- ✅ Created task file: `wasm-task-001-setup-project-directory.md`
-- ✅ Created plans file: `wasm-task-001-setup-project-directory.plans.md`
-- ✅ Updated task index: `tasks/_index.md`
-
-**Key Achievement:**
-- New task format enforces: SINGLE action per task, plans reference ADRs/Knowledges
-- Plans MUST document references to architecture documents before implementation
-
 ---
 
 ## Next Steps
 
-1. **Create Next Task:** Implement core/ types module
-   - This task will create the foundational types for the airssys-wasm project
-   - MUST follow ADR-WASM-023 (core/ imports nothing)
-   - MUST reference KNOWLEDGE-WASM-018 (Component Definitions)
-   - MUST create unit tests and integration tests (MANDATORY testing policy)
-   - MUST verify architecture after implementation
+1. **Start WASM-TASK-002:** Setup WIT Directory Structure
+   - Create `wit/` and `wit/core/` directories
+   - Create `wit/deps.toml` package configuration
+   - Verify directory structure matches ADR-WASM-027
+   
+2. **Follow Phase 1 Sequence:** Complete tasks WASM-TASK-002 through WASM-TASK-012
+   - Each task has single clear objective
+   - All tasks reference ADR-WASM-027 for specifications
+   - Verification with `wasm-tools component wit` after each task
 
-2. **Verification Requirements:** Continue verification-first workflow
-   - Run architecture verification commands after each action
-   - Show ACTUAL grep output as proof
-   - Ensure zero compiler/clippy warnings
-   - Trigger @memorybank-verifier for all reports
-
-3. **Testing Policy:** Zero exceptions policy
-   - Must create both unit tests (in module) AND integration tests (in tests/)
-   - All tests must be passing
-   - No stub tests or placeholder tests
+3. **Post-Phase 1:** Begin Phase 2 (Project Restructuring)
+   - Rename actor/ to component/
+   - Create system/ and messaging/ modules
+   - Per ADR-WASM-026 tasks WASM-TASK-013 through WASM-TASK-016
 
 ---
 
-## Context Notes
+## Architecture Foundation
 
-### Previous State (DELETED)
-**Old Task:** WASM-TASK-014 (Block 1 - Host System Architecture Implementation)
-- **Old Phase:** Block 5 (Refactor ActorSystemSubscriber)
-- **Old Status:** Phase 4 COMPLETE (100%), Phase 5 IN PROGRESS
-- **Problem:** The old task directory and all progress files for WASM-TASK-014 were deleted with the airssys-wasm codebase
-- **Resolution:** Fresh start required with new task management format
+### Clean-Slate Rebuild (NEW)
+**Reference Documentation:**
+- **KNOWLEDGE-WASM-037:** Rebuild Architecture - Clean Slate Design
+- **ADR-WASM-025:** Clean-Slate Rebuild Architecture (decision)
+- **ADR-WASM-026:** Implementation Roadmap (53 tasks across 7 phases)
 
-### Current Decision
-**Mode:** Clean rebuild from scratch  
-**Approach:** Start with foundational setup task (WASM-TASK-001)  
-**Focus:** Establish correct project structure before any implementation  
-**Risk:** Repeating same violations would cause another project deletion
-
----
-
-## Technical Context
-
-### Module Architecture (MANDATORY)
-**Four-Module Structure (ADR-WASM-023):**
+**Six-Module Architecture:**
 ```
 airssys-wasm/src/
-├── core/      # Foundation - shared types, imports NOTHING
-├── security/  # Security logic - imports core/
-├── runtime/   # WASM execution - imports core/, security/
-└── actor/     # Actor integration - imports core/, security/, runtime/
+├── core/           # LAYER 1: Foundation (std only)
+├── security/       # LAYER 2A: Security (deps: core/)
+├── runtime/        # LAYER 2B: WASM Only (deps: core/, security/)
+├── component/      # LAYER 3A: airssys-rt integration (deps: core/ traits)
+├── messaging/      # LAYER 3B: Messaging patterns (deps: core/ traits)
+└── system/         # LAYER 4: Coordinator (deps: ALL, injects concrete types)
 ```
 
-**Dependency Rules:**
-- ❌ runtime/ → actor/ (FORBIDDEN)
-- ❌ security/ → runtime/ (FORBIDDEN)
-- ❌ security/ → actor/ (FORBIDDEN)
-- ❌ core/ → ANY MODULE (FORBIDDEN)
-
-**Verification Commands:**
-```bash
-# ALL must return NOTHING for valid architecture
-grep -rn "use crate::runtime" src/core/
-grep -rn "use crate::actor" src/core/
-grep -rn "use crate::runtime" src/security/
-grep -rn "use crate::actor" src/security/
-grep -rn "use crate::actor" src/runtime/
-```
-
-### Reference Documentation
-- **ADR-WASM-023:** Module Boundary Enforcement (MANDATORY)
-- **KNOWLEDGE-WASM-030:** Module Architecture Hard Requirements (MANDATORY)
-- **KNOWLEDGE-WASM-031:** Foundational Architecture (READ FIRST)
-- **KNOWLEDGE-WASM-012:** Module Structure Architecture
+**Key Design Principles:**
+- Layer-organized `core/` with abstractions grouped by target module
+- Strict Dependency Inversion: Modules depend on traits, not implementations
+- One-way dependency flow with `system/` as coordinator
+- WIT-First Approach: Define interfaces before implementing modules
 
 ---
 
-## Dependencies
+## Reference Documentation
 
-### Upstream
-- None - This is the first task after project deletion
+### Critical ADRs (READ FIRST)
+- **ADR-WASM-027:** WIT Interface Design
+- **ADR-WASM-026:** Implementation Roadmap
+- **ADR-WASM-025:** Clean-Slate Rebuild Architecture
+- **ADR-WASM-023:** Module Boundary Enforcement (MANDATORY)
 
-### Downstream
-- All subsequent airssys-wasm tasks
-- Will depend on correct project structure established by this task
+### Knowledge Documents
+- **KNOWLEDGE-WASM-037:** Rebuild Architecture - Clean Slate Design (CRITICAL)
+- **KNOWLEDGE-WASM-030:** Module Architecture Hard Requirements
+- **KNOWLEDGE-WASM-031:** Foundational Architecture
 
 ---
 
 ## Definition of Done Criteria
 
-### WASM-TASK-001 (COMPLETED)
-- [x] Project structure created (Cargo.toml + src/)
-- [x] Module directories match four-module architecture
-- [x] All architecture verification commands pass
-- [x] Zero compiler warnings
-- [x] Zero clippy warnings
-- [x] Documentation references in plans file
-- [x] Audit approved by @memorybank-auditor
-- [x] Verification approved by @memorybank-verifier
-
-### Next Task: Implement core/ Types Module
-- [ ] Task created with task.md and plans.md
-- [ ] Plans reference ADRs and Knowledge documents
-- [ ] Core types implemented (ComponentId, ComponentMessage, etc.)
-- [ ] Unit tests created in module
-- [ ] Integration tests created in tests/
-- [ ] All tests passing
-- [ ] Zero compiler warnings
-- [ ] Zero clippy warnings
-- [ ] Architecture verified (core/ imports nothing)
-- [ ] Audit approved
-- [ ] Verification approved
+### Phase 1: WIT Interface System (WASM-TASK-002 through WASM-TASK-012)
+- [ ] All 11 tasks complete with deliverables
+- [ ] WIT package validates with `wasm-tools component wit`
+- [ ] wit-bindgen integration functional
+- [ ] `cargo build -p airssys-wasm` succeeds
+- [ ] Zero compiler/clippy warnings
+- [ ] Ready for Phase 2 (Project Restructuring)

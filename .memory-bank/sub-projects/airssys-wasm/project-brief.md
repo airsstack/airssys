@@ -1,6 +1,6 @@
 # airssys-wasm Project Brief
 
-**Last Updated:** 2026-01-04
+**Last Updated:** 2026-01-05
 
 ---
 
@@ -73,17 +73,36 @@ The entire airssys-wasm codebase was deleted due to repeated architectural viola
 - Write REAL tests, not stubs
 - Only proceed when verification passes
 
-### First Task
+###Foundation Complete
 **Task ID:** WASM-TASK-001
 **Task Name:** Setup airssys-wasm Project Directory
-**Status:** pending
+**Status:** ✅ COMPLETE (2026-01-05)
 **Priority:** high
-**Description:** Create basic project structure (Cargo.toml, src/ directories) as foundation for all subsequent tasks
+**Description:** Created basic project structure (Cargo.toml, src/ directories) as foundation for all subsequent tasks
 
-**Why First:**
-- Must establish correct project structure before any code implementation
-- Architecture violations from previous project must NOT be repeated
-- Foundation tasks must reference existing ADRs and Knowledges
+**Achievement:**
+- Established correct project structure before code implementation
+- Zero architecture violations (verified with grep commands)
+- All documentation references included in plans
+
+### Current Phase
+**Phase:** Phase 1 - WIT Interface System
+**Tasks:** WASM-TASK-002 through WASM-TASK-012 (11 tasks total)
+**Status:** All tasks created, ready to start
+**Reference:** ADR-WASM-026 (Implementation Roadmap), ADR-WASM-027 (WIT Interface Design)
+
+**Phase 1 Tasks (All Pending):**
+- WASM-TASK-002: Setup WIT Directory Structure
+- WASM-TASK-003: Create types.wit
+- WASM-TASK-004: Create errors.wit
+- WASM-TASK-005: Create capabilities.wit
+- WASM-TASK-006: Create component-lifecycle.wit
+- WASM-TASK-007: Create host-messaging.wit
+- WASM-TASK-008: Create host-services.wit
+- WASM-TASK-009: Create storage.wit
+- WASM-TASK-010: Create world.wit
+- WASM-TASK-011: Validate WIT package
+- WASM-TASK-012: Setup wit-bindgen integration
 
 ---
 
@@ -100,36 +119,39 @@ The entire airssys-wasm codebase was deleted due to repeated architectural viola
 
 ---
 
-## Project Structure (After WASM-TASK-001 Complete)
+## Project Structure (Clean-Slate Rebuild)
+
+**Reference:** KNOWLEDGE-WASM-037 (Rebuild Architecture - Clean Slate Design)
 
 ```
 airssys-wasm/
 ├── src/
-│   ├── core/      # Shared types (imports NOTHING)
-│   ├── security/  # Security logic (imports core/)
-│   ├── runtime/   # WASM execution (imports core/, security/)
-│   └── actor/     # Actor integration (imports core/, security/, runtime/)
+│   ├── core/           # LAYER 1: Foundation (std only)
+│   ├── security/       # LAYER 2A: Security
+│   ├── runtime/        # LAYER 2B: WASM Execution
+│   ├── component/      # LAYER 3A: airssys-rt integration (renamed from actor/)
+│   ├── messaging/      # LAYER 3B: Messaging patterns (new module)
+│   └── system/         # LAYER 4: Coordinator (new module)
 ├── tests/         # Integration tests
-│   └── wit/           # WIT interfaces
+├── wit/           # WIT interfaces
+│   └── core/      # Package: airssys:core@1.0.0
 └── Cargo.toml
-└── README.md
 ```
 
-**Dependency Hierarchy (MANDATORY - ADR-WASM-023):**
+**Dependency Hierarchy (NEW - ADR-WASM-025, KNOWLEDGE-WASM-037):**
 ```
-ALLOWED:
-  ✅ actor/ → runtime/
-  ✅ actor/ → security/
-  ✅ actor/ → core/
-  ✅ runtime/ → security/
-  ✅ runtime/ → core/
-  ✅ security/ → core/
+LAYER 4 (system/) → injects concrete implementations into all layers
+  ↓
+LAYER 3 (component/, messaging/) → depend on core/ traits ONLY + airssys-rt
+  ↓
+LAYER 2 (runtime/, security/) → depend on core/ (runtime also depends on security/)
+  ↓  
+LAYER 1 (core/) → depends on std ONLY
 
-FORBIDDEN (NEVER):
-  ❌ runtime/ → actor/
-  ❌ security/ → runtime/
-  ❌ security/ → actor/
-  ❌ core/ → ANY MODULE
+KEY PRINCIPLE: Dependency Inversion
+- Modules depend on TRAITS (defined in core/), not concrete implementations
+- system/ is the only module that knows about concrete types
+- system/ injects dependencies into lower layers
 ```
 
 ---
@@ -150,12 +172,18 @@ FORBIDDEN (NEVER):
 
 ---
 
-## Architecture Documentation (INTACT - 22 ADRs, 22 Knowledge docs)
+## Architecture Documentation (25+ ADRs, 23+ Knowledge docs)
 
-### Critical Documents (MUST READ)
+### Clean-Slate Rebuild Documents (NEW - CRITICAL)
 **Foundation:**
-- KNOWLEDGE-WASM-031: Foundational Architecture (READ FIRST)
-- KNOWLEDGE-WASM-030: Module Architecture Requirements (MANDATORY)
+- **KNOWLEDGE-WASM-037:** Rebuild Architecture - Clean Slate Design (READ FIRST)
+- **ADR-WASM-025:** Clean-Slate Rebuild Architecture (decision record)
+- **ADR-WASM-026:** Implementation Roadmap (master plan: 7 phases, 53 tasks)
+- **ADR-WASM-027:** WIT Interface Design (Phase 1 specifications)
+
+**Previous Foundation (Historical):**
+- KNOWLEDGE-WASM-031: Foundational Architecture
+- KNOWLEDGE-WASM-030: Module Architecture Requirements (superseded by KNOWLEDGE-WASM-037)
 
 **Module Structure:**
 - ADR-WASM-011: Module Structure Organization
@@ -210,16 +238,16 @@ FORBIDDEN (NEVER):
 
 ## Next Steps
 
-1. **Implement WASM-TASK-001** (Setup Project Directory)
-   - Follow implementation plans in plans.md
-   - Verify each action before marking complete
-   - Run grep commands after implementation
-   - Show ACTUAL output as proof
+1. **Start Phase 1: WIT Interface System** (WASM-TASK-002 through WASM-TASK-012)
+   - Follow ADR-WASM-027 specifications exactly
+   - Create each WIT file according to task plans
+   - Validate with `wasm-tools component wit` after each task
+   - Complete wit-bindgen integration (WASM-TASK-012)
 
-2. **Create foundational tasks** (in order based on ADR-WASM-010 build order)
-   - Each task will have single action
-   - Each task will reference ADRs/Knowledges
-   - Each plan will reference documentation with citations
+2. **After Phase 1 Complete** (Begin Phase 2: Project Restructuring)
+   - Follow ADR-WASM-026 roadmap sequence
+   - Each phase references specific ADRs
+   - Maintain  single-action task discipline
 
 3. **Verification MANDATORY**
    - Read ALL relevant ADRs before planning

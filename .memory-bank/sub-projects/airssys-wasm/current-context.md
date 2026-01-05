@@ -1,198 +1,156 @@
 # airssys-wasm Current Context
 
-**Last Updated:** 2025-12-19  
-**Current Phase:** WASM-TASK-005 Block 4 - Security & Isolation Layer  
-**Progress:** 80% (Phase 1-4 ✅ COMPLETE)
+**Last Updated:** 2026-01-05  
+**Current Phase:** Phase 1 - WIT Interface System  
+**Progress:** Foundation Complete (WASM-TASK-001 ✅), Phase 1 Tasks Created (11 tasks ready)
 
 ---
 
 ## Current Work Focus
 
-**Active Task:** WASM-TASK-005 Phase 4 Task 4.3 - Resource Quota System  
-**Status:** ✅ COMPLETE (2025-12-19)  
-**Next Task:** Phase 5 Task 5.1 - Security Integration Testing (estimated 3 days)
+**Active Milestone:** Phase 1 WIT Interface System  
+**Status:** Ready to Start  
+**Next Task:** WASM-TASK-002 - Setup WIT Directory Structure
 
-### Task 4.3 Completion Summary
+### Clean-Slate Rebuild Architecture
 
-**Deliverables:**
-- ✅ ResourceQuota struct with 5 quota types (storage, message rate, network, CPU, memory)
-- ✅ QuotaTracker with thread-safe atomic operations (~500 lines)
-- ✅ QuotaError enum with detailed context (5 error variants)
-- ✅ WasmSecurityContext integration with quota fields
-- ✅ Monitoring API (get_quota_status(), warning/critical thresholds)
-- ✅ 63 comprehensive tests (30 unit + 33 integration)
+**Reference Documentation:**
+- **ADR-WASM-025:** Clean-Slate Rebuild Architecture (decision record)
+- **KNOWLEDGE-WASM-037:** Rebuild Architecture - Clean Slate Design (technical reference)
+- **ADR-WASM-026:** Implementation Roadmap (7 phases, 53 tasks)
+- **ADR-WASM-027:** WIT Interface Design (Phase 1 specifications)
 
-**Quality Metrics:**
-- **Code:** ~2,200 lines (1,546 quota.rs + 657 integration tests)
-- **Tests:** 362 total passing (up from 299, **+21% coverage**)
-- **Performance:** 3-5μs checks, 1-2μs updates (**50-60% faster than targets**)
-- **Quality Score:** 96/100 (EXCELLENT - production-ready)
-- **Warnings:** 0 (compiler + clippy + rustdoc)
-- **Thread Safety:** Excellent (lock-free atomics, concurrency test passed)
+**Why Clean-Slate Rebuild:**
+Previous airssys-wasm implementation suffered from architectural violations that could not be fixed incrementally:
+- Circular dependencies (runtime/ ↔ actor/)
+- DI/DIP violations (modules importing concrete implementations)
+- Module boundary confusion (code in wrong modules)
+- Fake tests (tests that didn't validate functionality)
 
-**Critical Achievements:**
-1. ✅ All 5 quota types implemented (storage, message rate, network, CPU, memory)
-2. ✅ Time-window rate limiting with automatic reset
-3. ✅ Lock-free atomic operations (minimal contention)
-4. ✅ Monitoring API with warning (80%) and critical (95%) thresholds
-5. ✅ 420% of test target (63 vs 15+ required)
-6. ✅ Performance exceeded targets by 50-60%
-
----
-
-## Recent Achievements
-
-### Phase 4 Complete (Dec 19, 2025)
-
-**Task 4.1 (Dec 19):** ComponentActor Security Context Attachment
-- 780 lines (130 implementation + 650 tests/docs)
-- 21 tests passing
-- Quality: 98.5/100
-
-**Task 4.2 (Already Complete):** Message Passing Security
-- Already complete per DEBT-WASM-004 Item #3
-- 16 tests passing
-- Quality: 100% production-ready
-
-**Task 4.3 (Dec 19):** Resource Quota System
-- ~2,200 lines (1,546 implementation + 657 integration tests)
-- 63 tests passing
-- Quality: 96/100
-
-**Combined Phase 4 Metrics:**
-- **Total Code:** ~3,000 lines implementation + tests
-- **Total Tests:** 100 passing (21 + 16 + 63)
-- **Average Quality:** 97.8/100
-- **Warnings:** 0 (all verified)
+**New Architecture Principles:**
+1. Layer-organized `core/` with abstractions grouped by target module
+2. Strict Dependency Inversion (modules depend on traits, not implementations)
+3. One-way dependency flow with `system/` as coordinator
+4. WIT-First Approach (interfaces before implementation)
 
 ---
 
 ## Implementation Status
 
-### Block 4: Security & Isolation Layer (80% Complete)
+### Phase 1: WIT Interface System (Ready to Start)
+**Reference:** ADR-WASM-027
 
-**Phase 1: WASM-OSL Security Bridge** ✅ **COMPLETE (100%)**
-- ✅ Task 1.1: WasmCapability Types and OSL Mapping (9.5/10)
-- ✅ Task 1.2: Component.toml Capability Parser (9.5/10)
-- ✅ Task 1.3: SecurityContext Bridge (9.5/10)
+**Tasks Created (11 Total):**
+- ⏳ WASM-TASK-002: Setup WIT Directory Structure
+- ⏳ WASM-TASK-003: Create types.wit
+- ⏳ WASM-TASK-004: Create errors.wit
+-⏳ WASM-TASK-005: Create capabilities.wit
+- ⏳ WASM-TASK-006: Create component-lifecycle.wit
+- ⏳ WASM-TASK-007: Create host-messaging.wit
+- ⏳ WASM-TASK-008: Create host-services.wit
+- ⏳ WASM-TASK-009: Create storage.wit
+- ⏳ WASM-TASK-010: Create world.wit
+- ⏳ WASM-TASK-011: Validate WIT package
+- ⏳ WASM-TASK-012: Setup wit-bindgen integration
 
-**Phase 2: Trust-Level System** ✅ **COMPLETE (100%)**
-- ✅ Task 2.1: Trust Level Implementation (9.5/10)
-- ✅ Task 2.2: Approval Workflow Engine (9.6/10)
-- ✅ Task 2.3: Trust Configuration System (10/10)
+**Phase Status:** 0/11 complete, all tasks pending
 
-**Phase 3: Capability Enforcement** ✅ **COMPLETE (100%)**
-- ✅ Task 3.1: Capability Check API (9.5/10)
-- ✅ Task 3.2: Host Function Integration Points (9.5/10)
-- ✅ Task 3.3: Audit Logging Integration (9.0/10)
+---
 
-**Phase 4: ComponentActor Security Integration** ✅ **COMPLETE (100%)**
-- ✅ Task 4.1: ComponentActor Security Context Attachment (9.85/10)
-- ✅ Task 4.2: Message Passing Security (10/10 - already complete)
-- ✅ Task 4.3: Resource Quota System (9.6/10)
+## Recent Achievements
 
-**Phase 5: Testing & Documentation** (0% - READY TO START)
-- ⏳ Task 5.1: Security Integration Testing
-- ⏳ Task 5.2: Security Documentation
-- ⏳ Task 5.3: Production Readiness Checklist
+### 2026-01-05: Phase 1 Tasks Created ✅
+
+**What Was Delivered:**
+- 11 task directories created with complete task.md + plans.md files
+- All plans reference ADR-WASM-027 (WIT Interface Design)
+- All plans reference KNOWLEDGE-WASM-037 (Clean Slate Architecture)
+- All tasks follow single-action rule (one objective per task)
+- tasks/_index.md updated to register all Phase 1 tasks
+
+**Quality Metrics:**
+- Task structure compliance: 100% (all follow memory bank format)
+- ADR references: 100% (all plans cite specific ADR sections)
+- Single-action compliance: 100% (each task has one clear objective)
+
+### 2026-01-05: WASM-TASK-001 Complete ✅
+
+**Deliverables:**
+- airssys-wasm/Cargo.toml with full dependencies
+- Four-module structure (core/, security/, runtime/, actor/)
+- lib.rs and prelude.rs
+- tests/fixtures/ and wit/ directories
+- Zero compiler/clippy warnings
+- Zero architecture violations
 
 ---
 
 ## Immediate Next Steps
 
-### Task 5.1: Security Integration Testing (READY TO START)
+### WASM-TASK-002: Setup WIT Directory Structure (Next)
 
-**Estimated Effort:** 3 days  
-**Dependencies:** Phase 4 complete ✅
+**Estimated Effort:** 0.5 days  
+**Dependencies:** WASM-TASK-001 complete ✅
 
 **Objectives:**
-- Comprehensive security testing of WASM-OSL bridge
-- Bypass attempt tests (malicious component scenarios)
-- Trust level workflow tests
-- Capability mapping tests (WASM → ACL/RBAC)
-- Pattern matching tests (glob patterns, edge cases)
-- Performance benchmarks (<5μs capability check)
-- Penetration testing framework
+- Create `wit/` root directory
+- Create `wit/core/` package directory
+- Create `wit/deps.toml` package configuration
+- Verify structure matches ADR-WASM-027
 
 **Success Criteria:**
-- All capability patterns tested (50+ test cases)
-- Bypass attempts detected and blocked (20+ threat scenarios)
-- Edge cases covered (invalid patterns, circular dependencies)
-- Performance targets met (<5μs per check)
-- No security vulnerabilities found
-- Comprehensive test suite (100+ tests total)
+- Directory structure matches ADR-WASM-027 specification
+- deps.toml contains correct package metadata (airssys:core@1.0.0)
+- Ready for WASM-TASK-003 (Create types.wit)
 
 ---
 
 ## Dependencies & Blockers
 
 ### Completed Dependencies
-- ✅ WASM-TASK-002: Block 1 - WASM Runtime Layer (100% complete)
-- ✅ WASM-TASK-003: Block 2 - WIT Interface System (100% complete)
-- ✅ WASM-TASK-004: Block 3 - Actor System Integration (100% complete)
-- ✅ airssys-rt foundation (100% complete)
-- ✅ airssys-osl security infrastructure (100% complete)
+- ✅ WASM-TASK-001: Project structure established
+- ✅ ADR-WASM-025: Clean-slate rebuild architecture approved
+- ✅ ADR-WASM-026: Implementation roadmap defined
+- ✅ ADR-WASM-027: WIT interface specifications complete
 
 ### No Current Blockers
-All prerequisites for Phase 5 are complete. Ready to proceed with Task 5.1.
-
----
-
-## Key Metrics
-
-### Test Coverage
-- **Total Tests:** 362 passing (Block 4)
-- **Recent Growth:** +63 tests in Task 4.3 (+21%)
-- **Coverage Increase:** Comprehensive quota testing
-- **Test Quality:** All edge cases covered (zero quota, unlimited, concurrency)
-
-### Code Quality
-- **Phase 4 Average:** 97.8/100 (EXCELLENT)
-- **Task 4.3 Score:** 96/100
-- **Warnings:** 0 across all tasks
-- **Standards Compliance:** 100% (§2.1-§6.4, Microsoft Guidelines, ADR-WASM-005)
-
-### Performance
-- **Quota Check:** 3-5μs (50% better than 10μs target)
-- **Quota Update:** 1-2μs (60% better than 5μs target)
-- **Memory Overhead:** ~400 bytes (60% better than 1KB target)
-- **Lock Contention:** Minimal (lock-free reads)
+All prerequisites for Phase 1 are complete. Ready to proceed with WASM-TASK-002.
 
 ---
 
 ## Architecture Decisions
 
 ### Recently Applied
-- **ADR-WASM-005:** Capability-Based Security Model (§2.3 - Resource Quotas)
-- **ADR-WASM-010:** Implementation Strategy (reuse airssys-osl)
-- **PROJECTS_STANDARD.md:** §2.1 (imports), §4.3 (modules), §5.1 (deps), §6.4 (quality)
-- **Microsoft M-STATIC-VERIFICATION:** Zero warnings policy
-- **Microsoft M-THREAD-SAFE:** Atomic operations, Send + Sync
+- **ADR-WASM-025:** Clean-Slate Rebuild Architecture (2026-01-05)
+- **ADR-WASM-026:** Implementation Roadmap (2026-01-05)
+- **ADR-WASM-027:** WIT Interface Design (2026-01-05)
+
+**Previous Critical ADRs:**
+- **ADR-WASM-023:** Module Boundary Enforcement (MANDATORY)
+- **ADR-WASM-002:** WASM Runtime Engine Selection
+- **ADR-WASM-005:** Capability-Based Security Model
 
 ### Standards Compliance
-- **§2.1:** 3-layer import organization (verified in all tasks)
-- **§4.3:** Module organization patterns
-- **§5.1:** Workspace dependency management
-- **§6.1-§6.4:** Error handling, async patterns, logging, quality gates
-- **Microsoft M-ERRORS-CANONICAL-STRUCTS:** QuotaError with context
+- **Memory Bank:** Single-action tasks, plans with ADR citations
+- **PROJECTS_STANDARD.md:** §2.1-§6.4 compliance required
+- **ADR-WASM-023:** Module boundary enforcement
+- **WIT-First:** Define interfaces before implementation
 
 ---
 
 ## Documentation Status
 
 ### Complete Documentation
-- ✅ Phase 1-4 completion summaries
-- ✅ Implementation plans for all Phase 1-4 tasks
-- ✅ KNOWLEDGE-WASM-016: Actor System Integration Guide
-- ✅ 100% rustdoc coverage across all Phase 1-4 code
-- ✅ Task 4.3: 152-line module header with examples
+- ✅ ADR-WASM-025: Clean-Slate Rebuild Architecture
+- ✅ ADR-WASM-026: Implementation Roadmap (master plan)
+- ✅ ADR-WASM-027: WIT Interface Design (Phase 1 specs)
+- ✅ KNOWLEDGE-WASM-037: Rebuild Architecture - Clean Slate Design
+- ✅ Phase 1 tasks: All 11 tasks documented with plans
 
-### Documentation To Create (Phase 5)
-- ⏳ Task 5.1: Security integration test suite
-- ⏳ Task 5.2: Component.toml capability declaration guide
-- ⏳ Task 5.2: Trust level configuration guide
-- ⏳ Task 5.2: Security best practices guide
-- ⏳ Task 5.3: Production readiness checklist
+### Documentation To Create
+- ⏳ Phase 2-7 tasks (will be created as phases progress)
+- ⏳ Module-specific ADRs (as implementation progresses)
+- ⏳ Knowledge docs for new patterns discovered
 
 ---
 
@@ -200,63 +158,58 @@ All prerequisites for Phase 5 are complete. Ready to proceed with Task 5.1.
 
 ### Current Risks: LOW
 
-**Phase 4 Completion:** All risks mitigated through successful delivery
-- ✅ Security context integration: Resolved with clean ComponentActor extension
-- ✅ Quota tracking performance: Exceeded targets by 50-60%
-- ✅ Thread safety: Verified with concurrency tests
-- ✅ Memory overhead: 60% better than target
+**Phase 1 Risks (Low):**
+- WIT syntax complexity (mitigated by ADR-WASM-027 specifications)
+- wit-bindgen integration (mitigated by macro-based approach)
+- Package validation (mitigated by incremental validation)
 
-**Phase 5 Risks (Low):**
-- Security integration testing complexity (manageable with existing test patterns)
-- Documentation scope (well-defined deliverables)
-- Production readiness sign-off (clear criteria)
+**Mitigation Strategies:**
+- Follow ADR-WASM-027 specifications exactly
+- Validate WIT package after each file creation
+- Use wasm-tools for continuous validation
+- Reference Component Model documentation as needed
 
 ---
 
 ## Team Context
 
 ### For Developers
-**Starting Point:** Phase 4 provides complete security foundation
-- Security context per ComponentActor operational
-- Resource quota system production-ready
-- Message passing security complete
-- Monitoring API functional
+**Starting Point:** Foundation complete, Phase 1 tasks ready
+- Project structure established (WASM-TASK-001 complete)
+- 11 WIT interface tasks clearly defined
+- Each task has implementation plans with ADR references
+- WIT-First approach ensures clear contracts
 
 **Next Developer Actions:**
-1. Review Task 5.1 implementation plan
-2. Implement security integration tests (100+ tests)
-3. Write penetration testing framework
-4. Validate bypass attempt detection
+1. Read ADR-WASM-027 (WIT Interface Design)
+2. Start WASM-TASK-002 (Setup WIT Directory Structure)
+3. Follow task sequence through WASM-TASK-012
+4. Validate with `wasm-tools component wit` after each task
 
 ### For Reviewers
 **Review Focus Areas:**
-- Test coverage depth (maintain 100+ tests for Phase 5)
-- Security vulnerability assessment (zero critical vulnerabilities)
-- Documentation quality (maintain production-ready standards)
-- Performance validation (maintain <5μs targets)
+- WIT syntax correctness (Component Model compliance)
+- Type consistency across interfaces
+- Package structure conformance to ADR-WASM-027
+- Validation command results
 
 ---
 
 ## Notes
 
-**Phase 4 Success:** All security integration tasks complete
-- Quality scores: 96-98.5/100 (all EXCELLENT)
-- Performance: 50-60% better than targets
-- Test coverage: 362 total tests (+63 in Task 4.3)
-- Zero warnings: All quality gates passed
+**Clean-Slate Rebuild Success Factors:**
+- Proper DIP application from the start
+- WIT-First approach ensures interface clarity
+- Single-action tasks prevent scope creep
+- Layer-organized core/ module enables testability
 
-**Foundation Established:** Ready for Phase 5
-- Security context pattern proven
-- Resource quota system robust
-- Message security comprehensive
-- Monitoring API complete
-
-**Next Milestone:** Phase 5 completion (security testing + documentation)
-- Estimated: 1 week (3 days + 2-3 days + 1-2 days)
-- Target quality: 9.5+/10
-- Target tests: 100+ comprehensive
-- Target deliverables: Complete security documentation
+**Phase 1 Completion Criteria:**
+- All 11 tasks complete
+- WIT package validates with wasm-tools
+- wit-bindgen integration functional
+- Zero compiler/clippy warnings
+- Ready for Phase 2 (Project Restructuring)
 
 ---
 
-**Status:** Phase 4 ✅ COMPLETE, Phase 5 READY TO START
+**Status:** Foundation Complete, Phase 1 Ready to Start
