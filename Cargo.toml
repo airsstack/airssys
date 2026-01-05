@@ -1,15 +1,6 @@
 [workspace]
-members = [
-    "airssys-osl", 
-    "airssys-osl-macros",
-    "airssys-rt",
-    "airssys-wasm",
-    "airssys-wasm-component",
-    "airssys-wasm-cli",
-]
-exclude = [
-    "airssys-wasm/examples/file-processor",
-]
+members = ["airssys-osl", "airssys-osl-macros", "airssys-rt", "airssys-wasm"]
+exclude = ["airssys-wasm/examples/file-processor"]
 resolver = "2"
 
 [workspace.lints.clippy]
@@ -22,7 +13,7 @@ clone_on_ref_ptr = "warn"
 inefficient_to_string = "warn"
 large_stack_arrays = "warn"
 # Code quality
-missing_docs_in_private_items = "allow"  # Too verbose for internal code
+missing_docs_in_private_items = "allow" # Too verbose for internal code
 needless_pass_by_value = "warn"
 
 [workspace.package]
@@ -109,7 +100,12 @@ ed25519-dalek = { version = "2.1", features = ["rand_core"] }
 git2 = { version = "0.18" }
 
 # CLI framework (latest stable)
-clap = { version = "4.5", features = ["derive", "help", "usage", "error-context"] }
+clap = { version = "4.5", features = [
+    "derive",
+    "help",
+    "usage",
+    "error-context",
+] }
 clap_complete = { version = "4.5" }
 
 # CLI user experience
@@ -164,7 +160,14 @@ unicode-normalization = { version = "0.1" }
 wiremock = { version = "0.6" }
 
 # Binary processing (latest stable - for airs-mcp-fs)
-image = { version = "0.25", features = ["jpeg", "png", "gif", "webp", "tiff", "bmp"] }
+image = { version = "0.25", features = [
+    "jpeg",
+    "png",
+    "gif",
+    "webp",
+    "tiff",
+    "bmp",
+] }
 infer = { version = "0.19.0" }
 
 # Configuration management (latest stable - for airs-mcp-fs)
@@ -179,7 +182,11 @@ assert_fs = { version = "1.1" }
 
 # WebAssembly Component Model and Runtime (for airssys-wasm)
 wit-bindgen = { version = "0.47.0", default-features = false }
-wasmtime = { version = "24.0", features = ["component-model", "async", "cranelift"] }
+wasmtime = { version = "24.0", features = [
+    "component-model",
+    "async",
+    "cranelift",
+] }
 wasmtime-wasi = { version = "24.0" }
 
 # WAT compiler for WASM test fixtures (for airssys-wasm)

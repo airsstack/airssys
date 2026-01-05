@@ -1,0 +1,51 @@
+[package]
+name = "airssys-wasm"
+version = "0.1.0"
+edition = "2021"
+authors = ["AirsStack Team <team@airsstack.dev>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/airsstack/airssys"
+rust-version = "1.88"
+description = "WebAssembly Plugin/Extension Platform for AirsStack"
+
+[dependencies]
+# Layer 1: AirsSys Foundation Crates
+airssys-osl = { workspace = true }
+airssys-rt = { workspace = true }
+
+# Layer 2: Core Runtime Dependencies
+tokio = { workspace = true }
+futures = { workspace = true }
+
+# Layer 3: Serialization and Data Handling
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Layer 4: External Dependencies
+
+# Wasmtime - WASM Runtime Engine (ADR-WASM-002: Wasmtime 24.0 with component-model)
+wasmtime = { version = "24.0", features = ["component-model", "async", "cranelift"] }
+wasmtime-wasi = { version = "24.0" }
+
+# WIT Bindgen - WIT Interface Generation (per plans: wit-bindgen 0.47.0)
+wit-bindgen = { version = "0.47.0", default-features = false }
+
+# Error handling
+thiserror = { workspace = true }
+
+# Utilities
+uuid = { workspace = true }
+async-trait = { workspace = true }
+
+# Time operations (per PROJECTS_STANDARD.md §3.2)
+chrono = { version = "0.4", features = ["serde"] }
+
+# Tracing
+tracing = { workspace = true }
+
+# Concurrent collections
+dashmap = { workspace = true }
+
+[dev-dependencies]
+# Testing utilities
+tokio-test = "0.4"
