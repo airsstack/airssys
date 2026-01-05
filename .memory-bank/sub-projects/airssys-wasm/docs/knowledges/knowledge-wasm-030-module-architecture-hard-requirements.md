@@ -1,8 +1,20 @@
 # KNOWLEDGE-WASM-030: Module Architecture - Hard Requirements
 
+> ⚠️ **SUPERSEDED FOR REBUILD**
+> 
+> For the **clean-slate rebuild**, refer to [KNOWLEDGE-WASM-037: Rebuild Architecture - Clean Slate Design](knowledge-wasm-037-rebuild-architecture-clean-slate.md).
+> 
+> KNOWLEDGE-WASM-037 provides the updated architecture with:
+> - Six modules: `core/`, `security/`, `runtime/`, `component/`, `messaging/`, `system/`
+> - Layer-organized `core/` with abstractions per module
+> - Proper Dependency Inversion patterns
+> 
+> This document remains as historical reference for the four-module architecture.
+
 **Document ID:** KNOWLEDGE-WASM-030  
 **Created:** 2025-12-22  
-**Status:** 🔴 **MANDATORY - HARD REQUIREMENTS**  
+**Updated:** 2026-01-05  
+**Status:** 🔴 **HISTORICAL** (see KNOWLEDGE-WASM-037 for rebuild)  
 **Category:** Architecture / Module Design / Enforcement  
 **Related ADR:** ADR-WASM-023 (Module Boundary Enforcement)
 

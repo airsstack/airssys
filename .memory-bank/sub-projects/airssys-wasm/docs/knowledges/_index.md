@@ -1,9 +1,9 @@
 # airssys-wasm Knowledge Documentation Index
 
 **Sub-Project:** airssys-wasm  
-**Last Updated:** 2025-12-29  
-**Total Knowledge Docs:** 22  
-**Active Knowledge Docs:** 21  
+**Last Updated:** 2026-01-05  
+**Total Knowledge Docs:** 23  
+**Active Knowledge Docs:** 22  
 
 ## Current Knowledge Documentation
 
@@ -16,6 +16,15 @@
   - **Impact**: 🔴 CRITICAL - Read this BEFORE any other document
   - **Audience**: EVERYONE - developers, architects, planners, implementers
   - **Inspiration**: Smart contract platforms (NEAR, Polkadot) using WASM
+
+- **[KNOWLEDGE-WASM-037: Rebuild Architecture - Clean Slate Design](knowledge-wasm-037-rebuild-architecture-clean-slate.md)** 🔴 **CRITICAL REBUILD**
+  - **Purpose**: Clean-slate rebuild architecture for airssys-wasm eliminating previous circular dependencies and DIP violations
+  - **Scope**: Complete module structure (core/, security/, runtime/, component/, messaging/, system/), Dependency Inversion patterns, airssys-rt/osl integration, WIT structure, testing strategy
+  - **Key Content**: Layer-organized core/ with abstractions per module, one-way dependency flow, WASM-only runtime/, system/ as coordinator with DI, test fixture standards
+  - **Status**: Active (Created 2026-01-05)
+  - **Impact**: 🔴 CRITICAL - Foundation for complete rebuild from scratch
+  - **Audience**: ALL developers working on rebuild - MANDATORY reading
+  - **Supersedes**: KNOWLEDGE-WASM-035, KNOWLEDGE-WASM-036 (previous architectures with violations)
 
 ### Core Concepts Category ✅
 ### Core Concepts Category ✅
@@ -569,15 +578,10 @@ grep -rn "use crate::actor" src/runtime/
    - **Audience**: All developers, architects, task implementers
    - **Related**: All tasks and ADRs reference this for module structure compliance
 
-- **[KNOWLEDGE-WASM-036: Three-Module Architecture - orchestration/, actor/, messaging/, runtime/ Integration](knowledge-wasm-036-three-module-architecture.md)** ✅ **CRITICAL**
-  - **Purpose**: Establishes CORRECT architectural design with dedicated orchestration layer to eliminate circular dependencies
-  - **Scope**: Four-module architecture, one-way dependency flow, clear module responsibilities, migration plan
-  - **Key Content**: orchestration/ as central coordinator, module responsibility matrix, dependency verification commands, architectural metaphors (conductor/bridge/courier/musician/sheet music), control flow examples, usage patterns, migration guide
-  - **Status**: New active reference (Created 2025-12-29) - **SUPERSEDES KNOWLEDGE-WASM-035**
-  - **Impact**: 🔴 CRITICAL - Resolves circular dependency issue, provides clear orchestration ownership
-  - **Audience**: All developers, architects, anyone working on module architecture or refactoring
-  - **Key Insight**: orchestration/ coordinates all operations, delegating to actor/ (wrappers), messaging/ (broker), and runtime/ (execution)
-  - **Related**: ADR-WASM-018 (Three-Layer Architecture), ADR-WASM-022 (Circular Dependency Remediation), ADR-WASM-023 (Module Boundary Enforcement), KNOWLEDGE-WASM-030 (Module Architecture Hard Requirements)
-  - **Replaces**: KNOWLEDGE-WASM-035 (contained incorrect circular dependency description)
+- **[KNOWLEDGE-WASM-036: Three-Module Architecture](knowledge-wasm-036-three-module-architecture.md)** ⚠️ **SUPERSEDED**
+  - **Purpose**: (SUPERSEDED) Previous four-module architecture with host_system/
+  - **Status**: ⚠️ SUPERSEDED by KNOWLEDGE-WASM-037 (2026-01-05)
+  - **Note**: This document has been superseded. See KNOWLEDGE-WASM-037 for the current rebuild architecture.
+  - **Related**: KNOWLEDGE-WASM-037 (replacement)
 
 ---

@@ -1,9 +1,9 @@
 # airssys-wasm Architecture Decision Records Index
 
 **Sub-Project:** airssys-wasm  
-**Last Updated:** 2025-12-21  
-**Total ADRs:** 16  
-**Active ADRs:** 15  
+**Last Updated:** 2026-01-05  
+**Total ADRs:** 17  
+**Active ADRs:** 16  
 
 ## Active ADRs
 
@@ -418,4 +418,21 @@ ActorSystemSubscriber (ENHANCED)
 - **Impact:** Critical - Fixes architectural violation and enables proper Block 5 development
 - **Implementation:** WASM-TASK-HOTFIX-001
 - **File:** `adr-wasm-024-refactor-messaging-from-runtime-to-top-level-module.md`
+
+### ADR-WASM-025: Clean-Slate Rebuild Architecture 🔴 CRITICAL
+- **Status:** Accepted
+- **Date:** 2026-01-05
+- **Category:** Architecture / Module Design / Rebuild
+- **Severity:** 🔴 **FOUNDATIONAL DECISION**
+- **Summary:** Complete rebuild of airssys-wasm with six-module architecture featuring layer-organized `core/` and strict Dependency Inversion Principle. Supersedes incremental fixes with clean-slate design.
+- **Key Decisions:**
+  - Six modules: `core/`, `security/`, `runtime/`, `component/`, `messaging/`, `system/`
+  - Layer-organized `core/` (e.g., `core/runtime/traits.rs` for runtime abstractions)
+  - Strict DIP: modules depend on `core/` traits, not concrete implementations
+  - `system/` as coordinator that injects concrete types into Layer 3 modules
+  - Renamed: `actor/` → `component/`, `host_system/` → `system/`
+- **Related:** KNOWLEDGE-WASM-037 (detailed reference), KNOWLEDGE-WASM-033 (lessons learned)
+- **Supersedes:** ADR-WASM-021, ADR-WASM-022, ADR-WASM-024 (principles incorporated)
+- **Impact:** 🔴 CRITICAL - Foundation for complete rebuild from scratch
+- **File:** `adr-wasm-025-clean-slate-rebuild-architecture.md`
 

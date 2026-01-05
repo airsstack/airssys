@@ -292,7 +292,8 @@ If ANY of these return results → CODE IS REJECTED.
 
 ## Related Documents
 
-- **KNOWLEDGE-WASM-030**: Module Architecture - Hard Requirements (detailed reference)
+- **KNOWLEDGE-WASM-037**: Rebuild Architecture - Clean Slate Design (**CURRENT FOR REBUILD**)
+- **KNOWLEDGE-WASM-030**: Module Architecture - Hard Requirements (historical reference)
 - **ADR-WASM-018**: Three-Layer Architecture
 - **ADR-WASM-022**: Circular Dependency Remediation
 - **KNOWLEDGE-WASM-028**: Circular Dependency Documentation

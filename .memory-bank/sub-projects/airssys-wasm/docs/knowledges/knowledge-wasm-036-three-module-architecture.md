@@ -1,11 +1,23 @@
 # Three-Module Architecture: host_system/, actor/, messaging/, runtime/ Integration
 
+> ⚠️ **SUPERSEDED BY KNOWLEDGE-WASM-037**
+> 
+> This document has been **superseded** by [KNOWLEDGE-WASM-037: Rebuild Architecture - Clean Slate Design](knowledge-wasm-037-rebuild-architecture-clean-slate.md).
+> 
+> KNOWLEDGE-WASM-037 provides the correct architecture with:
+> - Layer-organized `core/` with abstractions per module
+> - Proper Dependency Inversion (traits in core/, implementations in outer layers)
+> - Renamed `host_system/` → `system/`, `actor/` → `component/`
+> - Complete integration patterns for airssys-rt and airssys-osl
+> 
+> **Read KNOWLEDGE-WASM-037 for the current rebuild architecture.**
+
 **Document ID:** KNOWLEDGE-WASM-036
 **Created:** 2025-12-29
-**Status:** Active Reference
+**Status:** ⚠️ **SUPERSEDED** (by KNOWLEDGE-WASM-037)
 **Category:** Architecture / Module Design / Integration
 **Complexity:** High
-**Maturity:** Draft
+**Maturity:** Superseded
 
 ## Overview
 
