@@ -2,8 +2,8 @@
 
 **Sub-Project:** airssys-wasm  
 **Last Updated:** 2026-01-05  
-**Total ADRs:** 17  
-**Active ADRs:** 16  
+**Total ADRs:** 24  
+**Active ADRs:** 23  
 
 ## Active ADRs
 
@@ -435,4 +435,71 @@ ActorSystemSubscriber (ENHANCED)
 - **Supersedes:** ADR-WASM-021, ADR-WASM-022, ADR-WASM-024 (principles incorporated)
 - **Impact:** 🔴 CRITICAL - Foundation for complete rebuild from scratch
 - **File:** `adr-wasm-025-clean-slate-rebuild-architecture.md`
+
+### ADR-WASM-026: Implementation Roadmap for Clean-Slate Rebuild 🔴 MASTER PLAN
+- **Status:** Accepted
+- **Date:** 2026-01-05
+- **Category:** Implementation Planning / Roadmap
+- **Severity:** 🔴 **CRITICAL - MASTER IMPLEMENTATION PLAN**
+- **Summary:** High-level master implementation roadmap with 7 phases and 53 tasks. Links to detailed ADRs for each phase.
+- **Phases:**
+  1. Phase 1: WIT Interface System → ADR-WASM-027
+  2. Phase 2: Project Restructuring (inline)
+  3. Phase 3: Core Module → ADR-WASM-028
+  4. Phase 4: Security Module → ADR-WASM-029
+  5. Phase 5: Runtime Module → ADR-WASM-030
+  6. Phase 6: Component & Messaging → ADR-WASM-031
+  7. Phase 7: System Module → ADR-WASM-032
+- **Related:** ADR-WASM-025 (architecture foundation), ADR-WASM-027 to 032 (detailed specs)
+- **Impact:** 🔴 CRITICAL - Master plan for all rebuild tasks
+- **File:** `adr-wasm-026-implementation-roadmap-clean-slate-rebuild.md`
+
+### ADR-WASM-027: WIT Interface Design
+- **Status:** Accepted
+- **Date:** 2026-01-05
+- **Category:** Interface Design / WIT Specification
+- **Parent:** ADR-WASM-026 (Phase 1)
+- **Summary:** Complete WIT interface specifications for airssys:core@1.0.0 package including types, errors, capabilities, component-lifecycle, host-messaging, host-services, storage, and world definition.
+- **File:** `adr-wasm-027-wit-interface-design.md`
+
+### ADR-WASM-028: Core Module Structure
+- **Status:** Accepted
+- **Date:** 2026-01-05
+- **Category:** Module Design / Core Abstractions
+- **Parent:** ADR-WASM-026 (Phase 3)
+- **Summary:** Layer-organized core/ module structure with abstractions for component, runtime, messaging, security, storage, config, and errors. Contains ONLY types and traits (std-only imports).
+- **File:** `adr-wasm-028-core-module-structure.md`
+
+### ADR-WASM-029: Security Module Design
+- **Status:** Accepted
+- **Date:** 2026-01-05
+- **Category:** Module Design / Security
+- **Parent:** ADR-WASM-026 (Phase 4)
+- **Summary:** Security module with capability validation, policy engine, and audit logging. Integrates with airssys-osl for SecurityContext.
+- **File:** `adr-wasm-029-security-module-design.md`
+
+### ADR-WASM-030: Runtime Module Design
+- **Status:** Accepted
+- **Date:** 2026-01-05
+- **Category:** Module Design / WASM Runtime
+- **Parent:** ADR-WASM-026 (Phase 5)
+- **Summary:** Runtime module using wasmtime Component Model API. Includes WasmtimeEngine, ComponentLoader, StoreManager, host functions, and ResourceLimiter.
+- **Critical:** MUST use wasmtime::component::Component (NOT wasmtime::Module)
+- **File:** `adr-wasm-030-runtime-module-design.md`
+
+### ADR-WASM-031: Component & Messaging Module Design
+- **Status:** Accepted
+- **Date:** 2026-01-05
+- **Category:** Module Design / Actor Integration
+- **Parent:** ADR-WASM-026 (Phase 6)
+- **Summary:** Component wrapper (Actor+Child), registry, spawner, supervisor for airssys-rt integration. Messaging patterns (fire-and-forget, request-response), correlation tracking, and response routing.
+- **File:** `adr-wasm-031-component-messaging-design.md`
+
+### ADR-WASM-032: System Module Design
+- **Status:** Accepted
+- **Date:** 2026-01-05
+- **Category:** Module Design / System Coordinator
+- **Parent:** ADR-WASM-026 (Phase 7)
+- **Summary:** System module as Layer 4 coordinator. RuntimeManager creates concrete types, injects into lower layers. Builder pattern, lifecycle management, test fixtures.
+- **File:** `adr-wasm-032-system-module-design.md`
 
