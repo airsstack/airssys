@@ -1,7 +1,7 @@
 # Tasks Index
 
 ## Pending
-- [wasm-task-012] setup-wit-bindgen - Setup wit-bindgen integration (2026-01-05) [Phase 1]
+*(none)*
 
 ## In Progress
 *(none)*
@@ -18,6 +18,7 @@
 - [wasm-task-009] create-storage-wit - Create storage.wit component storage (2026-01-05) [Phase 1]
 - [wasm-task-010] create-world-wit - Create world.wit component world (2026-01-05) [Phase 1]
 - [wasm-task-011] validate-wit-package - Validate complete WIT package (2026-01-05) [Phase 1]
+- [wasm-task-012] setup-wit-bindgen - Setup wit-bindgen integration (2026-01-06) [Phase 1]
 
 ## Abandoned
 *(none)*

@@ -28,7 +28,7 @@ wasmtime = { version = "24.0", features = ["component-model", "async", "cranelif
 wasmtime-wasi = { version = "24.0" }
 
 # WIT Bindgen - WIT Interface Generation (per plans: wit-bindgen 0.47.0)
-wit-bindgen = { version = "0.47.0", default-features = false }
+wit-bindgen = { version = "0.47.0", default-features = false, features = ["macros"] }
 
 # Error handling
 thiserror = { workspace = true }
