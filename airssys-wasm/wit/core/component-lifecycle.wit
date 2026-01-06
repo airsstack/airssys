@@ -1,0 +1,38 @@
+package airssys:core@1.0.0;
+
+/// Guest-implemented interface - components MUST export this
+interface component-lifecycle {
+    use types.{component-config, component-message, message-payload, health-status};
+    use errors.{component-error, wasm-error};
+
+    /// Initialize component with configuration
+    initialize: func(config: component-config) -> result<_, component-error>;
+
+    /// Handle incoming message (fire-and-forget pattern)
+    /// Returns optional response payload
+    handle-message: func(msg: component-message) -> result<option<message-payload>, wasm-error>;
+
+    /// Handle callback response (request-response pattern)
+    /// Called when response to previous request arrives
+    handle-callback: func(msg: component-message) -> result<_, wasm-error>;
+
+    /// Get component metadata
+    metadata: func() -> component-metadata;
+
+    /// Health check
+    health: func() -> health-status;
+
+    /// Graceful shutdown and cleanup
+    shutdown: func() -> result<_, component-error>;
+
+    /// Component metadata
+    record component-metadata {
+        name: string,
+        version: string,
+        description: string,
+        author: string,
+        license: string,
+        supported-operations: list<string>,
+        stateful: bool,
+    }
+}

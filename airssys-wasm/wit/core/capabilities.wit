@@ -1,0 +1,75 @@
+package airssys:core@1.0.0;
+
+/// Capability-based security model
+interface capabilities {
+    use types.{component-id};
+
+    /// Filesystem permission
+    record filesystem-permission {
+        action: filesystem-action,
+        path-pattern: string,
+    }
+
+    /// Filesystem actions
+    enum filesystem-action {
+        read,
+        write,
+        delete,
+        list-dir,
+    }
+
+    /// Network permission
+    record network-permission {
+        action: network-action,
+        host-pattern: string,
+        port: option<u16>,
+    }
+
+    /// Network actions
+    enum network-action {
+        outbound,
+        inbound,
+    }
+
+    /// Storage permission
+    record storage-permission {
+        action: storage-action,
+        namespace-pattern: string,
+    }
+
+    /// Storage actions
+    enum storage-action {
+        read,
+        write,
+        delete,
+    }
+
+    /// Messaging permission
+    record messaging-permission {
+        action: messaging-action,
+        target-pattern: string,
+    }
+
+    /// Messaging actions
+    enum messaging-action {
+        send,
+        request,
+        broadcast,
+    }
+
+    /// Complete permission set requested by component
+    record requested-permissions {
+        filesystem: list<filesystem-permission>,
+        network: list<network-permission>,
+        storage: list<storage-permission>,
+        messaging: list<messaging-permission>,
+    }
+
+    /// Capability grant result
+    record capability-grant {
+        component: component-id,
+        permissions: requested-permissions,
+        granted-at: u64,
+        expires-at: option<u64>,
+    }
+}

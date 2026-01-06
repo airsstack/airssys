@@ -1,0 +1,30 @@
+package airssys:core@1.0.0;
+
+/// Host-implemented messaging interface
+interface host-messaging {
+    use types.{component-id, message-payload, correlation-id, request-id};
+    use errors.{messaging-error};
+
+    /// Send fire-and-forget message to another component
+    send: func(target: component-id, payload: message-payload) -> result<_, messaging-error>;
+
+    /// Send request expecting callback response
+    /// Returns correlation-id for tracking
+    request: func(
+        target: component-id,
+        payload: message-payload,
+        timeout-ms: u64
+    ) -> result<correlation-id, messaging-error>;
+
+    /// Cancel pending request
+    cancel-request: func(request-id: request-id) -> result<_, messaging-error>;
+
+    /// Broadcast message to multiple components
+    broadcast: func(
+        targets: list<component-id>,
+        payload: message-payload
+    ) -> result<_, messaging-error>;
+
+    /// Get current component's ID
+    self-id: func() -> component-id;
+}

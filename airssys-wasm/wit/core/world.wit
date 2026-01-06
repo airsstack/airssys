@@ -1,0 +1,12 @@
+package airssys:core@1.0.0;
+
+/// The main world that guest components implement
+world component {
+    /// Host-provided capabilities (components import these)
+    import host-messaging;
+    import host-services;
+    import storage;
+
+    /// Guest-implemented interfaces (components export these)
+    export component-lifecycle;
+}

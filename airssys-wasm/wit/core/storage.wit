@@ -1,0 +1,32 @@
+package airssys:core@1.0.0;
+
+/// Host-implemented storage interface (component-isolated)
+interface storage {
+    use types.{message-payload};
+    use errors.{storage-error};
+
+    /// Get value by key (within component's namespace)
+    get: func(key: string) -> result<option<message-payload>, storage-error>;
+
+    /// Set value by key
+    set: func(key: string, value: message-payload) -> result<_, storage-error>;
+
+    /// Delete value by key
+    delete: func(key: string) -> result<_, storage-error>;
+
+    /// Check if key exists
+    exists: func(key: string) -> result<bool, storage-error>;
+
+    /// List keys with optional prefix filter
+    list-keys: func(prefix: option<string>) -> result<list<string>, storage-error>;
+
+    /// Get storage usage info
+    usage: func() -> result<storage-usage, storage-error>;
+
+    /// Storage usage information
+    record storage-usage {
+        used-bytes: u64,
+        quota-bytes: u64,
+        key-count: u64,
+    }
+}
