@@ -1,7 +1,10 @@
 # Tasks Index
 
 ## Pending
-*(none)*
+- [wasm-task-013] rename-actor-to-component - Rename actor/ to component/ (2026-01-07) [Phase 2]
+- [wasm-task-014] create-system-module - Create system/ module (2026-01-07) [Phase 2]
+- [wasm-task-015] create-messaging-module - Create messaging/ module (2026-01-07) [Phase 2]
+- [wasm-task-016] update-lib-exports - Update lib.rs exports (2026-01-07) [Phase 2]
 
 ## In Progress
 *(none)*
