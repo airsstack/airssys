@@ -69,7 +69,7 @@ use crate::core::component::handle::ComponentHandle;
 use crate::core::component::id::ComponentId;
 use crate::core::component::message::ComponentMessage;
 use crate::core::errors::wasm::WasmError;
-use crate::core::messaging::payload::MessagePayload;
+use crate::core::component::MessagePayload;
 use crate::core::runtime::limits::ResourceLimits;
 use crate::core::runtime::traits::RuntimeEngine;
 
@@ -203,7 +203,7 @@ use wasmtime::Store;
 
 use crate::core::component::message::ComponentMessage;
 use crate::core::errors::wasm::WasmError;
-use crate::core::messaging::payload::MessagePayload;
+use crate::core::component::MessagePayload;
 
 use super::engine::HostState;
 
@@ -445,7 +445,7 @@ pub fn apply_limits<T>(
 use wasmtime::component::Linker;
 
 use crate::core::component::id::ComponentId;
-use crate::core::messaging::payload::MessagePayload;
+use crate::core::component::MessagePayload;
 
 use super::engine::HostState;
 

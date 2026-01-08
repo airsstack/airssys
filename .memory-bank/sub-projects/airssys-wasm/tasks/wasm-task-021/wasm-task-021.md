@@ -40,7 +40,9 @@ This task creates the storage-related core abstraction for component-isolated st
 - [ ] **KNOWLEDGE-WASM-037** - Technical reference alignment
 
 ## Dependencies
-- **Upstream:** WASM-TASK-017 (Create core/component/ submodule)
+- **Upstream:** 
+  - WASM-TASK-017 (core/component/) - for MessagePayload
+  - WASM-TASK-022 (core/errors/) - for StorageError
 - **Downstream:** WASM-TASK-024 (Core unit tests)
 
 ## Definition of Done

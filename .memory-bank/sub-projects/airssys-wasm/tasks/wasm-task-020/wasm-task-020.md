@@ -44,7 +44,9 @@ This task creates the security-related core abstractions for capability-based se
 - [ ] **KNOWLEDGE-WASM-037** - Technical reference alignment
 
 ## Dependencies
-- **Upstream:** WASM-TASK-017 (Create core/component/ submodule)
+- **Upstream:** 
+  - WASM-TASK-017 (core/component/) - for ComponentId
+  - WASM-TASK-022 (core/errors/) - for SecurityError
 - **Downstream:** WASM-TASK-024 (Core unit tests), Phase 4 security implementation
 
 ## Definition of Done

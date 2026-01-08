@@ -47,7 +47,14 @@ This task creates unit tests for all core types to ensure they work correctly be
 - [ ] **ADR-WASM-026** - Phase 3 testing requirements
 
 ## Dependencies
-- **Upstream:** WASM-TASK-022 (Create core/errors/ submodule) - All core submodules must exist
+- **Upstream:** 
+  - WASM-TASK-017 (core/component/)
+  - WASM-TASK-018 (core/runtime/)
+  - WASM-TASK-019 (core/messaging/)
+  - WASM-TASK-020 (core/security/)
+  - WASM-TASK-021 (core/storage/)
+  - WASM-TASK-022 (core/errors/)
+  - WASM-TASK-023 (core/config/)
 - **Downstream:** Phase 4 (Security Module), Phase 5 (Runtime Module)
 
 ## Definition of Done

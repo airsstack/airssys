@@ -75,7 +75,7 @@ use crate::core::component::handle::ComponentHandle;
 use crate::core::component::id::ComponentId;
 use crate::core::component::message::ComponentMessage;
 use crate::core::errors::wasm::WasmError;
-use crate::core::messaging::payload::MessagePayload;
+use crate::core::component::MessagePayload;
 use crate::core::runtime::traits::RuntimeEngine;
 
 /// ComponentWrapper wraps a WASM component as an airssys-rt Actor
@@ -405,7 +405,7 @@ impl Default for BackoffStrategy {
 ```rust
 use crate::core::component::id::ComponentId;
 use crate::core::errors::messaging::MessagingError;
-use crate::core::messaging::payload::MessagePayload;
+use crate::core::component::MessagePayload;
 
 /// Fire-and-forget messaging pattern
 pub struct FireAndForget;
@@ -482,7 +482,7 @@ use std::time::{Duration, Instant};
 use tokio::sync::oneshot;
 
 use crate::core::errors::messaging::MessagingError;
-use crate::core::messaging::payload::MessagePayload;
+use crate::core::component::MessagePayload;
 use crate::core::messaging::traits::CorrelationTracker;
 
 /// Implementation of CorrelationTracker for request-response patterns
@@ -581,7 +581,7 @@ use std::sync::Arc;
 use crate::core::component::id::ComponentId;
 use crate::core::component::message::{ComponentMessage, MessageMetadata};
 use crate::core::errors::messaging::MessagingError;
-use crate::core::messaging::payload::MessagePayload;
+use crate::core::component::MessagePayload;
 use crate::core::messaging::traits::MessageRouter;
 
 use crate::component::registry::ComponentRegistry;

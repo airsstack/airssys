@@ -46,7 +46,7 @@ core/
 │   ├── mod.rs
 │   ├── id.rs           # ComponentId
 │   ├── handle.rs       # ComponentHandle
-│   ├── message.rs      # ComponentMessage
+│   ├── message.rs      # ComponentMessage, MessageMetadata, MessagePayload
 │   └── traits.rs       # Component-related traits
 ├── runtime/
 │   ├── mod.rs
@@ -55,8 +55,7 @@ core/
 ├── messaging/
 │   ├── mod.rs
 │   ├── correlation.rs  # CorrelationId
-│   ├── payload.rs      # MessagePayload
-│   └── traits.rs       # MessageRouter trait
+│   └── traits.rs       # MessageRouter, CorrelationTracker traits
 ├── security/
 │   ├── mod.rs
 │   ├── capability.rs   # Capability types
@@ -147,7 +146,42 @@ impl ComponentHandle {
 
 ```rust
 use super::id::ComponentId;
-use crate::core::messaging::payload::MessagePayload;
+
+/// Message payload wrapper (raw bytes, typically multicodec-encoded).
+/// 
+/// MessagePayload wraps raw bytes for inter-component communication.
+/// This type lives in `core/component/` because it is a fundamental
+/// data type used by ComponentMessage, not a messaging behavior.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MessagePayload(Vec<u8>);
+
+impl MessagePayload {
+    pub fn new(data: Vec<u8>) -> Self {
+        Self(data)
+    }
+    
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.0
+    }
+    
+    pub fn into_bytes(self) -> Vec<u8> {
+        self.0
+    }
+    
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+    
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
+impl From<Vec<u8>> for MessagePayload {
+    fn from(data: Vec<u8>) -> Self {
+        Self::new(data)
+    }
+}
 
 /// Metadata for a component message
 #[derive(Debug, Clone)]
@@ -271,9 +305,8 @@ impl Default for ResourceLimits {
 ### core/messaging/traits.rs
 
 ```rust
-use crate::core::component::{id::ComponentId, message::ComponentMessage};
+use crate::core::component::{ComponentId, MessagePayload};
 use crate::core::errors::messaging::MessagingError;
-use crate::core::messaging::payload::MessagePayload;
 
 /// Trait for message routing between components
 /// Implemented by messaging/ module
@@ -306,43 +339,8 @@ pub trait CorrelationTracker: Send + Sync {
 }
 ```
 
----
-
-### core/messaging/payload.rs
-
-```rust
-/// Message payload wrapper (raw bytes, typically multicodec-encoded)
-#[derive(Debug, Clone)]
-pub struct MessagePayload(Vec<u8>);
-
-impl MessagePayload {
-    pub fn new(data: Vec<u8>) -> Self {
-        Self(data)
-    }
-    
-    pub fn as_bytes(&self) -> &[u8] {
-        &self.0
-    }
-    
-    pub fn into_bytes(self) -> Vec<u8> {
-        self.0
-    }
-    
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-    
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-}
-
-impl From<Vec<u8>> for MessagePayload {
-    fn from(data: Vec<u8>) -> Self {
-        Self::new(data)
-    }
-}
-```
+> **Note:** `MessagePayload` is now imported from `core/component/` instead of `core/messaging/payload.rs`.
+> This eliminates the circular dependency between `core/component/` and `core/messaging/`.
 
 ---
 
@@ -461,8 +459,8 @@ pub enum NetworkAction {
 ### core/storage/traits.rs
 
 ```rust
+use crate::core::component::MessagePayload;
 use crate::core::errors::storage::StorageError;
-use crate::core::messaging::payload::MessagePayload;
 
 /// Trait for component-isolated storage
 /// Implemented by storage system, consumed by components via host functions
@@ -483,6 +481,8 @@ pub trait ComponentStorage: Send + Sync {
     fn list_keys(&self, prefix: Option<&str>) -> Result<Vec<String>, StorageError>;
 }
 ```
+
+> **Note:** `MessagePayload` is imported from `core/component/` instead of `core/messaging/`.
 
 ---
 
@@ -619,6 +619,7 @@ let wrapper = ComponentWrapper::new(engine);  // Inject
 
 | Date | Version | Change |
 |------|---------|--------|
+| 2026-01-08 | 1.1 | Moved MessagePayload to core/component/message.rs, removed core/messaging/payload.rs |
 | 2026-01-05 | 1.0 | Initial core module structure |
 
 ---

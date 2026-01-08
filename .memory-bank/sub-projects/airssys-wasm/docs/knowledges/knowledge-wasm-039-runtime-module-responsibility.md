@@ -148,7 +148,7 @@ The `runtime/` module implements traits from `core/runtime/` and receives securi
 ```rust
 // core/runtime/traits.rs - ABSTRACTION (Layer 1)
 use crate::core::component::{ComponentId, ComponentHandle, ComponentMessage};
-use crate::core::messaging::payload::MessagePayload;
+use crate::core::component::MessagePayload;
 use crate::core::errors::wasm::WasmError;
 
 pub trait RuntimeEngine: Send + Sync {
@@ -231,7 +231,7 @@ impl RuntimeEngine for WasmtimeEngine {
 ```rust
 // core/runtime/traits.rs
 use crate::core::component::{ComponentId, ComponentHandle, ComponentMessage};
-use crate::core::messaging::payload::MessagePayload;
+use crate::core::component::MessagePayload;
 use crate::core::errors::wasm::WasmError;
 
 pub trait RuntimeEngine: Send + Sync {
@@ -279,7 +279,7 @@ pub trait ComponentLoader: Send + Sync {
 use crate::core::runtime::traits::RuntimeEngine;
 use crate::core::runtime::limits::ResourceLimits;
 use crate::core::component::{ComponentId, ComponentHandle, ComponentMessage};
-use crate::core::messaging::payload::MessagePayload;
+use crate::core::component::MessagePayload;
 use crate::core::errors::wasm::WasmError;
 use crate::security::{SecurityContext, CapabilityValidator};
 use wasmtime::{Engine, Module, Store, Instance, Linker};

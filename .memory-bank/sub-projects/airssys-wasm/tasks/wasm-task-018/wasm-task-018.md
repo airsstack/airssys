@@ -43,7 +43,10 @@ This task creates the runtime-related core abstractions that define how WASM com
 - [ ] **KNOWLEDGE-WASM-037** - Technical reference alignment
 
 ## Dependencies
-- **Upstream:** WASM-TASK-017 (Create core/component/ submodule)
+- **Upstream:** 
+  - WASM-TASK-017 (core/component/) - for ComponentId, ComponentHandle, ComponentMessage, MessagePayload
+  - WASM-TASK-019 (core/messaging/) - for MessageRouter trait reference (optional)
+  - WASM-TASK-022 (core/errors/) - for WasmError
 - **Downstream:** WASM-TASK-024 (Core unit tests), Phase 5 runtime implementation
 
 ## Definition of Done

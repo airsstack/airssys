@@ -1,7 +1,7 @@
 # airssys-wasm Architecture Decision Records Index
 
 **Sub-Project:** airssys-wasm  
-**Last Updated:** 2026-01-05  
+**Last Updated:** 2026-01-08  
 **Total ADRs:** 24  
 **Active ADRs:** 23  
 
@@ -464,10 +464,11 @@ ActorSystemSubscriber (ENHANCED)
 
 ### ADR-WASM-028: Core Module Structure
 - **Status:** Accepted
-- **Date:** 2026-01-05
+- **Date:** 2026-01-05 (v1.0), 2026-01-08 (v1.1)
 - **Category:** Module Design / Core Abstractions
 - **Parent:** ADR-WASM-026 (Phase 3)
 - **Summary:** Layer-organized core/ module structure with abstractions for component, runtime, messaging, security, storage, config, and errors. Contains ONLY types and traits (std-only imports).
+- **v1.1 Update:** Moved `MessagePayload` from `core/messaging/` to `core/component/message.rs` to eliminate circular dependency.
 - **File:** `adr-wasm-028-core-module-structure.md`
 
 ### ADR-WASM-029: Security Module Design
