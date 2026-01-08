@@ -1,13 +1,11 @@
 # airssys-wasm Knowledge Documentation Index
 
 **Sub-Project:** airssys-wasm  
-**Last Updated:** 2026-01-05  
-**Total Knowledge Docs:** 23  
-**Active Knowledge Docs:** 22  
+**Last Updated:** 2026-01-08  
+**Total Knowledge Docs:** 24  
+**Active Knowledge Docs:** 23  
 
 ## Current Knowledge Documentation
-
-### 🔴 FOUNDATIONAL - READ FIRST
 - **[KNOWLEDGE-WASM-031: Foundational Architecture](knowledge-wasm-031-foundational-architecture.md)** 🔴 **READ FIRST**
   - **Purpose**: The MOST fundamental understanding of what airssys-wasm is
   - **Scope**: Two root entities (Host + Plugin/Component), Actor model, isolated storage, mailbox communication
@@ -26,7 +24,15 @@
   - **Audience**: ALL developers working on rebuild - MANDATORY reading
   - **Supersedes**: KNOWLEDGE-WASM-035, KNOWLEDGE-WASM-036 (previous architectures with violations)
 
-### Core Concepts Category ✅
+### Architecture & Design Category ✅
+- **[KNOWLEDGE-WASM-038: Component Module Responsibility and Architecture](knowledge-wasm-038-component-module-responsibility.md)** 🟡 **IMPORTANT**
+  - **Purpose**: Clarifies distinction between core/component/ (Layer 1) and component/ (Layer 3A) modules
+  - **Scope**: Two-layer architecture, module ownership, dependency patterns, integration guidelines
+  - **Key Content**: core/component/ foundation types (ComponentId, ComponentHandle, ComponentMessage), component/ actor integration (ComponentWrapper, ComponentRegistry, ComponentSpawner), Dependency Inversion pattern, implementation guidelines for Phase 3 and Phase 4 tasks
+  - **Status**: Active (Created 2026-01-08)
+  - **Impact**: Important - Prevents confusion between core types and integration logic, guides code placement
+  - **Audience**: All developers working on component-related tasks (WASM-TASK-017, future component/ module tasks)
+  - **Related**: KNOWLEDGE-WASM-037 (clean-slate architecture), ADR-WASM-025 (six-module design), ADR-WASM-028 (core module structure)
 ### Core Concepts Category ✅
 - **[KNOWLEDGE-WASM-002: High-Level Overview](knowledge_wasm_002_high_level_overview.md)** ✅ **ESSENTIAL**
   - **Purpose**: Authoritative high-level overview and conceptual foundation

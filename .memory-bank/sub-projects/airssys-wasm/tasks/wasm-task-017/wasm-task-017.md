@@ -39,6 +39,13 @@ This is the first task of Phase 3 that establishes the component-related core ty
 ## Progress Log
 *(No progress yet)*
 
+
+## Related Documentation
+
+### Knowledge Documents
+- **KNOWLEDGE-WASM-038:** Component Module Responsibility and Architecture (two-layer distinction, core/component/ vs component/)
+- **KNOWLEDGE-WASM-037:** Rebuild Architecture - Clean Slate Design
+- **KNOWLEDGE-WASM-031:** Foundational Architecture
 ## Standards Compliance Checklist
 - [ ] **§2.1 3-Layer Import Organization** - Only std imports
 - [ ] **§4.3 Module Architecture Patterns** - mod.rs only declarations
