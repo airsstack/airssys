@@ -9,8 +9,8 @@
 // Runtime essentials (will be populated in WASM-TASK-004)
 // pub use crate::runtime::{...};
 
-// Actor integration (will be populated in WASM-TASK-006)
-// pub use crate::actor::{...};
+// Component integration (will be populated in WASM-TASK-006)
+// pub use crate::component::{...};
 
 // Security primitives (will be populated in WASM-TASK-007)
 // pub use crate::security::{...};

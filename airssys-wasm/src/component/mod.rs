@@ -1,6 +1,6 @@
-//! # Actor Module
+//! # Component Module
 //!
-//! Actor system integration for WASM components.
+//! Component system integration for WASM components.
 //!
 //! Handles messaging, lifecycle, supervision, and component orchestration.
 //! This module sits at the TOP of the dependency chain.

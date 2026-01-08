@@ -1,10 +1,7 @@
 # Tasks Index
 
 ## Pending
-- [wasm-task-013] rename-actor-to-component - Rename actor/ to component/ (2026-01-07) [Phase 2]
-- [wasm-task-014] create-system-module - Create system/ module (2026-01-07) [Phase 2]
-- [wasm-task-015] create-messaging-module - Create messaging/ module (2026-01-07) [Phase 2]
-- [wasm-task-016] update-lib-exports - Update lib.rs exports (2026-01-07) [Phase 2]
+*(none)*
 
 ## In Progress
 *(none)*
@@ -22,6 +19,10 @@
 - [wasm-task-010] create-world-wit - Create world.wit component world (2026-01-05) [Phase 1]
 - [wasm-task-011] validate-wit-package - Validate complete WIT package (2026-01-05) [Phase 1]
 - [wasm-task-012] setup-wit-bindgen - Setup wit-bindgen integration (2026-01-06) [Phase 1]
+- [wasm-task-013] rename-actor-to-component - Rename actor/ to component/ (2026-01-08) [Phase 2] ✅
+- [wasm-task-014] create-system-module - Create system/ module (2026-01-08) [Phase 2] ✅
+- [wasm-task-015] create-messaging-module - Create messaging/ module (2026-01-08) [Phase 2] ✅
+- [wasm-task-016] update-lib-exports - Update lib.rs exports (2026-01-08) [Phase 2] ✅
 
 ## Abandoned
 *(none)*

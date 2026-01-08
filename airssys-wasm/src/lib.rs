@@ -8,51 +8,50 @@
 //!
 //! ## Architecture
 //!
-//! The crate is organized into four root modules:
+//! The crate is organized into six root modules:
 //!
 //! - **core/** - Foundation: shared types and abstractions (imports nothing internal)
 //! - **security/** - Security: capabilities, policies, validation (imports core/)
 //! - **runtime/** - WASM Execution: Wasmtime integration (imports core/, security/)
-//! - **actor/** - Integration: actor system, messaging, lifecycle (imports core/, security/, runtime/)
+//! - **component/** - Component system: lifecycle, supervision, orchestration (imports core/, security/, runtime/)
+//! - **messaging/** - Inter-component communication: message types, routing, correlation (imports core/, security/, runtime/)
+//! - **system/** - Top-level runtime management: lifecycle, configuration (imports all lower layers)
 //!
-//! ## Dependency Rules (ADR-WASM-023 - MANDATORY)
+//! ## Module Architecture
 //!
+//! ```text
+//! Layer 4: system/
+//!   ↓ imports
+//! Layer 3B: messaging/
+//!   ↓ imports
+//! Layer 3A: component/
+//!   ↓ imports
+//! Layer 2: runtime/
+//!   ↓ imports
+//! Layer 1: security/
+//!   ↓ imports
+//! Layer 0: core/
 //! ```
-//! actor/ ──► runtime/ ──► security/ ──► core/
-//!    │            │              │               │
-//!    └────────────┴──────────────┴───────────────┘
-//!                      All can import from core/
-//! ```
 //!
-//! **ALLOWED:**
-//! - ✅ actor/    → runtime/
-//! - ✅ actor/    → security/
-//! - ✅ actor/    → core/
-//! - ✅ runtime/  → security/
-//! - ✅ runtime/  → core/
-//! - ✅ security/ → core/
-//!
-//! **FORBIDDEN (never):**
-//! - ❌ runtime/  → actor/
-//! - ❌ security/ → actor/
-//! - ❌ security/ → runtime/
-//! - ❌ core/     → ANY MODULE
+//! Import restrictions are enforced by ADR-WASM-023.
 //!
 //! ## Getting Started
 //!
 //! ```rust,no_run
 //! use airssys_wasm::prelude::*;
-//! use airssys_wasm::actor::ComponentActor;
+//! use airssys_wasm::component::ComponentActor;
 //!
 //! // Components will be added in subsequent tasks
 //! ```
 //!
 //! ## Module Documentation
 //!
-//! - [core](core) - Core types and abstractions
-//! - [security](security) - Security capabilities and policies
-//! - [runtime](runtime) - WASM execution engine
-//! - [actor](actor) - Actor system integration
+//! - [core] - Core types and abstractions
+//! - [security] - Security capabilities and policies
+//! - [runtime] - WASM execution engine
+//! - [component] - Component system integration
+//! - [messaging] - Inter-component communication
+//! - [system] - Runtime management and lifecycle
 
 // Layer 1: Standard library imports (per PROJECTS_STANDARD.md §2.1)
 
@@ -154,17 +153,23 @@ wit_bindgen::generate!({
     path: "wit/core",
 });
 
-// Foundation layer (no internal dependencies)
+// Layer 0: Foundation types and abstractions
 pub mod core;
 
-// Security layer (imports from core/)
+// Layer 1: Security and permissions
 pub mod security;
 
-// WASM execution layer (imports from core/, security/)
+// Layer 2: WASM execution engine
 pub mod runtime;
 
-// Actor integration layer (imports from core/, security/, runtime/)
-pub mod actor;
+// Layer 3A: Component actor system
+pub mod component;
+
+// Layer 3B: Inter-component communication
+pub mod messaging;
+
+// Layer 4: System-level runtime management
+pub mod system;
 
 // Prelude - common re-exports for ergonomic API (per ADR-WASM-011)
 pub mod prelude;
