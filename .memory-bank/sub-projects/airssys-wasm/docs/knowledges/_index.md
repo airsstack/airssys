@@ -2,8 +2,8 @@
 
 **Sub-Project:** airssys-wasm  
 **Last Updated:** 2026-01-08  
-**Total Knowledge Docs:** 24  
-**Active Knowledge Docs:** 23  
+**Total Knowledge Docs:** 25  
+**Active Knowledge Docs:** 24  
 
 ## Current Knowledge Documentation
 - **[KNOWLEDGE-WASM-031: Foundational Architecture](knowledge-wasm-031-foundational-architecture.md)** 🔴 **READ FIRST**
@@ -25,6 +25,15 @@
   - **Supersedes**: KNOWLEDGE-WASM-035, KNOWLEDGE-WASM-036 (previous architectures with violations)
 
 ### Architecture & Design Category ✅
+- **[KNOWLEDGE-WASM-039: Runtime Module Responsibility and Architecture](knowledge-wasm-039-runtime-module-responsibility.md)** 🟡 **IMPORTANT**
+  - **Purpose**: Clarifies distinction between core/runtime/ (Layer 1) and runtime/ (Layer 3B) modules
+  - **Scope**: Two-layer architecture, module ownership, dependency patterns, integration guidelines
+  - **Key Content**: core/runtime/ foundation traits (RuntimeEngine, ComponentLoader, ResourceLimits), runtime/ WASM execution (WasmtimeEngine, ComponentLoader, HostFunctions), Dependency Inversion pattern, implementation guidelines for Phase 3 and Phase 5 tasks
+  - **Status**: Active (Created 2026-01-08)
+  - **Impact**: Important - Prevents confusion between core abstractions and execution logic, guides code placement
+  - **Audience**: All developers working on runtime-related tasks (WASM-TASK-018, future runtime/ module tasks)
+  - **Related**: KNOWLEDGE-WASM-037 (clean-slate architecture), ADR-WASM-025 (six-module design), ADR-WASM-028 (core module structure)
+
 - **[KNOWLEDGE-WASM-038: Component Module Responsibility and Architecture](knowledge-wasm-038-component-module-responsibility.md)** 🟡 **IMPORTANT**
   - **Purpose**: Clarifies distinction between core/component/ (Layer 1) and component/ (Layer 3A) modules
   - **Scope**: Two-layer architecture, module ownership, dependency patterns, integration guidelines
@@ -33,6 +42,7 @@
   - **Impact**: Important - Prevents confusion between core types and integration logic, guides code placement
   - **Audience**: All developers working on component-related tasks (WASM-TASK-017, future component/ module tasks)
   - **Related**: KNOWLEDGE-WASM-037 (clean-slate architecture), ADR-WASM-025 (six-module design), ADR-WASM-028 (core module structure)
+
 ### Core Concepts Category ✅
 - **[KNOWLEDGE-WASM-002: High-Level Overview](knowledge_wasm_002_high_level_overview.md)** ✅ **ESSENTIAL**
   - **Purpose**: Authoritative high-level overview and conceptual foundation
@@ -496,7 +506,7 @@
 
 **Created:** 2025-12-22  
 **Status:** 🔴 CRITICAL - ARCHITECTURE BROKEN  
-**Category:** Architecture Audit  
+**Category:** Architecture Audit
 
 **Purpose:** Comprehensive audit of module boundary violations in airssys-wasm. Documents that architecture is fundamentally broken with `core/` importing from `runtime/` and `runtime/` importing from `actor/`, violating ADR-WASM-023.
 
@@ -575,7 +585,7 @@ grep -rn "use crate::actor" src/runtime/
   - **Related**: ADR-WASM-024 (decision to refactor messaging to top-level), WASM-TASK-HOTFIX-001 (implementation)
 
 ### Module Architecture Reference ✅
-- **[KNOWLEDGE-WASM-012: Module Structure Architecture](knowledge-wasm-012-module-structure-architecture.md)** ✅ **CRITICAL**
+- **[KNOWLEDGE-WASM-012: Module Structure Architecture](knowledge_wasm_012_module_structure_architecture.md)** ✅ **CRITICAL**
   - **Purpose**: Definitive module organization specification for airssys-wasm
   - **Scope**: Complete module structure, dependency rules, public API surface
   - **Key Content**: Three-layer architecture, module responsibility matrix, dependency graph, block alignment, testing organization
