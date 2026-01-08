@@ -1,7 +1,6 @@
 # Tasks Index
 
 ## Pending
-- [wasm-task-017] create-core-component-submodule - Create core/component/ submodule (2026-01-08) [Phase 3]
 - [wasm-task-018] create-core-runtime-submodule - Create core/runtime/ submodule (2026-01-08) [Phase 3]
 - [wasm-task-019] create-core-messaging-submodule - Create core/messaging/ submodule (2026-01-08) [Phase 3]
 - [wasm-task-020] create-core-security-submodule - Create core/security/ submodule (2026-01-08) [Phase 3]
@@ -30,6 +29,7 @@
 - [wasm-task-014] create-system-module - Create system/ module (2026-01-08) [Phase 2] ✅
 - [wasm-task-015] create-messaging-module - Create messaging/ module (2026-01-08) [Phase 2] ✅
 - [wasm-task-016] update-lib-exports - Update lib.rs exports (2026-01-08) [Phase 2] ✅
+- [wasm-task-017] create-core-component-submodule - Create core/component/ submodule (2026-01-08) [Phase 3]
 
 ## Abandoned
 *(none)*

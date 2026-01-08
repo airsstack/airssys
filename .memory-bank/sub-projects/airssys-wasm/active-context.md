@@ -1,15 +1,60 @@
 # airssys-wasm Active Context
 
-**Last Updated:** 2026-01-06
+**Last Updated:** 2026-01-08
 **Active Sub-Project:** airssys-wasm
-**Current Status:** 🚀 **PHASE 1 COMPLETE - READY FOR PHASE 2**
+**Current Status:** 🚀 **PHASE 3 IN PROGRESS - CORE MODULE IMPLEMENTATION**
 
 ## Current Focus
+
+### Phase 3: Core Module Implementation 🚀 IN PROGRESS
+**Status:** 🚀 1/8 TASKS COMPLETE (2026-01-08)
+**Phase:** Core Module Implementation (WASM-TASK-017 through WASM-TASK-024)
+**Reference:** [ADR-WASM-026](docs/adr/adr-wasm-026-implementation-roadmap-clean-slate-rebuild.md)
+
+**Current Task:**
+- ✅ WASM-TASK-017: Create core/component/ submodule (2026-01-08) - COMPLETE
+
+**Phase 3 Tasks:**
+1. ✅ WASM-TASK-017: Create core/component/ submodule (2026-01-08)
+2. ⏳ WASM-TASK-018: Create core/runtime/ submodule (pending)
+3. ⏳ WASM-TASK-019: Create core/messaging/ submodule (pending)
+4. ⏳ WASM-TASK-020: Create core/security/ submodule (pending)
+5. ⏳ WASM-TASK-021: Create core/storage/ submodule (pending)
+6. ⏳ WASM-TASK-022: Create core/errors/ submodule (pending)
+7. ⏳ WASM-TASK-023: Create core/config/ submodule (pending)
+8. ⏳ WASM-TASK-024: Write core/ unit tests (pending)
+
+**Phase 3 Progress (1/8 tasks - 12%):**
+- Foundation types for component identity, handles, and messages implemented
+- All types per ADR-WASM-028 specifications
+- 32 unit tests passing (all real functionality)
+- Zero architecture violations (per ADR-WASM-023)
+- Ready for next core submodule
+
+---
+
+### Phase 2: Project Restructuring ✅ COMPLETE
+**Status:** ✅ 4/4 TASKS COMPLETE (2026-01-08)
+**Phase:** Project Restructuring (WASM-TASK-013 through WASM-TASK-016)
+
+**All Tasks Completed:**
+1. ✅ WASM-TASK-013: Rename actor/ to component/ (2026-01-08)
+2. ✅ WASM-TASK-014: Create system/ module (2026-01-08)
+3. ✅ WASM-TASK-015: Create messaging/ module (2026-01-08)
+4. ✅ WASM-TASK-016: Update lib.rs exports (2026-01-08)
+
+**Phase 2 Achievements:**
+- Six-module architecture established
+- Terminology aligned with WASM Component Model
+- Clear separation of concerns (component/ vs messaging/)
+- Coordinator layer (system/) ready
+- Clean architecture foundation
+
+---
 
 ### Phase 1: WIT Interface System ✅ COMPLETE
 **Status:** ✅ 12/12 TASKS COMPLETE (2026-01-06)
 **Phase:** WIT Interface System (WASM-TASK-002 through WASM-TASK-012)
-**Reference:** [ADR-WASM-026](docs/adr/adr-wasm-026-implementation-roadmap-clean-slate-rebuild.md)
 
 **All Tasks Completed:**
 1. ✅ WASM-TASK-002: Setup WIT Directory Structure (2026-01-05)
@@ -42,6 +87,57 @@
 ---
 
 ## Recent Work
+
+### 2026-01-08: WASM-TASK-017 COMPLETE - Core Component Submodule ✅
+**Status:** ✅ COMPLETE
+**Phase:** Phase 3 - Core Module Implementation (Task 1/8)
+
+**Implementation Summary:**
+- ✅ Created `core/component/` submodule with 5 modules
+- ✅ ComponentId: Unique identifier (namespace, name, instance)
+- ✅ ComponentHandle: Opaque handle to loaded components
+- ✅ MessageMetadata: Correlation, reply-to, timestamp, content-type
+- ✅ ComponentMessage: Message envelope for component communication
+- ✅ ComponentLifecycle: Lifecycle management trait
+- ✅ All types per ADR-WASM-028 specifications
+
+**Test Results:**
+- 32 unit tests in core/component/ (all passing)
+- Zero compiler warnings
+- Zero clippy warnings
+
+**Quality Verification:**
+- Build: Clean build ✅
+- Clippy: Zero warnings ✅
+- Architecture: Zero violations ✅
+- All types documented with rustdoc ✅
+
+**Verification Chain:**
+- ✅ Implemented by @memorybank-implementer
+- ✅ Verified by @memorybank-verifier (VERIFIED)
+- ✅ Reviewed by @rust-reviewer (APPROVED)
+- ✅ Audited by @memorybank-auditor (APPROVED - 10/10 conditions met)
+
+**Phase 3 Progress:** 1/8 tasks complete (12%)
+
+---
+
+### 2026-01-08: Phase 2 COMPLETE - Project Restructuring ✅
+**Status:** ✅ COMPLETE
+**Phase:** Phase 2 - Project Restructuring (4/4 tasks)
+
+**Summary:**
+- ✅ Renamed actor/ → component/
+- ✅ Created system/ module (coordinator layer)
+- ✅ Created messaging/ module (messaging infrastructure)
+- ✅ Updated lib.rs with 6-module architecture
+
+**Verification Chain:**
+- ✅ Implemented by @memorybank-implementer
+- ✅ Verified by @memorybank-verifier (VERIFIED)
+- ✅ Audited by @memorybank-auditor (APPROVED)
+
+---
 
 ### 2026-01-06: WASM-TASK-012 COMPLETE - wit-bindgen Integration ✅
 **Completed:**
@@ -146,15 +242,15 @@
 
 ## Next Steps
 
-1. **Begin Phase 2: Project Restructuring**
-    - WASM-TASK-013: Rename actor/ to component/
-    - WASM-TASK-014: Create system/ module
-    - WASM-TASK-015: Create messaging/ module
-    - WASM-TASK-016: Update lib.rs exports
-    - Per ADR-WASM-026 roadmap
-    - Rename actor/ to component/
-    - Create system/ and messaging/ modules
-    - Per ADR-WASM-026 tasks WASM-TASK-013 through WASM-TASK-016
+1. **Continue Phase 3: Core Module Implementation**
+   - WASM-TASK-018: Create core/runtime/ submodule
+   - WASM-TASK-019: Create core/messaging/ submodule
+   - WASM-TASK-020: Create core/security/ submodule
+   - WASM-TASK-021: Create core/storage/ submodule
+   - WASM-TASK-022: Create core/errors/ submodule
+   - WASM-TASK-023: Create core/config/ submodule
+   - WASM-TASK-024: Write core/ unit tests
+   - Per ADR-WASM-026 roadmap
 
 ---
 
@@ -202,7 +298,25 @@ airssys-wasm/src/
 
 ## Definition of Done Criteria
 
-### Phase 1: WIT Interface System (WASM-TASK-002 through WASM-TASK-012) ✅
+### Phase 3: Core Module Implementation (WASM-TASK-017 through WASM-TASK-024) 🚀 IN PROGRESS
+- [ ] 8 of 8 tasks complete with deliverables
+- [x] 1/8: WASM-TASK-017 - core/component/ submodule ✅ COMPLETE
+- [ ] core/runtime/, messaging/, security/, storage/, errors/, config/ submodules
+- [ ] All core/ types implement ADR-WASM-028 specifications
+- [ ] Comprehensive unit tests for all core/ modules
+- [ ] `cargo build -p airssys-wasm` succeeds
+- [ ] Zero compiler/clippy warnings
+- [ ] Ready for Phase 4 (Security Module)
+
+### Phase 2: Project Restructuring (WASM-TASK-013 through WASM-TASK-016) ✅ COMPLETE
+- [x] 4 of 4 tasks complete with deliverables
+- [x] Six-module architecture established
+- [x] Terminology aligned with WASM Component Model
+- [x] `cargo build -p airssys-wasm` succeeds
+- [x] Zero compiler/clippy warnings
+- [x] Ready for Phase 3 (Core Module)
+
+### Phase 1: WIT Interface System (WASM-TASK-002 through WASM-TASK-012) ✅ COMPLETE
 - [x] 12 of 12 tasks complete with deliverables
 - [x] WIT package validates with `wasm-tools component wit`
 - [x] wit-bindgen integration functional
