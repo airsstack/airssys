@@ -247,7 +247,7 @@ pub trait RuntimeEngine: Send + Sync {
     /// let engine = MockEngine;
     /// let handle = ComponentHandle::new(ComponentId::new("test", "comp", "1"), 42);
     /// let sender = ComponentId::new("sender", "comp", "1");
-    /// let payload = vec![1, 2, 3];
+    /// let payload = MessagePayload::new(vec![1, 2, 3]);
     /// let metadata = MessageMetadata::default();
     /// let message = ComponentMessage::new(sender, payload, metadata);
     ///
@@ -308,7 +308,7 @@ pub trait RuntimeEngine: Send + Sync {
     /// let engine = MockEngine;
     /// let handle = ComponentHandle::new(ComponentId::new("test", "comp", "1"), 42);
     /// let sender = ComponentId::new("sender", "comp", "1");
-    /// let response_payload = vec![4, 5, 6];
+    /// let response_payload = MessagePayload::new(vec![4, 5, 6]);
     /// let metadata = MessageMetadata::default();
     /// let callback = ComponentMessage::new(sender, response_payload, metadata);
     ///
@@ -529,7 +529,7 @@ mod tests {
         let handle = ComponentHandle::new(id, 1);
 
         let sender_id = ComponentId::new("system", "sender", "1");
-        let payload = vec![1, 2, 3];
+        let payload = MessagePayload::new(vec![1, 2, 3]);
         let metadata = Default::default();
         let msg = ComponentMessage::new(sender_id, payload, metadata);
 
@@ -545,7 +545,7 @@ mod tests {
         let handle = ComponentHandle::new(id, 1);
 
         let sender_id = ComponentId::new("system", "sender", "1");
-        let payload = vec![4, 5, 6];
+        let payload = MessagePayload::new(vec![4, 5, 6]);
         let metadata = Default::default();
         let msg = ComponentMessage::new(sender_id, payload, metadata);
 
@@ -638,7 +638,7 @@ mod tests {
         let handle = ComponentHandle::new(id, 1);
 
         let sender_id = ComponentId::new("system", "sender", "1");
-        let payload = vec![];
+        let payload = MessagePayload::new(vec![]);
         let metadata = Default::default();
         let msg = ComponentMessage::new(sender_id, payload, metadata);
 
@@ -686,7 +686,7 @@ mod tests {
 
         // Send multiple messages
         for i in 1..=5 {
-            let payload = vec![i];
+            let payload = MessagePayload::new(vec![i]);
             let metadata = Default::default();
             let msg = ComponentMessage::new(sender_id.clone(), payload, metadata);
 

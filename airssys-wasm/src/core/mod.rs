@@ -8,6 +8,7 @@
 //! # Submodules
 //!
 //! - [`component`] - Component-related types (ComponentId, ComponentHandle, ComponentMessage, ComponentLifecycle)
+//! - [`messaging`] - Messaging abstractions (MessageRouter, CorrelationTracker, CorrelationId, MessagingError)
 //! - [`runtime`] - WASM runtime abstractions (RuntimeEngine, ComponentLoader, ResourceLimits)
 //!
 //! # Architecture
@@ -17,14 +18,16 @@
 //!
 //! # Usage
 //!
-//! ```
+//! ```rust
 //! use airssys_wasm::core::component::id::ComponentId;
 //! use airssys_wasm::core::component::message::ComponentMessage;
-//! use airssys_wasm::core::runtime::ResourceLimits;
+//! use airssys_wasm::core::messaging::correlation::CorrelationId;
+//! use airssys_wasm::core::runtime::limits::ResourceLimits;
 //! ```
 
 // Module declarations (per PROJECTS_STANDARD.md §4.3)
 pub mod component;
+pub mod messaging;
 pub mod runtime;
 
 // NOTE: No glob re-exports (pub use X::*) per module grouping policy.

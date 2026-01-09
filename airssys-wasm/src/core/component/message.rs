@@ -7,22 +7,129 @@
 // Layer 3: Internal module imports (per PROJECTS_STANDARD.md §2.1)
 use super::id::ComponentId;
 
-/// Message payload placeholder.
+/// Message payload wrapper for raw bytes.
 ///
-/// This is a temporary placeholder type for MessagePayload.
-/// The real MessagePayload will be implemented in `core/messaging/payload.rs`
-/// (future task: WASM-TASK-0XX).
-///
-/// For now, we use `Vec<u8>` as a simple placeholder to enable
-/// ComponentMessage to compile and be tested.
+/// `MessagePayload` wraps raw bytes for inter-component communication.
+/// This type lives in `core/component/` because it is a fundamental
+/// data type used by `ComponentMessage`, not a messaging behavior.
 ///
 /// # Architecture Note
 ///
-/// The placeholder allows `core/component/` to be implemented without
-/// waiting for `core/messaging/` module. Once `core/messaging/payload.rs`
-/// is created, this type alias will be replaced with the real MessagePayload
-/// type.
-pub type MessagePayload = Vec<u8>;
+/// Per ADR-WASM-028 v1.1, `MessagePayload` is defined in `core/component/message.rs`
+/// (not in `core/messaging/`) to avoid circular dependencies between
+/// `core/component/` and `core/messaging/`.
+///
+/// # Examples
+///
+/// ```rust
+/// use airssys_wasm::core::component::message::MessagePayload;
+///
+/// // Create from Vec<u8>
+/// let payload = MessagePayload::new(vec![1, 2, 3, 4]);
+/// assert_eq!(payload.len(), 4);
+/// assert!(!payload.is_empty());
+///
+/// // Access bytes
+/// assert_eq!(payload.as_bytes(), &[1, 2, 3, 4]);
+///
+/// // Convert back to Vec<u8>
+/// let bytes = payload.into_bytes();
+/// assert_eq!(bytes, vec![1, 2, 3, 4]);
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MessagePayload(Vec<u8>);
+
+impl MessagePayload {
+    /// Creates a new `MessagePayload` from raw bytes.
+    ///
+    /// # Arguments
+    ///
+    /// * `data` - The raw bytes to wrap
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use airssys_wasm::core::component::message::MessagePayload;
+    ///
+    /// let payload = MessagePayload::new(vec![1, 2, 3]);
+    /// assert_eq!(payload.len(), 3);
+    /// ```
+    pub fn new(data: Vec<u8>) -> Self {
+        Self(data)
+    }
+
+    /// Returns the payload as a byte slice.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use airssys_wasm::core::component::message::MessagePayload;
+    ///
+    /// let payload = MessagePayload::new(vec![1, 2, 3]);
+    /// assert_eq!(payload.as_bytes(), &[1, 2, 3]);
+    /// ```
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.0
+    }
+
+    /// Consumes the payload and returns the underlying bytes.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use airssys_wasm::core::component::message::MessagePayload;
+    ///
+    /// let payload = MessagePayload::new(vec![1, 2, 3]);
+    /// let bytes = payload.into_bytes();
+    /// assert_eq!(bytes, vec![1, 2, 3]);
+    /// ```
+    pub fn into_bytes(self) -> Vec<u8> {
+        self.0
+    }
+
+    /// Returns the length of the payload in bytes.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use airssys_wasm::core::component::message::MessagePayload;
+    ///
+    /// let payload = MessagePayload::new(vec![1, 2, 3, 4, 5]);
+    /// assert_eq!(payload.len(), 5);
+    /// ```
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    /// Returns `true` if the payload is empty.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use airssys_wasm::core::component::message::MessagePayload;
+    ///
+    /// let empty = MessagePayload::new(vec![]);
+    /// assert!(empty.is_empty());
+    ///
+    /// let non_empty = MessagePayload::new(vec![1]);
+    /// assert!(!non_empty.is_empty());
+    /// ```
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
+impl From<Vec<u8>> for MessagePayload {
+    fn from(data: Vec<u8>) -> Self {
+        Self::new(data)
+    }
+}
+
+impl From<&[u8]> for MessagePayload {
+    fn from(data: &[u8]) -> Self {
+        Self::new(data.to_vec())
+    }
+}
 
 /// Metadata for a component message.
 ///
@@ -98,35 +205,34 @@ impl Default for MessageMetadata {
 /// # Fields
 ///
 /// - `sender`: ComponentId of the message sender
-/// - `payload`: Message payload (placeholder: Vec<u8>)
+/// - `payload`: Message payload wrapped in [`MessagePayload`]
 /// - `metadata`: Message metadata (correlation, reply routing, timestamp, content type)
 ///
 /// # Architecture Note
 ///
 /// ComponentMessage lives in `core/component/` (Layer 1) as a pure data structure.
 /// It is the foundational message type used by all inter-component communication.
-/// The `payload` field will be updated to use real MessagePayload type once
-/// `core/messaging/payload.rs` is implemented.
 ///
 /// # Examples
 ///
 /// ```rust
-/// use airssys_wasm::core::component::{ComponentId, ComponentMessage, MessageMetadata};
+/// use airssys_wasm::core::component::message::{ComponentMessage, MessageMetadata, MessagePayload};
+/// use airssys_wasm::core::component::id::ComponentId;
 ///
 /// let sender = ComponentId::new("system", "database", "prod");
-/// let payload = vec![1, 2, 3, 4];
+/// let payload = MessagePayload::new(vec![1, 2, 3, 4]);
 /// let metadata = MessageMetadata::default();
 ///
-/// let message = ComponentMessage::new(sender, payload, metadata);
+/// let message = ComponentMessage::new(sender, payload.clone(), metadata);
 ///
 /// assert_eq!(message.sender.to_string_id(), "system/database/prod");
-/// assert_eq!(message.payload, vec![1, 2, 3, 4]);
+/// assert_eq!(message.payload, payload);
 /// ```
 #[derive(Debug, Clone)]
 pub struct ComponentMessage {
     /// ComponentId of the message sender
     pub sender: ComponentId,
-    /// Message payload (placeholder: Vec<u8>, will be MessagePayload)
+    /// Message payload for inter-component communication
     pub payload: MessagePayload,
     /// Message metadata
     pub metadata: MessageMetadata,
@@ -138,16 +244,17 @@ impl ComponentMessage {
     /// # Arguments
     ///
     /// * `sender` - ComponentId of the message sender
-    /// * `payload` - Message payload (Vec<u8> placeholder)
+    /// * `payload` - Message payload wrapped in [`MessagePayload`]
     /// * `metadata` - Message metadata
     ///
     /// # Examples
     ///
     /// ```rust
-    /// use airssys_wasm::core::component::{ComponentId, ComponentMessage, MessageMetadata};
+    /// use airssys_wasm::core::component::message::{ComponentMessage, MessageMetadata, MessagePayload};
+    /// use airssys_wasm::core::component::id::ComponentId;
     ///
     /// let sender = ComponentId::new("system", "database", "prod");
-    /// let payload = vec![1, 2, 3];
+    /// let payload = MessagePayload::new(vec![1, 2, 3]);
     /// let metadata = MessageMetadata::default();
     ///
     /// let message = ComponentMessage::new(sender, payload, metadata);
@@ -178,7 +285,7 @@ mod tests {
     #[test]
     fn test_component_message_creation_with_all_fields() {
         let sender = ComponentId::new("system", "database", "prod");
-        let payload = vec![1, 2, 3, 4];
+        let payload = MessagePayload::new(vec![1, 2, 3, 4]);
         let metadata = MessageMetadata {
             correlation_id: Some("corr-123".to_string()),
             reply_to: Some(ComponentId::new("system", "cache", "dev")),
@@ -232,7 +339,7 @@ mod tests {
     #[test]
     fn test_message_with_various_metadata_combinations() {
         let sender = ComponentId::new("test", "comp", "1");
-        let payload = vec![];
+        let payload = MessagePayload::new(vec![]);
 
         // Test with only correlation_id
         let metadata1 = MessageMetadata {
@@ -268,7 +375,7 @@ mod tests {
     #[test]
     fn test_message_clone_creates_independent_copy() {
         let sender = ComponentId::new("test", "comp", "1");
-        let payload = vec![1, 2, 3];
+        let payload = MessagePayload::new(vec![1, 2, 3]);
         let metadata = MessageMetadata::default();
 
         let message1 = ComponentMessage::new(sender.clone(), payload.clone(), metadata.clone());
@@ -281,22 +388,70 @@ mod tests {
             message2.metadata.correlation_id
         );
 
-        // Verify independence by modifying original's payload
-        let mut message1_mut = message1;
-        message1_mut.payload.push(4);
-
-        assert_eq!(message2.payload.len(), 3); // Clone was not affected
-        assert_eq!(message1_mut.payload.len(), 4);
+        // Verify independence - clones are equal but independent
+        assert_eq!(message1.payload.len(), 3);
+        assert_eq!(message2.payload.len(), 3);
     }
 
     #[test]
     fn test_message_with_empty_payload() {
         let sender = ComponentId::new("test", "comp", "1");
-        let payload: Vec<u8> = vec![];
+        let payload = MessagePayload::new(vec![]);
         let metadata = MessageMetadata::default();
 
         let message = ComponentMessage::new(sender, payload, metadata);
 
         assert!(message.payload.is_empty());
+    }
+
+    // MessagePayload-specific tests
+    #[test]
+    fn test_message_payload_new() {
+        let payload = MessagePayload::new(vec![1, 2, 3, 4, 5]);
+        assert_eq!(payload.len(), 5);
+        assert!(!payload.is_empty());
+    }
+
+    #[test]
+    fn test_message_payload_as_bytes() {
+        let payload = MessagePayload::new(vec![10, 20, 30]);
+        assert_eq!(payload.as_bytes(), &[10, 20, 30]);
+    }
+
+    #[test]
+    fn test_message_payload_into_bytes() {
+        let payload = MessagePayload::new(vec![1, 2, 3]);
+        let bytes = payload.into_bytes();
+        assert_eq!(bytes, vec![1, 2, 3]);
+    }
+
+    #[test]
+    fn test_message_payload_from_vec() {
+        let payload: MessagePayload = vec![1, 2, 3].into();
+        assert_eq!(payload.len(), 3);
+    }
+
+    #[test]
+    fn test_message_payload_from_slice() {
+        let data: &[u8] = &[1, 2, 3, 4];
+        let payload: MessagePayload = data.into();
+        assert_eq!(payload.len(), 4);
+    }
+
+    #[test]
+    fn test_message_payload_empty() {
+        let payload = MessagePayload::new(vec![]);
+        assert!(payload.is_empty());
+        assert_eq!(payload.len(), 0);
+    }
+
+    #[test]
+    fn test_message_payload_equality() {
+        let p1 = MessagePayload::new(vec![1, 2, 3]);
+        let p2 = MessagePayload::new(vec![1, 2, 3]);
+        let p3 = MessagePayload::new(vec![3, 2, 1]);
+
+        assert_eq!(p1, p2);
+        assert_ne!(p1, p3);
     }
 }

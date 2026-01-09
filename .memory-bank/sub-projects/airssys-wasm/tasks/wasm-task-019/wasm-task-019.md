@@ -1,6 +1,6 @@
 # WASM-TASK-019: Create core/messaging/ Submodule
 
-**Status:** pending  
+**Status:** complete  
 **Added:** 2026-01-08  
 **Updated:** 2026-01-09  
 **Priority:** high  
@@ -19,42 +19,101 @@ This task creates the messaging-related core abstractions for routing and correl
 **Note:** `MessagePayload` is now defined in `core/component/message.rs` per ADR-WASM-028 v1.1.
 
 ## Deliverables
-- [ ] `core/messaging/mod.rs` created with module declarations
-- [ ] `core/messaging/errors.rs` with `MessagingError` enum (co-located)
-- [ ] `core/messaging/correlation.rs` with correlation ID types
-- [ ] `core/messaging/traits.rs` with `MessageRouter` and `CorrelationTracker` traits
-- [ ] `core/mod.rs` updated to export messaging submodule
+- [x] `core/messaging/mod.rs` created with module declarations
+- [x] `core/messaging/errors.rs` with `MessagingError` enum (co-located)
+- [x] `core/messaging/correlation.rs` with correlation ID types
+- [x] `core/messaging/traits.rs` with `MessageRouter` and `CorrelationTracker` traits
+- [x] `core/mod.rs` updated to export messaging submodule
 
 ## Success Criteria
-- [ ] `cargo build -p airssys-wasm` succeeds
-- [ ] `cargo clippy -p airssys-wasm --all-targets -- -D warnings` passes
-- [ ] Traits reference `MessagePayload` from `core/component/`
-- [ ] `MessagingError` co-located in `core/messaging/errors.rs`
-- [ ] All types properly documented with rustdoc
-- [ ] Types align with ADR-WASM-028 specifications
+- [x] `cargo build -p airssys-wasm` succeeds
+- [x] `cargo clippy -p airssys-wasm --all-targets -- -D warnings` passes
+- [x] Traits reference `MessagePayload` from `core/component/`
+- [x] `MessagingError` co-located in `core/messaging/errors.rs`
+- [x] All types properly documented with rustdoc
+- [x] Types align with ADR-WASM-028 specifications
 
 ## Progress Tracking
-**Overall Status:** 0% complete
+**Overall Status:** 100% complete
 
 ## Progress Log
-*(No progress yet)*
+
+### 2026-01-09
+**Pre-requisite Fix: MessagePayload Conversion**
+- Analyzed WASM-TASK-019 plans against ADR-WASM-028
+- Found `MessagePayload` was still a type alias (`Vec<u8>`)
+- Converted to proper struct with methods per ADR-WASM-028:
+  - `MessagePayload::new()`, `as_bytes()`, `into_bytes()`, `len()`, `is_empty()`
+  - `impl From<Vec<u8>>` and `impl From<&[u8]>`
+- Updated all tests in `core/component/message.rs` and `core/runtime/traits.rs`
+- Added 8 new tests for MessagePayload API
+
+**Actions Completed:**
+1. Created `src/core/messaging/errors.rs` with MessagingError enum
+   - 5 error variants: DeliveryFailed, CorrelationTimeout, InvalidMessage, QueueFull, TargetNotFound
+   - Uses `thiserror::Error` derive
+   - Implements Debug, Clone, PartialEq, Eq
+   - 8 unit tests
+
+2. Created `src/core/messaging/correlation.rs` with CorrelationId type
+   - Newtype wrapper around String
+   - `new()`, `generate()` (UUID v4), `as_str()`
+   - Implements Debug, Clone, PartialEq, Eq, Hash, Display, From<String>, From<&str>
+   - 11 unit tests
+
+3. Created `src/core/messaging/traits.rs` with MessageRouter and CorrelationTracker traits
+   - `MessageRouter`: send(), request(), cancel_request()
+   - `CorrelationTracker`: register(), complete(), is_pending(), remove()
+   - Both traits require Send + Sync
+   - Full rustdoc with examples
+   - 8 unit tests with mock implementations
+
+4. Created `src/core/messaging/mod.rs` with module structure
+   - Module documentation explaining architecture
+   - Module declarations for correlation, errors, traits
+   - Follows PROJECTS_STANDARD.md §4.3 (only declarations)
+
+5. Updated `src/core/mod.rs` to export messaging submodule
+   - Added messaging module to module declarations
+   - Updated module documentation to include messaging/
+   - Updated usage example with CorrelationId
+
+**Verification Results:**
+- Build check: ✅ Clean build with zero errors
+- Lint check: ✅ Zero clippy warnings
+- Test check: ✅ All 27 messaging tests passed
+- Test check: ✅ All 109 core tests passed (82 previous + 27 new)
+- Module boundary check: ✅ Clean (core/messaging/ only imports core/component/)
+- Documentation: ✅ All public types have rustdoc with examples
+- Architecture: ✅ Follows ADR-WASM-028, ADR-WASM-025, KNOWLEDGE-WASM-037
+
+**Quality Metrics:**
+- Zero compiler warnings
+- Zero clippy warnings
+- 100% test pass rate (109/109 core tests)
+- All traits match ADR-WASM-028 and KNOWLEDGE-WASM-040 specifications
+- All public types implement Debug trait
+- mod.rs files contain only declarations
+- Follows 3-layer import organization
 
 ## Standards Compliance Checklist
-- [ ] **§2.1 3-Layer Import Organization** - Only std and core/ imports
-- [ ] **§4.3 Module Architecture Patterns** - mod.rs only declarations
-- [ ] **ADR-WASM-028 v1.1** - Core module structure compliance
-- [ ] **ADR-WASM-025** - Clean-slate rebuild architecture
-- [ ] **KNOWLEDGE-WASM-037** - Technical reference alignment
+- [x] **§2.1 3-Layer Import Organization** - Only std and core/ imports
+- [x] **§4.3 Module Architecture Patterns** - mod.rs only declarations
+- [x] **ADR-WASM-028 v1.1** - Core module structure compliance
+- [x] **ADR-WASM-025** - Clean-slate rebuild architecture
+- [x] **KNOWLEDGE-WASM-037** - Technical reference alignment
 
 ## Dependencies
 - **Upstream:** 
-  - WASM-TASK-017 (core/component/) - for ComponentId, MessagePayload
+  - WASM-TASK-017 (core/component/) ✅ COMPLETE - for ComponentId, MessagePayload
   - ~~WASM-TASK-022 (core/errors/)~~ - **ABANDONED**: MessagingError now co-located
 - **Downstream:** WASM-TASK-024 (Core unit tests), Phase 6 messaging implementation
 
 ## Definition of Done
-- [ ] All deliverables complete
-- [ ] All success criteria met
-- [ ] Build passes with zero warnings
-- [ ] Messaging abstractions ready for implementation
+- [x] All deliverables complete
+- [x] All success criteria met
+- [x] Build passes with zero warnings
+- [x] All tests pass (27 messaging tests)
+- [x] MessagePayload converted to proper struct (pre-requisite fix)
+- [x] Messaging abstractions ready for implementation
 

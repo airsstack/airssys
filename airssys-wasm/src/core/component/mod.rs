@@ -39,7 +39,7 @@
 //! ```rust
 //! use airssys_wasm::core::component::id::ComponentId;
 //! use airssys_wasm::core::component::handle::ComponentHandle;
-//! use airssys_wasm::core::component::message::{ComponentMessage, MessageMetadata};
+//! use airssys_wasm::core::component::message::{ComponentMessage, MessageMetadata, MessagePayload};
 //!
 //! // Create component identifier
 //! let id = ComponentId::new("system", "database", "prod");
@@ -50,7 +50,7 @@
 //! // Create message
 //! let message = ComponentMessage::new(
 //!     ComponentId::new("system", "cache", "dev"),
-//!     vec![1, 2, 3],
+//!     MessagePayload::new(vec![1, 2, 3]),
 //!     MessageMetadata::default(),
 //! );
 //! ```
