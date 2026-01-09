@@ -1,11 +1,26 @@
 # WASM-TASK-022: Create core/errors/ Submodule
 
-**Status:** pending  
+**Status:** ⚠️ ABANDONED  
 **Added:** 2026-01-08  
-**Updated:** 2026-01-08  
-**Priority:** high  
-**Estimated Duration:** 2-3 hours  
+**Updated:** 2026-01-09  
+**Abandoned Reason:** Architecture decision to co-locate errors in each module  
+**Priority:** ~~high~~ N/A  
+**Estimated Duration:** ~~2-3 hours~~ N/A  
 **Phase:** Phase 3 - Core Module (Layer 1)
+
+> **⚠️ ABANDONED TASK**
+> 
+> This task has been abandoned in favor of co-located errors. Each module now
+> contains its own `errors.rs` file instead of a centralized `core/errors/` module.
+>
+> **See:** ADR-WASM-028 (updated 2026-01-09) for new structure.
+>
+> Errors are now distributed to:
+> - `core/runtime/errors.rs` → `WasmError`
+> - `core/messaging/errors.rs` → `MessagingError`
+> - `core/security/errors.rs` → `SecurityError`
+> - `core/storage/errors.rs` → `StorageError`
+> - `core/config/component.rs` → `ConfigValidationError`
 
 ## Original Request
 Create the `core/errors/` submodule containing all error types per ADR-WASM-028.

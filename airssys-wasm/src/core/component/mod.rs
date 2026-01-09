@@ -37,15 +37,15 @@
 //! # Examples
 //!
 //! ```rust
-//! use airssys_wasm::core::component::{
-//!     ComponentId, ComponentHandle, ComponentMessage, ComponentLifecycle,
-//! };
+//! use airssys_wasm::core::component::id::ComponentId;
+//! use airssys_wasm::core::component::handle::ComponentHandle;
+//! use airssys_wasm::core::component::message::{ComponentMessage, MessageMetadata};
 //!
 //! // Create component identifier
 //! let id = ComponentId::new("system", "database", "prod");
 //!
 //! // Create component handle
-//! let handle = ComponentHandle::new(id, 12345);
+//! let handle = ComponentHandle::new(id.clone(), 12345);
 //!
 //! // Create message
 //! let message = ComponentMessage::new(
@@ -56,13 +56,11 @@
 //! ```
 
 // Module declarations (per PROJECTS_STANDARD.md §4.3)
+pub mod errors;
 pub mod handle;
 pub mod id;
 pub mod message;
 pub mod traits;
 
-// Re-exports for ergonomic API (per PROJECTS_STANDARD.md §4.3)
-pub use handle::ComponentHandle;
-pub use id::ComponentId;
-pub use message::{ComponentMessage, MessageMetadata};
-pub use traits::ComponentLifecycle;
+// NOTE: No re-exports per module grouping policy.
+// Callers use namespaced access: core::component::id::ComponentId

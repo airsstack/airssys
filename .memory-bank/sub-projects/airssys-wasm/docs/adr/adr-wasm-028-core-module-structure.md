@@ -22,7 +22,14 @@ The `core/` module is **Layer 1** of the architecture. It contains ONLY:
 - Trait definitions (abstractions)
 - Error types
 
-**Critical Rule:** `core/` imports NOTHING except `std`. All other modules depend on `core/`.
+**Critical Rule:** `core/` has **zero internal dependencies** (no imports from other airssys-wasm modules). External utility crates are allowed:
+- ✅ `std` (standard library)
+- ✅ `thiserror` (error derive macros)
+- ✅ `serde` (serialization, if needed)
+- ✅ `chrono` (time types, if needed)
+- ❌ Any internal `crate::` imports
+
+All other modules depend on `core/`, but `core/` depends on nothing internal.
 
 ### Design Principle
 
@@ -47,31 +54,39 @@ core/
 │   ├── id.rs           # ComponentId
 │   ├── handle.rs       # ComponentHandle
 │   ├── message.rs      # ComponentMessage, MessageMetadata, MessagePayload
+│   ├── errors.rs       # ComponentError (co-located)
 │   └── traits.rs       # Component-related traits
 ├── runtime/
 │   ├── mod.rs
+│   ├── errors.rs       # WasmError (co-located with runtime)
 │   ├── traits.rs       # RuntimeEngine, ComponentLoader
 │   └── limits.rs       # ResourceLimits
 ├── messaging/
 │   ├── mod.rs
+│   ├── errors.rs       # MessagingError (co-located with messaging)
 │   ├── correlation.rs  # CorrelationId
 │   └── traits.rs       # MessageRouter, CorrelationTracker traits
 ├── security/
 │   ├── mod.rs
+│   ├── errors.rs       # SecurityError (co-located with security)
 │   ├── capability.rs   # Capability types
 │   └── traits.rs       # SecurityValidator trait
 ├── storage/
 │   ├── mod.rs
+│   ├── errors.rs       # StorageError (co-located with storage)
 │   └── traits.rs       # ComponentStorage trait
-├── config/
-│   ├── mod.rs
-│   └── component.rs    # ComponentConfig
-└── errors/
+└── config/
     ├── mod.rs
-    ├── wasm.rs         # WasmError
-    ├── security.rs     # SecurityError
-    └── messaging.rs    # MessagingError
+    └── component.rs    # ComponentConfig, ConfigValidationError
 ```
+
+> **Design Decision: Co-located Errors**
+> 
+> Each module contains its own error types in an `errors.rs` file. This provides:
+> - **Module isolation** - Everything a module needs is self-contained
+> - **No cross-dependencies** - No awkward imports from `core/errors/`
+> - **Better cohesion** - Related types live together
+> - **Simpler mental model** - Look in one module to see everything
 
 ---
 
@@ -214,19 +229,52 @@ pub struct ComponentMessage {
 
 ---
 
+### core/component/errors.rs
+
+```rust
+//! Component error types.
+
+use thiserror::Error;
+
+/// Component-related errors for lifecycle and operations.
+#[derive(Debug, Clone, Error)]
+pub enum ComponentError {
+    /// Component initialization failed.
+    #[error("Component initialization failed: {0}")]
+    InitializationFailed(String),
+
+    /// Component shutdown failed.
+    #[error("Component shutdown failed: {0}")]
+    ShutdownFailed(String),
+
+    /// Component not found.
+    #[error("Component not found: {0}")]
+    NotFound(String),
+
+    /// Component already exists.
+    #[error("Component already exists: {0}")]
+    AlreadyExists(String),
+
+    /// Invalid component state.
+    #[error("Invalid component state: {0}")]
+    InvalidState(String),
+}
+```
+
+---
+
 ### core/component/traits.rs
 
 ```rust
-use super::{handle::ComponentHandle, message::ComponentMessage};
-use crate::core::errors::wasm::WasmError;
+use super::errors::ComponentError;
 
 /// Trait for component lifecycle management
 pub trait ComponentLifecycle: Send + Sync {
     /// Initialize the component
-    fn initialize(&mut self) -> Result<(), WasmError>;
+    fn initialize(&mut self) -> Result<(), ComponentError>;
     
     /// Shutdown the component
-    fn shutdown(&mut self) -> Result<(), WasmError>;
+    fn shutdown(&mut self) -> Result<(), ComponentError>;
     
     /// Check component health
     fn health_check(&self) -> bool;

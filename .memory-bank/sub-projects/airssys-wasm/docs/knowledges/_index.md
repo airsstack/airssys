@@ -2,8 +2,8 @@
 
 **Sub-Project:** airssys-wasm  
 **Last Updated:** 2026-01-08  
-**Total Knowledge Docs:** 25  
-**Active Knowledge Docs:** 24  
+**Total Knowledge Docs:** 26  
+**Active Knowledge Docs:** 25  
 
 ## Current Knowledge Documentation
 - **[KNOWLEDGE-WASM-031: Foundational Architecture](knowledge-wasm-031-foundational-architecture.md)** 🔴 **READ FIRST**
@@ -42,6 +42,15 @@
   - **Impact**: Important - Prevents confusion between core types and integration logic, guides code placement
   - **Audience**: All developers working on component-related tasks (WASM-TASK-017, future component/ module tasks)
   - **Related**: KNOWLEDGE-WASM-037 (clean-slate architecture), ADR-WASM-025 (six-module design), ADR-WASM-028 (core module structure)
+
+- **[KNOWLEDGE-WASM-040: Messaging Module - Comprehensive Reference](knowledge-wasm-040-messaging-module-comprehensive-reference.md)** 🔴 **CRITICAL**
+  - **Purpose**: Definitive reference for the messaging module - MUST be referenced by all messaging-related tasks
+  - **Scope**: Two-layer architecture (core/messaging/ + messaging/), messaging patterns, type definitions, WIT interfaces, dependency injection
+  - **Key Content**: Fire-and-forget vs request-response patterns, CorrelationId/MessageRouter/CorrelationTracker types, complete 10-step message flow diagram, WIT interface definitions, verification checklist
+  - **Status**: Active (Created 2026-01-09)
+  - **Impact**: 🔴 CRITICAL - Definitive reference for all messaging development
+  - **Audience**: All developers working on messaging-related tasks (WASM-TASK-019, future messaging/ module tasks)
+  - **Related**: KNOWLEDGE-WASM-005, KNOWLEDGE-WASM-024, KNOWLEDGE-WASM-029, ADR-WASM-009, ADR-WASM-031
 
 ### Core Concepts Category ✅
 - **[KNOWLEDGE-WASM-002: High-Level Overview](knowledge_wasm_002_high_level_overview.md)** ✅ **ESSENTIAL**

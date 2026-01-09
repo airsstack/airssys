@@ -1,11 +1,23 @@
 # WASM-TASK-017: Create core/component/ Submodule
 
-**Status:** complete
+**Status:** ✅ complete
 **Added:** 2026-01-08
-**Updated:** 2026-01-08  
+**Updated:** 2026-01-09  
 **Priority:** high  
-**Estimated Duration:** 2-3 hours  
+**Estimated Duration:** 2-3 hours + 30min refactor  
 **Phase:** Phase 3 - Core Module (Layer 1)
+
+> **✅ REFACTORING COMPLETE (2026-01-09)**
+> 
+> Architecture decision: Co-located errors pattern adopted.
+> 
+> **Changes made:**
+> 1. ✅ Added `core/component/errors.rs` with `ComponentError` enum
+> 2. ✅ Updated `core/component/traits.rs` to use `ComponentError` instead of `WasmError`
+> 3. ✅ Updated `core/component/mod.rs` to export errors module
+> 4. ✅ All 39 tests pass, clippy clean
+>
+> **See:** ADR-WASM-028 (updated 2026-01-09) for specifications.
 
 ## Original Request
 Create the `core/component/` submodule containing foundation types for component identity, handles, and messages per ADR-WASM-028.

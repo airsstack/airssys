@@ -5,24 +5,7 @@
 // None needed for this module
 
 // Layer 3: Internal module imports (per PROJECTS_STANDARD.md §2.1)
-// Note: ComponentHandle and ComponentMessage will be used when real WasmError
-// type is implemented in core/errors/wasm.rs (future task)
-
-/// WasmError placeholder.
-///
-/// This is a temporary placeholder type for WasmError.
-/// The real WasmError will be implemented in `core/errors/wasm.rs`
-/// (future task: WASM-TASK-0XX).
-///
-/// For now, we use a simple String to enable ComponentLifecycle trait
-/// to compile and be tested.
-///
-/// # Architecture Note
-///
-/// The placeholder allows `core/component/` to be implemented without
-/// waiting for `core/errors/` module. Once `core/errors/wasm.rs`
-/// is created, this type alias will be replaced with real WasmError enum.
-pub type WasmError = String;
+use super::errors::ComponentError;
 
 /// Trait for component lifecycle management.
 ///
@@ -45,7 +28,7 @@ pub type WasmError = String;
 /// which integrates with airssys-rt's Actor system.
 ///
 /// The trait uses generic placeholder types (ComponentHandle, ComponentMessage)
-/// that are also defined in `core/component/`. The WasmError type is
+/// that are also defined in `core/component/`. The ComponentError type is
 /// currently a placeholder that will be replaced with the real error type
 /// from `core/errors/wasm.rs` in a future task.
 ///
@@ -53,7 +36,7 @@ pub type WasmError = String;
 ///
 /// ```rust
 /// use airssys_wasm::core::component::{
-///     ComponentLifecycle, ComponentHandle, ComponentMessage, WasmError,
+///     ComponentLifecycle, ComponentHandle, ComponentMessage, ComponentError,
 /// };
 ///
 /// struct MockComponent {
@@ -61,12 +44,12 @@ pub type WasmError = String;
 /// }
 ///
 /// impl ComponentLifecycle for MockComponent {
-///     fn initialize(&mut self) -> Result<(), WasmError> {
+///     fn initialize(&mut self) -> Result<(), ComponentError> {
 ///         self.initialized = true;
 ///         Ok(())
 ///     }
 ///
-///     fn shutdown(&mut self) -> Result<(), WasmError> {
+///     fn shutdown(&mut self) -> Result<(), ComponentError> {
 ///         self.initialized = false;
 ///         Ok(())
 ///     }
@@ -96,20 +79,20 @@ pub trait ComponentLifecycle: Send + Sync {
     /// # Examples
     ///
     /// ```rust
-    /// use airssys_wasm::core::component::{ComponentLifecycle, WasmError};
+    /// use airssys_wasm::core::component::{ComponentLifecycle, ComponentError};
     ///
     /// struct MyComponent {
     ///     initialized: bool,
     /// }
     ///
     /// impl ComponentLifecycle for MyComponent {
-    ///     fn initialize(&mut self) -> Result<(), WasmError> {
+    ///     fn initialize(&mut self) -> Result<(), ComponentError> {
     ///         self.initialized = true;
     ///         Ok(())
     ///     }
     /// }
     /// ```
-    fn initialize(&mut self) -> Result<(), WasmError>;
+    fn initialize(&mut self) -> Result<(), ComponentError>;
 
     /// Shutdown the component.
     ///
@@ -129,20 +112,20 @@ pub trait ComponentLifecycle: Send + Sync {
     /// # Examples
     ///
     /// ```rust
-    /// use airssys_wasm::core::component::{ComponentLifecycle, WasmError};
+    /// use airssys_wasm::core::component::{ComponentLifecycle, ComponentError};
     ///
     /// struct MyComponent {
     ///     initialized: bool,
     /// }
     ///
     /// impl ComponentLifecycle for MyComponent {
-    ///     fn shutdown(&mut self) -> Result<(), WasmError> {
+    ///     fn shutdown(&mut self) -> Result<(), ComponentError> {
     ///         self.initialized = false;
     ///         Ok(())
     ///     }
     /// }
     /// ```
-    fn shutdown(&mut self) -> Result<(), WasmError>;
+    fn shutdown(&mut self) -> Result<(), ComponentError>;
 
     /// Check component health.
     ///
@@ -205,17 +188,19 @@ mod tests {
     }
 
     impl ComponentLifecycle for MockComponent {
-        fn initialize(&mut self) -> Result<(), WasmError> {
+        fn initialize(&mut self) -> Result<(), ComponentError> {
             if self.fail_initialize {
-                return Err("Initialize failed".to_string());
+                return Err(ComponentError::InitializationFailed(
+                    "test failure".to_string(),
+                ));
             }
             self.initialized = true;
             Ok(())
         }
 
-        fn shutdown(&mut self) -> Result<(), WasmError> {
+        fn shutdown(&mut self) -> Result<(), ComponentError> {
             if self.fail_shutdown {
-                return Err("Shutdown failed".to_string());
+                return Err(ComponentError::ShutdownFailed("test failure".to_string()));
             }
             self.shutdown_called = true;
             self.initialized = false;
@@ -336,7 +321,10 @@ mod tests {
         let result = component.initialize();
 
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), "Initialize failed");
+        assert!(matches!(
+            result.unwrap_err(),
+            ComponentError::InitializationFailed(_)
+        ));
         assert!(!component.health_check());
     }
 
@@ -349,7 +337,10 @@ mod tests {
         let result = component.shutdown();
 
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), "Shutdown failed");
+        assert!(matches!(
+            result.unwrap_err(),
+            ComponentError::ShutdownFailed(_)
+        ));
     }
 
     #[test]
