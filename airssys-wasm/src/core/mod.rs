@@ -8,10 +8,11 @@
 //! # Submodules
 //!
 //! - [`component`] - Component-related types (ComponentId, ComponentHandle, ComponentMessage, ComponentLifecycle)
+//! - [`runtime`] - WASM runtime abstractions (RuntimeEngine, ComponentLoader, ResourceLimits)
 //!
 //! # Architecture
 //!
-//! This is **Layer 1** of the architecture. Core has zero internal dependencies.
+//! This is **Layer 1** of architecture. Core has zero internal dependencies.
 //! All other modules (security/, runtime/, component/, messaging/, system/) depend on core/.
 //!
 //! # Usage
@@ -19,10 +20,12 @@
 //! ```
 //! use airssys_wasm::core::component::id::ComponentId;
 //! use airssys_wasm::core::component::message::ComponentMessage;
+//! use airssys_wasm::core::runtime::ResourceLimits;
 //! ```
 
 // Module declarations (per PROJECTS_STANDARD.md §4.3)
 pub mod component;
+pub mod runtime;
 
 // NOTE: No glob re-exports (pub use X::*) per module grouping policy.
 // Callers use namespaced access: core::component::id::ComponentId

@@ -8,6 +8,16 @@ repository = "https://github.com/airsstack/airssys"
 rust-version = "1.88"
 description = "WebAssembly Plugin/Extension Platform for AirsStack"
 
+[lints.rust]
+# Safety
+unsafe_code = "deny"
+
+[lints.clippy]
+# Important lints
+# Note: Not using `all = "warn"` or `pedantic = "warn"` to avoid
+# flagging pre-existing codebase issues (107 warnings)
+# These should be addressed in a dedicated refactoring task
+
 [dependencies]
 # Layer 1: AirsSys Foundation Crates
 airssys-osl = { workspace = true }

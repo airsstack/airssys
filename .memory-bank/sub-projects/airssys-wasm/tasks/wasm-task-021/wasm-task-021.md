@@ -2,7 +2,7 @@
 
 **Status:** pending  
 **Added:** 2026-01-08  
-**Updated:** 2026-01-08  
+**Updated:** 2026-01-09  
 **Priority:** high  
 **Estimated Duration:** 1-2 hours  
 **Phase:** Phase 3 - Core Module (Layer 1)
@@ -16,6 +16,7 @@ This task creates the storage-related core abstraction for component-isolated st
 
 ## Deliverables
 - [ ] `core/storage/mod.rs` created with module declarations
+- [ ] `core/storage/errors.rs` with `StorageError` enum (co-located)
 - [ ] `core/storage/traits.rs` with `ComponentStorage` trait
 - [ ] `core/mod.rs` updated to export storage submodule
 
@@ -42,7 +43,7 @@ This task creates the storage-related core abstraction for component-isolated st
 ## Dependencies
 - **Upstream:** 
   - WASM-TASK-017 (core/component/) - for MessagePayload
-  - WASM-TASK-022 (core/errors/) - for StorageError
+  - ~~WASM-TASK-022 (core/errors/)~~ - **ABANDONED**: StorageError now co-located
 - **Downstream:** WASM-TASK-024 (Core unit tests)
 
 ## Definition of Done

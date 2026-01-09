@@ -2,7 +2,7 @@
 
 **Status:** pending  
 **Added:** 2026-01-08  
-**Updated:** 2026-01-08  
+**Updated:** 2026-01-09  
 **Priority:** high  
 **Estimated Duration:** 1-2 hours  
 **Phase:** Phase 3 - Core Module (Layer 1)
@@ -16,7 +16,7 @@ This task creates the configuration types used for component setup. Key types in
 
 ## Deliverables
 - [ ] `core/config/mod.rs` created with module declarations
-- [ ] `core/config/component.rs` with `ComponentConfig` struct
+- [ ] `core/config/component.rs` with `ComponentConfig` struct and `ConfigValidationError`
 - [ ] `core/mod.rs` updated to export config submodule
 
 ## Success Criteria

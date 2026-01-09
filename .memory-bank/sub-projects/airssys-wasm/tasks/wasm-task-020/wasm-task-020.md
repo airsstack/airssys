@@ -2,7 +2,7 @@
 
 **Status:** pending  
 **Added:** 2026-01-08  
-**Updated:** 2026-01-08  
+**Updated:** 2026-01-09  
 **Priority:** high  
 **Estimated Duration:** 2-3 hours  
 **Phase:** Phase 3 - Core Module (Layer 1)
@@ -19,6 +19,7 @@ This task creates the security-related core abstractions for capability-based se
 
 ## Deliverables
 - [ ] `core/security/mod.rs` created with module declarations
+- [ ] `core/security/errors.rs` with `SecurityError` enum (co-located)
 - [ ] `core/security/capability.rs` with `Capability` enum and related types
 - [ ] `core/security/traits.rs` with `SecurityValidator` and `SecurityAuditLogger` traits
 - [ ] `core/mod.rs` updated to export security submodule
@@ -46,7 +47,7 @@ This task creates the security-related core abstractions for capability-based se
 ## Dependencies
 - **Upstream:** 
   - WASM-TASK-017 (core/component/) - for ComponentId
-  - WASM-TASK-022 (core/errors/) - for SecurityError
+  - ~~WASM-TASK-022 (core/errors/)~~ - **ABANDONED**: SecurityError now co-located
 - **Downstream:** WASM-TASK-024 (Core unit tests), Phase 4 security implementation
 
 ## Definition of Done

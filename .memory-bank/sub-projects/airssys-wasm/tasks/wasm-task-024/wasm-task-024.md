@@ -2,7 +2,7 @@
 
 **Status:** pending  
 **Added:** 2026-01-08  
-**Updated:** 2026-01-08  
+**Updated:** 2026-01-09  
 **Priority:** high  
 **Estimated Duration:** 3-4 hours  
 **Phase:** Phase 3 - Core Module (Layer 1)
@@ -18,14 +18,16 @@ This task creates unit tests for all core types to ensure they work correctly be
 - Edge cases and validation
 
 ## Deliverables
-- [ ] Unit tests for `core/component/` types
-- [ ] Unit tests for `core/runtime/` types
-- [ ] Unit tests for `core/messaging/` types
-- [ ] Unit tests for `core/security/` types
-- [ ] Unit tests for `core/storage/` types
-- [ ] Unit tests for `core/errors/` types
-- [ ] Unit tests for `core/config/` types
+- [ ] Unit tests for `core/component/` types (including ComponentError)
+- [ ] Unit tests for `core/runtime/` types (including WasmError)
+- [ ] Unit tests for `core/messaging/` types (including MessagingError)
+- [ ] Unit tests for `core/security/` types (including SecurityError)
+- [ ] Unit tests for `core/storage/` types (including StorageError)
+- [ ] Unit tests for `core/config/` types (including ConfigValidationError)
 - [ ] All tests pass with `cargo test -p airssys-wasm --lib`
+
+> **Note:** Each module now contains its own error types (co-located errors pattern).
+> There is no centralized `core/errors/` module.
 
 ## Success Criteria
 - [ ] `cargo test -p airssys-wasm --lib` passes all tests
@@ -48,12 +50,12 @@ This task creates unit tests for all core types to ensure they work correctly be
 
 ## Dependencies
 - **Upstream:** 
-  - WASM-TASK-017 (core/component/)
+  - WASM-TASK-017 (core/component/) ✅
   - WASM-TASK-018 (core/runtime/)
   - WASM-TASK-019 (core/messaging/)
   - WASM-TASK-020 (core/security/)
   - WASM-TASK-021 (core/storage/)
-  - WASM-TASK-022 (core/errors/)
+  - ~~WASM-TASK-022 (core/errors/)~~ - **ABANDONED**
   - WASM-TASK-023 (core/config/)
 - **Downstream:** Phase 4 (Security Module), Phase 5 (Runtime Module)
 

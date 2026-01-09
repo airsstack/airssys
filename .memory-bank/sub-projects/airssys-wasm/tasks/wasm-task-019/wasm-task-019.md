@@ -2,7 +2,7 @@
 
 **Status:** pending  
 **Added:** 2026-01-08  
-**Updated:** 2026-01-08  
+**Updated:** 2026-01-09  
 **Priority:** high  
 **Estimated Duration:** 1-2 hours  
 **Phase:** Phase 3 - Core Module (Layer 1)
@@ -20,6 +20,7 @@ This task creates the messaging-related core abstractions for routing and correl
 
 ## Deliverables
 - [ ] `core/messaging/mod.rs` created with module declarations
+- [ ] `core/messaging/errors.rs` with `MessagingError` enum (co-located)
 - [ ] `core/messaging/correlation.rs` with correlation ID types
 - [ ] `core/messaging/traits.rs` with `MessageRouter` and `CorrelationTracker` traits
 - [ ] `core/mod.rs` updated to export messaging submodule
@@ -28,9 +29,9 @@ This task creates the messaging-related core abstractions for routing and correl
 - [ ] `cargo build -p airssys-wasm` succeeds
 - [ ] `cargo clippy -p airssys-wasm --all-targets -- -D warnings` passes
 - [ ] Traits reference `MessagePayload` from `core/component/`
-- [ ] Traits reference `MessagingError` from `core/errors/`
+- [ ] `MessagingError` co-located in `core/messaging/errors.rs`
 - [ ] All types properly documented with rustdoc
-- [ ] Types align with ADR-WASM-028 v1.1 specifications
+- [ ] Types align with ADR-WASM-028 specifications
 
 ## Progress Tracking
 **Overall Status:** 0% complete
@@ -48,7 +49,7 @@ This task creates the messaging-related core abstractions for routing and correl
 ## Dependencies
 - **Upstream:** 
   - WASM-TASK-017 (core/component/) - for ComponentId, MessagePayload
-  - WASM-TASK-022 (core/errors/) - for MessagingError
+  - ~~WASM-TASK-022 (core/errors/)~~ - **ABANDONED**: MessagingError now co-located
 - **Downstream:** WASM-TASK-024 (Core unit tests), Phase 6 messaging implementation
 
 ## Definition of Done
