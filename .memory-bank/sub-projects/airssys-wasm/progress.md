@@ -1,6 +1,6 @@
 # airssys-wasm Progress
 
-**Last Updated:** 2026-01-09 (WASM-TASK-018 COMPLETE - Full PROJECTS_STANDARD.md Compliance)
+**Last Updated:** 2026-01-09 (WASM-TASK-020 COMPLETE - Core Security Submodule)
 
 ---
 
@@ -75,7 +75,7 @@ airssys-wasm/src/
 
 **Phase 3: Core Module** (WASM-TASK-017 to 024) - 🚀 IN PROGRESS
 - 8 tasks: Build foundation types and traits
-- Status: 2 of 8 tasks complete (25%)
+- Status: 4 of 8 tasks complete (50%)
 
 **Phase 4: Security Module** (WASM-TASK-025 to 030)
 - 6 tasks: Implement capability system
@@ -96,8 +96,8 @@ airssys-wasm/src/
 ### Phase 3 Tasks (In Progress) 🚀
 **WASM-TASK-017** - Create core/component/ submodule (2026-01-08) ✅
 **WASM-TASK-018** - Create core/runtime/ submodule (2026-01-09) ✅
-**WASM-TASK-019** - Create core/messaging/ submodule (pending)
-**WASM-TASK-020** - Create core/security/ submodule (pending)
+**WASM-TASK-019 - Create core/messaging/ submodule (2026-01-09) ✅
+**WASM-TASK-020** - Create core/security/ submodule (2026-01-09) ✅
 **WASM-TASK-021** - Create core/storage/ submodule (pending)
 **WASM-TASK-022** - Create core/errors/ submodule (pending)
 **WASM-TASK-023** - Create core/config/ submodule (pending)
@@ -131,6 +131,7 @@ airssys-wasm/src/
 - WASM-TASK-013 through WASM-TASK-016 (Project Restructuring) ✅ COMPLETE (2026-01-08)
 - WASM-TASK-017 (Create core/component/ submodule) ✅ COMPLETE (2026-01-08)
 - WASM-TASK-018 (Create core/runtime/ submodule) ✅ COMPLETE (2026-01-09)
+- WASM-TASK-020 (Create core/security/ submodule) ✅ COMPLETE (2026-01-09)
 
 ---
 
@@ -168,10 +169,10 @@ grep -rn "use crate::actor" src/runtime/     ✅
 - Foundation complete: 1/53 tasks (WASM-TASK-001)
 - WIT interfaces: 12/12 tasks complete (WASM-TASK-002 through WASM-TASK-012)
 - Project restructuring: 4/4 tasks complete (WASM-TASK-013 through WASM-TASK-016)
-- Core module: 2/8 tasks complete (WASM-TASK-017, WASM-TASK-018)
+- Core module: 3/8 tasks complete (WASM-TASK-017, WASM-TASK-018, WASM-TASK-020)
 - Phase 1 complete: 13/53 tasks (25%)
 - Phase 2 complete: 17/53 tasks (32%)
-- Phase 3 in progress: 19/53 tasks (36%)
+- Phase 3 in progress: 20/53 tasks (38%)
 
 **Architecture Documentation:**
 - ADRs created: 25+ (including clean-slate rebuild ADRs)
@@ -630,3 +631,145 @@ Created the core/runtime/ submodule containing runtime engine abstractions, reso
 - Ready for next core submodule (core/messaging/)
 
 **Next Task:** WASM-TASK-019 - Create core/messaging/ submodule
+
+---
+
+
+### 2026-01-09: WASM-TASK-019 COMPLETE - Core Messaging Submodule ✅
+
+**Status:** ✅ COMPLETE
+**Completion Date:** 2026-01-09
+**Duration:** ~1 hour (estimated: 1-2 hours)
+
+**Implementation Summary:**
+- Core/messaging/ submodule with 4 modules
+- MessagingError enum with 5 variants (co-located error pattern)
+- CorrelationId type with UUID generation and conversion methods
+- MessageRouter and CorrelationTracker traits (Send + Sync)
+- 27 comprehensive unit tests
+
+**Deliverables (5/5 Complete):**
+1. `core/messaging/errors.rs` - MessagingError enum, 8 tests
+2. `core/messaging/correlation.rs` - CorrelationId type, 11 tests
+3. `core/messaging/traits.rs` - MessageRouter + CorrelationTracker, 8 tests
+4. `core/messaging/mod.rs` - Module structure
+5. `core/mod.rs` - Updated with messaging module
+
+**Verification Results:**
+- Build check: ✅ Clean build with zero errors
+- Lint check: ✅ Zero clippy warnings
+- Test check: ✅ All 27 messaging tests passed
+- Module boundary: ✅ Clean (only imports core/component/)
+- Documentation: ✅ All public types have rustdoc
+
+**Code Statistics:**
+- Implementation: ~540 lines
+- Tests: ~310 lines
+- Total: ~850 lines
+
+**Phase Status Update:**
+- ✅ Phase 3: Core Module Implementation - 3/8 tasks complete (38%)
+- ✅ Overall project: 20/53 tasks complete (38%)
+- ✅ Messaging abstractions ready for implementation
+
+**Key Achievement:**
+- Second task of Phase 3 complete
+- Core/messaging/ submodule with 4 modules, 27 unit tests
+- Correlation tracking patterns for request-response messaging
+- All types follow ADR-WASM-028 and KNOWLEDGE-WASM-040 specifications
+- Clean architecture maintained (zero violations)
+- Full PROJECTS_STANDARD.md compliance achieved
+- Ready for next core submodule
+
+**Next Task:** WASM-TASK-020 (Create core/security/ submodule)
+
+---
+
+
+### 2026-01-09: WASM-TASK-020 COMPLETE - Core Security Submodule ✅
+
+**Status:** ✅ COMPLETE
+**Completion Date:** 2026-01-09
+**Phase:** Phase 3 - Core Module Implementation (Task 3/8)
+
+Created the core/security/ submodule containing security abstractions and capability types per ADR-WASM-028. All 5 deliverables implemented with 26 unit tests (all passing).
+
+**Deliverables (5/5 Complete):**
+- ✅ core/security/mod.rs - Module declarations only (per §4.3)
+- ✅ core/security/errors.rs - SecurityError enum with 4 variants (6 tests)
+- ✅ core/security/capability.rs - Capability enum + 4 structs + 4 action enums (12 tests)
+- ✅ core/security/traits.rs - SecurityValidator, SecurityAuditLogger traits + SecurityEvent (8 tests)
+- ✅ core/mod.rs - Updated to export security submodule
+
+**Test Results:**
+- Unit Tests (26): All passing (21 API verification, 4 mock tests, 1 compile-time check)
+- Build: Clean (zero errors, zero warnings)
+- Clippy: Zero warnings
+- All tests are REAL (not stubs)
+
+**Quality Metrics:**
+- Build: ✅ Clean
+- Clippy: ✅ Zero warnings
+- Unit Tests: ✅ 26/26 passing
+- Architecture: ✅ Clean (no forbidden imports)
+- Standards: ✅ PROJECTS_STANDARD.md fully compliant
+- Documentation: ✅ All types documented with rustdoc
+
+**Key Features Implemented:**
+- SecurityError (Co-located Pattern): 4 error variants using thiserror derive macro
+- Capability: Enum with 4 variants (Messaging, Storage, Filesystem, Network)
+- 4 Capability Structs: MessagingCapability, StorageCapability, FilesystemCapability, NetworkCapability
+- 4 Action Enums: MessagingAction (4 variants), StorageAction (4), FilesystemAction (3), NetworkAction (4)
+- SecurityValidator Trait: validate_capability, can_send_to methods
+- SecurityAuditLogger Trait: log_event method
+- SecurityEvent: 5 fields for comprehensive audit logging
+
+**Architecture Compliance:**
+- ADR-WASM-023 (Module Boundaries): core/ only imports std and own submodules ✅
+- ADR-WASM-028 (Core Module Structure): Structure matches specification exactly ✅
+- ADR-WASM-025 (Clean-Slate Architecture): 3-layer import organization ✅
+- Zero forbidden imports: Only std, thiserror, and core/component (sibling) ✅
+
+**Standards Compliance:**
+- §2.1 3-Layer Imports: ✅ COMPLIANT
+- §2.2 No FQN in Types: ✅ COMPLIANT
+- §4.3 Module Architecture: ✅ COMPLIANT (mod.rs only declarations)
+- §6.2 Avoid `dyn` Patterns: ✅ COMPLIANT
+- §6.4 Quality Gates: ✅ COMPLIANT
+- M-MODULE-DOCS: ✅ COMPLIANT (all modules documented)
+- M-ERRORS-CANONICAL-STRUCTS: ✅ COMPLIANT (thiserror)
+- M-PUBLIC-DEBUG: ✅ COMPLIANT (all types)
+
+**Verification Chain:**
+- ✅ Implemented by @memorybank-implementer
+- ✅ Verified by @memorybank-verifier (VERIFIED)
+- ✅ Audited by @memorybank-auditor (APPROVED - all conditions met)
+
+**Audit Summary:**
+- Audit Date: 2026-01-09
+- Audit Verdict: ✅ APPROVED
+- Deliverables: 5/5 COMPLETE
+- Tests: 26/26 passing
+- Issues: None
+- Quality Gates: All pass (build, clippy, architecture)
+
+**Code Statistics:**
+- Implementation: 617 lines
+- Tests: ~260 lines
+- Total: ~877 lines
+
+**Phase Status Update:**
+- ✅ Phase 3: Core Module Implementation - 4/8 tasks complete (50%)
+- ✅ Overall project: 21/53 tasks complete (40%)
+- ✅ Security abstractions ready for implementation
+
+**Key Achievement:**
+- Third task of Phase 3 complete
+- Core/security/ submodule with 4 modules, 26 unit tests
+- All security types follow exact ADR-WASM-028 specifications
+- Clean architecture maintained (zero violations)
+- Full PROJECTS_STANDARD.md compliance achieved
+- Ready for next core submodule (core/storage/ or core/messaging/)
+
+**Next Task:** WASM-TASK-021 (Create core/storage/ submodule) 
+
