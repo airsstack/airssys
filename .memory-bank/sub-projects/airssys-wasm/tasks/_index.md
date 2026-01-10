@@ -1,7 +1,12 @@
 # Tasks Index
 
 ## Pending
-*(none)*
+- [wasm-task-025] create-security-capability-submodule - Create security/capability/ submodule (2026-01-10) [Phase 4]
+- [wasm-task-026] implement-capability-validator - Implement CapabilityValidator (2026-01-10) [Phase 4]
+- [wasm-task-027] create-security-policy-submodule - Create security/policy/ submodule (2026-01-10) [Phase 4]
+- [wasm-task-028] implement-security-audit-logger - Implement SecurityAuditLogger (2026-01-10) [Phase 4]
+- [wasm-task-029] create-airssys-osl-bridge - Create airssys-osl bridge (2026-01-10) [Phase 4]
+- [wasm-task-030] write-security-unit-tests - Write security/ unit tests (2026-01-10) [Phase 4]
 
 ## In Progress
 *(none)*
