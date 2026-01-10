@@ -1,7 +1,7 @@
 # Tasks Index
 
 ## Pending
-- [wasm-task-024] write-core-unit-tests - Write core/ unit tests (2026-01-08) [Phase 3]
+*(none)*
 
 ## In Progress
 *(none)*
@@ -29,6 +29,7 @@
 - [wasm-task-020] create-core-security-submodule - Create core/security/ submodule (2026-01-09) [Phase 3] ✅
 - [wasm-task-021] create-core-storage-submodule - Create core/storage/ submodule (2026-01-10) [Phase 3] ✅
 - [wasm-task-023] create-core-config-submodule - Create core/config/ submodule (2026-01-10) [Phase 3] ✅
+- [wasm-task-024] write-core-unit-tests - Write core/ unit tests (2026-01-10) [Phase 3] ✅
 
 ## Abandoned
 - [wasm-task-022] create-core-errors-submodule - **ABANDONED** (2026-01-09) - Errors now co-located in each module instead of centralized `core/errors/`
