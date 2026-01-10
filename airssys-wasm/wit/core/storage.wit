@@ -2,14 +2,16 @@ package airssys:core@1.0.0;
 
 /// Host-implemented storage interface (component-isolated)
 interface storage {
-    use types.{message-payload};
     use errors.{storage-error};
 
+    /// Storage value (raw bytes) - dedicated type for storage operations
+    type storage-value = list<u8>;
+
     /// Get value by key (within component's namespace)
-    get: func(key: string) -> result<option<message-payload>, storage-error>;
+    get: func(key: string) -> result<option<storage-value>, storage-error>;
 
     /// Set value by key
-    set: func(key: string, value: message-payload) -> result<_, storage-error>;
+    set: func(key: string, value: storage-value) -> result<_, storage-error>;
 
     /// Delete value by key
     delete: func(key: string) -> result<_, storage-error>;

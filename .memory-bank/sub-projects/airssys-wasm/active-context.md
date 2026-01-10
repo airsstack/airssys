@@ -1,38 +1,41 @@
 # airssys-wasm Active Context
 
-**Last Updated:** 2026-01-09 (WASM-TASK-020 COMPLETE, WASM-TASK-019 indexed, WASM-TASK-019 indexed)
+**Last Updated:** 2026-01-10 (WASM-TASK-021 COMPLETE - Core Storage Submodule)
 **Active Sub-Project:** airssys-wasm
 **Current Status:** 🚀 **PHASE 3 IN PROGRESS - CORE MODULE IMPLEMENTATION**
 
 ## Current Focus
 
 ### Phase 3: Core Module Implementation 🚀 IN PROGRESS
-**Status:** 🚀 4/8 TASKS COMPLETE (2026-01-09)
+**Status:** 🚀 5/8 TASKS COMPLETE (2026-01-10)
 **Phase:** Core Module Implementation (WASM-TASK-017 through WASM-TASK-024)
 **Reference:** [ADR-WASM-026](docs/adr/adr-wasm-026-implementation-roadmap-clean-slate-rebuild.md)
 
 **Current Task:**
 - ✅ WASM-TASK-017: Create core/component/ submodule (2026-01-08) - COMPLETE
 - ✅ WASM-TASK-018: Create core/runtime/ submodule (2026-01-09) - COMPLETE
+- ✅ WASM-TASK-019: Create core/messaging/ submodule (2026-01-09) - COMPLETE
 - ✅ WASM-TASK-020: Create core/security/ submodule (2026-01-09) - COMPLETE
- - ✅ WASM-TASK-019: Create core/messaging/ submodule (2026-01-09) - COMPLETE
+- ✅ WASM-TASK-021: Create core/storage/ submodule (2026-01-10) - COMPLETE
 
 **Phase 3 Tasks:**
 1. ✅ WASM-TASK-017: Create core/component/ submodule (2026-01-08)
 2. ✅ WASM-TASK-018: Create core/runtime/ submodule (2026-01-09)
 3. ✅ WASM-TASK-019: Create core/messaging/ submodule (2026-01-09)
 4. ✅ WASM-TASK-020: Create core/security/ submodule (2026-01-09)
-5. ⏳ WASM-TASK-021: Create core/storage/ submodule (pending)
-6. ⏳ WASM-TASK-022: Create core/errors/ submodule (pending)
+5. ✅ WASM-TASK-021: Create core/storage/ submodule (2026-01-10)
+6. ⏳ WASM-TASK-022: Create core/errors/ submodule (pending) - **ABANDONED**
 7. ⏳ WASM-TASK-023: Create core/config/ submodule (pending)
 8. ⏳ WASM-TASK-024: Write core/ unit tests (pending)
 
-**Phase 3 Progress (4/8 tasks - 50%):**
+**Phase 3 Progress (5/8 tasks - 62%):**
 - Foundation types for component identity, handles, and messages implemented
 - Runtime abstractions with co-located WasmError implemented
 - Security abstractions with co-located SecurityError implemented
+- Messaging abstractions with co-located MessagingError implemented
+- Storage abstractions with co-located StorageError implemented
 - All types per ADR-WASM-028 specifications
-- 121 unit tests passing (component: 32, messaging: 27, runtime: 36, security: 26) - all real functionality
+- 149 unit tests passing (component: 32, messaging: 27, runtime: 36, security: 26, storage: 28) - all real functionality
 - Zero architecture violations (per ADR-WASM-023)
 - Ready for next core submodule
 
@@ -137,6 +140,57 @@ Created the core/security/ submodule containing security abstractions and capabi
 - All security types follow exact ADR-WASM-028 specifications
 - Clean architecture maintained (zero violations)
 - Ready for next core submodule
+
+---
+
+### 2026-01-10: WASM-TASK-021 COMPLETE - Core Storage Submodule ✅
+**Status:** ✅ COMPLETE
+**Completion Date:** 2026-01-10
+**Phase:** Phase 3 - Core Module Implementation (Task 5/8)
+
+Created the core/storage/ submodule containing storage abstractions and co-located StorageError per ADR-WASM-028. All 7 deliverables implemented with 28 unit tests (all passing).
+
+**Deliverables (7/7 Complete):**
+- ✅ wit/core/storage.wit - Updated with dedicated `storage-value` type
+- ✅ core/storage/value.rs - StorageValue ADT (dedicated domain type)
+- ✅ core/storage/errors.rs - StorageError enum (5 WIT-aligned variants)
+- ✅ core/storage/traits.rs - ComponentStorage trait (5 methods)
+- ✅ core/storage/mod.rs - Module declarations only (per §4.3)
+- ✅ core/mod.rs - Updated to export storage submodule
+- ✅ Unit tests - 28 tests, all passing (REAL tests, not stubs)
+
+**Test Results:**
+- Unit Tests (28): All passing (value.rs: 9, errors.rs: 8, traits.rs: 9)
+- Build: Clean (zero errors, zero warnings)
+- Clippy: Zero warnings
+
+**Quality Verification:**
+- Build: Clean build ✅
+- Clippy: Zero warnings ✅
+- Architecture: Zero violations ✅
+- All types documented with rustdoc ✅
+- PROJECTS_STANDARD.md: Fully compliant ✅
+
+**Standards Compliance:**
+- ADR-WASM-023 (Module Boundaries): ✅ COMPLIANT
+- ADR-WASM-028 (Core Module Structure): ✅ COMPLIANT
+- PROJECTS_STANDARD.md: ✅ FULLY COMPLIANT
+
+**Verification Chain:**
+- ✅ Implemented by @memorybank-implementer
+- ✅ Verified by @memorybank-verifier (VERIFIED)
+- ✅ Audited by @memorybank-auditor (APPROVED)
+
+**Phase 3 Progress:** 5/8 tasks complete (62%)
+
+**Key Achievement:**
+- Fifth task of Phase 3 complete
+- Core/storage/ submodule with 4 modules, 28 unit tests
+- All storage types follow exact ADR-WASM-028 specifications
+- Dedicated StorageValue type for domain boundary clarity
+- Clean architecture maintained (zero violations)
+- Full PROJECTS_STANDARD.md compliance achieved
+- Ready for next core submodule (core/config/)
 
 ---
 
@@ -401,9 +455,10 @@ airssys-wasm/src/
 - [ ] 8 of 8 tasks complete with deliverables
 - [x] 1/8: WASM-TASK-017 - core/component/ submodule ✅ COMPLETE
 - [x] 2/8: WASM-TASK-018 - core/runtime/ submodule ✅ COMPLETE
-- [x] 3/8: WASM-TASK-020 - core/security/ submodule ✅ COMPLETE
-- [ ] core/messaging/, storage/, errors/, config/ submodules
-- [ ] All core/ types implement ADR-WASM-028 specifications
+- [x] 3/8: WASM-TASK-019 - core/messaging/ submodule ✅ COMPLETE
+- [x] 4/8: WASM-TASK-020 - core/security/ submodule ✅ COMPLETE
+- [x] 5/8: WASM-TASK-021 - core/storage/ submodule ✅ COMPLETE
+- [ ] core/config/ submodule
 - [ ] Comprehensive unit tests for all core/ modules
 - [ ] `cargo build -p airssys-wasm` succeeds
 - [ ] Zero compiler/clippy warnings

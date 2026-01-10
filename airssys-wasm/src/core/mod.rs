@@ -11,6 +11,7 @@
 //! - [`messaging`] - Messaging abstractions (MessageRouter, CorrelationTracker, CorrelationId, MessagingError)
 //! - [`runtime`] - WASM runtime abstractions (RuntimeEngine, ComponentLoader, ResourceLimits)
 //! - [`security`] - Security abstractions (SecurityValidator, Capability, SecurityError)
+//! - [`storage`] - Storage abstractions (ComponentStorage, StorageValue, StorageError)
 //!
 //! # Architecture
 //!
@@ -25,6 +26,7 @@
 //! use airssys_wasm::core::messaging::correlation::CorrelationId;
 //! use airssys_wasm::core::runtime::limits::ResourceLimits;
 //! use airssys_wasm::core::security::capability::Capability;
+//! use airssys_wasm::core::storage::value::StorageValue;
 //! ```
 
 // Module declarations (per PROJECTS_STANDARD.md §4.3)
@@ -32,6 +34,7 @@ pub mod component;
 pub mod messaging;
 pub mod runtime;
 pub mod security;
+pub mod storage;
 
 // NOTE: No glob re-exports (pub use X::*) per module grouping policy.
 // Callers use namespaced access: core::component::id::ComponentId
