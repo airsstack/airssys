@@ -52,6 +52,15 @@
   - **Audience**: All developers working on messaging-related tasks (WASM-TASK-019, future messaging/ module tasks)
   - **Related**: KNOWLEDGE-WASM-005, KNOWLEDGE-WASM-024, KNOWLEDGE-WASM-029, ADR-WASM-009, ADR-WASM-031
 
+- **[KNOWLEDGE-WASM-041: Storage Management Architecture (Clean-Slate Rebuild)](knowledge-wasm-041-storage-management-architecture-clean-slate.md)** 🟡 **IMPORTANT**
+  - **Purpose**: Defines storage management architecture for clean-slate rebuild with namespace isolation
+  - **Scope**: Storage call flow, namespace isolation (Solana-inspired), type system design, layered composition, caching strategy
+  - **Key Content**: Complete call flow from component to backend, host-enforced implicit namespacing, `StorageValue` ADT, `ComponentStorage` trait, `NamespacedStorage` wrapper, `CachedStorage` decorator, type locations
+  - **Status**: Active (Created 2026-01-10)
+  - **Impact**: Important - Foundation for WASM-TASK-021 and all storage-related development
+  - **Audience**: All developers working on storage-related tasks (WASM-TASK-021, future storage backends)
+  - **Related**: KNOWLEDGE-WASM-007 (foundational concepts), KNOWLEDGE-WASM-008 (backend comparison), ADR-WASM-028 (core module structure)
+
 ### Core Concepts Category ✅
 - **[KNOWLEDGE-WASM-002: High-Level Overview](knowledge_wasm_002_high_level_overview.md)** ✅ **ESSENTIAL**
   - **Purpose**: Authoritative high-level overview and conceptual foundation
