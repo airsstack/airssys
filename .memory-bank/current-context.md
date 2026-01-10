@@ -68,7 +68,8 @@
 - Task: WASM-TASK-019 (Create core/messaging/ submodule) ✅ COMPLETE (2026-01-09)
 - Task: WASM-TASK-020 (Create core/security/ submodule) ✅ COMPLETE (2026-01-09)
 - Task: WASM-TASK-021 (Create core/storage/ submodule) ✅ COMPLETE (2026-01-10)
-- 5 of 8 Phase 3 tasks complete (62%) 🚀 PHASE 3 IN PROGRESS
+- Task: WASM-TASK-023 (Create core/config/ submodule) ✅ COMPLETE (2026-01-10)
+- 6 of 8 Phase 3 tasks complete (75%) 🚀 PHASE 3 IN PROGRESS
 
 **Recent achievements:**
 - Phase 1 complete: WIT Interface System functional
@@ -84,12 +85,13 @@
 - core/messaging/ submodule: 3 modules, 27 unit tests
 - core/security/ submodule: 4 modules, 26 unit tests
 - core/storage/ submodule: 4 modules, 28 unit tests
+- core/config/ submodule: 2 modules, 12 unit tests
 - Full PROJECTS_STANDARD.md compliance achieved
 - All tasks audited and approved
 
 **Next Phase (Phase 3 - Core Module):**
 - WASM-TASK-022: Create core/errors/ submodule (ABANDONED - errors co-located)
-- WASM-TASK-023: Create core/config/ submodule
+- WASM-TASK-023: Create core/config/ submodule ✅ COMPLETE
 - WASM-TASK-024: Write core/ unit tests
 
 **What's different now:**
@@ -210,6 +212,21 @@
 - ADR-WASM-028: Co-located errors pattern ✅
 - Dedicated StorageValue type for domain clarity ✅
 - WIT updated with storage-value type ✅
+- All audited by @memorybank-auditor (APPROVED) ✅
+- All verified by @memorybank-verifier ✅
+
+**WASM-TASK-023 Verification Results:**
+- core/config/ submodule created (2 modules) ✅
+- ComponentConfig, ConfigValidationError implemented ✅
+- 12 unit tests (all passing, real functionality) ✅
+- Build: Clean build with zero warnings ✅
+- Clippy: Zero warnings ✅
+- Architecture: Zero ADR-WASM-023 violations ✅
+- PROJECTS_STANDARD.md: Fully compliant ✅
+- ADR-WASM-028: Co-located errors pattern ✅
+- ComponentConfig with builder pattern and validation ✅
+- ConfigValidationError with 4 variants ✅
+- Default constants for memory limits (64MB) and execution time (30s) ✅
 - All audited by @memorybank-auditor (APPROVED) ✅
 - All verified by @memorybank-verifier ✅
 
@@ -336,30 +353,27 @@ All documented in detail with lessons learned.
 
 **Next Phase:** Continue Phase 3 (Core Module Implementation)
 
----
 
 ## Session Summary (2026-01-10)
 
-### 1. Task Completed: WASM-TASK-021 - Create core/storage/ Submodule ✅
+### 1. Task Completed: WASM-TASK-023 - Create core/config/ Submodule ✅
 **Status:** ✅ COMPLETE
 
 **Implementation Summary:**
-- ✅ Created core/storage/ submodule with 4 modules
-- ✅ StorageValue: Dedicated domain type (Bytes, String variants)
-- ✅ StorageError: Co-located error enum (5 variants using thiserror)
-- ✅ ComponentStorage: Trait for key-value storage operations (get, set, delete, list_keys, get_size)
-- ✅ WIT Integration: Updated storage.wit with dedicated `storage-value` type
+- ✅ Created core/config/ submodule with 2 modules
+- ✅ ComponentConfig: Configuration for component instantiation with private fields
+- ✅ ComponentConfigBuilder: Builder pattern for ergonomic construction
+- ✅ Default Constants: DEFAULT_MAX_MEMORY_BYTES (64MB), DEFAULT_MAX_EXECUTION_TIME_MS (30s)
+- ✅ ConfigValidationError: Co-located error enum (4 variants using thiserror)
+- ✅ Comprehensive Validation: validate() method checks all constraints
 - ✅ All types per ADR-WASM-028 specifications
 - ✅ Full PROJECTS_STANDARD.md compliance achieved
 
 **Test Results:**
-- 28 unit tests in core/storage/ (all passing, real functionality)
-  - 9 tests in value.rs (StorageValue ADT)
-  - 8 tests in errors.rs (StorageError enum)
-  - 9 tests in traits.rs (ComponentStorage trait)
+- 12 unit tests in core/config/ (all passing, real functionality)
 - Zero compiler warnings
 - Zero clippy warnings
-- Total: 28 tests passing
+- Total: 12 tests passing
 
 **Quality Verification:**
 - Build: Clean build ✅
@@ -389,349 +403,56 @@ All documented in detail with lessons learned.
 - Zero issues
 
 **Phase 3 Status:**
-- ✅ Phase 3: Core Module Implementation - 5/8 tasks (62%)
-- ✅ Core/component/, core/messaging/, core/runtime/, core/security/, and core/storage/ submodules complete
-- ✅ 149 unit tests total (component: 32, messaging: 27, runtime: 36, security: 26, storage: 28) - all real functionality
+- ✅ Phase 3: Core Module Implementation - 6/8 tasks (75%)
+- ✅ Core/component/, core/messaging/, core/runtime/, core/security/, core/storage/, and core/config/ submodules complete
+- ✅ 161 unit tests total (component: 32, messaging: 27, runtime: 36, security: 26, storage: 28, config: 12) - all real functionality
 - ✅ Full PROJECTS_STANDARD.md compliance achieved
-- ✅ Ready for next core submodule (core/config/)
+- ✅ Ready for next core submodule (core/ unit tests - WASM-TASK-024)
 
 **Key Achievement:**
-- Fifth task of Phase 3 complete
-- Comprehensive storage abstractions implemented
-- Dedicated StorageValue type for domain boundary clarity
+- Sixth task of Phase 3 complete
+- Comprehensive configuration abstractions implemented
 - Co-located errors pattern successfully implemented per ADR-WASM-028
 - Clean architecture maintained (zero violations)
 - All documentation complete with comprehensive examples
 
 ### 2. Memory Bank Updated
 **Files Updated:**
-- `.memory-bank/sub-projects/airssys-wasm/tasks/_index.md`
-  - WASM-TASK-021 already in Completed section ✅
-- `.memory-bank/sub-projects/airssys-wasm/progress.md`
-  - Last Updated: 2026-01-10 (WASM-TASK-021 COMPLETE)
-  - Phase 3 status updated to 5/8 tasks complete (62%)
-  - WASM-TASK-021 added to Available Work (completed)
-  - WASM-TASK-021 added to Completed Tasks list
-  - Development progress updated to 22/53 tasks (42%)
-  - Progress log entry added for WASM-TASK-021
-- `.memory-bank/sub-projects/airssys-wasm/active-context.md`
-  - Last Updated: 2026-01-10 (WASM-TASK-021 COMPLETE)
-  - Phase 3 status: 4/8 → 5/8 tasks (62% complete) 🚀 IN PROGRESS
-  - WASM-TASK-021 added to Current Task list
-  - WASM-TASK-021 marked complete in Phase 3 Tasks
-  - Phase 3 Progress updated
-  - Recent Work updated with WASM-TASK-021 completion
-  - Definition of Done updated (5/8 tasks)
-- `.memory-bank/current-context.md`
-  - Last Updated: 2026-01-10
-  - Sub-Project Context updated with WASM-TASK-021
-  - Verification Results added for WASM-TASK-021
-  - Session Summary updated with WASM-TASK-021 completion
-  - Sign-Off updated
-
-**Status Changes:**
-- Task WASM-TASK-021: pending → ✅ COMPLETE
-- Phase 3: 4/8 tasks → 5/8 tasks (62% complete) 🚀 IN PROGRESS
-- Overall Project Progress: 40% → 42% complete (22/53 tasks)
-
-**Next Phase:** Continue Phase 3 (Core Module Implementation)
-
----
-
-## Session Summary (2026-01-09)
-
-### 1. Task Completed: WASM-TASK-018 - Create core/runtime/ Submodule ✅
-**Status:** ✅ COMPLETE
-
-**Implementation Summary:**
-- ✅ Created core/runtime/ submodule with 4 modules
-- ✅ WasmError: Co-located error enum (7 variants using thiserror)
-- ✅ RuntimeEngine: Trait for WASM runtime abstraction (load_component, unload_component, call_handle_message, call_handle_callback)
-- ✅ ComponentLoader: Trait for component binary loading (load_bytes, validate)
-- ✅ ResourceLimits: Configurable execution constraints (default: 64MB memory, 30s timeout, no fuel limit)
-- ✅ All types per ADR-WASM-028 specifications
-- ✅ Full PROJECTS_STANDARD.md compliance achieved
-
-**Test Results:**
-- 36 unit tests in core/runtime/ (all passing, real functionality)
-- 15 doctests (all passing)
-- Zero compiler warnings
-- Zero clippy warnings
-- Total: 51 tests passing
-
-**Quality Verification:**
-- Build: Clean build ✅
-- Clippy: Zero warnings ✅
-- Architecture: Zero violations ✅
-- All types documented with rustdoc ✅
-- PROJECTS_STANDARD.md: Fully compliant ✅
-
-**Standards Compliance:**
-- ADR-WASM-023 (Module Boundaries): ✅ COMPLIANT (clean boundaries)
-- ADR-WASM-028 (Core Module Structure): ✅ COMPLIANT (co-located errors)
-- PROJECTS_STANDARD.md: ✅ FULLY COMPLIANT (all sections)
-- Rust Guidelines: ✅ FULLY COMPLIANT (all guidelines)
-  - M-MODULE-DOCS ✅ (all modules documented)
-  - M-ERRORS-CANONICAL-STRUCTS ✅ (thiserror)
-  - M-PUBLIC-DEBUG ✅ (all types)
-  - M-STATIC-VERIFICATION ✅ (lint config)
-
-**Verification Chain:**
-- ✅ Implemented by @memorybank-implementer
-- ✅ Verified by @memorybank-verifier (VERIFIED)
-- ✅ Audited by @memorybank-auditor (APPROVED - after fixing doctests and achieving full compliance)
-
-**Audit Summary:**
-- Initial Audit: ❌ REJECTED (11 failing doctests)
-- Re-Audit (after doctest fixes): ✅ APPROVED
-- Final Audit (after PROJECTS_STANDARD.md compliance): ✅ APPROVED
-- All quality standards met
-
-**Phase 3 Status:**
-- ✅ Phase 3: Core Module Implementation - 2/8 tasks (25%)
-- ✅ Core/component/ and core/runtime/ submodules complete
-- ✅ 68 unit tests total (component: 32, runtime: 36) - all real functionality
-- ✅ 15 doctests total (all passing)
-- ✅ Full PROJECTS_STANDARD.md compliance achieved
-- ✅ Ready for next core submodule (core/messaging/)
-
-**Key Achievement:**
-- Achieved full PROJECTS_STANDARD.md compliance after multiple audit iterations
-- Co-located errors pattern successfully implemented per ADR-WASM-028
-- Clean architecture maintained (zero violations)
-- All documentation complete with comprehensive examples
-
-### 2. Memory Bank Updated
-**Files Updated:**
-- `.memory-bank/sub-projects/airssys-wasm/tasks/wasm-task-018/wasm-task-018.md`
-  - Added final progress log entry for PROJECTS_STANDARD.md compliance
-  - Updated Definition of Done checklist
-  - Documented full standards compliance
-- `.memory-bank/sub-projects/airssys-wasm/tasks/_index.md`
-  - WASM-TASK-018 already in Completed section ✅
-- `.memory-bank/sub-projects/airssys-wasm/progress.md`
-  - Progress log updated with full completion details
-  - Added PROJECTS_STANDARD.md compliance summary
-- `.memory-bank/sub-projects/airssys-wasm/active-context.md`
-  - Last Updated: 2026-01-09 (WASM-TASK-018 COMPLETE)
-  - Recent Work updated with WASM-TASK-018 completion
-  - Definition of Done updated (2/8 tasks)
-- `.memory-bank/current-context.md`
-  - Last Updated: 2026-01-09
-  - Sub-Project Context updated with WASM-TASK-018
-  - Verification Results added
-  - Session Summary updated with WASM-TASK-018 completion
-  - Sign-Off updated
-
-**Status Changes:**
-- Task WASM-TASK-018: pending → ✅ COMPLETE
-- Phase 3: 1/8 tasks → 2/8 tasks (25% complete) 🚀 IN PROGRESS
-- Overall Project Progress: 34% → 36% complete (19/53 tasks)
-
-**Next Phase:** Continue Phase 3 (Core Module Implementation)
-
----
-
-## Session Summary (2026-01-08)
-
-### 1. Task Completed: WASM-TASK-017 - Create core/component/ Submodule ✅
-**Status:** ✅ COMPLETE
-
-**Implementation Summary:**
-- ✅ Created core/component/ submodule with 5 modules
-- ✅ ComponentId: Unique identifier (namespace, name, instance)
-- ✅ ComponentHandle: Opaque handle to loaded components
-- ✅ MessageMetadata: Correlation, reply-to, timestamp, content-type
-- ✅ ComponentMessage: Message envelope for component communication
-- ✅ ComponentLifecycle: Lifecycle management trait
-- ✅ All types per ADR-WASM-028 specifications
-
-**Test Results:**
-- 32 unit tests in core/component/ (all passing)
-- Zero compiler warnings
-- Zero clippy warnings
-- All tests cover real functionality (not stubs)
-
-**Quality Verification:**
-- Build: Clean build ✅
-- Clippy: Zero warnings ✅
-- Architecture: Zero violations ✅
-- All types documented with rustdoc ✅
-
-**Verification Chain:**
-- ✅ Implemented by @memorybank-implementer
-- ✅ Verified by @memorybank-verifier (VERIFIED)
-- ✅ Reviewed by @rust-reviewer (APPROVED)
-- ✅ Audited by @memorybank-auditor (APPROVED - 10/10 conditions met)
-
-**Phase 3 Status:**
-- ✅ Phase 3: Core Module Implementation - 1/8 tasks (12%)
-- ✅ Foundation types established for component identity and messaging
-- ✅ Ready for next core submodule (core/runtime/)
-
-### 2. Memory Bank Updated
-**Files Updated:**
-- `.memory-bank/sub-projects/airssys-wasm/tasks/wasm-task-017/wasm-task-017.md`
+- `.memory-bank/sub-projects/airssys-wasm/tasks/wasm-task-023/wasm-task-023.md`
   - Status: complete
   - All deliverables marked complete
   - Progress tracking: 100%
-  - Comprehensive progress log entry added
+  - Progress log entry added for completion
 - `.memory-bank/sub-projects/airssys-wasm/tasks/_index.md`
-  - WASM-TASK-017 moved to Completed section ✅
+  - WASM-TASK-023 already in Completed section ✅
 - `.memory-bank/sub-projects/airssys-wasm/progress.md`
-  - Last Updated: 2026-01-08 (WASM-TASK-017 Complete - Phase 3 Started)
-  - Current Status updated to PHASE 3 IN PROGRESS
-  - Phase 3 status: 1/8 tasks complete (12%)
-  - Added WASM-TASK-017 to Available Work (completed)
-  - Added WASM-TASK-017 to Completed Tasks list
-  - Updated Development Progress: 18/53 tasks (34%)
-  - Progress log entry added for WASM-TASK-017
+  - Last Updated: 2026-01-10 (WASM-TASK-023 COMPLETE)
+  - Phase 3 status updated to 6/8 tasks complete (75%)
+  - WASM-TASK-023 marked complete in Available Work
+  - WASM-TASK-023 added to Completed Tasks list
+  - Development progress updated to 23/53 tasks (43%)
+  - Progress log entry added for WASM-TASK-023
 - `.memory-bank/sub-projects/airssys-wasm/active-context.md`
-  - Last Updated: 2026-01-08
-  - Current Status updated to PHASE 3 IN PROGRESS - CORE MODULE IMPLEMENTATION
-  - Current Focus updated with Phase 3 progress
-  - Recent Work updated with WASM-TASK-017 completion
-  - Next Steps updated to Phase 3 tasks
-  - Definition of Done updated with Phase 3 criteria
+  - Last Updated: 2026-01-10 (WASM-TASK-023 COMPLETE)
+  - Phase 3 status: 5/8 → 6/8 tasks (75% complete) 🚀 IN PROGRESS
+  - WASM-TASK-023 added to Current Task list
+  - WASM-TASK-023 marked complete in Phase 3 Tasks
+  - Phase 3 Progress updated
+  - Recent Work updated with WASM-TASK-023 completion
+  - Definition of Done updated (6/8 tasks)
 - `.memory-bank/current-context.md`
-  - Last Updated: 2026-01-08
-  - Status updated to PHASE 3 IN PROGRESS
-  - Sub-Project Context updated with Phase 3 progress
-  - Success Criteria updated with WASM-TASK-017 verification results
-  - Session Summary updated with WASM-TASK-017 completion
-
-**Status Changes:**
-- Task WASM-TASK-017: pending → ✅ COMPLETE
-- Phase 3: 0/8 tasks → 1/8 tasks (12% complete) 🚀 IN PROGRESS
-- Overall Project Progress: 32% → 34% complete (18/53 tasks)
-
-**Next Phase:** Continue Phase 3 (Core Module Implementation)
-
----
-
-## Session Summary (2026-01-08)
-
-### 1. Phase 2 Complete: WASM-TASK-013 through WASM-TASK-016 ✅
-**Status:** ✅ COMPLETE
-
-**Implementation Summary:**
-- ✅ Renamed actor/ → component/ (Layer 3A)
-- ✅ Created system/ module (Layer 4 - coordinator)
-- ✅ Created messaging/ module (Layer 3B - messaging infrastructure)
-- ✅ Updated lib.rs with 6-module architecture exports
-
-**Quality Verification:**
-- Build: Clean build (zero warnings) ✅
-- Clippy: Zero warnings ✅
-- Architecture: Zero violations ✅
-- All deliverables complete ✅
-
-**Verification Chain:**
-- ✅ Implemented by @memorybank-implementer
-- ✅ Verified by @memorybank-verifier (VERIFIED)
-- ✅ Audited by @memorybank-auditor (APPROVED)
-
-**Phase 2 Status:**
-- ✅ Phase 2: Project Restructuring - COMPLETE (4/4 tasks)
-- ✅ Six-module architecture established
-- ✅ Terminology aligned with WASM Component Model
-- ✅ Ready for Phase 3 (Core Module)
-
-### 2. Memory Bank Updated
-**Files Updated:**
-- `.memory-bank/sub-projects/airssys-wasm/tasks/_index.md`
-  - WASM-TASK-013, 014, 015, 016 moved to Completed section ✅
-- `.memory-bank/sub-projects/airssys-wasm/progress.md`
-  - Last Updated: 2026-01-08 (Phase 2 COMPLETE)
-  - Current Status updated to PHASE 2 COMPLETE
-  - Phase 2 status: 4/4 tasks complete (100%)
-  - Added all Phase 2 tasks to Available Work (completed)
-  - Added all Phase 2 tasks to Completed Tasks list
-  - Updated Development Progress: 17/53 tasks (32%)
-  - Progress log entry added for Phase 2 complete
-- `.memory-bank/sub-projects/airssys-wasm/active-context.md`
-  - Current Focus updated with Phase 2 complete
-  - Recent Work updated with Phase 2 completion
-  - Next Steps updated to Phase 3
-  - Definition of Done updated with Phase 2 criteria
-
-**Status Changes:**
-- Phase 2: 0/4 tasks → 4/4 tasks (100% complete) ✅ COMPLETE
-- Overall Project Progress: 25% → 32% complete (17/53 tasks)
-
-**Next Phase:** Phase 3 (Core Module Implementation)
-
----
-
-## Session Summary (2026-01-06)
-
-### 1. Task Completed: WASM-TASK-012 - Setup wit-bindgen Integration ✅
-**Status:** ✅ COMPLETE
-
-**Implementation Summary:**
-- ✅ wit-bindgen 0.47.0 added to Cargo.toml (macros feature)
-- ✅ Macro invocation added to src/lib.rs with 94 lines of documentation
-- ✅ Bindings generate successfully during build
-- ✅ Generated types accessible in Rust code
-- ✅ Build verification completed
-
-**Quality Verification:**
-- Build: Clean build ✅
-- Clippy: Zero warnings ✅
-- Macro present in lib.rs ✅
-- WIT validation: Valid ✅
-- Architecture: Zero violations ✅
-
-**Verification Chain:**
-- ✅ Implemented by @memorybank-implementer
-- ✅ Verified by @memorybank-verifier (VERIFIED)
-- ✅ Audited by @memorybank-auditor (APPROVED)
-
-**Phase 1 Status:**
-- ✅ Phase 1: WIT Interface System - COMPLETE (12/12 tasks)
-- ✅ All WIT infrastructure functional and ready
-- ✅ Ready for Phase 2 (Project Restructuring)
-
-### 2. Memory Bank Updated
-**Files Updated:**
-- `.memory-bank/sub-projects/airssys-wasm/tasks/wasm-task-012/wasm-task-012.md`
-  - Status updated to complete
-  - All deliverables marked as complete
-  - All success criteria marked as met
-  - All standards compliance marked as satisfied
-  - Progress tracking updated to 100%
-  - Progress log entry added with completion details
-- `.memory-bank/sub-projects/airssys-wasm/progress.md`
-  - Last Updated: 2026-01-06 (WASM-TASK-012 Complete - Phase 1 COMPLETE)
-  - Phase 3 status updated to COMPLETE (12/12 tasks)
-  - Progress log entry added for WASM-TASK-012
-  - Development progress updated to 13/53 tasks (25%)
-  - Available Work updated to show Phase 1 complete
-  - Completed Tasks list updated to include WASM-TASK-012
-- `.memory-bank/sub-projects/airssys-wasm/tasks/_index.md`
-  - WASM-TASK-012 moved from Pending to Completed
-  - Pending section now empty
-  - Phase 1 fully reflected in Completed section
-- `.memory-bank/sub-projects/airssys-wasm/active-context.md`
-  - Current Status updated to PHASE 1 COMPLETE - READY FOR PHASE 2
-  - Phase 1 section updated to show all 12 tasks complete
-  - Recent Work section updated with WASM-TASK-012 completion summary
-  - Next Steps updated to Phase 2
-  - Definition of Done updated
-- `.memory-bank/current-context.md`
-  - Status updated to PHASE 1 COMPLETE - READY FOR PHASE 2
-  - Sub-Project Context updated with Phase 1 completion
-  - Current work updated with all 12 Phase 1 tasks complete
-  - Next steps updated to Phase 2 tasks
-  - Session summary updated
+  - Last Updated: 2026-01-10
+  - Sub-Project Context updated with WASM-TASK-023
+  - Verification Results added for WASM-TASK-023
+  - Session Summary updated with WASM-TASK-023 completion
   - Sign-Off updated
 
 **Status Changes:**
-- Task WASM-TASK-012: pending → ✅ COMPLETE
-- Phase 1: 11/12 tasks → 12/12 tasks (100% complete) ✅ PHASE 1 COMPLETE
-- Overall Project Progress: 23% → 25% complete (13/53 tasks)
+- Task WASM-TASK-023: pending → ✅ COMPLETE
+- Phase 3: 5/8 tasks → 6/8 tasks (75% complete) 🚀 IN PROGRESS
+- Overall Project Progress: 42% → 43% complete (23/53 tasks)
 
-**Next Phase:** Phase 2 (Project Restructuring)
+**Next Phase:** Continue Phase 3 (Core Module Implementation)
 
 ---
 
@@ -739,6 +460,6 @@ All documented in detail with lessons learned.
 
 **Status:** 🚀 **PHASE 3 IN PROGRESS - CORE MODULE IMPLEMENTATION**
 **Active Phase:** Phase 3 (Core Module Implementation)
-**Next Task:** WASM-TASK-023 (Create core/config/ submodule) or WASM-TASK-024 (Write core/ unit tests)
+**Next Task:** WASM-TASK-024 (Write core/ unit tests)
 **Documented By:** Memory Bank Completer
 **Date:** 2026-01-10
