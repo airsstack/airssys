@@ -427,4 +427,44 @@ mod tests {
         fn assert_send_sync<T: Send + Sync + ?Sized>() {}
         assert_send_sync::<dyn CorrelationTracker>();
     }
+
+    // Gap analysis tests
+
+    #[test]
+    fn test_message_router_error_propagation() {
+        struct FailingRouter;
+
+        impl MessageRouter for FailingRouter {
+            fn send(
+                &self,
+                _target: &ComponentId,
+                _payload: MessagePayload,
+            ) -> Result<(), MessagingError> {
+                Err(MessagingError::TargetNotFound("not-found".to_string()))
+            }
+
+            fn request(
+                &self,
+                _target: &ComponentId,
+                _payload: MessagePayload,
+                _timeout_ms: u64,
+            ) -> Result<CorrelationId, MessagingError> {
+                Err(MessagingError::QueueFull)
+            }
+
+            fn cancel_request(
+                &self,
+                _correlation_id: &CorrelationId,
+            ) -> Result<(), MessagingError> {
+                Err(MessagingError::DeliveryFailed("cancelled".to_string()))
+            }
+        }
+
+        let router = FailingRouter;
+        let target = ComponentId::new("a", "b", "c");
+        let payload = MessagePayload::new(vec![]);
+
+        let result = router.send(&target, payload);
+        assert!(matches!(result, Err(MessagingError::TargetNotFound(_))));
+    }
 }

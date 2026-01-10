@@ -271,4 +271,37 @@ mod tests {
         fn assert_send_sync<T: Send + Sync>() {}
         assert_send_sync::<MockLogger>();
     }
+
+    // Gap analysis tests
+
+    #[test]
+    fn test_security_event_debug_format() {
+        let event = SecurityEvent {
+            component: ComponentId::new("org", "service", "1"),
+            action: "test".to_string(),
+            resource: "resource".to_string(),
+            granted: true,
+            timestamp_ms: 0,
+        };
+        let debug_str = format!("{:?}", event);
+        assert!(debug_str.contains("SecurityEvent"));
+        assert!(debug_str.contains("granted"));
+    }
+
+    #[test]
+    fn test_security_validator_trait_object_creation() {
+        let validator: Box<dyn SecurityValidator> = Box::new(MockValidator);
+        let component = ComponentId::new("org", "service", "1");
+        let cap = Capability::Messaging(MessagingCapability {
+            action: MessagingAction::Send,
+            target_pattern: "*".to_string(),
+        });
+        assert!(validator.validate_capability(&component, &cap).is_ok());
+    }
+
+    #[test]
+    fn test_security_validator_is_send_sync() {
+        fn assert_send_sync<T: Send + Sync + ?Sized>() {}
+        assert_send_sync::<dyn SecurityValidator>();
+    }
 }

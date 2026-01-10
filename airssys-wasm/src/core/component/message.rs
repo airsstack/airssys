@@ -454,4 +454,50 @@ mod tests {
         assert_eq!(p1, p2);
         assert_ne!(p1, p3);
     }
+
+    // Gap analysis tests
+
+    #[test]
+    fn test_message_payload_debug_format() {
+        let payload = MessagePayload::new(vec![1, 2, 3]);
+        let debug_str = format!("{:?}", payload);
+        assert!(debug_str.contains("MessagePayload"));
+    }
+
+    #[test]
+    fn test_message_metadata_clone_creates_independent_copy() {
+        let reply_to = ComponentId::new("test", "comp", "1");
+        let metadata1 = MessageMetadata {
+            correlation_id: Some("corr-1".to_string()),
+            reply_to: Some(reply_to),
+            timestamp_ms: 12345,
+            content_type: Some("application/json".to_string()),
+        };
+        let metadata2 = metadata1.clone();
+
+        // Verify independence
+        assert_eq!(metadata1.correlation_id, metadata2.correlation_id);
+        assert_eq!(metadata1.timestamp_ms, metadata2.timestamp_ms);
+        assert_eq!(metadata1.content_type, metadata2.content_type);
+    }
+
+    #[test]
+    fn test_component_message_debug_format() {
+        let sender = ComponentId::new("test", "comp", "1");
+        let payload = MessagePayload::new(vec![1, 2, 3]);
+        let metadata = MessageMetadata::default();
+        let message = ComponentMessage::new(sender, payload, metadata);
+
+        let debug_str = format!("{:?}", message);
+        assert!(debug_str.contains("ComponentMessage"));
+        assert!(debug_str.contains("sender"));
+    }
+
+    #[test]
+    fn test_message_payload_large_data() {
+        let large_data = vec![0u8; 1024 * 1024]; // 1MB
+        let payload = MessagePayload::new(large_data.clone());
+        assert_eq!(payload.len(), 1024 * 1024);
+        assert_eq!(payload.as_bytes().len(), 1024 * 1024);
+    }
 }

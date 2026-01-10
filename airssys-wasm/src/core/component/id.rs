@@ -184,4 +184,15 @@ mod tests {
         assert_eq!(id1.to_string_id(), "ns/comp/2");
         assert_eq!(id2.to_string_id(), "ns/comp/1");
     }
+
+    // Gap analysis tests
+
+    #[test]
+    fn test_component_id_debug_format() {
+        let id = ComponentId::new("system", "database", "prod");
+        let debug_str = format!("{:?}", id);
+        assert!(debug_str.contains("ComponentId"));
+        assert!(debug_str.contains("namespace"));
+        assert!(debug_str.contains("system"));
+    }
 }

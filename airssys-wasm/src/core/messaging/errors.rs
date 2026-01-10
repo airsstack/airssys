@@ -119,4 +119,22 @@ mod tests {
         assert_eq!(err1, err2);
         assert_ne!(err1, err3);
     }
+
+    // Gap analysis tests
+
+    #[test]
+    fn test_messaging_error_implements_std_error() {
+        let err: Box<dyn std::error::Error> = Box::new(MessagingError::QueueFull);
+        assert!(err.to_string().contains("queue"));
+    }
+
+    #[test]
+    fn test_messaging_error_is_send_sync() {
+        fn requires_send<T: Send>(_val: T) {}
+        fn requires_sync<T: Sync>(_val: T) {}
+
+        let err = MessagingError::QueueFull;
+        requires_send(err.clone());
+        requires_sync(err);
+    }
 }

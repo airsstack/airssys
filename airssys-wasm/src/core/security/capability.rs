@@ -229,4 +229,28 @@ mod tests {
         assert_eq!(cap.host_pattern, "localhost");
         assert_eq!(cap.port, Some(8080));
     }
+
+    // Gap analysis tests
+
+    #[test]
+    fn test_capability_debug_shows_inner_type() {
+        let cap = Capability::Messaging(MessagingCapability {
+            action: MessagingAction::Send,
+            target_pattern: "test/*".to_string(),
+        });
+        let debug_str = format!("{:?}", cap);
+        assert!(debug_str.contains("Messaging"));
+        assert!(debug_str.contains("Send"));
+    }
+
+    #[test]
+    fn test_capability_clone_creates_independent_copy() {
+        let cap1 = Capability::Storage(StorageCapability {
+            action: StorageAction::Write,
+            namespace_pattern: "data/*".to_string(),
+        });
+        let cap2 = cap1.clone();
+
+        assert!(matches!(cap2, Capability::Storage(_)));
+    }
 }

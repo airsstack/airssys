@@ -104,4 +104,23 @@ mod tests {
         let debug_str = format!("{:?}", err);
         assert!(debug_str.contains("InitializationFailed"));
     }
+
+    // Gap analysis tests
+
+    #[test]
+    fn test_component_error_implements_std_error() {
+        let err: Box<dyn std::error::Error> =
+            Box::new(ComponentError::NotFound("test".to_string()));
+        assert!(err.to_string().contains("Component not found"));
+    }
+
+    #[test]
+    fn test_component_error_is_send_sync() {
+        fn requires_send<T: Send>(_val: T) {}
+        fn requires_sync<T: Sync>(_val: T) {}
+
+        let err = ComponentError::NotFound("test".to_string());
+        requires_send(err.clone());
+        requires_sync(err);
+    }
 }
