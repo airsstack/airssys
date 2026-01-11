@@ -14,7 +14,7 @@ Per ADR-WASM-029:
 security/capability/
 ├── mod.rs           # Module declarations
 ├── types.rs         # PatternMatcher, core re-exports
-├── set.rs           # CapabilitySet, permission structs
+├── set.rs           # CapabilitySet, permission structs, Builder
 ├── grant.rs         # CapabilityGrant
 └── validator.rs     # (WASM-TASK-026)
 ```
@@ -34,11 +34,6 @@ security/capability/
 ```rust
 //! Capability type utilities and re-exports.
 
-use crate::core::security::capability::{
-    Capability, MessagingCapability, StorageCapability,
-    FilesystemCapability, NetworkCapability,
-};
-
 // Re-export from core
 pub use crate::core::security::capability::*;
 
@@ -51,18 +46,21 @@ impl PatternMatcher {
         if pattern == "*" {
             return true;
         }
-        if pattern.ends_with("/*") {
-            let prefix = &pattern[..pattern.len() - 2];
-            return target.starts_with(prefix);
+        if let Some(prefix) = pattern.strip_suffix("/*") {
+            return target.starts_with(prefix) && target.len() > prefix.len();
+        }
+        if let Some(suffix) = pattern.strip_prefix("*.") {
+            return target.ends_with(suffix) && target.len() > suffix.len();
         }
         pattern == target
     }
 }
 ```
 
-**Tests:** 5 unit tests
+**Tests:** 6 unit tests
 - Wildcard matching test
 - Prefix pattern matching test
+- Suffix pattern matching test
 - Exact match test
 - Non-matching pattern test
 - Edge cases (empty strings)
@@ -71,7 +69,7 @@ impl PatternMatcher {
 
 ### Action 2: Create `security/capability/set.rs`
 
-**Objective:** Implement CapabilitySet for managing component permissions
+**Objective:** Implement CapabilitySet, permission structs, and builder pattern
 
 **File:** `airssys-wasm/src/security/capability/set.rs`
 
@@ -81,13 +79,22 @@ impl PatternMatcher {
 - MessagingPermission, StoragePermission, FilesystemPermission, NetworkPermission structs
 - Add methods for each permission type
 - Has permission check methods
+- **CapabilitySetBuilder for fluent permission construction**
 
-**Tests:** 8 unit tests
+**Tests:** 12 unit tests
 - Create empty CapabilitySet
 - Add and check messaging permission
 - Add and check storage permission
 - Pattern-based permission matching
 - Permission denial tests
+- Multiple permissions
+- Network permissions
+- Wildcard permission
+- **Builder pattern tests (4 new)**:
+  - Builder with single messaging permission
+  - Builder with multiple permissions
+  - Builder chaining all permission types
+  - Builder empty set
 
 ---
 
@@ -100,8 +107,8 @@ impl PatternMatcher {
 ```rust
 //! Capability grant management.
 
-use crate::core::component::id::ComponentId;
 use super::set::CapabilitySet;
+use crate::core::component::id::ComponentId;
 
 /// Represents a capability grant to a component.
 #[derive(Debug, Clone)]
@@ -124,9 +131,32 @@ impl CapabilityGrant {
         }
     }
 
+    /// Create a new capability grant with expiration.
+    pub fn with_expiration(
+        component: ComponentId,
+        capabilities: CapabilitySet,
+        expires_at: u64,
+    ) -> Self {
+        Self {
+            component,
+            capabilities,
+            expires_at: Some(expires_at),
+        }
+    }
+
     /// Check if the grant has expired.
     pub fn is_expired(&self, current_time_ms: u64) -> bool {
-        self.expires_at.map_or(false, |exp| current_time_ms > exp)
+        self.expires_at.is_some_and(|exp| current_time_ms > exp)
+    }
+
+    /// Get the component ID.
+    pub fn component(&self) -> &ComponentId {
+        &self.component
+    }
+
+    /// Get the capability set.
+    pub fn capabilities(&self) -> &CapabilitySet {
+        &self.capabilities
     }
 }
 ```
@@ -135,6 +165,7 @@ impl CapabilityGrant {
 - Create grant
 - Check expiration
 - Grant with capabilities
+- Grant with expiration
 
 ---
 
@@ -148,6 +179,8 @@ impl CapabilityGrant {
 //! # Capability Submodule
 //!
 //! Capability management for security validation.
+//!
+//! ## Modules
 //!
 //! - [`types`] - PatternMatcher and core re-exports
 //! - [`set`] - CapabilitySet for permission management
@@ -183,7 +216,7 @@ cargo clippy -p airssys-wasm --all-targets -- -D warnings
 cargo test -p airssys-wasm --lib security::capability
 
 # 4. Module boundary check
-grep -rn "use crate::runtime\|use crate::component\|use crate::messaging\|use crate::system" src/security/
+grep -rn "use crate::runtime\|use crate::actor\|use crate::component\|use crate::messaging\|use crate::system" src/security/
 # Should return empty (no forbidden imports)
 ```
 
@@ -192,8 +225,45 @@ grep -rn "use crate::runtime\|use crate::component\|use crate::messaging\|use cr
 ## Success Criteria
 
 - [ ] All types from ADR-WASM-029 implemented
+- [ ] CapabilitySetBuilder implemented for fluent API
 - [ ] Build passes with zero warnings
 - [ ] Clippy passes with zero warnings
-- [ ] All unit tests pass
+- [ ] All unit tests pass (22 tests: 6 + 12 + 4)
 - [ ] Only imports from core/ (Layer 1)
 - [ ] mod.rs files contain only declarations
+- [ ] Builder pattern provides fluent API
+
+---
+
+## Enhancement Notes
+
+### Builder Pattern Addition
+
+**Why:**
+The builder pattern provides a fluent API for constructing complex CapabilitySets, making code more readable and reducing verbosity when creating permission sets.
+
+**Implementation:**
+- `CapabilitySetBuilder` struct with optional permission fields
+- Chained setter methods returning `&mut self` for fluent API
+- `build()` method to construct final `CapabilitySet`
+- Default empty CapabilitySet for no permissions
+
+**Example Usage:**
+```rust
+let capabilities = CapabilitySet::builder()
+    .messaging(MessagingPermission {
+        can_send_to: vec!["comp-a/*".to_string()],
+        can_receive_from: vec![],
+    })
+    .storage(StoragePermission {
+        can_write_keys: vec!["user/*".to_string()],
+        can_read_keys: vec!["*".to_string()],
+    })
+    .build();
+```
+
+**Benefits:**
+- More readable code
+- Method chaining for complex permission sets
+- Clearer intent when creating permissions
+- Consistent with Rust builder pattern conventions

@@ -1,10 +1,10 @@
 # airssys-wasm Progress
 
-**Last Updated:** 2026-01-10 (WASM-TASK-024 COMPLETE - Core Unit Tests)
+**Last Updated:** 2026-01-11 (WASM-TASK-025 COMPLETE - Builder Pattern Enhancement)
 
 ---
 
-## Current Status: 🚀 PHASE 3 IN PROGRESS - CORE MODULE IMPLEMENTATION
+## Current Status: 🚀 PHASE 4 IN PROGRESS - SECURITY MODULE IMPLEMENTATION
 
 ### Recovery Progress
 
@@ -73,12 +73,13 @@ airssys-wasm/src/
 - 4 tasks: Rename modules, create new structure
 - Status: 4 of 4 tasks complete (100%)
 
-**Phase 3: Core Module** (WASM-TASK-017 to 024) - 🚀 IN PROGRESS
+**Phase 3: Core Module** (WASM-TASK-017 to 024) - ✅ COMPLETE
 - 8 tasks: Build foundation types and traits
-- Status: 7 of 8 tasks complete (88%)
+- Status: 8 of 8 tasks complete (100%) ✅
 
-**Phase 4: Security Module** (WASM-TASK-025 to 030)
+**Phase 4: Security Module** (WASM-TASK-025 to 030) - 🚀 IN PROGRESS
 - 6 tasks: Implement capability system
+- Status: 1 of 6 tasks complete (17%)
 
 **Phase 5: Runtime Module** (WASM-TASK-031 to 036)
 - 6 tasks: WASM execution layer
@@ -93,7 +94,7 @@ airssys-wasm/src/
 
 ## Available Work
 
-### Phase 3 Tasks (In Progress) 🚀
+### Phase 3 Tasks (Complete) ✅
 **WASM-TASK-017** - Create core/component/ submodule (2026-01-08) ✅
 **WASM-TASK-018** - Create core/runtime/ submodule (2026-01-09) ✅
 **WASM-TASK-019** - Create core/messaging/ submodule (2026-01-09) ✅
@@ -102,6 +103,14 @@ airssys-wasm/src/
 **WASM-TASK-022** - Create core/errors/ submodule (pending) - **ABANDONED**: Errors now co-located
 **WASM-TASK-023** - Create core/config/ submodule (2026-01-10) ✅
 **WASM-TASK-024** - Write core/ unit tests (2026-01-10) ✅
+
+### Phase 4 Tasks (In Progress) 🚀
+**WASM-TASK-025** - Create security/capability/ submodule (2026-01-10) ✅ (builder enhanced 2026-01-11)
+**WASM-TASK-026** - Implement CapabilityValidator (2026-01-10)
+**WASM-TASK-027** - Create security/policy/ submodule (2026-01-10)
+**WASM-TASK-028** - Implement SecurityAuditLogger (2026-01-10)
+**WASM-TASK-029** - Create airssys-osl bridge (2026-01-10)
+**WASM-TASK-030** - Write security/ unit tests (2026-01-10)
 
 ### Phase 2 Tasks (All Complete) ✅
 **WASM-TASK-013** - Rename actor/ to component/ (2026-01-08) ✅
@@ -136,6 +145,7 @@ airssys-wasm/src/
 - WASM-TASK-021 (Create core/storage/ submodule) ✅ COMPLETE (2026-01-10)
 - WASM-TASK-023 (Create core/config/ submodule) ✅ COMPLETE (2026-01-10)
 - WASM-TASK-024 (Write core/ unit tests) ✅ COMPLETE (2026-01-10)
+- WASM-TASK-025 (Create security/capability/ submodule) ✅ COMPLETE (2026-01-10, builder enhanced 2026-01-11)
 
 ---
 
@@ -173,10 +183,12 @@ grep -rn "use crate::actor" src/runtime/     ✅
 - Foundation complete: 1/53 tasks (WASM-TASK-001)
 - WIT interfaces: 12/12 tasks complete (WASM-TASK-002 through WASM-TASK-012)
 - Project restructuring: 4/4 tasks complete (WASM-TASK-013 through WASM-TASK-016)
-- Core module: 7/8 tasks complete (WASM-TASK-017, WASM-TASK-018, WASM-TASK-019, WASM-TASK-020, WASM-TASK-021, WASM-TASK-023, WASM-TASK-024)
+- Core module: 8/8 tasks complete (WASM-TASK-017 through WASM-TASK-024, WASM-TASK-022 abandoned)
+- Security module: 1/6 tasks complete (WASM-TASK-025)
 - Phase 1 complete: 13/53 tasks (25%)
 - Phase 2 complete: 17/53 tasks (32%)
-- Phase 3 in progress: 24/53 tasks (45%)
+- Phase 3 complete: 25/53 tasks (47%) ✅
+- Phase 4 in progress: 26/53 tasks (49%) 🚀
 
 **Architecture Documentation:**
 - ADRs created: 25+ (including clean-slate rebuild ADRs)
@@ -966,7 +978,178 @@ Created the core/config/ submodule containing configuration types per ADR-WASM-0
 - ADR-WASM-026: Implementation Roadmap (Phase 3 tasks)
 
 
-### 2026-01-10: WASM-TASK-024 COMPLETE - Core Unit Tests ✅
+### 2026-01-11: WASM-TASK-025 Builder Enhancement COMPLETE - CapabilitySetBuilder ✅
+
+**Status:** ✅ COMPLETE
+**Completion Date:** 2026-01-11
+**Phase:** Phase 4 - Security Module Implementation (Task 1/6 - Enhancement)
+
+Added CapabilitySetBuilder to provide fluent API for constructing complex CapabilitySets, per rust-reviewer recommendation.
+
+**Enhancement Summary:**
+- **Rationale:** Fluent API for complex permission sets improves readability
+- **API Style:** Builder pattern with method chaining
+- **Implementation:**
+  - CapabilitySetBuilder struct with chaining methods
+  - `builder()` method on CapabilitySet
+  - 4 new builder unit tests (all passing)
+  - Updated module documentation with builder examples
+
+**Updated Files:**
+- ✅ `security/capability/set.rs` - Added builder implementation
+- ✅ `security/capability/mod.rs` - Updated documentation with builder examples
+
+**Test Results:**
+- Builder Tests (4): All passing
+  - test_builder_single_messaging_permission - Single permission
+  - test_builder_multiple_permissions - Multiple same-type permissions
+  - test_builder_all_permission_types - All permission types chained
+  - test_builder_empty_set - Empty set from builder
+- Total Capability Tests: 22 (18 original + 4 builder)
+- Total Tests with core: 36 (22 capability + 14 core re-exports)
+- Build: Clean (zero errors, zero warnings)
+- Clippy: Zero warnings
+
+**Quality Metrics:**
+- Build: ✅ PASSED (zero errors, zero warnings)
+- Clippy: ✅ PASSED (zero warnings)
+- Tests: ✅ PASSED (36/36 capability tests, 207 total)
+- Architecture: ✅ CLEAN (no forbidden imports)
+
+**Standards Compliance:**
+- PROJECTS_STANDARD.md: ✅ FULLY COMPLIANT
+- ADR-WASM-023: ✅ COMPLIANT (no forbidden imports)
+- Microsoft Rust Guidelines: ✅ COMPLIANT
+- Zero warnings ✅
+- All tests REAL (not stubs) ✅
+
+**Benefits:**
+1. More readable code when creating complex permission sets
+2. Fluent API with method chaining
+3. Clearer intent
+4. Consistent with Rust builder pattern conventions
+5. Maintains existing API (add_* methods still work)
+
+**Builder API Example:**
+```rust
+let capabilities = CapabilitySet::builder()
+    .messaging(MessagingPermission {
+        can_send_to: vec!["comp-a/*".to_string()],
+        can_receive_from: vec![],
+    })
+    .storage(StoragePermission {
+        can_write_keys: vec!["user/*".to_string()],
+        can_read_keys: vec!["*".to_string()],
+    })
+    .build();
+```
+
+**Verification Chain:**
+- ✅ Enhanced by @memorybank-implementer
+- ✅ Verified by @memorybank-verifier (VERIFIED status)
+
+**Phase Status:**
+- Phase 4: Security Module Implementation - 1/6 tasks complete (17%) 🚀 IN PROGRESS
+- Task updated with builder enhancement
+- Ready for next security task (WASM-TASK-026)
+
+**Next Task:** WASM-TASK-026 (Implement CapabilityValidator)
+
+
+### 2026-01-10: WASM-TASK-025 COMPLETE - Security/capability/ Submodule ✅
+
+**Status:** ✅ COMPLETE
+**Completion Date:** 2026-01-10
+**Phase:** Phase 4 - Security Module Implementation (Task 1/6)
+
+Created the security/capability/ submodule containing capability management types per ADR-WASM-029. All 6 deliverables implemented with 18 unit tests (all passing, real functionality).
+
+**Deliverables (6/6 Complete):**
+- ✅ security/capability/mod.rs - Module declarations only (per §4.3)
+- ✅ security/capability/types.rs - PatternMatcher + core re-exports (6 tests)
+- ✅ security/capability/set.rs - CapabilitySet + permission structs (8 tests)
+- ✅ security/capability/grant.rs - CapabilityGrant (4 tests)
+- ✅ security/mod.rs - Updated with capability submodule
+- ✅ Unit tests - 18 tests, all passing (REAL tests, not stubs)
+
+**Test Results:**
+- Unit Tests (18): All passing (types: 6, set: 8, grant: 4)
+- Build: Clean (zero errors, zero warnings)
+- Clippy: Zero warnings
+
+**Quality Metrics:**
+- Build: ✅ Clean (zero errors)
+- Clippy: ✅ Zero warnings
+- Unit Tests: ✅ 18/18 passing
+- Architecture: ✅ Clean (no forbidden imports)
+- Standards: ✅ PROJECTS_STANDARD.md fully compliant
+- Documentation: ✅ All types documented with rustdoc
+
+**Key Features Implemented:**
+- PatternMatcher: Glob-style pattern matching for capability patterns
+- CapabilitySet: Manages component permissions with add/remove/has_permission methods
+- Permission structs for each capability type (Messaging, Storage, Filesystem, Network)
+- CapabilityGrant: Permission grant with component ID and capability list
+- Re-exports from core/security for consistency
+
+**Architecture Compliance:**
+- ADR-WASM-023 (Module Boundaries): security/capability/ only imports core/ and std ✅
+- ADR-WASM-025 (Clean-Slate Architecture): Layer 2A structure maintained ✅
+- ADR-WASM-029 (Security Module Design): Exact specifications followed ✅
+- Zero forbidden imports: Only std and core/security ✅
+
+**Standards Compliance:**
+- §2.1 3-Layer Imports: ✅ COMPLIANT
+- §2.2 No FQN in Types: ✅ COMPLIANT
+- §4.3 Module Architecture: ✅ COMPLIANT (mod.rs only declarations)
+- §6.1 YAGNI Principles: ✅ COMPLIANT
+- §6.4 Quality Gates: ✅ COMPLIANT
+- M-MODULE-DOCS: ✅ COMPLIANT (all modules documented)
+- M-ERRORS-CANONICAL-STRUCTS: ✅ COMPLIANT (thiserror)
+- M-PUBLIC-DEBUG: ✅ COMPLIANT (all types)
+- ADR-WASM-029: ✅ COMPLIANT
+
+**Verification Chain:**
+- ✅ Implemented by @memorybank-implementer
+- ✅ Verified by @memorybank-verifier (VERIFIED)
+- ✅ Audited by @memorybank-auditor (APPROVED)
+
+**Audit Summary:**
+- Audit Date: 2026-01-10
+- Audit Verdict: ✅ APPROVED
+- Deliverables: 6/6 COMPLETE
+- Tests: 18/18 passing
+- Issues: None
+- Quality Gates: All pass (build, clippy, architecture)
+
+**Code Statistics:**
+- Implementation: ~550 lines (4 modules created, 1 file updated)
+- Tests: ~350 lines
+- Total: ~900 lines
+
+**Phase Status Update:**
+- ✅ Phase 3: Core Module Implementation - 8/8 tasks complete (100%) ✅ COMPLETE
+- ✅ Phase 4: Security Module Implementation - 1/6 tasks complete (17%) 🚀 IN PROGRESS
+- ✅ Overall project: 25/53 tasks complete (47%)
+- ✅ Security/capability/ submodule fully implemented
+- ✅ Ready for next security task (WASM-TASK-026)
+
+**Key Achievement:**
+- First task of Phase 4 complete
+- Phase 3 now 100% complete (8/8 tasks)
+- Security/capability/ submodule with 4 modules, 18 unit tests
+- All capability management types follow exact ADR-WASM-029 specifications
+- Clean architecture maintained (zero violations)
+- Full PROJECTS_STANDARD.md compliance achieved
+- Ready for next security task (WASM-TASK-026 - Implement CapabilityValidator)
+
+**Next Task:** WASM-TASK-026 (Implement CapabilityValidator)
+
+**Reference Documents:**
+- ADR-WASM-029: Security Module Design (specifications for capability management)
+- ADR-WASM-026: Implementation Roadmap (Phase 4 tasks)
+
+
 
 **Status:** ✅ COMPLETE
 **Completion Date:** 2026-01-10

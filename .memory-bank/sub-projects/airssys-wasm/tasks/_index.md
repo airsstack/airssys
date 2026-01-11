@@ -1,7 +1,6 @@
 # Tasks Index
 
 ## Pending
-- [wasm-task-025] create-security-capability-submodule - Create security/capability/ submodule (2026-01-10) [Phase 4]
 - [wasm-task-026] implement-capability-validator - Implement CapabilityValidator (2026-01-10) [Phase 4]
 - [wasm-task-027] create-security-policy-submodule - Create security/policy/ submodule (2026-01-10) [Phase 4]
 - [wasm-task-028] implement-security-audit-logger - Implement SecurityAuditLogger (2026-01-10) [Phase 4]
@@ -35,6 +34,7 @@
 - [wasm-task-021] create-core-storage-submodule - Create core/storage/ submodule (2026-01-10) [Phase 3] ✅
 - [wasm-task-023] create-core-config-submodule - Create core/config/ submodule (2026-01-10) [Phase 3] ✅
 - [wasm-task-024] write-core-unit-tests - Write core/ unit tests (2026-01-10) [Phase 3] ✅
+- [wasm-task-025] create-security-capability-submodule - Create security/capability/ submodule (2026-01-10) [Phase 4] ✅ (builder enhanced 2026-01-11)
 
 ## Abandoned
 - [wasm-task-022] create-core-errors-submodule - **ABANDONED** (2026-01-09) - Errors now co-located in each module instead of centralized `core/errors/`
