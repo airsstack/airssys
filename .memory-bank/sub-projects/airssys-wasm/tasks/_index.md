@@ -1,7 +1,11 @@
 # Tasks Index
 
 ## Pending
-*(none)*
+- [wasm-task-031] implement-wasmtime-engine - Implement WasmtimeEngine (2026-01-12) [Phase 5]
+- [wasm-task-032] implement-component-loader - Implement ComponentLoader (2026-01-12) [Phase 5]
+- [wasm-task-033] implement-store-manager - Implement StoreManager (2026-01-12) [Phase 5]
+- [wasm-task-034] implement-host-functions - Implement host functions (2026-01-12) [Phase 5]
+- [wasm-task-035] implement-resource-limiter - Implement ResourceLimiter (2026-01-12) [Phase 5]
 
 ## In Progress
 
@@ -39,3 +43,4 @@
 ## Abandoned
 - [wasm-task-022] create-core-errors-submodule - **ABANDONED** (2026-01-09) - Errors now co-located in each module instead of centralized `core/errors/`
 - [wasm-task-030] write-security-unit-tests - **ABANDONED** (2026-01-12) - Violates single-action principle. All security modules already created with tests in tasks 025-029. This task attempted to enhance tests for 8 files in one task, violating the rule that each task must do exactly one thing.
+- [wasm-task-036] write-runtime-unit-tests - **ABANDONED** (2026-01-12) - Per updated policy (2026-01-12), module creation tasks must include tests. No separate "write unit tests" tasks allowed for Phase 5 or subsequent phases.

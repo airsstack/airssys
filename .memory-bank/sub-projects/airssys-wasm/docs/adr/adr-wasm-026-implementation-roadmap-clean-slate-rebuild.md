@@ -150,15 +150,15 @@ airssys-wasm/src/
 
  | Task ID | Name | Depends On | Status | Compliance |
  |---------|------|------------|--------|------------|
- | WASM-TASK-031 | Implement WasmtimeEngine | N/A (start of Phase 5) | Not Started | TBD |
- | WASM-TASK-032 | Implement ComponentLoader | WASM-TASK-031 | Not Started | TBD |
- | WASM-TASK-033 | Implement StoreManager | WASM-TASK-031 | Not Started | TBD |
- | WASM-TASK-034 | Implement host functions | WASM-TASK-031 | Not Started | TBD |
- | WASM-TASK-035 | Implement ResourceLimiter | WASM-TASK-031 | Not Started | TBD |
- | WASM-TASK-036 | Write runtime/ unit tests | WASM-TASK-035 | Not Started | TBD |
+ | WASM-TASK-031 | Implement WasmtimeEngine | Phase 4 complete | ⏸ Pending | ✅ Single-Action + Tests |
+ | WASM-TASK-032 | Implement ComponentLoader | WASM-TASK-031 | ⏸ Pending | ✅ Single-Action + Tests |
+ | WASM-TASK-033 | Implement StoreManager | WASM-TASK-031 | ⏸ Pending | ✅ Single-Action + Tests |
+ | WASM-TASK-034 | Implement host functions | WASM-TASK-031 | ⏸ Pending | ✅ Single-Action + Tests |
+ | WASM-TASK-035 | Implement ResourceLimiter | WASM-TASK-031 | ⏸ Pending | ✅ Single-Action + Tests |
+ | ~~WASM-TASK-036~~ | ~~Write runtime/ unit tests~~ | WASM-TASK-035 | ❌ **ABANDONED** | ❌ Violated Single-Action |
 
 > ⚠️ **MANDATORY**: Use `wasmtime::component::Component` (Component Model), NOT `wasmtime::Module` (core WASM). See KNOWLEDGE-WASM-027.
-> ⚠️ **MANDATORY (UPDATED 2026-01-12)**: Module creation tasks must include tests in the SAME task. No separate "write unit tests" tasks allowed for Phase 5 or any subsequent phases.
+> ⚠️ **MANDATORY (UPDATED 2026-01-12)**: Module creation tasks must include tests in the SAME task. WASM-TASK-036 is abandoned per this policy.
 
 ---
 
@@ -210,7 +210,7 @@ airssys-wasm/src/
  | Phase 2: Project Restructuring | 4 | WASM-TASK-013 to 016 | (inline) | ✅ Complete (100%) |
  | Phase 3: Core Module | 7 | WASM-TASK-017 to 024 | ADR-WASM-028 | ✅ Complete (100%, 022 abandoned) |
  | Phase 4: Security Module | 5 | WASM-TASK-025 to 029 | ADR-WASM-029 | ✅ Complete (100%, 030 abandoned) |
- | Phase 5: Runtime Module | 6 | WASM-TASK-031 to 036 | ADR-WASM-030 | ⏸ Not Started |
+ | Phase 5: Runtime Module | 5 | WASM-TASK-031 to 035 | ADR-WASM-030 | ⏸ Pending (036 abandoned) |
  | Phase 6: Component & Messaging | 10 | WASM-TASK-037 to 046 | ADR-WASM-031 | ⏸ Not Started |
  | Phase 7: System & Integration | 8 | WASM-TASK-047 to 054 | ADR-WASM-032 | ⏸ Not Started |
  | **TOTAL** | **51** | WASM-TASK-002 to 054 | |
@@ -282,6 +282,7 @@ grep -rn "use crate::" src/core/  # core imports only std
  | 2026-01-05 | 1.0 | Initial roadmap creation |
  | 2026-01-05 | 2.0 | Refactored to high-level roadmap with links to detailed ADRs |
  | 2026-01-12 | 3.0 | Updated with task compliance analysis. Added WASM-TASK-022 abandonment notes. Added WASM-TASK-030 abandonment notes. Added compliance column to all task tables. Added reference to updated Multi-Project Memory Bank instructions with single-action guard rules. Marked legacy testing tasks (045, 046, 054) as should-be-abandoned. Added mandatory requirement that module creation tasks include testing in same task. Updated task summary to reflect abandoned tasks. |
+ | 2026-01-12 | 3.1 | Phase 5 tasks created (WASM-TASK-031 to 035). WASM-TASK-036 marked as ABANDONED per updated single-action policy. All Phase 5 tasks marked as Pending with Single-Action + Tests compliance. |
 
 ---
 
