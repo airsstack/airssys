@@ -583,20 +583,47 @@ cargo clippy -p airssys-wasm --all-targets -- -D warnings
 *(none)*
 ```
 
-### Single Action Rule (MANDATORY)
+
+### Single Action Rule (MANDATORY) - UPDATED 2026-01-12
 
 **CRITICAL:**
 - Each task contains EXACTLY ONE action
 - NO multiple objectives per task
 - NO mixed deliverables
 - DO ONE THING, DO IT RIGHT
+- **ZERO EXCEPTIONS - NO VIOLATIONS ALLOWED**
+
+**IMMEDIATE TASK REJECTION RULES:**
+If a task attempts to:
+- ✗ Test multiple files or modules → REJECT IMMEDIATELY
+- ✗ Enhance multiple existing modules → REJECT IMMEDIATELY  
+- ✗ "Write unit tests for X module" where X already exists → REJECT IMMEDIATELY
+- ✗ Cover multiple files or directories → REJECT IMMEDIATELY
+- ✗ Combine multiple phases or stages → REJECT IMMEDIATELY
+
+**MODULE CREATION = INCLUDES TESTING (MANDATORY):**
+- When creating a module/submodule → Tests MUST be included in the SAME task
+- **NO separate testing tasks allowed**
+- Unit tests: Go in src/module.rs with #[cfg(test)]
+- Integration tests: Go in tests/module-integration-tests.rs
+- If tests are incomplete → Task is INCOMPLETE, not "ready for test task later"
 
 **Examples:**
 - ✅ CORRECT: "Setup airssys-wasm project directory" (single action)
-- ✅ CORRECT: "Implement core/ types module" (single action)
+- ✅ CORRECT: "Implement core/ types module" (single action, includes tests)
 - ✅ CORRECT: "Write unit tests for ComponentMessage" (single action)
+- ✅ CORRECT: "Create security/capability/ submodule with tests" (single action, tests included)
 - ❌ WRONG: "Setup project AND implement core types" (two actions - split into two tasks)
 - ❌ WRONG: "Implement actor system integration" (too broad - break into smaller tasks)
+- ❌ WRONG: "Write unit tests for security/ module" (8 files - split into 8 tasks)
+- ❌ WRONG: "Write security/ unit tests" (module exists with tests - ABANDONED)
+- ❌ WRONG: "Enhance tests for capability, policy, audit, osl" (4 modules - split into 4 tasks)
+
+**ENFORCEMENT:**
+- Any task violating single-action rule MUST be rejected before planning
+- Any task requesting testing for existing modules MUST be rejected
+- Any task covering multiple files MUST be split into smaller tasks
+- **NO EXCEPTIONS, NO WAIVERS, NO COMPROMISES**
 
 ### Plan References Rule (MANDATORY)
 

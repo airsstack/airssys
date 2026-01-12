@@ -1,7 +1,7 @@
 # Tasks Index
 
 ## Pending
-- [wasm-task-030] write-security-unit-tests - Write security/ unit tests (2026-01-10) [Phase 4]
+*(none)*
 
 ## In Progress
 
@@ -38,3 +38,4 @@
 
 ## Abandoned
 - [wasm-task-022] create-core-errors-submodule - **ABANDONED** (2026-01-09) - Errors now co-located in each module instead of centralized `core/errors/`
+- [wasm-task-030] write-security-unit-tests - **ABANDONED** (2026-01-12) - Violates single-action principle. All security modules already created with tests in tasks 025-029. This task attempted to enhance tests for 8 files in one task, violating the rule that each task must do exactly one thing.
