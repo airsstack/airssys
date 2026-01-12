@@ -150,6 +150,7 @@ Relevant ADRs:
 
 **Extract standards applicable to this task:**
 - §2.1: 3-Layer Import Organization (for code structure)
+- §2.2: No FQN in Type Annotations (for all type annotations)
 - §3.2: chrono DateTime<Utc> Standard (if time operations)
 - §4.3: Module Architecture Patterns (for mod.rs files)
 - §5.1: Dependency Management (for Cargo.toml)
@@ -158,6 +159,63 @@ Relevant ADRs:
 - §6.4: Implementation Quality Gates (testing, safety, warnings)
 
 **These standards MUST be included in the plan.**
+
+---
+
+### Gate 3.5: Detect ADR vs PROJECTS_STANDARD.md Conflicts (NEW - MANDATORY)
+
+**CRITICAL:** PROJECTS_STANDARD.md takes PRECEDENCE over ADRs in case of conflicts.
+
+**Conflict Pattern 1: Module Architecture**
+- **ADR suggests:** Put implementation in `mod.rs`
+- **PROJECTS_STANDARD.md §4.3:** `mod.rs` MUST contain ONLY module declarations
+- **Resolution:** Create separate files (e.g., `osl.rs`), keep `mod.rs` clean
+
+**Conflict Pattern 2: Import Organization**
+- **ADR suggests:** Use FQN in type annotations
+- **PROJECTS_STANDARD.md §2.2:** NO FQN allowed in type annotations
+- **Resolution:** Import types at top, use simple names
+
+**Conflict Detection Checklist:**
+```
+For each ADR referenced in plan:
+  □ Does ADR suggest implementation in mod.rs?
+    → If YES → Override with §4.3: Create separate file
+  □ Does ADR use FQN in type annotations?
+    → If YES → Override with §2.2: Import types
+  □ Does ADR violate any §2.1-§6.4 standard?
+    → If YES → Override: Follow PROJECTS_STANDARD.md
+```
+
+**How to Resolve:**
+1. Follow PROJECTS_STANDARD.md as source of truth
+2. Note in plan: "Adjusting ADR pattern to comply with PROJECTS_STANDARD.md §[X.Y]"
+3. Update code structure to follow standard, not ADR
+
+**Verification:**
+After creating plan, run:
+```bash
+# Verify mod.rs contains ONLY module declarations
+grep -v "pub mod" src/[module]/mod.rs | grep -v "^\s*//" | grep -v "^//!" | grep .
+# Expected: Empty (no implementation code)
+```
+
+**If conflict detected and NOT resolved:**
+```
+⛔ GATE 3.5 FAILED: ADR vs Standard Conflict Unresolved
+
+Conflict found:
+  ADR-WASM-XXX suggests: [ADR pattern]
+  PROJECTS_STANDARD.md §4.3 requires: [Standard requirement]
+
+These cannot both be followed. PROJECTS_STANDARD.md takes precedence.
+
+Required action:
+  - Update plan to follow PROJECTS_STANDARD.md
+  - Note: "Adjusting ADR pattern to comply with §4.3"
+
+STOPPED. Please resolve conflict before proceeding.
+```
 
 ---
 
@@ -318,6 +376,10 @@ Only proceed if ALL gates passed.
 - **KNOWLEDGE-WASM-XXX:** [Title] - [How it applies to this task]
 - **KNOWLEDGE-WASM-YYY:** [Title] - [How it applies to this task]
 
+**Note on ADR vs PROJECTS_STANDARD.md Conflicts:**
+If any ADR patterns conflict with PROJECTS_STANDARD.md, the plan follows PROJECTS_STANDARD.md.
+Any adjustments are noted with: "(Adjusted from ADR to comply with PROJECTS_STANDARD.md §[X.Y])"
+
 **System Patterns:**
 - [Pattern from system-patterns.md] - [How it applies]
 
@@ -326,6 +388,8 @@ Only proceed if ALL gates passed.
 - §2.2 (No FQN): Types will be imported and used by simple name
 - §3.2 (DateTime<Utc>): Time operations will use Utc
 - §4.3 (Module Architecture): mod.rs files will only contain declarations
+- §5.1 (Dependency Management): Dependencies from workspace will be correctly referenced
+- §6.1 (YAGNI): Simple, direct solutions without over-engineering
 - §6.2 (Avoid `dyn`): Static dispatch preferred over trait objects
 - §6.4 (Quality Gates): Zero warnings, comprehensive tests
 
@@ -377,7 +441,13 @@ grep -rn "use crate::[forbidden]" airssys-wasm/src/[module]/
 
 **PROJECTS_STANDARD.md Compliance:**
 - [§2.1]: Code will follow 3-layer import organization
+- [§2.2]: No FQN in type annotations - types imported, used by simple name
+- [§3.2]: Time operations will use chrono::Utc
+- [§4.3]: mod.rs files will only contain module declarations
+- [§5.1]: Workspace dependencies correctly referenced in Cargo.toml
+- [§6.1]: Simple, direct solution without over-engineering (YAGNI)
 - [§6.2]: Will use generics, avoid `dyn`
+- [§6.4]: Quality gates - zero warnings, comprehensive tests, safety first
 
 **Rust Guidelines:**
 - [M-ERRORS-CANONICAL-STRUCTS]: Error type will follow canonical structure
@@ -591,6 +661,7 @@ Please clarify which takes precedence.
 11. **Plan Persistence**: ALWAYS save plans to separate `.plans.md` file before returning (Step 5)
 12. **Summary Only**: Return plan summary, not full plan (Step 6)
 13. **Single Action Rule**: Each task contains EXACTLY ONE action (Gate 8)
+14. **Standard Overrides ADR**: PROJECTS_STANDARD.md takes PRECEDENCE over ADRs (Gate 3.5)
 
 ---
 
@@ -611,3 +682,4 @@ Please clarify which takes precedence.
 ❌ **FORGET TO SAVE PLAN TO .plans.md FILE** ← MOST CRITICAL
 ❌ Return full plan in response instead of summary
 ❌ Create plans for tasks with multiple actions (violates Single Action Rule)
+❌ Follow ADR patterns that conflict with PROJECTS_STANDARD.md (Gate 3.5)
