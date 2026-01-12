@@ -55,6 +55,7 @@ tracing = { workspace = true }
 
 # Concurrent collections
 dashmap = { workspace = true }
+crossbeam-channel = "0.5.15"
 
 [dev-dependencies]
 # Testing utilities
