@@ -1,9 +1,21 @@
 //! # Runtime Module
 //!
-//! WASM execution engine. Implements core abstractions using Wasmtime.
+//! WASM component execution using wasmtime Component Model.
 //!
-//! This module is responsible for executing WASM code. It does NOT
-//! orchestrate communication between components (that's component/'s job).
+//! ## Layer 2B - Runtime Layer
+//!
+//! Import Rules (ADR-WASM-023):
+//! - ✅ Can import: `core/`, `security/`
+//! - ❌ Cannot import: `component/`, `messaging/`, `system/`
+//!
+//! ## Submodules
+//!
+//! - [`engine`] - WasmtimeEngine (RuntimeEngine implementation)
 
-// Module declarations will be added in subsequent tasks
-// Following PROJECTS_STANDARD.md §4.3: mod.rs contains only declarations and re-exports
+pub mod engine;
+
+// Future submodules:
+// pub mod loader;
+// pub mod store;
+// pub mod host_fn;
+// pub mod limiter;

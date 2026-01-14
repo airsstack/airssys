@@ -1,7 +1,6 @@
 # Tasks Index
 
 ## Pending
-- [wasm-task-031] implement-wasmtime-engine - Implement WasmtimeEngine (2026-01-12) [Phase 5]
 - [wasm-task-032] implement-component-loader - Implement ComponentLoader (2026-01-12) [Phase 5]
 - [wasm-task-033] implement-store-manager - Implement StoreManager (2026-01-12) [Phase 5]
 - [wasm-task-034] implement-host-functions - Implement host functions (2026-01-12) [Phase 5]
@@ -39,6 +38,7 @@
 - [wasm-task-027] create-security-policy-submodule - Create security/policy/ submodule (2026-01-12) [Phase 4] ✅
 - [wasm-task-028] implement-security-audit-logger - Implement SecurityAuditLogger (2026-01-12) [Phase 4] ✅ (3 phases: initial, security fixes, bug fix)
 - [wasm-task-029] create-airssys-osl-bridge - Create airssys-osl bridge (2026-01-12) [Phase 4] ✅
+- [wasm-task-031] implement-wasmtime-engine - Implement WasmtimeEngine (2026-01-14) [Phase 5] ✅
 
 ## Abandoned
 - [wasm-task-022] create-core-errors-submodule - **ABANDONED** (2026-01-09) - Errors now co-located in each module instead of centralized `core/errors/`

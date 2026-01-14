@@ -3,8 +3,8 @@
 //! Tests end-to-end permission checks through OslSecurityBridge
 //! with realistic ACL scenarios.
 
-use airssys_wasm::security::osl::OslSecurityBridge;
 use airssys_osl::middleware::security::acl::{AccessControlList, AclEntry, AclPolicy};
+use airssys_wasm::security::osl::OslSecurityBridge;
 
 #[test]
 fn test_filesystem_access_control() {
@@ -150,7 +150,11 @@ fn test_pattern_matching_glob_patterns() {
         .check_permission("component-logger", "/var/log/subdir/error.log", "read")
         .is_ok());
     assert!(bridge
-        .check_permission("component-logger", "/var/log/subdir/nested/debug.log", "read")
+        .check_permission(
+            "component-logger",
+            "/var/log/subdir/nested/debug.log",
+            "read"
+        )
         .is_ok());
 
     // Test: Non-matching paths
@@ -170,7 +174,11 @@ fn test_multiple_permissions() {
     acl = acl.add_entry(AclEntry::new(
         "component-multi".to_string(),
         "/app/shared/*".to_string(),
-        vec!["read".to_string(), "write".to_string(), "delete".to_string()],
+        vec![
+            "read".to_string(),
+            "write".to_string(),
+            "delete".to_string(),
+        ],
         AclPolicy::Allow,
     ));
 
