@@ -11,11 +11,12 @@
 //! ## Submodules
 //!
 //! - [`engine`] - WasmtimeEngine (RuntimeEngine implementation)
+//! - [`loader`] - ComponentLoader implementations (FileComponentLoader, InMemoryComponentLoader)
 
 pub mod engine;
+pub mod loader;
 
 // Future submodules:
-// pub mod loader;
 // pub mod store;
 // pub mod host_fn;
 // pub mod limiter;
