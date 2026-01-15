@@ -1,9 +1,9 @@
 # airssys-wasm Knowledge Documentation Index
 
 **Sub-Project:** airssys-wasm  
-**Last Updated:** 2026-01-08  
-**Total Knowledge Docs:** 26  
-**Active Knowledge Docs:** 25  
+**Last Updated:** 2026-01-15  
+**Total Knowledge Docs:** 27  
+**Active Knowledge Docs:** 26  
 
 ## Current Knowledge Documentation
 - **[KNOWLEDGE-WASM-031: Foundational Architecture](knowledge-wasm-031-foundational-architecture.md)** 🔴 **READ FIRST**
@@ -617,5 +617,50 @@ grep -rn "use crate::actor" src/runtime/
   - **Status**: ⚠️ SUPERSEDED by KNOWLEDGE-WASM-037 (2026-01-05)
   - **Note**: This document has been superseded. See KNOWLEDGE-WASM-037 for the current rebuild architecture.
   - **Related**: KNOWLEDGE-WASM-037 (replacement)
+
+---
+
+## KNOWLEDGE-WASM-042: wit_bindgen Macro and Host Function Registration Architecture
+
+**File:** `knowledge-wasm-042-wit-bindgen-host-function-architecture.md`  
+**Status:** Active  
+**Created:** 2026-01-15  
+**Category:** Architecture / Runtime / WIT Bindings  
+**Maturity:** Stable
+
+**Summary:** Comprehensive documentation of how `wit_bindgen::generate!` macro in `lib.rs` generates Rust trait definitions from WIT interfaces, and how these generated traits must be registered with wasmtime's Component Model Linker to enable WASM components to call host functions.
+
+**Key Points:**
+- Three-stage architecture: WIT Definition → wit_bindgen trait generation → Linker registration
+- The 18 host functions mandated by WIT (5 from host-messaging, 6 from host-services, 6 from storage)
+- Complete registration pattern using `wasmtime::component::Linker`
+- Function signatures MUST match generated trait signatures exactly
+- Stub implementations (Phase 5) vs full implementations (Phase 6)
+- Module responsibility: runtime/host_fn.rs (Layer 2B)
+- Forbidden imports: component/, messaging/, system/ (per ADR-WASM-025)
+
+**Impact:** Critical for WASM-TASK-034 (Host Functions) and all future host function development
+
+**Related:**
+- ADR-WASM-027 (WIT Interface Design - defines the 18 functions)
+- ADR-WASM-030 (Runtime Module Design - host_fn.rs specification)
+- ADR-WASM-025 (Clean-Slate Rebuild Architecture - module boundaries)
+- KNOWLEDGE-WASM-039 (Runtime Module Responsibility)
+- KNOWLEDGE-WASM-031 (Foundational Architecture)
+
+**Audience:** All developers implementing host functions, runtime module maintainers, anyone working on WASM component instantiation
+
+**Use When:**
+- Planning or implementing host function registration
+- Understanding the connection between WIT files and Rust code
+- Debugging component instantiation linkage errors
+- Adding new host functions to the system
+- Reviewing host function implementation correctness
+
+**External References:**
+- [wit-bindgen Documentation](https://docs.rs/wit-bindgen/latest/wit_bindgen/)
+- [Wasmtime Component Model](https://docs.wasmtime.dev/api/wasmtime/component/)
+- [Wasmtime Linker API](https://docs.wasmtime.dev/api/wasmtime/component/struct.Linker.html)
+- [WebAssembly Component Model](https://component-model.bytecodealliance.org/)
 
 ---
