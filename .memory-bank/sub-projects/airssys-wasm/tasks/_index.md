@@ -1,14 +1,13 @@
 # Tasks Index
 
 ## Pending
-- [wasm-task-033] implement-store-manager - Implement StoreManager (2026-01-12) [Phase 5]
 - [wasm-task-034] implement-host-functions - Implement host functions (2026-01-12) [Phase 5]
 - [wasm-task-035] implement-resource-limiter - Implement ResourceLimiter (2026-01-12) [Phase 5]
 
 ## In Progress
 
 ## Completed
-- [wasm-task-001] setup-project-directory - Setup airssys-wasm project structure (2026-01-05)
+- [wasm-task-033] implement-store-manager - Implement StoreManager (2026-01-15) [Phase 5] ✅- [wasm-task-001] setup-project-directory - Setup airssys-wasm project structure (2026-01-05)
 - [wasm-task-002] setup-wit-directory-structure - Setup WIT directory structure (2026-01-05) [Phase 1]
 - [wasm-task-003] create-types-wit - Create types.wit foundation interface (2026-01-05) [Phase 1]
 - [wasm-task-004] create-errors-wit - Create errors.wit error definitions (2026-01-05) [Phase 1]

@@ -44,6 +44,10 @@ pub enum WasmError {
     /// Runtime error.
     #[error("Runtime error: {0}")]
     RuntimeError(String),
+
+    /// Store not initialized.
+    #[error("Store not initialized - call initialize() before using")]
+    StoreNotInitialized,
 }
 
 #[cfg(test)]
@@ -132,5 +136,14 @@ mod tests {
         let err = WasmError::Timeout;
         requires_send(err.clone());
         requires_sync(err);
+    }
+
+    #[test]
+    fn test_store_not_initialized_display() {
+        let err = WasmError::StoreNotInitialized;
+        assert_eq!(
+            format!("{}", err),
+            "Store not initialized - call initialize() before using"
+        );
     }
 }

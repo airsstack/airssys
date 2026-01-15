@@ -8,7 +8,17 @@ Each fixture represents a WASM component used to test specific functionality of 
 
 ## Fixtures
 
-*(Fixtures will be added in subsequent tasks)*
+### minimal-component.wasm
+
+- **What**: A minimal valid WASM component with no functionality
+- **Why**: Tests basic component loading, instantiation, and lifecycle operations
+- **How**: Generated using `wasm-tools parse` from WAT format:
+  ```bash
+  echo '(component)' > /tmp/minimal.wat
+  wasm-tools parse /tmp/minimal.wat -o minimal-component.wasm
+  ```
+- **Size**: 8 bytes (magic number + version)
+- **Used by**: `store-integration-tests.rs`
 
 ## Documentation
 

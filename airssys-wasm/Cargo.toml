@@ -60,3 +60,4 @@ crossbeam-channel = "0.5.15"
 [dev-dependencies]
 # Testing utilities
 tokio-test = "0.4"
+wat = "1.0"  # WAT to WASM conversion for tests
