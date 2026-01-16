@@ -2,7 +2,7 @@
 
 // Layer 1: Standard library imports
 use std::collections::HashMap;
-use std::sync::RwLock;
+use std::sync::{Arc, RwLock};
 
 // Layer 2: Third-party crate imports
 use wasmtime::component::{Component, Linker};
@@ -12,8 +12,10 @@ use wasmtime::{Config, Engine, Store};
 use crate::core::component::handle::ComponentHandle;
 use crate::core::component::id::ComponentId;
 use crate::core::component::message::{ComponentMessage, MessagePayload};
+use crate::core::messaging::traits::MessageRouter;
 use crate::core::runtime::errors::WasmError;
 use crate::core::runtime::traits::RuntimeEngine;
+use crate::runtime::host_functions::marker_traits::register_host_functions;
 
 /// Convert wasmtime errors to WasmError
 ///
@@ -34,6 +36,9 @@ impl From<wasmtime::Error> for WasmError {
 pub struct HostState {
     /// The component ID for this instance
     pub component_id: ComponentId,
+    /// Message router for inter-component communication
+    /// Using dyn Trait for dependency injection across module boundaries
+    pub message_router: Option<Arc<dyn MessageRouter>>,
 }
 
 /// Internal store wrapper (placeholder until StoreManager is implemented)
@@ -62,7 +67,11 @@ impl WasmtimeEngine {
         let engine =
             Engine::new(&config).map_err(|e| WasmError::InstantiationFailed(e.to_string()))?;
 
-        let linker = Linker::new(&engine);
+        let mut linker = Linker::new(&engine);
+
+        // Register host functions
+        register_host_functions(&mut linker)
+            .map_err(|e| WasmError::InstantiationFailed(e.to_string()))?;
 
         Ok(Self {
             engine,
@@ -104,6 +113,7 @@ impl RuntimeEngine for WasmtimeEngine {
         // Create store with host state
         let host_state = HostState {
             component_id: id.clone(),
+            message_router: None,
         };
 
         let store = Store::new(&self.engine, host_state);

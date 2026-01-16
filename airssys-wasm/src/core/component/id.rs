@@ -14,7 +14,7 @@ use std::fmt;
 /// # Examples
 ///
 /// ```rust
-/// use airssys_wasm::core::component::ComponentId;
+/// use airssys_wasm::core::component::id::ComponentId;
 ///
 /// // Create a component ID for a production database instance
 /// let id = ComponentId::new("system", "database", "prod");

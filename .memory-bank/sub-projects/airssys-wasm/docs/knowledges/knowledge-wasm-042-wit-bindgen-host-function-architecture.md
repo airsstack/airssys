@@ -8,6 +8,33 @@
 
 ## Overview
 
+
+---
+
+## ⚠️ IMPORTANT NOTE (Added 2026-01-16)
+
+**Sections describing manual `func_wrap` registration are now OUTDATED.**
+
+The current implementation uses `wasmtime::component::bindgen!` (not `wit_bindgen::generate!`) which provides **automatic registration via `RuntimeHost::add_to_linker()`**.
+
+**For current best practices, see:**
+- **KNOWLEDGE-WASM-043:** wit_bindgen vs wasmtime::component::bindgen! (comprehensive guide)
+- Current implementation: `airssys-wasm/src/lib.rs` (uses `wasmtime::component::bindgen!`)
+- Current implementation: `airssys-wasm/src/runtime/host_functions.rs` (trait-based, not manual)
+
+**What's outdated in this document:**
+- Lines 368-437: Manual `func_wrap` registration pattern (no longer needed)
+- Lines 444-498: Example using manual registration (replaced by trait implementation)
+- References to `wit_bindgen::generate!` for host-side (should be `wasmtime::component::bindgen!`)
+
+**What's still accurate:**
+- WIT interface definitions and the 18 host functions
+- Conceptual explanation of WIT → Rust bindings
+- Security considerations and threat model
+
+**This document is kept for historical reference but should NOT be used as implementation guidance.**
+
+---
 This document explains how the `wit_bindgen::generate!` macro in `lib.rs` generates Rust trait definitions from WIT interfaces, and how these generated traits must be implemented and registered as host functions using wasmtime's Component Model `Linker`. This is the foundational architecture for enabling WASM components to call into host-provided functionality.
 
 ---

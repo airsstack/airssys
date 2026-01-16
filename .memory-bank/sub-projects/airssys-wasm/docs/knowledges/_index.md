@@ -1,9 +1,9 @@
 # airssys-wasm Knowledge Documentation Index
 
 **Sub-Project:** airssys-wasm  
-**Last Updated:** 2026-01-15  
-**Total Knowledge Docs:** 27  
-**Active Knowledge Docs:** 26  
+**Last Updated:** 2026-01-16  
+**Total Knowledge Docs:** 28  
+**Active Knowledge Docs:** 27  
 
 ## Current Knowledge Documentation
 - **[KNOWLEDGE-WASM-031: Foundational Architecture](knowledge-wasm-031-foundational-architecture.md)** 🔴 **READ FIRST**
@@ -664,3 +664,47 @@ grep -rn "use crate::actor" src/runtime/
 - [WebAssembly Component Model](https://component-model.bytecodealliance.org/)
 
 ---
+
+---
+
+## KNOWLEDGE-WASM-043: wit_bindgen vs wasmtime::component::bindgen! - Guest vs Host Bindgen
+
+**File:** `knowledge-wasm-043-wit-bindgen-vs-wasmtime-bindgen.md`  
+**Status:** Active  
+**Created:** 2026-01-16  
+**Category:** Architecture / WIT Bindings / Runtime  
+**Maturity:** Stable
+
+**Summary:** Comprehensive explanation of the critical differences between `wit_bindgen::generate!` (for WASM guest components) and `wasmtime::component::bindgen!` (for host runtime). Documents when to use each macro, what they generate, and how they differ in purpose and functionality.
+
+**Key Points:**
+- `wit_bindgen::generate!` is for **guest-side** (WASM components)
+- `wasmtime::component::bindgen!` is for **host-side** (Rust runtime)
+- Host macro generates `RuntimeHost::add_to_linker()` helper for automatic registration
+- Guest macro generates import stubs and export traits
+- Both generate type-safe bindings following Component Model Canonical ABI
+- 70% less boilerplate with host-side trait implementation vs manual registration
+
+**Impact:** 🔴 **CRITICAL** - Essential for understanding host vs guest bindgen, prevents confusion during development
+
+**Related:**
+- ADR-WASM-030 (Runtime Module Design)
+- ADR-WASM-027 (WIT Interface Design)
+- KNOWLEDGE-WASM-042 (wit_bindgen Macro - partially outdated, see note below)
+- WASM-TASK-034 (Host Functions Implementation)
+
+**Audience:** All developers working on host runtime or WASM components
+
+**Use When:**
+- Implementing host functions for airssys-wasm
+- Writing WASM components that run in airssys-wasm
+- Understanding WIT binding generation
+- Debugging bindgen-related errors
+- Deciding which macro to use
+
+**Supersedes:** Manual `func_wrap` registration patterns in KNOWLEDGE-WASM-042
+
+**External References:**
+- [wasmtime::component::bindgen! Docs](https://docs.wasmtime.dev/api/wasmtime/component/macro.bindgen.html)
+- [wit-bindgen Docs](https://docs.rs/wit-bindgen/latest/wit_bindgen/)
+- [Component Model Specification](https://component-model.bytecodealliance.org/)

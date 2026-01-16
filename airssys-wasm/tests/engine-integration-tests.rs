@@ -167,6 +167,7 @@ fn test_host_state_initialization() {
     let component_id = ComponentId::new("test", "host-state", "1.0.0");
     let host_state = HostState {
         component_id: component_id.clone(),
+        message_router: None,
     };
 
     assert_eq!(host_state.component_id, component_id);

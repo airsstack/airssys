@@ -18,6 +18,7 @@ pub mod engine;
 pub mod loader;
 pub mod store;
 
+pub mod host_functions;
+
 // Future submodules:
-// pub mod host_fn;
 // pub mod limiter;

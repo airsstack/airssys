@@ -62,94 +62,85 @@
 // ============================================================================
 // WIT Bindings Generation (Phase 1, Task 12 - WASM-TASK-012)
 // ============================================================================
-// Generate Rust bindings from WIT interfaces (macro-based, no build.rs)
-// Reference: ADR-WASM-027 lines 506-515, KNOWLEDGE-WASM-037 lines 265-273
 //
-// The `wit_bindgen::generate!` macro generates Rust bindings for the WIT
-// interfaces defined in `wit/core/`. These bindings provide types and traits
-// that will be used throughout the airssys-wasm crate.
+// Generate Rust bindings for HOST-SIDE implementation using wasmtime's
+// Component Model bindgen macro.
 //
-// **Generated Types Location:**
+// ⚠️ IMPORTANT: This uses `wasmtime::component::bindgen!` NOT `wit_bindgen::generate!`
+//
+// - `wasmtime::component::bindgen!` = HOST-SIDE bindings (what we need here)
+// - `wit_bindgen::generate!` = GUEST-SIDE bindings (for WASM components)
+//
+// For detailed explanation of the differences, see:
+// - KNOWLEDGE-WASM-043: wit_bindgen vs wasmtime::component::bindgen!
+//
+// ## What This Macro Generates
+//
+// The `wasmtime::component::bindgen!` macro generates Rust bindings from the
+// WIT world definition in `wit/core/world.wit`:
+//
+// 1. **RuntimeHost Module** with `add_to_linker()` helper function:
+//    - Automatically registers ALL 18 host functions with wasmtime Linker
+//    - One-line registration: `RuntimeHost::add_to_linker(linker, |state| state)`
+//
+// 2. **Host Trait Implementations** for imported interfaces:
+//    - `airssys::core::host_messaging::Host` - 5 messaging functions
+//    - `airssys::core::host_services::Host` - 6 service functions
+//    - `airssys::core::storage::Host` - 6 storage functions
+//    - These traits MUST be implemented on `HostState` in runtime/host_functions.rs
+//
+// 3. **Type Definitions** from WIT files:
+//    - `ComponentId`, `MessagePayload`, `CorrelationId`, `Timestamp`, etc.
+//    - All WIT records → Rust structs
+//    - All WIT variants → Rust enums
+//    - All WIT errors → Rust error types
+//
+// 4. **Export Types** for calling component functions:
+//    - Typed function getters for component-lifecycle exports
+//    - Type-safe bindings for `init`, `handle-message`, `handle-callback`
+//
+// ## Generated Code Location
+//
 // The macro generates code in-line at this location. The generated types are
-// accessible from anywhere in the crate.
-//
-// **Key Generated Modules and Types:**
-//
-// The `wit_bindgen::generate!` macro generates bindings based on the WIT world
-// definition in `wit/core/world.wit`. The generated code includes:
-//
-// 1. **Type Definitions** (from `types.wit`):
-//    - `ComponentId` - Unique component identifier with namespace, name, instance
-//    - `ComponentHandle` - Opaque runtime handle (u64)
-//    - `CorrelationId` - Correlation ID for request-response (String)
-//    - `MessagePayload` - Raw bytes for message content (Vec<u8>)
-//    - `Timestamp` - High-precision timestamp
-//    - `MessageMetadata` - Message metadata with correlation-id, reply-to, etc.
-//    - `ComponentMessage` - Complete message envelope
-//    - `ResourceLimits` - Execution resource constraints
-//    - `ComponentConfig` - Initialization configuration
-//    - `LogLevel` - Logging level enum (trace, debug, info, warn, error)
-//    - `HealthStatus` - Health status enum
-//    - `ExecutionStatus` - Execution status enum
-//
-// 2. **Error Types** (from `errors.wit`):
-//    - `WasmError` - WASM execution errors
-//    - `ComponentError` - Component lifecycle errors
-//    - `SecurityError` - Security-related errors
-//    - `MessagingError` - Messaging errors
-//    - `StorageError` - Storage errors
-//    - `ExecutionError` - RPC execution errors
-//
-// 3. **Capability Types** (from `capabilities.wit`):
-//    - `FilesystemPermission` - Filesystem access permissions
-//    - `NetworkPermission` - Network access permissions
-//    - `StoragePermission` - Storage access permissions
-//    - `MessagingPermission` - Messaging permissions
-//    - `RequestedPermissions` - Complete permission set
-//    - `CapabilityGrant` - Granted capability result
-//
-// 4. **Host Interfaces** (imported by components):
-//    - `HostMessaging` - Inter-component messaging functions
-//    - `HostServices` - General host services (logging, time, etc.)
-//    - `Storage` - Component-isolated storage functions
-//
-// 5. **Guest Interface** (exported by components):
-//    - `GuestComponentLifecycle` - Component lifecycle functions
-//    - `ComponentMetadata` - Component metadata structure
-//
-// **Accessing Generated Types:**
-//
-// Generated types are available directly from the crate root. Examples:
+// accessible throughout the crate as:
 //
 // ```rust
-// use airssys_wasm::ComponentId;
-// use airssys_wasm::ComponentMessage;
-// use airssys_wasm::WasmError;
-// use airssys_wasm::Capabilities;
-//
-// // Create component ID
-// let id = ComponentId {
-//     namespace: "example".to_string(),
-//     name: "my-component".to_string(),
-//     instance: "v1".to_string(),
-// };
+// use crate::RuntimeHost;  // For add_to_linker()
+// use crate::airssys::core::host_messaging;  // For Host traits
+// use crate::airssys::core::types::{ComponentId, MessagePayload};  // For types
 // ```
 //
-// **Integration with Core Module:**
+// ## Why Not wit_bindgen::generate!?
 //
-// In Phase 3 (WASM-TASK-017 onwards), these generated types will be:
-// - Re-exported from appropriate core/ submodules
-// - Used as foundations for airssys-wasm's type system
-// - Integrated with custom error types and traits
+// The standalone `wit_bindgen::generate!` macro is for GUEST components (WASM code).
+// It generates:
+// - Import functions as callable functions (not traits to implement)
+// - Export interfaces as traits for the component to implement
+// - No `add_to_linker()` helper (guests don't register functions)
 //
-// **Phase 2 Preparation:**
+// For hosts implementing imported functions, we MUST use `wasmtime::component::bindgen!`
+// which provides the `RuntimeHost::add_to_linker()` automatic registration helper.
+//
+// ## Implementation Guide
+//
+// To implement host functions:
+// 1. See `runtime/host_functions.rs` for trait implementations
+// 2. Each imported WIT interface becomes a `Host` trait
+// 3. Implement the trait on `HostState`
+// 4. Registration is automatic via `RuntimeHost::add_to_linker()`
+//
+// For complete documentation, see KNOWLEDGE-WASM-043.
+//
+// ## Next Steps
 //
 // This completes Phase 1 (WIT Interface System). The generated bindings
-// are now available for Phase 2 (Project Restructuring) and Phase 3
-// (Core Module implementation).
+// are now available for:
+// - Phase 2 (Project Restructuring)
+// - Phase 3 (Core Module implementation)
+// - Phase 5 (Runtime Module implementation)
 
-wit_bindgen::generate!({
-    world: "component",
+wasmtime::component::bindgen!({
+    world: "runtime-host",
     path: "wit/core",
 });
 

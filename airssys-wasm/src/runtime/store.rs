@@ -116,6 +116,7 @@ mod tests {
         let component_id = ComponentId::new("test", "comp", "0");
         let host_state = HostState {
             component_id: component_id.clone(),
+            message_router: None,
         };
         let store = Store::new(&engine, host_state);
 
@@ -138,6 +139,7 @@ mod tests {
         let component_id = ComponentId::new("test", "comp", "0");
         let host_state = HostState {
             component_id: component_id.clone(),
+            message_router: None,
         };
         let store = Store::new(&engine, host_state);
 
@@ -167,6 +169,7 @@ mod tests {
         let component_id = ComponentId::new("test", "comp", "0");
         let host_state = HostState {
             component_id: component_id.clone(),
+            message_router: None,
         };
         let store = Store::new(&engine, host_state);
 
@@ -196,6 +199,7 @@ mod tests {
         let component_id = ComponentId::new("test", "comp", "0");
         let host_state = HostState {
             component_id: component_id.clone(),
+            message_router: None,
         };
         let store = Store::new(&engine, host_state);
 
@@ -222,6 +226,7 @@ mod tests {
         let component_id = ComponentId::new("test", "comp", "0");
         let host_state = HostState {
             component_id: component_id.clone(),
+            message_router: None,
         };
         let store = Store::new(&engine, host_state);
 
