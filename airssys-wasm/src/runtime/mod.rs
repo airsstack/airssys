@@ -13,12 +13,11 @@
 //! - [`engine`] - WasmtimeEngine (RuntimeEngine implementation)
 //! - [`loader`] - ComponentLoader implementations (FileComponentLoader, InMemoryComponentLoader)
 //! - [`store`] - StoreManager for WASM stores
+//! - [`limiter`] - ResourceLimiter for memory and fuel constraints
 
 pub mod engine;
+pub mod limiter;
 pub mod loader;
 pub mod store;
 
 pub mod host_functions;
-
-// Future submodules:
-// pub mod limiter;

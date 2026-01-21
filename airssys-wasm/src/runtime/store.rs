@@ -7,6 +7,9 @@
 use wasmtime::component::{Component, Instance, Linker};
 use wasmtime::Store;
 
+#[cfg(test)]
+use wasmtime::StoreLimitsBuilder;
+
 // Layer 3: Internal module imports (per PROJECTS_STANDARD.md §2.1)
 use crate::core::component::message::{ComponentMessage, MessagePayload};
 use crate::core::runtime::errors::WasmError;
@@ -117,6 +120,7 @@ mod tests {
         let host_state = HostState {
             component_id: component_id.clone(),
             message_router: None,
+            store_limits: StoreLimitsBuilder::new().build(),
         };
         let store = Store::new(&engine, host_state);
 
@@ -140,6 +144,7 @@ mod tests {
         let host_state = HostState {
             component_id: component_id.clone(),
             message_router: None,
+            store_limits: StoreLimitsBuilder::new().build(),
         };
         let store = Store::new(&engine, host_state);
 
@@ -170,6 +175,7 @@ mod tests {
         let host_state = HostState {
             component_id: component_id.clone(),
             message_router: None,
+            store_limits: StoreLimitsBuilder::new().build(),
         };
         let store = Store::new(&engine, host_state);
 
@@ -200,6 +206,7 @@ mod tests {
         let host_state = HostState {
             component_id: component_id.clone(),
             message_router: None,
+            store_limits: StoreLimitsBuilder::new().build(),
         };
         let store = Store::new(&engine, host_state);
 
@@ -227,6 +234,7 @@ mod tests {
         let host_state = HostState {
             component_id: component_id.clone(),
             message_router: None,
+            store_limits: StoreLimitsBuilder::new().build(),
         };
         let store = Store::new(&engine, host_state);
 

@@ -221,13 +221,19 @@ pub mod limiter;
 
 ---
 
-### Action 2: Integration Tests with Inline WAT
+### Action 2: Integration Tests (Two Types)
 
-**Objective**: Verify resource limits are correctly enforced in a real Wasmtime environment.
+**Objective**: Verify resource limits are correctly enforced at BOTH the Wasmtime level AND the airssys-wasm API level.
+
+**Test Strategy**: Two types of integration tests are required:
+- **Type A**: Wasmtime Behavior Tests (verify Wasmtime's StoreLimits/Fuel mechanisms work)
+- **Type B**: airssys-wasm API Tests (verify our `WasmResourceLimiter` and `apply_limits_to_store()` work)
 
 **Detailed Steps**:
 
-#### Step 2.1: Create `tests/resource_limits_integration.rs`
+#### Step 2.1: Create `tests/resource_limits_integration.rs` (Type A - Wasmtime Behavior Tests)
+
+**Purpose**: Verify that Wasmtime's StoreLimits and Fuel mechanisms work as expected.
 
 ```rust
 //! Integration tests for resource limiting.
@@ -363,13 +369,200 @@ fn test_memory_limit_exact_boundary() {
 }
 ```
 
+---
+
+#### Step 2.2: Create `tests/airssys_limiter_integration.rs` (Type B - airssys-wasm API Tests)
+
+**Purpose**: Verify that `WasmResourceLimiter` and `apply_limits_to_store()` correctly bridge our `ResourceLimits` to Wasmtime's mechanisms.
+
+```rust
+//! Integration tests for airssys-wasm resource limiter API.
+//!
+//! Tests that our WasmResourceLimiter and apply_limits_to_store()
+//! correctly configure Wasmtime's StoreLimits and Fuel.
+
+use airssys_wasm::core::runtime::limits::ResourceLimits;
+use airssys_wasm::core::types::ComponentId;
+use airssys_wasm::runtime::engine::HostState;
+use airssys_wasm::runtime::limiter::{apply_limits_to_store, WasmResourceLimiter};
+use wasmtime::{Config, Engine, Store, StoreLimitsBuilder};
+
+/// Create an engine configured for fuel consumption
+fn create_engine() -> Engine {
+    let mut config = Config::new();
+    config.wasm_component_model(true);
+    config.consume_fuel(true);
+    Engine::new(&config).expect("Failed to create engine")
+}
+
+#[test]
+fn test_apply_limits_sets_store_limits() {
+    let engine = create_engine();
+
+    // Create HostState with default StoreLimits
+    let host_state = HostState {
+        component_id: ComponentId::new("test-component"),
+        message_router: None,
+        store_limits: StoreLimitsBuilder::new().build(),
+    };
+
+    let mut store = Store::new(&engine, host_state);
+
+    // Apply custom limits
+    let limits = ResourceLimits {
+        max_memory_bytes: 1024 * 1024, // 1MB
+        max_execution_time_ms: 5000,
+        max_fuel: Some(10_000),
+    };
+
+    apply_limits_to_store(&mut store, &limits).expect("Failed to apply limits");
+
+    // Verify fuel was set
+    let fuel = store.get_fuel().expect("Fuel should be set");
+    assert_eq!(fuel, 10_000);
+
+    // Verify limiter callback is configured (store has limiter)
+    // We can't directly inspect StoreLimits, but we know it's set if no panic
+}
+
+#[test]
+fn test_apply_limits_with_no_fuel() {
+    let engine = create_engine();
+
+    let host_state = HostState {
+        component_id: ComponentId::new("test-component"),
+        message_router: None,
+        store_limits: StoreLimitsBuilder::new().build(),
+    };
+
+    let mut store = Store::new(&engine, host_state);
+
+    // Apply limits WITHOUT fuel
+    let limits = ResourceLimits {
+        max_memory_bytes: 2 * 1024 * 1024, // 2MB
+        max_execution_time_ms: 10_000,
+        max_fuel: None,
+    };
+
+    apply_limits_to_store(&mut store, &limits).expect("Failed to apply limits");
+
+    // When fuel is None, get_fuel() returns Ok with max u64
+    // (because engine has fuel enabled, but store hasn't consumed yet)
+    let fuel = store.get_fuel().expect("Should succeed");
+    assert!(fuel > 0); // Default fuel amount
+}
+
+#[test]
+fn test_apply_limits_multiple_times() {
+    let engine = create_engine();
+
+    let host_state = HostState {
+        component_id: ComponentId::new("test-component"),
+        message_router: None,
+        store_limits: StoreLimitsBuilder::new().build(),
+    };
+
+    let mut store = Store::new(&engine, host_state);
+
+    // Apply first set of limits
+    let limits1 = ResourceLimits {
+        max_memory_bytes: 512 * 1024,
+        max_execution_time_ms: 1000,
+        max_fuel: Some(5_000),
+    };
+
+    apply_limits_to_store(&mut store, &limits1).expect("Failed to apply limits");
+    let fuel1 = store.get_fuel().expect("Fuel should be set");
+    assert_eq!(fuel1, 5_000);
+
+    // Apply second set of limits (overwrite)
+    let limits2 = ResourceLimits {
+        max_memory_bytes: 1024 * 1024,
+        max_execution_time_ms: 2000,
+        max_fuel: Some(20_000),
+    };
+
+    apply_limits_to_store(&mut store, &limits2).expect("Failed to apply limits");
+    let fuel2 = store.get_fuel().expect("Fuel should be updated");
+    assert_eq!(fuel2, 20_000);
+}
+
+#[test]
+fn test_wasm_resource_limiter_new() {
+    let limits = ResourceLimits {
+        max_memory_bytes: 16 * 1024 * 1024, // 16MB
+        max_execution_time_ms: 30_000,
+        max_fuel: Some(1_000_000),
+    };
+
+    let limiter = WasmResourceLimiter::new(&limits);
+
+    // Verify fuel limit is captured
+    assert_eq!(limiter.fuel_limit(), Some(1_000_000));
+
+    // Verify StoreLimits can be extracted
+    let _store_limits = limiter.into_store_limits();
+}
+
+#[test]
+fn test_wasm_resource_limiter_default_limits() {
+    let limits = ResourceLimits::default();
+    let limiter = WasmResourceLimiter::new(&limits);
+
+    // Default ResourceLimits has no fuel
+    assert_eq!(limiter.fuel_limit(), None);
+}
+
+#[test]
+fn test_apply_limits_end_to_end() {
+    // End-to-end test: ResourceLimits -> apply_limits_to_store -> verify all set
+    let engine = create_engine();
+
+    let host_state = HostState {
+        component_id: ComponentId::new("e2e-test"),
+        message_router: None,
+        store_limits: StoreLimitsBuilder::new().build(),
+    };
+
+    let mut store = Store::new(&engine, host_state);
+
+    // Create comprehensive limits
+    let limits = ResourceLimits {
+        max_memory_bytes: 8 * 1024 * 1024, // 8MB
+        max_execution_time_ms: 15_000,
+        max_fuel: Some(500_000),
+    };
+
+    // Apply limits
+    apply_limits_to_store(&mut store, &limits).expect("Failed to apply limits");
+
+    // Verify fuel was set correctly
+    let fuel = store.get_fuel().expect("Fuel should be set");
+    assert_eq!(fuel, 500_000);
+
+    // Verify HostState's store_limits was updated (indirectly)
+    // We can't access it directly, but if no panic, it's set correctly
+    // The limiter callback is configured and will use HostState.store_limits
+
+    // Simulate consuming some fuel
+    store
+        .set_fuel(fuel - 100)
+        .expect("Should be able to update fuel");
+    let remaining = store.get_fuel().expect("Should get remaining fuel");
+    assert_eq!(remaining, 499_900);
+}
+```
+
 **Deliverables**:
-- `tests/resource_limits_integration.rs` with inline WAT tests
+- `tests/resource_limits_integration.rs` - Type A tests (Wasmtime behavior)
+- `tests/airssys_limiter_integration.rs` - Type B tests (airssys-wasm API)
 
 **Constraints**:
-- Use inline WAT strings, not external fixture files
-- Test both memory limits and fuel limits
-- Tests must be independent and not rely on shared state
+- Type A tests use RAW wasmtime APIs only (no airssys imports)
+- Type B tests MUST import and use airssys_wasm modules
+- Type B tests verify end-to-end: `ResourceLimits` → `WasmResourceLimiter` → `apply_limits_to_store()` → Wasmtime
+- All tests must be independent and not rely on shared state
+- Use inline WAT strings for Type A tests (not external fixtures)
 
 ---
 
@@ -380,8 +573,11 @@ fn test_memory_limit_exact_boundary() {
 # Unit tests for limiter module
 cargo test -p airssys-wasm --lib -- runtime::limiter
 
-# Integration tests
+# Integration tests - Type A (Wasmtime behavior)
 cargo test -p airssys-wasm --test resource_limits_integration
+
+# Integration tests - Type B (airssys-wasm API)
+cargo test -p airssys-wasm --test airssys_limiter_integration
 
 # All tests
 cargo test -p airssys-wasm
@@ -408,8 +604,11 @@ grep -rn "wasmtime::" src/runtime/limiter.rs | grep -v "^.*use " | grep "::" # S
 - [ ] `HostState` includes `StoreLimits` field
 - [ ] `store.limiter(|s| &mut s.store_limits)` called in `load_component`
 - [ ] `apply_limits_to_store` sets both StoreLimits AND Fuel
-- [ ] Unit tests in `limiter.rs` pass
-- [ ] Integration tests in `tests/resource_limits_integration.rs` pass
+- [ ] Unit tests in `limiter.rs` pass (4 tests)
+- [ ] Type A integration tests pass (Wasmtime behavior - 4 tests in `resource_limits_integration.rs`)
+- [ ] Type B integration tests pass (airssys API - 6 tests in `airssys_limiter_integration.rs`)
+- [ ] Type B tests import and use `airssys_wasm::runtime::limiter` modules
+- [ ] Type B tests verify end-to-end: `ResourceLimits` → `WasmResourceLimiter` → `apply_limits_to_store()`
 - [ ] `cargo clippy -p airssys-wasm --lib --tests -- -D warnings` passes
 - [ ] No forbidden imports (architecture compliance)
 

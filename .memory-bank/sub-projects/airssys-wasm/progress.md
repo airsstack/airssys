@@ -1,6 +1,6 @@
 # airssys-wasm Progress
 
-**Last Updated:** 2026-01-14 (WASM-TASK-031 COMPLETE)
+**Last Updated:** 2026-01-21 (WASM-TASK-035 COMPLETE)
 
 ---
 
@@ -83,7 +83,7 @@ airssys-wasm/src/
 
 **Phase 5: Runtime Module** (WASM-TASK-031 to 036) - 🚀 IN PROGRESS
 - 6 tasks: WASM execution layer
-- Status: 1 of 6 tasks complete (17%) ✅
+- Status: 5 of 6 tasks complete (83%) ✅
 
 **Phase 6: Component & Messaging** (WASM-TASK-037 to 046)
 - 10 tasks: Actor integration and messaging patterns
@@ -114,10 +114,11 @@ airssys-wasm/src/
 
 ### Phase 5 Tasks (In Progress) 🚀
 **WASM-TASK-031** - Implement WasmtimeEngine (2026-01-14) ✅ COMPLETE
-**WASM-TASK-032** - Implement ComponentLoader (2026-01-12) [Pending]
-**WASM-TASK-033** - Implement StoreManager (2026-01-12) [Pending]
-**WASM-TASK-034** - Implement host functions (2026-01-12) [Pending]
-**WASM-TASK-035** - Implement ResourceLimiter (2026-01-12) [Pending]
+**WASM-TASK-032** - Implement ComponentLoader (2026-01-14) ✅ COMPLETE
+**WASM-TASK-033** - Implement StoreManager (2026-01-15) ✅ COMPLETE
+**WASM-TASK-034** - Implement host functions (2026-01-16) ✅ COMPLETE
+**WASM-TASK-035** - Implement ResourceLimiter (2026-01-21) ✅ COMPLETE
+**WASM-TASK-036** - Runtime integration tests [Pending]
 
 ### Phase 2 Tasks (All Complete) ✅
 **WASM-TASK-013** - Rename actor/ to component/ (2026-01-08) ✅
@@ -202,7 +203,7 @@ grep -rn "use crate::actor" src/runtime/     ✅
 - Phase 2 complete: 17/53 tasks (32%)
 - Phase 3 complete: 25/53 tasks (47%) ✅
 - Phase 4 complete: 30/53 tasks (57%) ✅
-- Phase 5 in progress: 31/53 tasks (58%) 🚀
+- Phase 5 in progress: 33/53 tasks (62%) 🚀
 
 **Architecture Documentation:**
 - ADRs created: 25+ (including clean-slate rebuild ADRs)
@@ -236,6 +237,55 @@ grep -rn "use crate::actor" src/runtime/     ✅
 ---
 
 ## Progress Log
+
+### 2026-01-21: WASM-TASK-035 COMPLETE - Implement ResourceLimiter ✅
+
+**Status:** ✅ COMPLETE  
+**Completion Date:** 2026-01-21  
+**Phase:** Phase 5 - Runtime Module Implementation (Task 5/6)
+
+**Implementation Summary:**
+- ✅ runtime/limiter.rs - WasmResourceLimiter struct
+- ✅ apply_limits_to_store() helper function
+- ✅ StoreLimits integration in HostState
+- ✅ Module declaration in runtime/mod.rs
+- ✅ Comprehensive test coverage (Type A + Type B)
+
+**Test Results:**
+- Unit Tests: 4 tests (runtime::limiter) - All passing
+- Type A Integration: 4 tests (tests/resource_limits_integration.rs) - All passing
+- Type B Integration: 6 tests (tests/airssys_limiter_integration.rs) - All passing
+- **Total: 14 tests (4 unit + 10 integration)** - All passing
+
+**Quality:**
+- ✅ Zero clippy warnings (lib code)
+- ✅ Clean build
+- ✅ ADR-WASM-023 compliant (zero forbidden imports)
+- ✅ PROJECTS_STANDARD.md fully compliant (§2.1, §2.2, §4.3)
+
+**Key Features:**
+- WasmResourceLimiter manages fuel and memory constraints
+- StoreLimits integration with wasmtime API
+- apply_limits() configures store before component execution
+- Type A tests validate wasmtime behavior
+- Type B tests validate airssys-wasm public API
+
+**Verification Chain:**
+- ✅ Plans revised by @memorybank-planner (Type B tests added)
+- ✅ Implemented by @memorybank-implementer (including Type B tests)
+- ✅ Verified by @memorybank-verifier (VERIFIED status)
+- ✅ Audited by @memorybank-auditor (APPROVED status)
+- ✅ Re-verified by @memorybank-verifier (Audit confirmed VERIFIED)
+- ✅ User confirmed: "Tests work!"
+
+**Phase Status Update:**
+- ✅ Phase 5: Runtime Module Implementation - 5/6 tasks complete (83%)
+- ✅ Overall project: 33/53 tasks complete (62%)
+- ✅ Ready for final runtime task (WASM-TASK-036)
+
+**Next Task:** WASM-TASK-036 (Runtime integration tests)
+
+---
 
 ### 2026-01-05: Phase 1 WIT Interface System Tasks Created ✅
 

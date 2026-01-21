@@ -54,6 +54,7 @@ fn test_store_manager_lifecycle_with_real_component() {
     let host_state = HostState {
         component_id: component_id.clone(),
         message_router: None,
+        store_limits: wasmtime::StoreLimitsBuilder::new().build(),
     };
     let store = Store::new(&engine, host_state);
     let linker = Linker::new(&engine);
@@ -89,6 +90,7 @@ fn test_store_manager_uninitialized_error() {
     let host_state = HostState {
         component_id: component_id.clone(),
         message_router: None,
+        store_limits: wasmtime::StoreLimitsBuilder::new().build(),
     };
     let store = Store::new(&engine, host_state);
 
@@ -124,6 +126,7 @@ fn test_store_manager_with_multiple_message_calls() {
     let host_state = HostState {
         component_id: component_id.clone(),
         message_router: None,
+        store_limits: wasmtime::StoreLimitsBuilder::new().build(),
     };
     let store = Store::new(&engine, host_state);
     let linker = Linker::new(&engine);
@@ -163,6 +166,7 @@ fn test_store_manager_accessors_with_real_component() {
     let host_state = HostState {
         component_id: component_id.clone(),
         message_router: None,
+        store_limits: wasmtime::StoreLimitsBuilder::new().build(),
     };
     let store = Store::new(&engine, host_state);
 
@@ -196,6 +200,7 @@ fn test_store_manager_initialization_with_minimal_component() {
     let host_state = HostState {
         component_id: component_id.clone(),
         message_router: None,
+        store_limits: wasmtime::StoreLimitsBuilder::new().build(),
     };
     let store = Store::new(&engine, host_state);
     let linker = Linker::new(&engine);

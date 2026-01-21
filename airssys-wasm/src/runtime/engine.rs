@@ -6,7 +6,7 @@ use std::sync::{Arc, RwLock};
 
 // Layer 2: Third-party crate imports
 use wasmtime::component::{Component, Linker};
-use wasmtime::{Config, Engine, Store};
+use wasmtime::{Config, Engine, Store, StoreLimits, StoreLimitsBuilder};
 
 // Layer 3: Internal module imports
 use crate::core::component::handle::ComponentHandle;
@@ -39,6 +39,8 @@ pub struct HostState {
     /// Message router for inter-component communication
     /// Using dyn Trait for dependency injection across module boundaries
     pub message_router: Option<Arc<dyn MessageRouter>>,
+    /// Store limits for memory/table enforcement
+    pub store_limits: StoreLimits,
 }
 
 /// Internal store wrapper (placeholder until StoreManager is implemented)
@@ -114,9 +116,15 @@ impl RuntimeEngine for WasmtimeEngine {
         let host_state = HostState {
             component_id: id.clone(),
             message_router: None,
+            store_limits: StoreLimitsBuilder::new().build(), // Default limits
         };
 
-        let store = Store::new(&self.engine, host_state);
+        let mut store = Store::new(&self.engine, host_state);
+
+        // Configure the store's limiter callback
+        // This tells Wasmtime to use HostState.store_limits for memory/table checks
+        store.limiter(|state| &mut state.store_limits);
+
         let handle_id = self.allocate_handle_id();
 
         // Store the entry

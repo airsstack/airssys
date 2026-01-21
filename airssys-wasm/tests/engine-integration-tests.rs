@@ -168,6 +168,7 @@ fn test_host_state_initialization() {
     let host_state = HostState {
         component_id: component_id.clone(),
         message_router: None,
+        store_limits: wasmtime::StoreLimitsBuilder::new().build(),
     };
 
     assert_eq!(host_state.component_id, component_id);
