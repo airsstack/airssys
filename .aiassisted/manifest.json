@@ -1,0 +1,233 @@
+{
+  "version": "43e0212",
+  "files": [
+    {
+      "path": "agents/code-explorer/AGENT.md",
+      "checksum": "70b2967a04f538b62ca3e9312ad4a8d3b348e12f8d1e22c38a480b63f7a06935"
+    },
+    {
+      "path": "agents/code-reviewer/AGENT.md",
+      "checksum": "6f077f9f8c6b8922016acc5cd1de7c01cfe871f8bdcf62843ca87579cff01247"
+    },
+    {
+      "path": "agents/memorybank-implementer/AGENT.md",
+      "checksum": "d8fa4b32e2bbda3d253a8624e61b2d0bed0df598f58b8e6a0f74a05324b3c3a2"
+    },
+    {
+      "path": "agents/memorybank-planner/AGENT.md",
+      "checksum": "d0e067ee1756a94c02169d8d19ab72536d9c436bf32ce35b8c2ad8aee808b67f"
+    },
+    {
+      "path": "agents/memorybank-verifier/AGENT.md",
+      "checksum": "caa035ae00f092a80b8d2efbfa9769c6ebcbd3c325f498bfe6d31dcf8439fb64"
+    },
+    {
+      "path": "config.toml.default",
+      "checksum": "059e350ca323c7a4414e60ee819ef1182681d411672c463f236fb7ba295dd45d"
+    },
+    {
+      "path": "config/README.md",
+      "checksum": "fcd186b5d115090ea343f86eca6218122648a959dcea1e8851eea6e4799c6a67"
+    },
+    {
+      "path": "guidelines/ai/agents/agent-spec.guideline.md",
+      "checksum": "e0a01a628fe6a2adaf0b6c80733f88136350aca3b18af0982dcafe1c6adf26a5"
+    },
+    {
+      "path": "guidelines/ai/agents/claude-code/README.md",
+      "checksum": "a6f02d2ec4278c035024cb83e3e622247de3582c1af78fa3c6353064500ee616"
+    },
+    {
+      "path": "guidelines/ai/agents/claude-code/claude-code-skills-guide.md",
+      "checksum": "2df3f1f13e82e7819e0944307afc78deb167106fcaf931706922478c047cc1de"
+    },
+    {
+      "path": "guidelines/ai/agents/claude-code/claude-code-subagents-guide.md",
+      "checksum": "9684bdb60fe5a93961feb050e5de2dc8deafe2d5aff89b2ef8a35bde7b9ae2ae"
+    },
+    {
+      "path": "guidelines/ai/agents/opencode/README.md",
+      "checksum": "dd781951e41641f0ee6d38bfebcc41b07bc02e3b00f80435fdffe5310bc6f221"
+    },
+    {
+      "path": "guidelines/ai/agents/opencode/opencode-agents-guide.md",
+      "checksum": "3e5664594e46b13a92b8db9e3b9ab1ae81fe7888d3ded7f91151088b087459d4"
+    },
+    {
+      "path": "guidelines/ai/agents/opencode/opencode-commands-guide.md",
+      "checksum": "f4cb66b715b7847cd5a448cdc74c23b7d272e3813fd5aecc890fc1ac4b2e040e"
+    },
+    {
+      "path": "guidelines/ai/agents/opencode/opencode-skills-guide.md",
+      "checksum": "52074b13b0168c87c1fbed7528329df2b94c041b4e161801713dc7284ba4d8fd"
+    },
+    {
+      "path": "guidelines/ai/agentskills/agent-skills.guideline.md",
+      "checksum": "d49d2d75645f33b6bd0c3dd120cddcd887ea6fa74b740bc03db71c18f26e4dcd"
+    },
+    {
+      "path": "guidelines/architecture/algebraic-data-types.md",
+      "checksum": "558b09b2c97f47042210800905dfaa24cba366f43ed997da411952fe57f8f47b"
+    },
+    {
+      "path": "guidelines/architecture/builder-pattern.md",
+      "checksum": "7d18292fa0f3b01b90410cb0bc684c7a1b2247d16f73bc5c958d60fbf0013ba8"
+    },
+    {
+      "path": "guidelines/architecture/dependency-management.md",
+      "checksum": "bfbb040a4a3cc0bfce2bc79710ceb1325f9e41c4f9bd64263b8476794c41dab2"
+    },
+    {
+      "path": "guidelines/architecture/factory-pattern.md",
+      "checksum": "3b6fa3301a2b5af01504e744a49a2d5339128f4d347e772920a887244c4cdd0b"
+    },
+    {
+      "path": "guidelines/architecture/modular-monolith.md",
+      "checksum": "9bfe0c6bda6bafbdcaabb184164dfe82cace71c3ae25d08b9d01b3aa3d0a2897"
+    },
+    {
+      "path": "guidelines/documentation/diataxis-guidelines.md",
+      "checksum": "38833f0a0c8cdaa54a6fff6297cb788a799bfb3bbb2b37c775d760f1b303d621"
+    },
+    {
+      "path": "guidelines/documentation/documentation-quality-standards.md",
+      "checksum": "3b594d635170a26fd4f66ab38f30c9686ca2fe56bf8883c9b2997b87781052ef"
+    },
+    {
+      "path": "guidelines/documentation/task-documentation-standards.md",
+      "checksum": "b14b3c04ef73f60e0eb9ef4d20724f028c44a6e91fd43c4d7203809bf83a5889"
+    },
+    {
+      "path": "guidelines/engineering/code-review-process.md",
+      "checksum": "193994516a6cb1a8927ce242f536ee9cc2bf4183ad0c5b05dda70954ca030df1"
+    },
+    {
+      "path": "guidelines/ratatui/README.md",
+      "checksum": "eada6e555b90aec7e9aa1655862d8fbfee24d5a19fe9d78b3ccf09198775e101"
+    },
+    {
+      "path": "guidelines/ratatui/ratatui-architecture-guide.md",
+      "checksum": "83083b366a60c019cf3e0d0ab79c5719b4e0bf8287e92a2dc4fd7fd7eb1c755e"
+    },
+    {
+      "path": "guidelines/ratatui/ratatui-backends-guide.md",
+      "checksum": "1926013d4d6a7a3ce503546140adf55dce474b675fd6697bb311f1f5ae7812b4"
+    },
+    {
+      "path": "guidelines/ratatui/ratatui-ecosystem-guide.md",
+      "checksum": "132638e3e198687ffac37420dbe3297adebdb1ec82200b17709800504c60af79"
+    },
+    {
+      "path": "guidelines/ratatui/ratatui-getting-started-guide.md",
+      "checksum": "5de3185017a5e4aba4cf612e44229ef1c456036ceaff3e029280b2f978acbcf6"
+    },
+    {
+      "path": "guidelines/ratatui/ratatui-layout-guide.md",
+      "checksum": "5331d38838a19d06cc6eff74c1988a8ac99b2bf478bb494555e2edba37e3d8e8"
+    },
+    {
+      "path": "guidelines/ratatui/ratatui-rendering-guide.md",
+      "checksum": "7d5251d09c29d6902744400efbfade43a63cbdef93d3d47f95b44b58ad0126e7"
+    },
+    {
+      "path": "guidelines/ratatui/ratatui-widgets-guide.md",
+      "checksum": "224884044fe86f879b57195df34edd4c05c27bf05f89da0e4f8a64b1aad036b4"
+    },
+    {
+      "path": "guidelines/rust/microsoft-rust-guidelines.md",
+      "checksum": "8c3544c308ece663c73a1b4fcb72672bfdd5c1a2e161eb7ce511fdbec3d95858"
+    },
+    {
+      "path": "guidelines/rust/rust-adt-implementation-guide.md",
+      "checksum": "4fdf5f3e2b26cae2204e34616e9adf7dec58b326cd8cf1fef72cf62ba5efb8c7"
+    },
+    {
+      "path": "guidelines/rust/rust-builder-pattern-guide.md",
+      "checksum": "51fbcbf2e08da3d201db805965c37a2f0070d3ca2ed48b609a644eb3ac049961"
+    },
+    {
+      "path": "guidelines/rust/rust-code-review-guide.md",
+      "checksum": "f84fbae3549cf6ed13b43f1ed25a0501b0da633b4e514e5d5cecb1b4b88e0510"
+    },
+    {
+      "path": "guidelines/rust/rust-dependency-management-guide.md",
+      "checksum": "19f4b9819821693fa6242ef8fa41b31b37b8056d94101e5e65c1fc48737c2fa2"
+    },
+    {
+      "path": "guidelines/rust/rust-dispatch-guide.md",
+      "checksum": "9bb6994af5c574147808c949217c2cca8a47982714e32509d8950edf732306de"
+    },
+    {
+      "path": "guidelines/rust/rust-documentation-guide.md",
+      "checksum": "fa0f944f4361d8c294a25587414adf60730b2cea70a674d65983d19945306594"
+    },
+    {
+      "path": "guidelines/rust/rust-factory-pattern-guide.md",
+      "checksum": "fa4689d78a7e8fd480087c3e348702948f68dbd9a196c2ef33ee5fc8892eff82"
+    },
+    {
+      "path": "guidelines/rust/rust-main-lib-crate-structure-guide.md",
+      "checksum": "3c356120ee72f0d74e1024f149540c1f927b549831bede77dc4fecf2441023ce"
+    },
+    {
+      "path": "guidelines/rust/rust-policy-guide.md",
+      "checksum": "55ce9feeb35a47a011a6c479de76ac22b3cd9485a995dd387a7511de208bffdc"
+    },
+    {
+      "path": "guidelines/rust/rust-smart-pointers-guide.md",
+      "checksum": "517f27a7a941533829106fd83d474a945b1c8d5214c81562bcfbc16ede5c08c9"
+    },
+    {
+      "path": "guidelines/rust/rust-typestate-pattern-guide.md",
+      "checksum": "2de57b846fd9d3ddb152ba03a58123aa31f7c0288b7945d02b7313e11971dbb1"
+    },
+    {
+      "path": "instructions/ai-prompt-engineering-safety-best-practices.instructions.md",
+      "checksum": "108cb369cbf71df6a2cd94e456646a6e07f1bfd21801a0c345ec99f80f1220fb"
+    },
+    {
+      "path": "instructions/multi-project-memory-bank.instructions.md",
+      "checksum": "63b59c35ff7fc5b76269d1b055ad72cf7cafb5fae35b7ca1a92228fa47ca0a17"
+    },
+    {
+      "path": "instructions/rust.instructions.md",
+      "checksum": "32bbb01e728955f347e47ec7069eed525d82aefc47f23b4f0048691caebbb1aa"
+    },
+    {
+      "path": "instructions/setup-agents-context.instructions.md",
+      "checksum": "3f5cb0caf24c08d358d814629a61f4ed8f97486d85e9d78c8fcb73c5b61bb5ba"
+    },
+    {
+      "path": "skills/doc-code/SKILL.md",
+      "checksum": "ce5970256153228fb2c0686472942e0be74c87954dccce3f57fbe6db2a157da6"
+    },
+    {
+      "path": "skills/doc-project/SKILL.md",
+      "checksum": "73f5ec099f5a79ee8e215dccf7f9cf77de267b8f6508bf8503afaab4907652f1"
+    },
+    {
+      "path": "skills/git-commit/SKILL.md",
+      "checksum": "c60f25aae3cafe47b422ef66d04d7624e2690a21b000b170f90acc1f3cbd287d"
+    },
+    {
+      "path": "skills/git-commit/references/conventional-commits.md",
+      "checksum": "7dce4b5b6715b200a8ced3915105a1c640f59ace44d68deadab00e1672d9b7e7"
+    },
+    {
+      "path": "skills/memorybank-setup/SKILL.md",
+      "checksum": "bac87123c2d80b512c233956bd493f716946b8536020a1413a86f677ede264ac"
+    },
+    {
+      "path": "skills/policy-rust/SKILL.md",
+      "checksum": "d231e2fa17bed07c54dfaeb037e8409e431e3372171400f799689e0f5c0f3403"
+    },
+    {
+      "path": "skills/review-codes/SKILL.md",
+      "checksum": "e8cdf9c984dff277f4552b5edc7985c77cd8f48046200b20969f8351a2bb7363"
+    },
+    {
+      "path": "skills/review-rust/SKILL.md",
+      "checksum": "7b9a8b09e9f8bdfa65d1a70806e2c333e52964a89c5560302078a9679cf7aeda"
+    }
+  ]
+}

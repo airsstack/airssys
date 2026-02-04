@@ -1,0 +1,60 @@
+# aiassisted CLI Configuration
+# Documentation: https://github.com/rstlix0x0/aiassisted
+#
+# This file will be copied to ~/.aiassisted/config.toml during installation.
+# Users can customize their preferences by editing that file.
+
+[general]
+# Default runtime: shell, python, bun, or auto
+# If set to "auto", the CLI will detect available runtimes in order: bun, python, shell
+default_runtime = "auto"
+
+# Verbosity level: 0=quiet, 1=normal, 2=verbose, 3=debug
+verbosity = 1
+
+[install]
+# Automatically check for .aiassisted content updates on install
+auto_update = true
+
+# Skip confirmation prompts during installation
+confirm_before_install = false
+
+# Default installation path relative to project root
+install_path = ".aiassisted"
+
+[templates]
+# Prefer project templates (./.aiassisted/templates/) over global templates (~/.aiassisted/templates/)
+# If true, project templates are used first, falling back to global if not found
+prefer_project = true
+
+# Automatically initialize project templates directory on first setup-skills
+auto_init_templates = false
+
+# Automatically sync templates from global before generating skills/agents
+auto_sync_templates = false
+
+[skills]
+# AI coding tools to setup: opencode, claude, or both
+# Leave empty [] to auto-detect installed tools
+tools = []
+
+# Automatically run setup-skills after installing .aiassisted/ in a project
+auto_setup = false
+
+[update]
+# Check for CLI updates on startup
+check_on_startup = false
+
+# Update channel: stable, beta, or nightly
+channel = "stable"
+
+[github]
+# GitHub repository for .aiassisted content
+repo = "rstlix0x0/aiassisted"
+
+# Use specific branch or tag (empty = latest release)
+ref = ""
+
+# GitHub API token for private repositories (optional)
+# Uncomment and set if you're using a private fork
+# token = "ghp_..."

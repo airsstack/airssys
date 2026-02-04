@@ -125,3 +125,4 @@ __pycache__/
 .opencode/
 .agent/
 PROJECTS_STANDARD.md
+.claude/
