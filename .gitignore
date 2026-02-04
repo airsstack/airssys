@@ -121,3 +121,7 @@ __pycache__/
 # === BACKUP FILES ===
 # Editor and tool-generated backup files
 *.backup
+.memory-bank/
+.opencode/
+.agent/
+PROJECTS_STANDARD.md
