@@ -35,9 +35,8 @@ use super::errors::ComponentError;
 /// # Examples
 ///
 /// ```rust
-/// use airssys_wasm::core::component::{
-///     ComponentLifecycle, ComponentHandle, ComponentMessage, ComponentError,
-/// };
+/// use airssys_wasm::core::component::traits::ComponentLifecycle;
+/// use airssys_wasm::core::component::errors::ComponentError;
 ///
 /// struct MockComponent {
 ///     initialized: bool,
@@ -79,7 +78,8 @@ pub trait ComponentLifecycle: Send + Sync {
     /// # Examples
     ///
     /// ```rust
-    /// use airssys_wasm::core::component::{ComponentLifecycle, ComponentError};
+    /// use airssys_wasm::core::component::traits::ComponentLifecycle;
+    /// use airssys_wasm::core::component::errors::ComponentError;
     ///
     /// struct MyComponent {
     ///     initialized: bool,
@@ -90,6 +90,8 @@ pub trait ComponentLifecycle: Send + Sync {
     ///         self.initialized = true;
     ///         Ok(())
     ///     }
+    /// #     fn shutdown(&mut self) -> Result<(), ComponentError> { Ok(()) }
+    /// #     fn health_check(&self) -> bool { true }
     /// }
     /// ```
     fn initialize(&mut self) -> Result<(), ComponentError>;
@@ -112,17 +114,20 @@ pub trait ComponentLifecycle: Send + Sync {
     /// # Examples
     ///
     /// ```rust
-    /// use airssys_wasm::core::component::{ComponentLifecycle, ComponentError};
+    /// use airssys_wasm::core::component::traits::ComponentLifecycle;
+    /// use airssys_wasm::core::component::errors::ComponentError;
     ///
     /// struct MyComponent {
     ///     initialized: bool,
     /// }
     ///
     /// impl ComponentLifecycle for MyComponent {
+    /// #     fn initialize(&mut self) -> Result<(), ComponentError> { Ok(()) }
     ///     fn shutdown(&mut self) -> Result<(), ComponentError> {
     ///         self.initialized = false;
     ///         Ok(())
     ///     }
+    /// #     fn health_check(&self) -> bool { true }
     /// }
     /// ```
     fn shutdown(&mut self) -> Result<(), ComponentError>;
@@ -140,13 +145,16 @@ pub trait ComponentLifecycle: Send + Sync {
     /// # Examples
     ///
     /// ```rust
-    /// use airssys_wasm::core::component::ComponentLifecycle;
+    /// use airssys_wasm::core::component::traits::ComponentLifecycle;
+    /// use airssys_wasm::core::component::errors::ComponentError;
     ///
     /// struct MyComponent {
     ///     initialized: bool,
     /// }
     ///
     /// impl ComponentLifecycle for MyComponent {
+    /// #     fn initialize(&mut self) -> Result<(), ComponentError> { Ok(()) }
+    /// #     fn shutdown(&mut self) -> Result<(), ComponentError> { Ok(()) }
     ///     fn health_check(&self) -> bool {
     ///         self.initialized
     ///     }

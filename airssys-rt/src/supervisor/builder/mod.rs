@@ -21,22 +21,31 @@
 //!
 //! ```rust,no_run
 //! use airssys_rt::supervisor::*;
+//! use airssys_rt::monitoring::{NoopMonitor, SupervisionEvent};
+//! use async_trait::async_trait;
 //! use std::time::Duration;
 //!
-//! # async fn example() -> Result<(), SupervisorError<std::io::Error>> {
-//! let mut supervisor = SupervisorNode::new(OneForOne::default());
+//! # struct MyWorker;
+//! # #[async_trait]
+//! # impl airssys_rt::supervisor::Child for MyWorker {
+//! #     type Error = std::io::Error;
+//! #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+//! #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
+//! # }
+//! # async fn example() -> Result<(), SupervisorError> {
+//! let mut supervisor = SupervisorNode::new(OneForOne, NoopMonitor::<SupervisionEvent>::new());
 //!
 //! // Minimal configuration (uses defaults)
 //! let id = supervisor
 //!     .child("worker")
-//!     .factory(|| my_worker())
+//!     .factory(|| MyWorker)
 //!     .spawn()
 //!     .await?;
 //!
 //! // Full customization
 //! let id = supervisor
 //!     .child("critical")
-//!     .factory(|| my_critical_worker())
+//!     .factory(|| MyWorker)
 //!     .restart_transient()
 //!     .shutdown_graceful(Duration::from_secs(15))
 //!     .start_timeout(Duration::from_secs(60))
@@ -44,8 +53,6 @@
 //!     .await?;
 //! # Ok(())
 //! # }
-//! # fn my_worker() -> impl airssys_rt::supervisor::Child { unimplemented!() }
-//! # fn my_critical_worker() -> impl airssys_rt::supervisor::Child { unimplemented!() }
 //! ```
 //!
 //! # Migration Guide
@@ -80,12 +87,8 @@
 //! ### Example 1: Simple Worker Migration
 //!
 //! **Before (Manual ChildSpec):**
-//! ```rust,no_run
-//! # use airssys_rt::supervisor::*;
-//! # use std::time::Duration;
-//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! # let mut supervisor: SupervisorNode<OneForOne, _, _> = unimplemented!();
-//! // OLD WAY - 10 lines of boilerplate
+//! ```rust,ignore
+//! // OLD WAY - 10 lines of boilerplate (deprecated API shown for reference)
 //! let child_id = supervisor.add_child(
 //!     ChildSpec {
 //!         id: "worker-1".to_string(),
@@ -96,23 +99,16 @@
 //!         shutdown_timeout: Duration::from_secs(10),
 //!     }
 //! ).await?;
-//! # Ok(())
-//! # }
-//! # struct MyWorker;
-//! # impl MyWorker { fn new() -> Self { Self } }
-//! # impl airssys_rt::supervisor::Child for MyWorker {
-//! #     type Error = std::io::Error;
-//! #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
-//! #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
-//! # }
 //! ```
 //!
 //! **After (Builder Pattern):**
 //! ```rust,no_run
 //! # use airssys_rt::supervisor::*;
+//! # use airssys_rt::monitoring::{NoopMonitor, SupervisionEvent};
+//! # use async_trait::async_trait;
 //! # use std::time::Duration;
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! # let mut supervisor: SupervisorNode<OneForOne, _, _> = unimplemented!();
+//! # let mut supervisor: SupervisorNode<OneForOne, _, NoopMonitor<SupervisionEvent>> = unimplemented!();
 //! // NEW WAY - 4 lines, 60% less code
 //! let child_id = supervisor
 //!     .child("worker-1")
@@ -123,6 +119,7 @@
 //! # }
 //! # struct MyWorker;
 //! # impl MyWorker { fn new() -> Self { Self } }
+//! # #[async_trait]
 //! # impl airssys_rt::supervisor::Child for MyWorker {
 //! #     type Error = std::io::Error;
 //! #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
@@ -133,11 +130,8 @@
 //! ### Example 2: Custom Policies Migration
 //!
 //! **Before:**
-//! ```rust,no_run
-//! # use airssys_rt::supervisor::*;
-//! # use std::time::Duration;
-//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! # let mut supervisor: SupervisorNode<OneForOne, _, _> = unimplemented!();
+//! ```rust,ignore
+//! // Deprecated API shown for reference
 //! let child_id = supervisor.add_child(
 //!     ChildSpec {
 //!         id: "critical-service".to_string(),
@@ -148,23 +142,16 @@
 //!         shutdown_timeout: Duration::from_secs(20),
 //!     }
 //! ).await?;
-//! # Ok(())
-//! # }
-//! # struct CriticalService;
-//! # impl CriticalService { fn new() -> Self { Self } }
-//! # impl airssys_rt::supervisor::Child for CriticalService {
-//! #     type Error = std::io::Error;
-//! #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
-//! #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
-//! # }
 //! ```
 //!
 //! **After:**
 //! ```rust,no_run
 //! # use airssys_rt::supervisor::*;
+//! # use airssys_rt::monitoring::{NoopMonitor, SupervisionEvent};
+//! # use async_trait::async_trait;
 //! # use std::time::Duration;
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! # let mut supervisor: SupervisorNode<OneForOne, _, _> = unimplemented!();
+//! # let mut supervisor: SupervisorNode<OneForOne, _, NoopMonitor<SupervisionEvent>> = unimplemented!();
 //! let child_id = supervisor
 //!     .child("critical-service")
 //!     .factory(|| CriticalService::new())
@@ -178,6 +165,7 @@
 //! # }
 //! # struct CriticalService;
 //! # impl CriticalService { fn new() -> Self { Self } }
+//! # #[async_trait]
 //! # impl airssys_rt::supervisor::Child for CriticalService {
 //! #     type Error = std::io::Error;
 //! #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
@@ -188,12 +176,8 @@
 //! ### Example 3: Batch Operations Migration
 //!
 //! **Before (Multiple Manual ChildSpecs):**
-//! ```rust,no_run
-//! # use airssys_rt::supervisor::*;
-//! # use std::time::Duration;
-//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! # let mut supervisor: SupervisorNode<OneForOne, _, _> = unimplemented!();
-//! // OLD WAY - 40+ lines of repetitive code
+//! ```rust,ignore
+//! // OLD WAY - 40+ lines of repetitive code (deprecated API shown for reference)
 //! let id1 = supervisor.add_child(
 //!     ChildSpec {
 //!         id: "worker-1".to_string(),
@@ -226,23 +210,16 @@
 //!         shutdown_timeout: Duration::from_secs(10),
 //!     }
 //! ).await?;
-//! # Ok(())
-//! # }
-//! # struct Worker;
-//! # impl Worker { fn new(_: u32) -> Self { Self } }
-//! # impl airssys_rt::supervisor::Child for Worker {
-//! #     type Error = std::io::Error;
-//! #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
-//! #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
-//! # }
 //! ```
 //!
 //! **After (Batch Builder):**
 //! ```rust,no_run
 //! # use airssys_rt::supervisor::*;
+//! # use airssys_rt::monitoring::{NoopMonitor, SupervisionEvent};
+//! # use async_trait::async_trait;
 //! # use std::time::Duration;
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! # let mut supervisor: SupervisorNode<OneForOne, _, _> = unimplemented!();
+//! # let mut supervisor: SupervisorNode<OneForOne, _, NoopMonitor<SupervisionEvent>> = unimplemented!();
 //! // NEW WAY - 10 lines, 75% less code
 //! let child_ids = supervisor
 //!     .children()
@@ -257,6 +234,7 @@
 //! # }
 //! # struct Worker;
 //! # impl Worker { fn new(_: u32) -> Self { Self } }
+//! # #[async_trait]
 //! # impl airssys_rt::supervisor::Child for Worker {
 //! #     type Error = std::io::Error;
 //! #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
@@ -270,9 +248,11 @@
 //!
 //! ```rust,no_run
 //! # use airssys_rt::supervisor::*;
+//! # use airssys_rt::monitoring::{NoopMonitor, SupervisionEvent};
+//! # use async_trait::async_trait;
 //! # use std::time::Duration;
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! # let mut supervisor: SupervisorNode<OneForOne, _, _> = unimplemented!();
+//! # let mut supervisor: SupervisorNode<OneForOne, _, NoopMonitor<SupervisionEvent>> = unimplemented!();
 //! let child_ids = supervisor
 //!     .children()
 //!     // Shared defaults for most workers
@@ -281,8 +261,8 @@
 //!     // Regular workers use defaults
 //!     .child("worker-1", || Worker::new(1))
 //!     .child("worker-2", || Worker::new(2))
-//!     // Special worker with custom policies
-//!     .child_with("special-worker", || SpecialWorker::new())
+//!     // Special worker with custom policies (same type, different config)
+//!     .child_with("special-worker", || Worker::new(99))
 //!         .restart_policy(RestartPolicy::Transient)
 //!         .shutdown_policy(ShutdownPolicy::Immediate)
 //!         .start_timeout(Duration::from_secs(60))
@@ -295,14 +275,8 @@
 //! # }
 //! # struct Worker;
 //! # impl Worker { fn new(_: u32) -> Self { Self } }
+//! # #[async_trait]
 //! # impl airssys_rt::supervisor::Child for Worker {
-//! #     type Error = std::io::Error;
-//! #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
-//! #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
-//! # }
-//! # struct SpecialWorker;
-//! # impl SpecialWorker { fn new() -> Self { Self } }
-//! # impl airssys_rt::supervisor::Child for SpecialWorker {
 //! #     type Error = std::io::Error;
 //! #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
 //! #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
@@ -317,15 +291,12 @@
 //!
 //! ```rust,no_run
 //! # use airssys_rt::supervisor::*;
+//! # use airssys_rt::monitoring::{NoopMonitor, SupervisionEvent};
+//! # use async_trait::async_trait;
 //! # use std::time::Duration;
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! # let mut supervisor: SupervisorNode<OneForOne, _, _> = unimplemented!();
-//! // Old code - keep it if it works
-//! let old_child = supervisor.add_child(
-//!     ChildSpec { /* ... */ # id: String::new(), factory: Box::new(|| Box::new(OldWorker)), restart_policy: RestartPolicy::Permanent, shutdown_policy: ShutdownPolicy::Immediate, start_timeout: Duration::from_secs(30), shutdown_timeout: Duration::from_secs(10) }
-//! ).await?;
-//!
-//! // New code - use builder for new workers
+//! # let mut supervisor: SupervisorNode<OneForOne, _, NoopMonitor<SupervisionEvent>> = unimplemented!();
+//! // Use builder for new workers
 //! let new_child = supervisor
 //!     .child("new-worker")
 //!     .factory(|| NewWorker::new())
@@ -333,14 +304,9 @@
 //!     .await?;
 //! # Ok(())
 //! # }
-//! # struct OldWorker;
-//! # impl airssys_rt::supervisor::Child for OldWorker {
-//! #     type Error = std::io::Error;
-//! #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
-//! #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
-//! # }
 //! # struct NewWorker;
 //! # impl NewWorker { fn new() -> Self { Self } }
+//! # #[async_trait]
 //! # impl airssys_rt::supervisor::Child for NewWorker {
 //! #     type Error = std::io::Error;
 //! #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
@@ -364,9 +330,11 @@
 //!
 //! ```rust,no_run
 //! # use airssys_rt::supervisor::*;
+//! # use airssys_rt::monitoring::{NoopMonitor, SupervisionEvent};
+//! # use async_trait::async_trait;
 //! # use std::time::Duration;
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! # let mut supervisor: SupervisorNode<OneForOne, _, _> = unimplemented!();
+//! # let mut supervisor: SupervisorNode<OneForOne, _, NoopMonitor<SupervisionEvent>> = unimplemented!();
 //! # let pool_size = 10;
 //! let child_ids = supervisor
 //!     .children()
@@ -388,6 +356,7 @@
 //! # }
 //! # struct Worker;
 //! # impl Worker { fn new(_: u32) -> Self { Self } }
+//! # #[async_trait]
 //! # impl airssys_rt::supervisor::Child for Worker {
 //! #     type Error = std::io::Error;
 //! #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
@@ -399,41 +368,30 @@
 //!
 //! ```rust,no_run
 //! # use airssys_rt::supervisor::*;
+//! # use airssys_rt::monitoring::{NoopMonitor, SupervisionEvent};
+//! # use async_trait::async_trait;
 //! # use std::time::Duration;
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! # let mut supervisor: SupervisorNode<OneForOne, _, _> = unimplemented!();
+//! # let mut supervisor: SupervisorNode<OneForOne, _, NoopMonitor<SupervisionEvent>> = unimplemented!();
 //! // Use spawn_all_map() for name-based lookups
 //! let child_map = supervisor
 //!     .children()
 //!     .restart_policy(RestartPolicy::Permanent)
-//!     .child("database-pool", || DatabasePool::new())
-//!     .child("cache-manager", || CacheManager::new())
-//!     .child("metrics-collector", || MetricsCollector::new())
+//!     .child("worker-1", || Worker::new(1))
+//!     .child("worker-2", || Worker::new(2))
+//!     .child("worker-3", || Worker::new(3))
 //!     .spawn_all_map()
 //!     .await?;
 //!
 //! // Access children by name
-//! let db_id = child_map.get("database-pool").unwrap();
-//! let cache_id = child_map.get("cache-manager").unwrap();
+//! let worker1_id = child_map.get("worker-1").unwrap();
+//! let worker2_id = child_map.get("worker-2").unwrap();
 //! # Ok(())
 //! # }
-//! # struct DatabasePool;
-//! # impl DatabasePool { fn new() -> Self { Self } }
-//! # impl airssys_rt::supervisor::Child for DatabasePool {
-//! #     type Error = std::io::Error;
-//! #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
-//! #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
-//! # }
-//! # struct CacheManager;
-//! # impl CacheManager { fn new() -> Self { Self } }
-//! # impl airssys_rt::supervisor::Child for CacheManager {
-//! #     type Error = std::io::Error;
-//! #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
-//! #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
-//! # }
-//! # struct MetricsCollector;
-//! # impl MetricsCollector { fn new() -> Self { Self } }
-//! # impl airssys_rt::supervisor::Child for MetricsCollector {
+//! # struct Worker;
+//! # impl Worker { fn new(_: u32) -> Self { Self } }
+//! # #[async_trait]
+//! # impl airssys_rt::supervisor::Child for Worker {
 //! #     type Error = std::io::Error;
 //! #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
 //! #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }

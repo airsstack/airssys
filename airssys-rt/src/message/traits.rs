@@ -65,11 +65,13 @@ use serde::{Deserialize, Serialize};
 /// ```
 ///
 /// ## Request/Reply with oneshot channel
-/// ```rust
+/// ```rust,ignore
 /// use airssys_rt::prelude::*;
 /// use tokio::sync::oneshot;
 ///
-/// #[derive(Debug, Clone)]
+/// // Note: oneshot::Sender does not implement Clone, so you need a custom
+/// // Clone implementation that handles the non-cloneable variants appropriately
+/// #[derive(Debug)]
 /// enum QueryMessage {
 ///     GetStatus(oneshot::Sender<Status>),
 ///     GetMetrics(oneshot::Sender<Metrics>),

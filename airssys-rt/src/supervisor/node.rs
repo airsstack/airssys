@@ -1032,17 +1032,20 @@ where
     ///
     /// ```rust,no_run
     /// use airssys_rt::supervisor::{SupervisorNode, OneForOne, Child};
-    /// use airssys_rt::monitoring::NoopMonitor;
+    /// use airssys_rt::monitoring::{NoopMonitor, SupervisionEvent};
+    /// use async_trait::async_trait;
+    /// use std::time::Duration;
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// # #[derive(Clone)]
     /// # struct MyWorker;
+    /// # #[async_trait]
     /// # impl Child for MyWorker {
     /// #     type Error = std::io::Error;
     /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
-    /// #     async fn stop(&mut self) -> Result<(), Self::Error> { Ok(()) }
+    /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
     /// # }
-    /// let mut supervisor = SupervisorNode::new(OneForOne::default(), NoopMonitor);
+    /// let mut supervisor = SupervisorNode::new(OneForOne, NoopMonitor::<SupervisionEvent>::new());
     ///
     /// // Uses defaults: Permanent restart, 5s graceful shutdown, 30s start timeout
     /// let id = supervisor
@@ -1058,18 +1061,20 @@ where
     ///
     /// ```rust,no_run
     /// use airssys_rt::supervisor::{SupervisorNode, OneForOne, Child};
-    /// use airssys_rt::monitoring::NoopMonitor;
+    /// use airssys_rt::monitoring::{NoopMonitor, SupervisionEvent};
+    /// use async_trait::async_trait;
     /// use std::time::Duration;
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// # #[derive(Clone)]
     /// # struct CriticalWorker;
+    /// # #[async_trait]
     /// # impl Child for CriticalWorker {
     /// #     type Error = std::io::Error;
     /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
-    /// #     async fn stop(&mut self) -> Result<(), Self::Error> { Ok(()) }
+    /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
     /// # }
-    /// let mut supervisor = SupervisorNode::new(OneForOne::default(), NoopMonitor);
+    /// let mut supervisor = SupervisorNode::new(OneForOne, NoopMonitor::<SupervisionEvent>::new());
     ///
     /// let id = supervisor
     ///     .child("critical")
@@ -1086,20 +1091,22 @@ where
     /// ## Comparison with Manual ChildSpec
     ///
     /// ```rust,no_run
-    /// use airssys_rt::supervisor::{SupervisorNode, OneForOne, Child, ChildSpec};
+    /// use airssys_rt::supervisor::{SupervisorNode, OneForOne, Child, ChildSpec, Supervisor};
     /// use airssys_rt::supervisor::{RestartPolicy, ShutdownPolicy};
-    /// use airssys_rt::monitoring::NoopMonitor;
+    /// use airssys_rt::monitoring::{NoopMonitor, SupervisionEvent};
+    /// use async_trait::async_trait;
     /// use std::time::Duration;
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// # #[derive(Clone)]
     /// # struct MyWorker;
+    /// # #[async_trait]
     /// # impl Child for MyWorker {
     /// #     type Error = std::io::Error;
     /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
-    /// #     async fn stop(&mut self) -> Result<(), Self::Error> { Ok(()) }
+    /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
     /// # }
-    /// let mut supervisor = SupervisorNode::new(OneForOne::default(), NoopMonitor);
+    /// let mut supervisor = SupervisorNode::new(OneForOne, NoopMonitor::<SupervisionEvent>::new());
     ///
     /// // Manual approach (10+ lines)
     /// let spec = ChildSpec {
@@ -1114,7 +1121,7 @@ where
     ///
     /// // Builder approach (4 lines - 60% reduction)
     /// let id = supervisor
-    ///     .child("worker")
+    ///     .child("worker2")
     ///     .factory(|| MyWorker)
     ///     .spawn()
     ///     .await?;

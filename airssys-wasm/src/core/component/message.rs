@@ -151,7 +151,7 @@ impl From<&[u8]> for MessagePayload {
 /// # Examples
 ///
 /// ```rust
-/// use airssys_wasm::core::component::MessageMetadata;
+/// use airssys_wasm::core::component::message::MessageMetadata;
 ///
 /// // Default metadata (all fields None or 0)
 /// let metadata = MessageMetadata::default();
@@ -179,7 +179,7 @@ impl Default for MessageMetadata {
     /// # Examples
     ///
     /// ```rust
-    /// use airssys_wasm::core::component::MessageMetadata;
+    /// use airssys_wasm::core::component::message::MessageMetadata;
     ///
     /// let metadata = MessageMetadata::default();
     /// assert!(metadata.correlation_id.is_none());

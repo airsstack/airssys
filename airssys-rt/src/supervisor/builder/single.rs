@@ -34,33 +34,53 @@ use super::constants::{
 ///
 /// ```rust,no_run
 /// use airssys_rt::supervisor::*;
+/// use airssys_rt::monitoring::{NoopMonitor, SupervisionEvent};
+/// use async_trait::async_trait;
+/// use std::time::Duration;
 ///
-/// # async fn example() -> Result<(), SupervisorError<std::io::Error>> {
-/// let mut supervisor = SupervisorNode::new(OneForOne::default());
+/// # #[derive(Clone)]
+/// # struct MyWorker;
+/// # #[async_trait]
+/// # impl Child for MyWorker {
+/// #     type Error = std::io::Error;
+/// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+/// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
+/// # }
+/// # async fn example() -> Result<(), SupervisorError> {
+/// let mut supervisor = SupervisorNode::new(OneForOne, NoopMonitor::<SupervisionEvent>::new());
 ///
 /// // Uses all defaults: Permanent restart, 5s graceful shutdown, 30s start timeout
 /// let id = supervisor
 ///     .child("worker")
-///     .factory(|| my_worker())
+///     .factory(|| MyWorker)
 ///     .spawn()
 ///     .await?;
 /// # Ok(())
 /// # }
-/// # fn my_worker() -> impl Child { unimplemented!() }
 /// ```
 ///
 /// ## Full Customization
 ///
 /// ```rust,no_run
 /// use airssys_rt::supervisor::*;
+/// use airssys_rt::monitoring::{NoopMonitor, SupervisionEvent};
+/// use async_trait::async_trait;
 /// use std::time::Duration;
 ///
-/// # async fn example() -> Result<(), SupervisorError<std::io::Error>> {
-/// let mut supervisor = SupervisorNode::new(OneForOne::default());
+/// # #[derive(Clone)]
+/// # struct MyWorker;
+/// # #[async_trait]
+/// # impl Child for MyWorker {
+/// #     type Error = std::io::Error;
+/// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+/// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
+/// # }
+/// # async fn example() -> Result<(), SupervisorError> {
+/// let mut supervisor = SupervisorNode::new(OneForOne, NoopMonitor::<SupervisionEvent>::new());
 ///
 /// let id = supervisor
 ///     .child("critical")
-///     .factory(|| my_critical_worker())
+///     .factory(|| MyWorker)
 ///     .restart_transient()                      // Custom restart policy
 ///     .shutdown_graceful(Duration::from_secs(15)) // Custom shutdown
 ///     .start_timeout(Duration::from_secs(60))    // Custom start timeout
@@ -69,16 +89,27 @@ use super::constants::{
 ///     .await?;
 /// # Ok(())
 /// # }
-/// # fn my_critical_worker() -> impl Child { unimplemented!() }
 /// ```
 ///
 /// ## Using Default Factory
 ///
 /// ```rust,no_run
 /// use airssys_rt::supervisor::*;
+/// use airssys_rt::monitoring::{NoopMonitor, SupervisionEvent};
+/// use async_trait::async_trait;
+/// use std::time::Duration;
 ///
-/// # async fn example() -> Result<(), SupervisorError<std::io::Error>> {
-/// let mut supervisor = SupervisorNode::new(OneForOne::default());
+/// # #[derive(Clone, Default)]
+/// # struct MyWorker;
+/// # #[async_trait]
+/// # impl Child for MyWorker {
+/// #     type Error = std::io::Error;
+/// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+/// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
+/// # }
+/// # async fn example() -> Result<(), SupervisorError> {
+/// let mut supervisor: SupervisorNode<OneForOne, MyWorker, _> =
+///     SupervisorNode::new(OneForOne, NoopMonitor::<SupervisionEvent>::new());
 ///
 /// // For types implementing Default
 /// let id = supervisor
@@ -87,13 +118,6 @@ use super::constants::{
 ///     .spawn()
 ///     .await?;
 /// # Ok(())
-/// # }
-/// # #[derive(Default)]
-/// # struct MyWorker;
-/// # impl Child for MyWorker {
-/// #     type Error = std::io::Error;
-/// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
-/// #     async fn stop(&mut self) -> Result<(), Self::Error> { Ok(()) }
 /// # }
 /// ```
 pub struct SingleChildBuilder<'a, S, C, M>
@@ -125,16 +149,26 @@ where
     ///
     /// ```rust,no_run
     /// use airssys_rt::supervisor::*;
+    /// use airssys_rt::monitoring::{NoopMonitor, SupervisionEvent};
+    /// use async_trait::async_trait;
+    /// use std::time::Duration;
     ///
+    /// # #[derive(Clone)]
+    /// # struct MyWorker;
+    /// # #[async_trait]
+    /// # impl Child for MyWorker {
+    /// #     type Error = std::io::Error;
+    /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+    /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
+    /// # }
     /// # async fn example() -> Result<(), SupervisorError> {
-    /// let mut supervisor = SupervisorNode::new(OneForOne, monitor);
+    /// let mut supervisor: SupervisorNode<OneForOne, MyWorker, _> =
+    ///     SupervisorNode::new(OneForOne, NoopMonitor::<SupervisionEvent>::new());
     ///
     /// // Preferred: via SupervisorNode method
     /// let builder = supervisor.child("worker");
     /// # Ok(())
     /// # }
-    /// # use airssys_rt::monitoring::NoopMonitor;
-    /// # let monitor = NoopMonitor::new();
     /// ```
     pub(crate) fn new(supervisor: &'a mut SupervisorNode<S, C, M>, id: String) -> Self {
         Self {
@@ -163,9 +197,21 @@ where
     ///
     /// ```rust,no_run
     /// use airssys_rt::supervisor::*;
+    /// use airssys_rt::monitoring::{NoopMonitor, SupervisionEvent};
+    /// use async_trait::async_trait;
+    /// use std::time::Duration;
     ///
+    /// # #[derive(Clone)]
+    /// # struct MyWorker;
+    /// # impl MyWorker { fn new() -> Self { Self } }
+    /// # #[async_trait]
+    /// # impl Child for MyWorker {
+    /// #     type Error = std::io::Error;
+    /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+    /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
+    /// # }
     /// # async fn example() -> Result<(), SupervisorError> {
-    /// let mut supervisor = SupervisorNode::new(OneForOne::default());
+    /// let mut supervisor = SupervisorNode::new(OneForOne, NoopMonitor::<SupervisionEvent>::new());
     ///
     /// let id = supervisor
     ///     .child("worker")
@@ -173,13 +219,6 @@ where
     ///     .spawn()
     ///     .await?;
     /// # Ok(())
-    /// # }
-    /// # struct MyWorker;
-    /// # impl MyWorker { fn new() -> Self { Self } }
-    /// # impl Child for MyWorker {
-    /// #     type Error = std::io::Error;
-    /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
-    /// #     async fn stop(&mut self) -> Result<(), Self::Error> { Ok(()) }
     /// # }
     /// ```
     pub fn factory(mut self, f: impl Fn() -> C + Send + Sync + 'static) -> Self {
@@ -196,9 +235,21 @@ where
     ///
     /// ```rust,no_run
     /// use airssys_rt::supervisor::*;
+    /// use airssys_rt::monitoring::{NoopMonitor, SupervisionEvent};
+    /// use async_trait::async_trait;
+    /// use std::time::Duration;
     ///
-    /// # async fn example() -> Result<(), SupervisorError<std::io::Error>> {
-    /// let mut supervisor = SupervisorNode::new(OneForOne::default());
+    /// # #[derive(Clone, Default)]
+    /// # struct MyWorker;
+    /// # #[async_trait]
+    /// # impl Child for MyWorker {
+    /// #     type Error = std::io::Error;
+    /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+    /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
+    /// # }
+    /// # async fn example() -> Result<(), SupervisorError> {
+    /// let mut supervisor: SupervisorNode<OneForOne, MyWorker, _> =
+    ///     SupervisorNode::new(OneForOne, NoopMonitor::<SupervisionEvent>::new());
     ///
     /// let id = supervisor
     ///     .child("worker")
@@ -206,13 +257,6 @@ where
     ///     .spawn()
     ///     .await?;
     /// # Ok(())
-    /// # }
-    /// # #[derive(Default)]
-    /// # struct MyWorker;
-    /// # impl Child for MyWorker {
-    /// #     type Error = std::io::Error;
-    /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
-    /// #     async fn stop(&mut self) -> Result<(), Self::Error> { Ok(()) }
     /// # }
     /// ```
     pub fn factory_default<T>(self) -> Self
@@ -235,19 +279,29 @@ where
     ///
     /// ```rust,no_run
     /// use airssys_rt::supervisor::*;
+    /// use airssys_rt::monitoring::{NoopMonitor, SupervisionEvent};
+    /// use async_trait::async_trait;
+    /// use std::time::Duration;
     ///
-    /// # async fn example() -> Result<(), SupervisorError<std::io::Error>> {
-    /// let mut supervisor = SupervisorNode::new(OneForOne::default());
+    /// # #[derive(Clone)]
+    /// # struct MyWorker;
+    /// # #[async_trait]
+    /// # impl Child for MyWorker {
+    /// #     type Error = std::io::Error;
+    /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+    /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
+    /// # }
+    /// # async fn example() -> Result<(), SupervisorError> {
+    /// let mut supervisor = SupervisorNode::new(OneForOne, NoopMonitor::<SupervisionEvent>::new());
     ///
     /// let id = supervisor
     ///     .child("worker")
-    ///     .factory(|| my_worker())
+    ///     .factory(|| MyWorker)
     ///     .restart_permanent()  // Explicit (same as default)
     ///     .spawn()
     ///     .await?;
     /// # Ok(())
     /// # }
-    /// # fn my_worker() -> impl Child { unimplemented!() }
     /// ```
     pub fn restart_permanent(mut self) -> Self {
         self.restart_policy = Some(RestartPolicy::Permanent);
@@ -263,20 +317,30 @@ where
     ///
     /// ```rust,no_run
     /// use airssys_rt::supervisor::*;
+    /// use airssys_rt::monitoring::{NoopMonitor, SupervisionEvent};
+    /// use async_trait::async_trait;
+    /// use std::time::Duration;
     ///
-    /// # async fn example() -> Result<(), SupervisorError<std::io::Error>> {
-    /// let mut supervisor = SupervisorNode::new(OneForOne::default());
+    /// # #[derive(Clone)]
+    /// # struct MyTask;
+    /// # #[async_trait]
+    /// # impl Child for MyTask {
+    /// #     type Error = std::io::Error;
+    /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+    /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
+    /// # }
+    /// # async fn example() -> Result<(), SupervisorError> {
+    /// let mut supervisor = SupervisorNode::new(OneForOne, NoopMonitor::<SupervisionEvent>::new());
     ///
     /// // Worker that might exit normally on completion
     /// let id = supervisor
     ///     .child("task")
-    ///     .factory(|| my_task())
+    ///     .factory(|| MyTask)
     ///     .restart_transient()  // Only restart on error
     ///     .spawn()
     ///     .await?;
     /// # Ok(())
     /// # }
-    /// # fn my_task() -> impl Child { unimplemented!() }
     /// ```
     pub fn restart_transient(mut self) -> Self {
         self.restart_policy = Some(RestartPolicy::Transient);
@@ -293,20 +357,30 @@ where
     ///
     /// ```rust,no_run
     /// use airssys_rt::supervisor::*;
+    /// use airssys_rt::monitoring::{NoopMonitor, SupervisionEvent};
+    /// use async_trait::async_trait;
+    /// use std::time::Duration;
     ///
-    /// # async fn example() -> Result<(), SupervisorError<std::io::Error>> {
-    /// let mut supervisor = SupervisorNode::new(OneForOne::default());
+    /// # #[derive(Clone)]
+    /// # struct MyInitTask;
+    /// # #[async_trait]
+    /// # impl Child for MyInitTask {
+    /// #     type Error = std::io::Error;
+    /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+    /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
+    /// # }
+    /// # async fn example() -> Result<(), SupervisorError> {
+    /// let mut supervisor = SupervisorNode::new(OneForOne, NoopMonitor::<SupervisionEvent>::new());
     ///
     /// // One-shot initialization task
     /// let id = supervisor
     ///     .child("init")
-    ///     .factory(|| my_init_task())
+    ///     .factory(|| MyInitTask)
     ///     .restart_temporary()  // Never restart
     ///     .spawn()
     ///     .await?;
     /// # Ok(())
     /// # }
-    /// # fn my_init_task() -> impl Child { unimplemented!() }
     /// ```
     pub fn restart_temporary(mut self) -> Self {
         self.restart_policy = Some(RestartPolicy::Temporary);
@@ -327,19 +401,29 @@ where
     ///
     /// ```rust,no_run
     /// use airssys_rt::supervisor::*;
+    /// use airssys_rt::monitoring::{NoopMonitor, SupervisionEvent};
+    /// use async_trait::async_trait;
+    /// use std::time::Duration;
     ///
-    /// # async fn example() -> Result<(), SupervisorError<std::io::Error>> {
-    /// let mut supervisor = SupervisorNode::new(OneForOne::default());
+    /// # #[derive(Clone)]
+    /// # struct MyWorker;
+    /// # #[async_trait]
+    /// # impl Child for MyWorker {
+    /// #     type Error = std::io::Error;
+    /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+    /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
+    /// # }
+    /// # async fn example() -> Result<(), SupervisorError> {
+    /// let mut supervisor = SupervisorNode::new(OneForOne, NoopMonitor::<SupervisionEvent>::new());
     ///
     /// let id = supervisor
     ///     .child("worker")
-    ///     .factory(|| my_worker())
+    ///     .factory(|| MyWorker)
     ///     .restart_policy(RestartPolicy::Transient)
     ///     .spawn()
     ///     .await?;
     /// # Ok(())
     /// # }
-    /// # fn my_worker() -> impl Child { unimplemented!() }
     /// ```
     pub fn restart_policy(mut self, policy: RestartPolicy) -> Self {
         self.restart_policy = Some(policy);
@@ -359,21 +443,30 @@ where
     ///
     /// ```rust,no_run
     /// use airssys_rt::supervisor::*;
+    /// use airssys_rt::monitoring::{NoopMonitor, SupervisionEvent};
+    /// use async_trait::async_trait;
     /// use std::time::Duration;
     ///
-    /// # async fn example() -> Result<(), SupervisorError<std::io::Error>> {
-    /// let mut supervisor = SupervisorNode::new(OneForOne::default());
+    /// # #[derive(Clone)]
+    /// # struct MyDbConnection;
+    /// # #[async_trait]
+    /// # impl Child for MyDbConnection {
+    /// #     type Error = std::io::Error;
+    /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+    /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
+    /// # }
+    /// # async fn example() -> Result<(), SupervisorError> {
+    /// let mut supervisor = SupervisorNode::new(OneForOne, NoopMonitor::<SupervisionEvent>::new());
     ///
     /// // Database connection that needs 15s for cleanup
     /// let id = supervisor
     ///     .child("db")
-    ///     .factory(|| my_db_connection())
+    ///     .factory(|| MyDbConnection)
     ///     .shutdown_graceful(Duration::from_secs(15))
     ///     .spawn()
     ///     .await?;
     /// # Ok(())
     /// # }
-    /// # fn my_db_connection() -> impl Child { unimplemented!() }
     /// ```
     pub fn shutdown_graceful(mut self, timeout: Duration) -> Self {
         self.shutdown_policy = Some(ShutdownPolicy::Graceful(timeout));
@@ -390,20 +483,30 @@ where
     ///
     /// ```rust,no_run
     /// use airssys_rt::supervisor::*;
+    /// use airssys_rt::monitoring::{NoopMonitor, SupervisionEvent};
+    /// use async_trait::async_trait;
+    /// use std::time::Duration;
     ///
-    /// # async fn example() -> Result<(), SupervisorError<std::io::Error>> {
-    /// let mut supervisor = SupervisorNode::new(OneForOne::default());
+    /// # #[derive(Clone)]
+    /// # struct MyStatelessWorker;
+    /// # #[async_trait]
+    /// # impl Child for MyStatelessWorker {
+    /// #     type Error = std::io::Error;
+    /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+    /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
+    /// # }
+    /// # async fn example() -> Result<(), SupervisorError> {
+    /// let mut supervisor = SupervisorNode::new(OneForOne, NoopMonitor::<SupervisionEvent>::new());
     ///
     /// // Stateless worker that doesn't need cleanup
     /// let id = supervisor
     ///     .child("worker")
-    ///     .factory(|| my_stateless_worker())
+    ///     .factory(|| MyStatelessWorker)
     ///     .shutdown_immediate()
     ///     .spawn()
     ///     .await?;
     /// # Ok(())
     /// # }
-    /// # fn my_stateless_worker() -> impl Child { unimplemented!() }
     /// ```
     pub fn shutdown_immediate(mut self) -> Self {
         self.shutdown_policy = Some(ShutdownPolicy::Immediate);
@@ -420,20 +523,30 @@ where
     ///
     /// ```rust,no_run
     /// use airssys_rt::supervisor::*;
+    /// use airssys_rt::monitoring::{NoopMonitor, SupervisionEvent};
+    /// use async_trait::async_trait;
+    /// use std::time::Duration;
     ///
-    /// # async fn example() -> Result<(), SupervisorError<std::io::Error>> {
-    /// let mut supervisor = SupervisorNode::new(OneForOne::default());
+    /// # #[derive(Clone)]
+    /// # struct MyCriticalWriter;
+    /// # #[async_trait]
+    /// # impl Child for MyCriticalWriter {
+    /// #     type Error = std::io::Error;
+    /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+    /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
+    /// # }
+    /// # async fn example() -> Result<(), SupervisorError> {
+    /// let mut supervisor = SupervisorNode::new(OneForOne, NoopMonitor::<SupervisionEvent>::new());
     ///
     /// // Critical data writer that must flush completely
     /// let id = supervisor
     ///     .child("writer")
-    ///     .factory(|| my_critical_writer())
+    ///     .factory(|| MyCriticalWriter)
     ///     .shutdown_infinity()
     ///     .spawn()
     ///     .await?;
     /// # Ok(())
     /// # }
-    /// # fn my_critical_writer() -> impl Child { unimplemented!() }
     /// ```
     pub fn shutdown_infinity(mut self) -> Self {
         self.shutdown_policy = Some(ShutdownPolicy::Infinity);
@@ -453,20 +566,29 @@ where
     ///
     /// ```rust,no_run
     /// use airssys_rt::supervisor::*;
+    /// use airssys_rt::monitoring::{NoopMonitor, SupervisionEvent};
+    /// use async_trait::async_trait;
     /// use std::time::Duration;
     ///
-    /// # async fn example() -> Result<(), SupervisorError<std::io::Error>> {
-    /// let mut supervisor = SupervisorNode::new(OneForOne::default());
+    /// # #[derive(Clone)]
+    /// # struct MyWorker;
+    /// # #[async_trait]
+    /// # impl Child for MyWorker {
+    /// #     type Error = std::io::Error;
+    /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+    /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
+    /// # }
+    /// # async fn example() -> Result<(), SupervisorError> {
+    /// let mut supervisor = SupervisorNode::new(OneForOne, NoopMonitor::<SupervisionEvent>::new());
     ///
     /// let id = supervisor
     ///     .child("worker")
-    ///     .factory(|| my_worker())
+    ///     .factory(|| MyWorker)
     ///     .shutdown_policy(ShutdownPolicy::Graceful(Duration::from_secs(10)))
     ///     .spawn()
     ///     .await?;
     /// # Ok(())
     /// # }
-    /// # fn my_worker() -> impl Child { unimplemented!() }
     /// ```
     pub fn shutdown_policy(mut self, policy: ShutdownPolicy) -> Self {
         self.shutdown_policy = Some(policy);
@@ -486,21 +608,30 @@ where
     ///
     /// ```rust,no_run
     /// use airssys_rt::supervisor::*;
+    /// use airssys_rt::monitoring::{NoopMonitor, SupervisionEvent};
+    /// use async_trait::async_trait;
     /// use std::time::Duration;
     ///
-    /// # async fn example() -> Result<(), SupervisorError<std::io::Error>> {
-    /// let mut supervisor = SupervisorNode::new(OneForOne::default());
+    /// # #[derive(Clone)]
+    /// # struct MyFastWorker;
+    /// # #[async_trait]
+    /// # impl Child for MyFastWorker {
+    /// #     type Error = std::io::Error;
+    /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+    /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
+    /// # }
+    /// # async fn example() -> Result<(), SupervisorError> {
+    /// let mut supervisor = SupervisorNode::new(OneForOne, NoopMonitor::<SupervisionEvent>::new());
     ///
     /// // Fast-starting worker
     /// let id = supervisor
     ///     .child("worker")
-    ///     .factory(|| my_fast_worker())
+    ///     .factory(|| MyFastWorker)
     ///     .start_timeout(Duration::from_secs(5))
     ///     .spawn()
     ///     .await?;
     /// # Ok(())
     /// # }
-    /// # fn my_fast_worker() -> impl Child { unimplemented!() }
     /// ```
     pub fn start_timeout(mut self, timeout: Duration) -> Self {
         self.start_timeout = Some(timeout);
@@ -516,21 +647,30 @@ where
     ///
     /// ```rust,no_run
     /// use airssys_rt::supervisor::*;
+    /// use airssys_rt::monitoring::{NoopMonitor, SupervisionEvent};
+    /// use async_trait::async_trait;
     /// use std::time::Duration;
     ///
-    /// # async fn example() -> Result<(), SupervisorError<std::io::Error>> {
-    /// let mut supervisor = SupervisorNode::new(OneForOne::default());
+    /// # #[derive(Clone)]
+    /// # struct MyWorker;
+    /// # #[async_trait]
+    /// # impl Child for MyWorker {
+    /// #     type Error = std::io::Error;
+    /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+    /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
+    /// # }
+    /// # async fn example() -> Result<(), SupervisorError> {
+    /// let mut supervisor = SupervisorNode::new(OneForOne, NoopMonitor::<SupervisionEvent>::new());
     ///
     /// let id = supervisor
     ///     .child("worker")
-    ///     .factory(|| my_worker())
+    ///     .factory(|| MyWorker)
     ///     .shutdown_graceful(Duration::from_secs(15))
     ///     .shutdown_timeout(Duration::from_secs(20))  // Overall limit
     ///     .spawn()
     ///     .await?;
     /// # Ok(())
     /// # }
-    /// # fn my_worker() -> impl Child { unimplemented!() }
     /// ```
     pub fn shutdown_timeout(mut self, timeout: Duration) -> Self {
         self.shutdown_timeout = Some(timeout);
@@ -556,21 +696,31 @@ where
     ///
     /// ```rust,no_run
     /// use airssys_rt::supervisor::*;
+    /// use airssys_rt::monitoring::{NoopMonitor, SupervisionEvent};
+    /// use async_trait::async_trait;
+    /// use std::time::Duration;
     ///
+    /// # #[derive(Clone)]
+    /// # struct MyWorker;
+    /// # #[async_trait]
+    /// # impl Child for MyWorker {
+    /// #     type Error = std::io::Error;
+    /// #     async fn start(&mut self) -> Result<(), Self::Error> { Ok(()) }
+    /// #     async fn stop(&mut self, _: Duration) -> Result<(), Self::Error> { Ok(()) }
+    /// # }
     /// # async fn example() -> Result<(), SupervisorError> {
-    /// let mut supervisor = SupervisorNode::new(OneForOne::default());
+    /// let mut supervisor = SupervisorNode::new(OneForOne, NoopMonitor::<SupervisionEvent>::new());
     ///
     /// // Build and spawn in one call
     /// let child_id = supervisor
     ///     .child("worker")
-    ///     .factory(|| my_worker())
+    ///     .factory(|| MyWorker)
     ///     .spawn()
     ///     .await?;
     ///
     /// println!("Spawned child: {}", child_id);
     /// # Ok(())
     /// # }
-    /// # fn my_worker() -> impl Child { unimplemented!() }
     /// ```
     pub async fn spawn(self) -> Result<ChildId, SupervisorError> {
         let factory = self

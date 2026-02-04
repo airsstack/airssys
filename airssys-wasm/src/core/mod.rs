@@ -24,7 +24,7 @@
 //! ```rust
 //! use airssys_wasm::core::component::id::ComponentId;
 //! use airssys_wasm::core::component::message::ComponentMessage;
-//! use airssys_wasm::core::config::ComponentConfig;
+//! use airssys_wasm::core::config::component::ComponentConfig;
 //! use airssys_wasm::core::messaging::correlation::CorrelationId;
 //! use airssys_wasm::core::runtime::limits::ResourceLimits;
 //! use airssys_wasm::core::security::capability::Capability;

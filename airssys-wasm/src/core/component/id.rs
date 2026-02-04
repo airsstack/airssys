@@ -51,7 +51,7 @@ impl ComponentId {
     /// # Examples
     ///
     /// ```rust
-    /// use airssys_wasm::core::component::ComponentId;
+    /// use airssys_wasm::core::component::id::ComponentId;
     ///
     /// // Using string literals
     /// let id1 = ComponentId::new("system", "database", "prod");
@@ -80,7 +80,7 @@ impl ComponentId {
     /// # Examples
     ///
     /// ```rust
-    /// use airssys_wasm::core::component::ComponentId;
+    /// use airssys_wasm::core::component::id::ComponentId;
     ///
     /// let id = ComponentId::new("system", "database", "prod");
     /// assert_eq!(id.to_string_id(), "system/database/prod");

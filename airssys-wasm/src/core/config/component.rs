@@ -96,8 +96,8 @@ impl ComponentConfig {
     /// # Examples
     ///
     /// ```rust
-    /// use airssys_wasm::core::component::ComponentId;
-    /// use airssys_wasm::core::config::ComponentConfig;
+    /// use airssys_wasm::core::component::id::ComponentId;
+    /// use airssys_wasm::core::config::component::ComponentConfig;
     ///
     /// let id = ComponentId::new("system", "database", "prod");
     /// let config = ComponentConfig::new(id);
@@ -123,8 +123,8 @@ impl ComponentConfig {
     /// # Examples
     ///
     /// ```rust
-    /// use airssys_wasm::core::component::ComponentId;
-    /// use airssys_wasm::core::config::ComponentConfig;
+    /// use airssys_wasm::core::component::id::ComponentId;
+    /// use airssys_wasm::core::config::component::ComponentConfig;
     ///
     /// let config = ComponentConfig::new(ComponentId::new("a", "b", "c"))
     ///     .with_max_memory(128 * 1024 * 1024); // 128MB
@@ -144,8 +144,8 @@ impl ComponentConfig {
     /// # Examples
     ///
     /// ```rust
-    /// use airssys_wasm::core::component::ComponentId;
-    /// use airssys_wasm::core::config::ComponentConfig;
+    /// use airssys_wasm::core::component::id::ComponentId;
+    /// use airssys_wasm::core::config::component::ComponentConfig;
     ///
     /// let config = ComponentConfig::new(ComponentId::new("a", "b", "c"))
     ///     .with_max_execution_time(60_000); // 60 seconds
@@ -165,8 +165,8 @@ impl ComponentConfig {
     /// # Examples
     ///
     /// ```rust
-    /// use airssys_wasm::core::component::ComponentId;
-    /// use airssys_wasm::core::config::ComponentConfig;
+    /// use airssys_wasm::core::component::id::ComponentId;
+    /// use airssys_wasm::core::config::component::ComponentConfig;
     ///
     /// let config = ComponentConfig::new(ComponentId::new("a", "b", "c"))
     ///     .with_fuel_limit(1_000_000); // 1 million fuel units
@@ -186,8 +186,8 @@ impl ComponentConfig {
     /// # Examples
     ///
     /// ```rust
-    /// use airssys_wasm::core::component::ComponentId;
-    /// use airssys_wasm::core::config::ComponentConfig;
+    /// use airssys_wasm::core::component::id::ComponentId;
+    /// use airssys_wasm::core::config::component::ComponentConfig;
     ///
     /// let config = ComponentConfig::new(ComponentId::new("a", "b", "c"))
     ///     .with_storage_namespace("my-app-data");
@@ -207,8 +207,8 @@ impl ComponentConfig {
     /// # Examples
     ///
     /// ```rust
-    /// use airssys_wasm::core::component::ComponentId;
-    /// use airssys_wasm::core::config::ComponentConfig;
+    /// use airssys_wasm::core::component::id::ComponentId;
+    /// use airssys_wasm::core::config::component::ComponentConfig;
     ///
     /// let config = ComponentConfig::new(ComponentId::new("a", "b", "c"))
     ///     .with_debug_mode(true);
@@ -239,8 +239,8 @@ impl ComponentConfig {
     /// # Examples
     ///
     /// ```rust
-    /// use airssys_wasm::core::component::ComponentId;
-    /// use airssys_wasm::core::config::ComponentConfig;
+    /// use airssys_wasm::core::component::id::ComponentId;
+    /// use airssys_wasm::core::config::component::ComponentConfig;
     ///
     /// let config = ComponentConfig::new(ComponentId::new("a", "b", "c"));
     /// assert!(config.validate().is_ok());

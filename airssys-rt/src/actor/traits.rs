@@ -100,7 +100,7 @@ use crate::message::Message;
 /// enum CounterMessage {
 ///     Increment,
 ///     Decrement,
-///     GetCount(tokio::sync::oneshot::Sender<u64>),
+///     Reset,
 /// }
 ///
 /// impl Message for CounterMessage {
@@ -111,7 +111,7 @@ use crate::message::Message;
 /// impl Actor for CounterActor {
 ///     type Message = CounterMessage;
 ///     type Error = std::io::Error; // Use appropriate error type
-///     
+///
 ///     async fn handle_message<B: MessageBroker<Self::Message>>(
 ///         &mut self,
 ///         msg: Self::Message,
@@ -120,9 +120,7 @@ use crate::message::Message;
 ///         match msg {
 ///             CounterMessage::Increment => self.count += 1,
 ///             CounterMessage::Decrement => self.count -= 1,
-///             CounterMessage::GetCount(reply) => {
-///                 let _ = reply.send(self.count);
-///             }
+///             CounterMessage::Reset => self.count = 0,
 ///         }
 ///         Ok(())
 ///     }

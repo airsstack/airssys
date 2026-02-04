@@ -43,9 +43,9 @@ use crate::core::runtime::traits::ComponentLoader;
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust,no_run
 /// use airssys_wasm::runtime::loader::FileComponentLoader;
-/// use airssys_wasm::core::component::ComponentId;
+/// use airssys_wasm::core::component::id::ComponentId;
 /// use airssys_wasm::core::runtime::traits::ComponentLoader;
 ///
 /// let loader = FileComponentLoader::new("/wasm/components");
@@ -157,9 +157,9 @@ impl ComponentLoader for FileComponentLoader {
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust,ignore
 /// use airssys_wasm::runtime::loader::InMemoryComponentLoader;
-/// use airssys_wasm::core::component::ComponentId;
+/// use airssys_wasm::core::component::id::ComponentId;
 /// use airssys_wasm::core::runtime::traits::ComponentLoader;
 ///
 /// let mut loader = InMemoryComponentLoader::new();

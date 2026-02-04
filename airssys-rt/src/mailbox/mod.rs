@@ -74,92 +74,92 @@
 //! Return error if mailbox is full
 //! - Non-blocking sends
 //! - Caller handles backpressure
-/// - Use when sender needs to know about capacity issues
-/// ```
-///
-/// # Quick Start Examples
-///
-/// ## Example 1: Basic Bounded Mailbox
-///
-/// ```rust,ignore
-/// use airssys_rt::mailbox::{BoundedMailbox, BackpressureStrategy};
-///
-/// // Create bounded mailbox with capacity 100
-/// let (sender, receiver) = BoundedMailbox::new(
-///     100,  // capacity
-///     BackpressureStrategy::Block,  // block when full
-/// );
-///
-/// // Send message (blocks if full)
-/// sender.send(MyMessage { data: "hello" }).await?;
-///
-/// // Receive message (blocks if empty)
-/// let msg = receiver.recv().await?;
-/// ```
-///
-/// ## Example 2: Backpressure with Drop Strategy
-///
-/// ```rust,ignore
-/// use airssys_rt::mailbox::{BoundedMailbox, BackpressureStrategy};
-///
-/// // Create mailbox that drops messages when full
-/// let (sender, receiver) = BoundedMailbox::new(
-///     1000,
-///     BackpressureStrategy::Drop,  // drop oldest when full
-/// );
-///
-/// // Send telemetry (may drop if consumer is slow)
-/// for i in 0..10000 {
-///     let _ = sender.send(TelemetryEvent { value: i }).await;
-/// }
-/// ```
-///
-/// ## Example 3: Metrics Tracking
-///
-/// ```rust,ignore
-/// use airssys_rt::mailbox::{BoundedMailbox, BackpressureStrategy, MetricsRecorder};
-///
-/// // Create mailbox with metrics
-/// let metrics = MetricsRecorder::new();
-/// let (sender, receiver) = BoundedMailbox::with_metrics(
-///     100,
-///     BackpressureStrategy::Block,
-///     metrics.clone(),
-/// );
-///
-/// // Send messages
-/// sender.send(msg1).await?;
-/// sender.send(msg2).await?;
-///
-/// // Check metrics
-/// println!("Queue depth: {}", metrics.queue_depth());
-/// println!("Messages sent: {}", metrics.messages_sent());
-/// println!("Messages received: {}", metrics.messages_received());
-/// println!("Messages dropped: {}", metrics.messages_dropped());
-/// ```
-///
-/// ## Example 4: Reject Strategy with Error Handling
-///
-/// ```rust,ignore
-/// use airssys_rt::mailbox::{BoundedMailbox, BackpressureStrategy, MailboxError};
-///
-/// let (sender, receiver) = BoundedMailbox::new(
-///     10,
-///     BackpressureStrategy::Reject,  // return error when full
-/// );
-///
-/// // Handle backpressure explicitly
-/// match sender.try_send(msg).await {
-///     Ok(()) => println!("Message sent"),
-///     Err(MailboxError::Full) => {
-///         // Backpressure detected - handle it
-///         println!("Mailbox full, applying backoff");
-///         tokio::time::sleep(Duration::from_millis(100)).await;
-///         sender.try_send(msg).await?;  // retry
-///     }
-///     Err(e) => return Err(e),
-/// }
-/// ```
+//! - Use when sender needs to know about capacity issues
+//! ```
+//!
+//! # Quick Start Examples
+//!
+//! ## Example 1: Basic Bounded Mailbox
+//!
+//! ```rust,ignore
+//! use airssys_rt::mailbox::{BoundedMailbox, BackpressureStrategy};
+//!
+//! // Create bounded mailbox with capacity 100
+//! let (sender, receiver) = BoundedMailbox::new(
+//!     100,  // capacity
+//!     BackpressureStrategy::Block,  // block when full
+//! );
+//!
+//! // Send message (blocks if full)
+//! sender.send(MyMessage { data: "hello" }).await?;
+//!
+//! // Receive message (blocks if empty)
+//! let msg = receiver.recv().await?;
+//! ```
+//!
+//! ## Example 2: Backpressure with Drop Strategy
+//!
+//! ```rust,ignore
+//! use airssys_rt::mailbox::{BoundedMailbox, BackpressureStrategy};
+//!
+//! // Create mailbox that drops messages when full
+//! let (sender, receiver) = BoundedMailbox::new(
+//!     1000,
+//!     BackpressureStrategy::Drop,  // drop oldest when full
+//! );
+//!
+//! // Send telemetry (may drop if consumer is slow)
+//! for i in 0..10000 {
+//!     let _ = sender.send(TelemetryEvent { value: i }).await;
+//! }
+//! ```
+//!
+//! ## Example 3: Metrics Tracking
+//!
+//! ```rust,ignore
+//! use airssys_rt::mailbox::{BoundedMailbox, BackpressureStrategy, MetricsRecorder};
+//!
+//! // Create mailbox with metrics
+//! let metrics = MetricsRecorder::new();
+//! let (sender, receiver) = BoundedMailbox::with_metrics(
+//!     100,
+//!     BackpressureStrategy::Block,
+//!     metrics.clone(),
+//! );
+//!
+//! // Send messages
+//! sender.send(msg1).await?;
+//! sender.send(msg2).await?;
+//!
+//! // Check metrics
+//! println!("Queue depth: {}", metrics.queue_depth());
+//! println!("Messages sent: {}", metrics.messages_sent());
+//! println!("Messages received: {}", metrics.messages_received());
+//! println!("Messages dropped: {}", metrics.messages_dropped());
+//! ```
+//!
+//! ## Example 4: Reject Strategy with Error Handling
+//!
+//! ```rust,ignore
+//! use airssys_rt::mailbox::{BoundedMailbox, BackpressureStrategy, MailboxError};
+//!
+//! let (sender, receiver) = BoundedMailbox::new(
+//!     10,
+//!     BackpressureStrategy::Reject,  // return error when full
+//! );
+//!
+//! // Handle backpressure explicitly
+//! match sender.try_send(msg).await {
+//!     Ok(()) => println!("Message sent"),
+//!     Err(MailboxError::Full) => {
+//!         // Backpressure detected - handle it
+//!         println!("Mailbox full, applying backoff");
+//!         tokio::time::sleep(Duration::from_millis(100)).await;
+//!         sender.try_send(msg).await?;  // retry
+//!     }
+//!     Err(e) => return Err(e),
+//! }
+//! ```
 pub mod backpressure;
 pub mod bounded;
 pub mod metrics;

@@ -24,11 +24,9 @@ use super::set::CapabilitySet;
 ///
 /// ```
 /// use airssys_wasm::core::component::id::ComponentId;
-/// use airssys_wasm::security::capability::{
-///     CapabilitySet,
-///     CapabilityValidator,
-///     MessagingPermission,
-/// };
+/// use airssys_wasm::security::capability::validator::CapabilityValidator;
+/// use airssys_wasm::security::capability::set::{CapabilitySet, MessagingPermission};
+/// use airssys_wasm::core::security::traits::SecurityValidator;
 ///
 /// let validator = CapabilityValidator::new();
 ///
@@ -36,7 +34,7 @@ use super::set::CapabilitySet;
 /// let component_id = ComponentId::new("org", "service", "inst-1");
 /// let capabilities = CapabilitySet::builder()
 ///     .messaging(MessagingPermission {
-///         can_send_to: vec!["org.target/*".to_string()],
+///         can_send_to: vec!["org/target/*".to_string()],
 ///         can_receive_from: vec![],
 ///     })
 ///     .build();
@@ -44,6 +42,7 @@ use super::set::CapabilitySet;
 /// validator.register_component(component_id.clone(), capabilities);
 ///
 /// // Check if component can send to a target
+/// // ComponentId format is "{namespace}/{name}/{instance}" = "org/target/inst-2"
 /// let target = ComponentId::new("org", "target", "inst-2");
 /// assert!(validator.can_send_to(&component_id, &target).is_ok());
 /// ```
@@ -59,7 +58,7 @@ impl CapabilityValidator {
     /// # Examples
     ///
     /// ```
-    /// use airssys_wasm::security::capability::CapabilityValidator;
+    /// use airssys_wasm::security::capability::validator::CapabilityValidator;
     ///
     /// let validator = CapabilityValidator::new();
     /// ```
@@ -80,11 +79,8 @@ impl CapabilityValidator {
     ///
     /// ```
     /// use airssys_wasm::core::component::id::ComponentId;
-    /// use airssys_wasm::security::capability::{
-    ///     CapabilitySet,
-    ///     CapabilityValidator,
-    ///     MessagingPermission,
-    /// };
+    /// use airssys_wasm::security::capability::validator::CapabilityValidator;
+    /// use airssys_wasm::security::capability::set::CapabilitySet;
     ///
     /// let validator = CapabilityValidator::new();
     /// let component_id = ComponentId::new("org", "service", "inst-1");
@@ -107,10 +103,8 @@ impl CapabilityValidator {
     ///
     /// ```
     /// use airssys_wasm::core::component::id::ComponentId;
-    /// use airssys_wasm::security::capability::{
-    ///     CapabilitySet,
-    ///     CapabilityValidator,
-    /// };
+    /// use airssys_wasm::security::capability::validator::CapabilityValidator;
+    /// use airssys_wasm::security::capability::set::CapabilitySet;
     ///
     /// let validator = CapabilityValidator::new();
     /// let component_id = ComponentId::new("org", "service", "inst-1");

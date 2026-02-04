@@ -39,7 +39,6 @@
 //!
 //! ```rust,no_run
 //! use airssys_wasm::prelude::*;
-//! use airssys_wasm::component::ComponentActor;
 //!
 //! // Components will be added in subsequent tasks
 //! ```

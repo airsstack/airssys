@@ -73,7 +73,8 @@ impl ComponentHandle {
     /// # Examples
     ///
     /// ```rust
-    /// use airssys_wasm::core::component::{ComponentId, ComponentHandle};
+    /// use airssys_wasm::core::component::id::ComponentId;
+    /// use airssys_wasm::core::component::handle::ComponentHandle;
     ///
     /// let id = ComponentId::new("system", "database", "prod");
     /// let handle = ComponentHandle::new(id.clone(), 42);
@@ -92,7 +93,8 @@ impl ComponentHandle {
     /// # Examples
     ///
     /// ```rust
-    /// use airssys_wasm::core::component::{ComponentId, ComponentHandle};
+    /// use airssys_wasm::core::component::id::ComponentId;
+    /// use airssys_wasm::core::component::handle::ComponentHandle;
     ///
     /// let id = ComponentId::new("system", "database", "prod");
     /// let handle = ComponentHandle::new(id, 12345);
