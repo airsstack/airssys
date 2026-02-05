@@ -2,7 +2,7 @@
 // None needed for this module
 
 // Layer 2: Third-party crate imports (per PROJECTS_STANDARD.md §2.1)
-// None needed for this module
+use serde::{Deserialize, Serialize};
 
 // Layer 3: Internal module imports (per PROJECTS_STANDARD.md §2.1)
 use super::id::ComponentId;
@@ -36,7 +36,7 @@ use super::id::ComponentId;
 /// let bytes = payload.into_bytes();
 /// assert_eq!(bytes, vec![1, 2, 3, 4]);
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MessagePayload(Vec<u8>);
 
 impl MessagePayload {
@@ -160,7 +160,7 @@ impl From<&[u8]> for MessagePayload {
 /// assert_eq!(metadata.timestamp_ms, 0);
 /// assert!(metadata.content_type.is_none());
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MessageMetadata {
     /// Optional correlation identifier for request-response patterns
     pub correlation_id: Option<String>,
@@ -228,7 +228,7 @@ impl Default for MessageMetadata {
 /// assert_eq!(message.sender.to_string_id(), "system/database/prod");
 /// assert_eq!(message.payload, payload);
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ComponentMessage {
     /// ComponentId of the message sender
     pub sender: ComponentId,

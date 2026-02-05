@@ -1,6 +1,9 @@
 // Layer 1: Standard library imports (per PROJECTS_STANDARD.md §2.1)
 use std::fmt;
 
+// Layer 2: Third-party crate imports (per PROJECTS_STANDARD.md §2.1)
+use serde::{Deserialize, Serialize};
+
 /// Unique identifier for a component instance.
 ///
 /// A ComponentId consists of three parts:
@@ -25,7 +28,7 @@ use std::fmt;
 /// // Display trait also uses formatted output
 /// assert_eq!(format!("{}", id), "system/database/prod");
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ComponentId {
     /// Logical namespace for grouping components
     pub namespace: String,
