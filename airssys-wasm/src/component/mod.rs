@@ -5,6 +5,7 @@
 //! This module provides actor integration for WASM components, including:
 //! - `ComponentWrapper` - Wraps WASM components as airssys-rt Actors
 //! - `ComponentActorMessage` - Message type for component actors
+//! - `ComponentRegistry` - Thread-safe registry for component tracking
 //!
 //! # Architecture
 //!
@@ -25,7 +26,9 @@
 //! - KNOWLEDGE-WASM-038: Component Module Responsibility
 
 // Module declarations (per PROJECTS_STANDARD.md §4.3)
+pub mod registry;
 pub mod wrapper;
 
 // NOTE: No type re-exports per module grouping policy.
+// Callers use: crate::component::registry::ComponentRegistry
 // Callers use: crate::component::wrapper::ComponentWrapper
