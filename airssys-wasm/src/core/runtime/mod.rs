@@ -67,16 +67,16 @@
 //! ## Dependency Inversion Pattern
 //!
 //! ```rust
-//! // component/ module (Layer 3A) depends on ABSTRACTION
+//! // component/ module (Layer 3A) depends on ABSTRACTION via generics (S6.2)
 //! use airssys_wasm::core::runtime::traits::RuntimeEngine;
 //! use airssys_wasm::core::runtime::errors::WasmError;
 //!
-//! pub struct ComponentWrapper {
-//!     engine: std::sync::Arc<dyn RuntimeEngine>,
+//! pub struct ComponentWrapper<E: RuntimeEngine> {
+//!     engine: std::sync::Arc<E>,
 //! }
 //!
-//! impl ComponentWrapper {
-//!     # pub fn new(engine: std::sync::Arc<dyn RuntimeEngine>) -> Self {
+//! impl<E: RuntimeEngine> ComponentWrapper<E> {
+//!     # pub fn new(engine: std::sync::Arc<E>) -> Self {
 //!     #     Self { engine }
 //!     # }
 //! }
@@ -133,6 +133,7 @@
 //! // system/ module (Layer 4) injects concrete type
 //! let engine = std::sync::Arc::new(WasmtimeEngine::new());
 //! let wrapper = ComponentWrapper::new(engine);
+//! // wrapper is ComponentWrapper<WasmtimeEngine> - static dispatch
 //! ```
 
 // Layer 1: Standard library imports (per PROJECTS_STANDARD.md §2.1)

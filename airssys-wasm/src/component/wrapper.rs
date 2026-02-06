@@ -13,8 +13,9 @@
 //!
 //! # Key Design Principle
 //!
-//! Uses `Arc<dyn RuntimeEngine>` for dependency injection - the concrete
-//! implementation (WasmtimeEngine) is provided by the system/ module.
+//! Uses generic `E: RuntimeEngine` for dependency injection with static dispatch
+//! (per PROJECTS_STANDARD.md S6.2). The concrete implementation (e.g., WasmtimeEngine)
+//! is provided by the system/ module as a type parameter.
 //!
 //! # References
 //!
@@ -80,7 +81,7 @@ impl Message for ComponentActorMessage {
 /// - Lifecycle management via Actor pre_start/post_stop hooks
 /// - Message handling via Actor handle_message
 /// - Fault tolerance via supervision (ErrorAction)
-/// - Dependency injection via Arc<dyn RuntimeEngine>
+/// - Dependency injection via `Arc<E>` where `E: RuntimeEngine` (static dispatch per S6.2)
 ///
 /// # Architecture
 ///
@@ -101,21 +102,21 @@ impl Message for ComponentActorMessage {
 /// use std::sync::Arc;
 /// use airssys_wasm::component::wrapper::{ComponentWrapper, ComponentActorMessage};
 /// use airssys_wasm::core::component::id::ComponentId;
-/// use airssys_wasm::core::runtime::traits::RuntimeEngine;
 ///
-/// // Engine is injected by system/ module
-/// let engine: Arc<dyn RuntimeEngine> = /* injected */;
+/// // Engine type is determined at construction time (static dispatch)
+/// let engine = Arc::new(WasmtimeEngine::new());
 /// let id = ComponentId::new("system", "database", "prod");
 /// let wasm_bytes = vec![/* WASM binary */];
 ///
+/// // wrapper is ComponentWrapper<WasmtimeEngine> - fully monomorphized
 /// let wrapper = ComponentWrapper::new(id, engine, wasm_bytes);
 /// ```
-pub struct ComponentWrapper {
+pub struct ComponentWrapper<E: RuntimeEngine> {
     /// Unique identifier for this component instance
     id: ComponentId,
 
-    /// Runtime engine for WASM execution (injected)
-    engine: Arc<dyn RuntimeEngine>,
+    /// Runtime engine for WASM execution (injected, static dispatch per S6.2)
+    engine: Arc<E>,
 
     /// Handle to loaded component (Some after start, None before/after)
     handle: Option<ComponentHandle>,
@@ -124,8 +125,9 @@ pub struct ComponentWrapper {
     wasm_bytes: Vec<u8>,
 }
 
-// Manual Debug implementation because Arc<dyn RuntimeEngine> cannot derive Debug
-impl fmt::Debug for ComponentWrapper {
+// Manual Debug implementation - engine field uses opaque display
+// (RuntimeEngine trait does not require Debug)
+impl<E: RuntimeEngine> fmt::Debug for ComponentWrapper<E> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ComponentWrapper")
             .field("id", &self.id)
@@ -136,20 +138,20 @@ impl fmt::Debug for ComponentWrapper {
     }
 }
 
-impl ComponentWrapper {
+impl<E: RuntimeEngine> ComponentWrapper<E> {
     /// Creates a new ComponentWrapper.
     ///
     /// # Arguments
     ///
     /// * `id` - Unique identifier for this component instance
-    /// * `engine` - Runtime engine for WASM execution (injected by system/)
+    /// * `engine` - Runtime engine for WASM execution (injected, static dispatch per S6.2)
     /// * `wasm_bytes` - WASM component binary bytes
     ///
     /// # Returns
     ///
     /// A new ComponentWrapper instance. The component is NOT loaded yet -
     /// loading happens during `pre_start()`.
-    pub fn new(id: ComponentId, engine: Arc<dyn RuntimeEngine>, wasm_bytes: Vec<u8>) -> Self {
+    pub fn new(id: ComponentId, engine: Arc<E>, wasm_bytes: Vec<u8>) -> Self {
         Self {
             id,
             engine,
@@ -203,7 +205,7 @@ impl ComponentWrapperError {
 }
 
 #[async_trait]
-impl Actor for ComponentWrapper {
+impl<E: RuntimeEngine + 'static> Actor for ComponentWrapper<E> {
     type Message = ComponentActorMessage;
     type Error = ComponentWrapperError;
 
@@ -449,7 +451,7 @@ mod tests {
     #[test]
     fn test_wrapper_creation() {
         let id = create_test_id();
-        let engine: Arc<dyn RuntimeEngine> = Arc::new(MockRuntimeEngine::new());
+        let engine = Arc::new(MockRuntimeEngine::new());
         let bytes = vec![0u8; 100];
 
         let wrapper = ComponentWrapper::new(id.clone(), engine, bytes);
@@ -462,7 +464,7 @@ mod tests {
     #[test]
     fn test_wrapper_id_accessor() {
         let id = ComponentId::new("system", "database", "prod");
-        let engine: Arc<dyn RuntimeEngine> = Arc::new(MockRuntimeEngine::new());
+        let engine = Arc::new(MockRuntimeEngine::new());
         let wrapper = ComponentWrapper::new(id.clone(), engine, vec![]);
 
         assert_eq!(wrapper.id().namespace, "system");
@@ -474,7 +476,7 @@ mod tests {
     #[test]
     fn test_wrapper_handle_before_start() {
         let id = create_test_id();
-        let engine: Arc<dyn RuntimeEngine> = Arc::new(MockRuntimeEngine::new());
+        let engine = Arc::new(MockRuntimeEngine::new());
         let wrapper = ComponentWrapper::new(id, engine, vec![]);
 
         assert!(wrapper.handle().is_none());
@@ -484,7 +486,7 @@ mod tests {
     #[test]
     fn test_wrapper_debug_impl() {
         let id = create_test_id();
-        let engine: Arc<dyn RuntimeEngine> = Arc::new(MockRuntimeEngine::new());
+        let engine = Arc::new(MockRuntimeEngine::new());
         let wrapper = ComponentWrapper::new(id, engine, vec![1, 2, 3]);
 
         let debug_str = format!("{:?}", wrapper);
@@ -601,8 +603,7 @@ mod tests {
     async fn test_actor_pre_start_success() {
         let id = create_test_id();
         let mock_engine = Arc::new(MockRuntimeEngine::new());
-        let engine: Arc<dyn RuntimeEngine> = mock_engine.clone();
-        let mut wrapper = ComponentWrapper::new(id, engine, vec![0u8; 100]);
+        let mut wrapper = ComponentWrapper::new(id, Arc::clone(&mock_engine), vec![0u8; 100]);
 
         let mut context = create_test_context();
 
@@ -621,8 +622,7 @@ mod tests {
     async fn test_actor_pre_start_failure() {
         let id = create_test_id();
         let mock_engine = Arc::new(MockRuntimeEngine::new().with_load_failure());
-        let engine: Arc<dyn RuntimeEngine> = mock_engine.clone();
-        let mut wrapper = ComponentWrapper::new(id, engine, vec![0u8; 100]);
+        let mut wrapper = ComponentWrapper::new(id, Arc::clone(&mock_engine), vec![0u8; 100]);
 
         let mut context = create_test_context();
 
@@ -637,8 +637,7 @@ mod tests {
     async fn test_actor_post_stop_with_loaded_component() {
         let id = create_test_id();
         let mock_engine = Arc::new(MockRuntimeEngine::new());
-        let engine: Arc<dyn RuntimeEngine> = mock_engine.clone();
-        let mut wrapper = ComponentWrapper::new(id, engine, vec![0u8; 100]);
+        let mut wrapper = ComponentWrapper::new(id, Arc::clone(&mock_engine), vec![0u8; 100]);
 
         let mut context = create_test_context();
 
@@ -658,8 +657,7 @@ mod tests {
     async fn test_actor_post_stop_without_loaded_component() {
         let id = create_test_id();
         let mock_engine = Arc::new(MockRuntimeEngine::new());
-        let engine: Arc<dyn RuntimeEngine> = mock_engine.clone();
-        let mut wrapper = ComponentWrapper::new(id, engine, vec![0u8; 100]);
+        let mut wrapper = ComponentWrapper::new(id, Arc::clone(&mock_engine), vec![0u8; 100]);
 
         let mut context = create_test_context();
 
@@ -675,8 +673,8 @@ mod tests {
     async fn test_actor_handle_message_success() {
         let id = create_test_id();
         let mock_engine = Arc::new(MockRuntimeEngine::new());
-        let engine: Arc<dyn RuntimeEngine> = mock_engine.clone();
-        let mut wrapper = ComponentWrapper::new(id.clone(), engine, vec![0u8; 100]);
+        let mut wrapper =
+            ComponentWrapper::new(id.clone(), Arc::clone(&mock_engine), vec![0u8; 100]);
 
         let mut context = create_test_context();
 
@@ -696,8 +694,7 @@ mod tests {
     #[tokio::test]
     async fn test_actor_handle_message_without_start() {
         let id = create_test_id();
-        let mock_engine = Arc::new(MockRuntimeEngine::new());
-        let engine: Arc<dyn RuntimeEngine> = mock_engine;
+        let engine = Arc::new(MockRuntimeEngine::new());
         let mut wrapper = ComponentWrapper::new(id.clone(), engine, vec![0u8; 100]);
 
         let mut context = create_test_context();
@@ -719,8 +716,8 @@ mod tests {
     async fn test_actor_handle_message_failure() {
         let id = create_test_id();
         let mock_engine = Arc::new(MockRuntimeEngine::new().with_message_failure());
-        let engine: Arc<dyn RuntimeEngine> = mock_engine.clone();
-        let mut wrapper = ComponentWrapper::new(id.clone(), engine, vec![0u8; 100]);
+        let mut wrapper =
+            ComponentWrapper::new(id.clone(), Arc::clone(&mock_engine), vec![0u8; 100]);
 
         let mut context = create_test_context();
 
@@ -741,8 +738,8 @@ mod tests {
     async fn test_actor_handle_callback_success() {
         let id = create_test_id();
         let mock_engine = Arc::new(MockRuntimeEngine::new());
-        let engine: Arc<dyn RuntimeEngine> = mock_engine.clone();
-        let mut wrapper = ComponentWrapper::new(id.clone(), engine, vec![0u8; 100]);
+        let mut wrapper =
+            ComponentWrapper::new(id.clone(), Arc::clone(&mock_engine), vec![0u8; 100]);
 
         let mut context = create_test_context();
 
@@ -762,8 +759,7 @@ mod tests {
     #[tokio::test]
     async fn test_actor_handle_callback_without_start() {
         let id = create_test_id();
-        let mock_engine = Arc::new(MockRuntimeEngine::new());
-        let engine: Arc<dyn RuntimeEngine> = mock_engine;
+        let engine = Arc::new(MockRuntimeEngine::new());
         let mut wrapper = ComponentWrapper::new(id.clone(), engine, vec![0u8; 100]);
 
         let mut context = create_test_context();
@@ -785,8 +781,7 @@ mod tests {
     async fn test_actor_shutdown_message() {
         let id = create_test_id();
         let mock_engine = Arc::new(MockRuntimeEngine::new());
-        let engine: Arc<dyn RuntimeEngine> = mock_engine.clone();
-        let mut wrapper = ComponentWrapper::new(id, engine, vec![0u8; 100]);
+        let mut wrapper = ComponentWrapper::new(id, Arc::clone(&mock_engine), vec![0u8; 100]);
 
         let mut context = create_test_context();
 
@@ -807,8 +802,7 @@ mod tests {
     async fn test_actor_shutdown_without_start() {
         let id = create_test_id();
         let mock_engine = Arc::new(MockRuntimeEngine::new());
-        let engine: Arc<dyn RuntimeEngine> = mock_engine.clone();
-        let mut wrapper = ComponentWrapper::new(id, engine, vec![0u8; 100]);
+        let mut wrapper = ComponentWrapper::new(id, Arc::clone(&mock_engine), vec![0u8; 100]);
 
         let mut context = create_test_context();
 
@@ -826,8 +820,7 @@ mod tests {
     #[tokio::test]
     async fn test_actor_on_error_returns_stop() {
         let id = create_test_id();
-        let mock_engine = Arc::new(MockRuntimeEngine::new());
-        let engine: Arc<dyn RuntimeEngine> = mock_engine;
+        let engine = Arc::new(MockRuntimeEngine::new());
         let mut wrapper = ComponentWrapper::new(id, engine, vec![0u8; 100]);
 
         let mut context = create_test_context();
@@ -846,8 +839,8 @@ mod tests {
     async fn test_full_actor_lifecycle() {
         let id = create_test_id();
         let mock_engine = Arc::new(MockRuntimeEngine::new());
-        let engine: Arc<dyn RuntimeEngine> = mock_engine.clone();
-        let mut wrapper = ComponentWrapper::new(id.clone(), engine, vec![0u8; 100]);
+        let mut wrapper =
+            ComponentWrapper::new(id.clone(), Arc::clone(&mock_engine), vec![0u8; 100]);
 
         let mut context = create_test_context();
 
@@ -904,7 +897,7 @@ mod tests {
         fn assert_send<T: Send>() {}
         fn assert_sync<T: Sync>() {}
 
-        assert_send::<ComponentWrapper>();
-        assert_sync::<ComponentWrapper>();
+        assert_send::<ComponentWrapper<MockRuntimeEngine>>();
+        assert_sync::<ComponentWrapper<MockRuntimeEngine>>();
     }
 }
