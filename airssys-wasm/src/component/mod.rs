@@ -7,6 +7,7 @@
 //! - `ComponentActorMessage` - Message type for component actors
 //! - `ComponentRegistry` - Thread-safe registry for component tracking
 //! - `ComponentSpawner` - Orchestrates component lifecycle (load, validate, spawn, register)
+//! - `SupervisorConfig` - Supervision configuration for component actors
 //!
 //! # Architecture
 //!
@@ -29,9 +30,11 @@
 // Module declarations (per PROJECTS_STANDARD.md S4.3)
 pub mod registry;
 pub mod spawner;
+pub mod supervisor;
 pub mod wrapper;
 
 // NOTE: No type re-exports per module grouping policy.
 // Callers use: crate::component::registry::ComponentRegistry
 // Callers use: crate::component::wrapper::ComponentWrapper
 // Callers use: crate::component::spawner::ComponentSpawner
+// Callers use: crate::component::supervisor::SupervisorConfig
