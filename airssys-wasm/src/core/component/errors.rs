@@ -43,6 +43,10 @@ pub enum ComponentError {
     /// Invalid component state.
     #[error("Invalid component state: {0}")]
     InvalidState(String),
+
+    /// Internal registry or lookup error.
+    #[error("Component resolver error: {0}")]
+    ResolverError(String),
 }
 
 #[cfg(test)]

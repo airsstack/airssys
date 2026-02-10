@@ -34,7 +34,9 @@ use airssys_rt::ActorAddress;
 use thiserror::Error;
 
 // Layer 3: Internal module imports
+use crate::core::component::errors::ComponentError;
 use crate::core::component::id::ComponentId;
+use crate::core::component::traits::ComponentResolver;
 
 /// Errors that can occur during registry operations.
 #[derive(Debug, Clone, Error)]
@@ -313,6 +315,13 @@ impl fmt::Debug for ComponentRegistry {
                 .field("status", &"<lock poisoned>")
                 .finish(),
         }
+    }
+}
+
+impl ComponentResolver for ComponentRegistry {
+    fn contains(&self, id: &ComponentId) -> Result<bool, ComponentError> {
+        self.contains(id)
+            .map_err(|e| ComponentError::ResolverError(e.to_string()))
     }
 }
 
@@ -607,5 +616,34 @@ mod tests {
         assert!(debug_str.contains("ComponentRegistry"));
         assert!(debug_str.contains("component_count"));
         assert!(debug_str.contains("2"));
+    }
+
+    // ========================================
+    // ComponentResolver Trait Tests
+    // ========================================
+
+    #[test]
+    fn test_registry_implements_component_resolver() {
+        let registry = ComponentRegistry::new();
+        let id = create_test_id("app", "service", "v1");
+
+        // Trait method - should return false for unregistered component
+        let result = ComponentResolver::contains(&registry, &id);
+        assert!(result.is_ok());
+        assert!(!result.unwrap());
+    }
+
+    #[test]
+    fn test_registry_resolver_finds_registered_component() {
+        let registry = ComponentRegistry::new();
+        let id = create_test_id("app", "service", "v1");
+        let address = create_mock_address("test_actor");
+
+        registry.register(id.clone(), address).unwrap();
+
+        // Trait method - should return true for registered component
+        let result = ComponentResolver::contains(&registry, &id);
+        assert!(result.is_ok());
+        assert!(result.unwrap());
     }
 }

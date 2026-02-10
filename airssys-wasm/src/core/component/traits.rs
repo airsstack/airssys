@@ -6,6 +6,7 @@
 
 // Layer 3: Internal module imports (per PROJECTS_STANDARD.md §2.1)
 use super::errors::ComponentError;
+use super::id::ComponentId;
 
 /// Trait for component lifecycle management.
 ///
@@ -161,6 +162,61 @@ pub trait ComponentLifecycle: Send + Sync {
     /// }
     /// ```
     fn health_check(&self) -> bool;
+}
+
+/// Trait for resolving whether a component exists in the system.
+///
+/// This trait provides the abstraction needed by the messaging layer
+/// to verify target components before creating message envelopes.
+/// It follows the Dependency Inversion Principle: `messaging/` depends
+/// on this trait (in `core/`), not on the concrete `ComponentRegistry`
+/// (in `component/`).
+///
+/// # Architecture
+///
+/// - **Defined in:** `core/component/traits.rs` (Layer 0)
+/// - **Consumed by:** `messaging/router.rs` (Layer 3B)
+/// - **Implemented by:** `component/registry.rs` (Layer 3A)
+/// - **Wired by:** `system/` (Layer 4)
+///
+/// # Thread Safety
+///
+/// Implementations must be `Send + Sync` for use in concurrent messaging
+/// contexts where multiple routers may check component existence simultaneously.
+///
+/// # Examples
+///
+/// ```rust
+/// use airssys_wasm::core::component::traits::ComponentResolver;
+/// use airssys_wasm::core::component::errors::ComponentError;
+/// use airssys_wasm::core::component::id::ComponentId;
+///
+/// struct MockResolver {
+///     registered: Vec<ComponentId>,
+/// }
+///
+/// impl ComponentResolver for MockResolver {
+///     fn contains(&self, id: &ComponentId) -> Result<bool, ComponentError> {
+///         Ok(self.registered.iter().any(|r| r == id))
+///     }
+/// }
+/// ```
+pub trait ComponentResolver: Send + Sync {
+    /// Check if a component with the given ID is currently registered.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The component identifier to check
+    ///
+    /// # Returns
+    ///
+    /// `true` if the component exists, `false` otherwise.
+    ///
+    /// # Errors
+    ///
+    /// Returns `ComponentError` if the lookup cannot be performed
+    /// (e.g., lock poisoning in the underlying storage).
+    fn contains(&self, id: &ComponentId) -> Result<bool, ComponentError>;
 }
 
 #[cfg(test)]
@@ -366,5 +422,60 @@ mod tests {
         assert!(component.health_check());
         component.shutdown().unwrap();
         assert!(!component.health_check());
+    }
+
+    // ---------------------------------------------------------------
+    // ComponentResolver tests
+    // ---------------------------------------------------------------
+
+    struct MockResolver {
+        registered: Vec<ComponentId>,
+    }
+
+    impl MockResolver {
+        fn new() -> Self {
+            Self {
+                registered: Vec::new(),
+            }
+        }
+
+        fn with_components(ids: Vec<ComponentId>) -> Self {
+            Self { registered: ids }
+        }
+    }
+
+    impl ComponentResolver for MockResolver {
+        fn contains(&self, id: &ComponentId) -> Result<bool, ComponentError> {
+            Ok(self.registered.iter().any(|r| r == id))
+        }
+    }
+
+    #[test]
+    fn test_component_resolver_contains_existing() {
+        let id = ComponentId::new("app", "service", "v1");
+        let resolver = MockResolver::with_components(vec![id.clone()]);
+
+        assert!(resolver.contains(&id).unwrap());
+    }
+
+    #[test]
+    fn test_component_resolver_contains_nonexistent() {
+        let resolver = MockResolver::new();
+        let id = ComponentId::new("app", "nonexistent", "v1");
+
+        assert!(!resolver.contains(&id).unwrap());
+    }
+
+    #[test]
+    fn test_component_resolver_is_send_sync() {
+        fn assert_send_sync<T: Send + Sync + ?Sized>() {}
+        assert_send_sync::<dyn ComponentResolver>();
+    }
+
+    #[test]
+    fn test_component_resolver_as_trait_object() {
+        let resolver: Box<dyn ComponentResolver> = Box::new(MockResolver::new());
+        let id = ComponentId::new("app", "test", "v1");
+        assert!(!resolver.contains(&id).unwrap());
     }
 }
