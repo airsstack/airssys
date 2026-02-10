@@ -14,9 +14,9 @@
 //!
 //! ```text
 //! Layer 4: system/
-//!   ↓ imports
-//! Layer 3B: messaging/      ← THIS MODULE
-//!   ↓ imports
+//!   | imports
+//! Layer 3B: messaging/      <-- THIS MODULE
+//!   | imports
 //! Layer 3A: component/
 //! Layer 2: runtime/
 //! Layer 1: security/
@@ -26,23 +26,23 @@
 //! ## Import Restrictions
 //!
 //! This module MUST NOT import from:
-//! - ❌ `component/` (Layer 3A)
-//! - ❌ `system/` (Layer 4)
+//! - `component/` (Layer 3A)
+//! - `system/` (Layer 4)
 //!
 //! This module MAY import from:
-//! - ✅ `core/` (Layer 0)
-//! - ✅ `security/` (Layer 1)
-//! - ✅ `runtime/` (Layer 2)
+//! - `core/` (Layer 0)
+//! - `security/` (Layer 1)
+//! - `runtime/` (Layer 2)
 //!
 //! ## Architecture References
 //!
 //! - ADR-WASM-031: Component Messaging Design
 //! - ADR-WASM-009: Component Communication Model
-//!
-//! ## Implementation Status
-//!
-//! This module is a placeholder. Implementation occurs in **Phase 6**.
 
 pub mod correlation;
-pub mod routing; // Message routing (Phase 6)
-pub mod types; // Message types (Phase 6) // Correlation tracking (Phase 6)
+pub mod patterns;
+pub mod routing;
+pub mod types;
+
+// NOTE: No re-exports per module grouping policy.
+// Callers use namespaced access: messaging::patterns::FireAndForget
