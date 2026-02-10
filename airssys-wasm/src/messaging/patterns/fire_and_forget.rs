@@ -1,26 +1,18 @@
-//! Messaging patterns for component communication.
+//! Fire-and-forget messaging pattern.
 //!
-//! Provides high-level messaging patterns that abstract over
-//! message routing and correlation:
-//!
-//! - [`FireAndForget`]: Send message without waiting for response
-//! - `RequestResponse`: Send request and correlate response (WASM-TASK-042)
+//! Provides the [`FireAndForget`] pattern for sending messages
+//! without expecting a response.
 //!
 //! # Architecture
 //!
-//! This module is part of `messaging/` (Layer 3B). It depends on:
+//! This module is part of `messaging/patterns/` (Layer 3B). It depends on:
 //! - `core/component/` for `ComponentId` and `MessagePayload`
-//! - `core/messaging/` for `MessagingError`
-//!
-//! The [`MessageSender`] and [`CorrelationManager`] traits enable
-//! dependency injection: concrete implementations are provided by
-//! higher layers (e.g., `system/`), and tests use mock implementations.
+//! - `core/messaging/` for `MessagingError` and `MessageSender` trait
 //!
 //! # References
 //!
 //! - ADR-WASM-031: Component & Messaging Module Design
 //! - ADR-WASM-009: Component Communication Model (Pattern 1: Fire-and-Forget)
-//! - KNOWLEDGE-WASM-040: Messaging Module Comprehensive Reference
 
 // Layer 1: Standard library imports
 // (none needed)
@@ -32,6 +24,7 @@
 use crate::core::component::id::ComponentId;
 use crate::core::component::message::MessagePayload;
 use crate::core::messaging::errors::MessagingError;
+use crate::core::messaging::traits::MessageSender;
 
 /// Fire-and-forget messaging pattern.
 ///
@@ -49,7 +42,8 @@ use crate::core::messaging::errors::MessagingError;
 /// # Examples
 ///
 /// ```rust,no_run
-/// use airssys_wasm::messaging::patterns::{FireAndForget, MessageSender};
+/// use airssys_wasm::messaging::patterns::fire_and_forget::FireAndForget;
+/// use airssys_wasm::core::messaging::traits::MessageSender;
 /// use airssys_wasm::core::component::id::ComponentId;
 /// use airssys_wasm::core::component::message::MessagePayload;
 ///
@@ -91,134 +85,6 @@ impl FireAndForget {
     ) -> Result<(), MessagingError> {
         router.send(target, payload).await
     }
-}
-
-/// Trait for sending messages between components.
-///
-/// Abstracts over message routing, enabling dependency injection
-/// and testing with mock implementations. Concrete implementations
-/// are provided by higher layers (e.g., `ResponseRouter` in `messaging/router.rs`).
-///
-/// # Thread Safety
-///
-/// Implementations must be `Send + Sync` for use across async tasks.
-///
-/// # Design Note
-///
-/// This trait is defined at Layer 3 (`messaging/`) and is async, unlike
-/// the synchronous `MessageRouter` trait in `core/messaging/traits.rs`
-/// (Layer 0). The async nature reflects the runtime context where
-/// message sending occurs.
-pub trait MessageSender: Send + Sync {
-    /// Send a message without correlation tracking.
-    ///
-    /// Used by the fire-and-forget pattern. The message is routed to the
-    /// target component without any response tracking.
-    ///
-    /// # Arguments
-    ///
-    /// * `target` - The component to send to
-    /// * `payload` - The message payload
-    ///
-    /// # Errors
-    ///
-    /// - [`MessagingError::TargetNotFound`] if target does not exist
-    /// - [`MessagingError::DeliveryFailed`] if routing fails
-    /// - [`MessagingError::QueueFull`] if queue is at capacity
-    fn send(
-        &self,
-        target: &ComponentId,
-        payload: MessagePayload,
-    ) -> impl std::future::Future<Output = Result<(), MessagingError>> + Send;
-
-    /// Send a message with a correlation ID for request-response tracking.
-    ///
-    /// Used by the request-response pattern. The correlation ID is included
-    /// in the message metadata so the runtime can match the response.
-    ///
-    /// # Arguments
-    ///
-    /// * `target` - The component to send to
-    /// * `payload` - The message payload
-    /// * `correlation_id` - The correlation identifier for tracking the response
-    ///
-    /// # Errors
-    ///
-    /// - [`MessagingError::TargetNotFound`] if target does not exist
-    /// - [`MessagingError::DeliveryFailed`] if routing fails
-    /// - [`MessagingError::QueueFull`] if queue is at capacity
-    fn send_with_correlation(
-        &self,
-        target: &ComponentId,
-        payload: MessagePayload,
-        correlation_id: &str,
-    ) -> impl std::future::Future<Output = Result<(), MessagingError>> + Send;
-}
-
-/// Trait for managing correlations in request-response patterns.
-///
-/// Tracks pending requests and matches them with responses. Used
-/// internally by the request-response messaging pattern (WASM-TASK-042).
-///
-/// # Thread Safety
-///
-/// Implementations must be `Send + Sync` for concurrent access from
-/// multiple component executors.
-///
-/// # Design Note
-///
-/// This trait complements `CorrelationTracker` in `core/messaging/traits.rs`
-/// by providing an async interface suitable for use in the messaging layer.
-pub trait CorrelationManager: Send + Sync {
-    /// Register a new correlation for tracking.
-    ///
-    /// Starts tracking a pending request. If no response arrives within
-    /// the timeout period, the request should be considered timed out.
-    ///
-    /// # Arguments
-    ///
-    /// * `id` - The correlation identifier
-    /// * `timeout_ms` - Timeout in milliseconds
-    ///
-    /// # Errors
-    ///
-    /// - [`MessagingError::DeliveryFailed`] if registration fails
-    fn register(
-        &self,
-        id: &str,
-        timeout_ms: u64,
-    ) -> impl std::future::Future<Output = Result<(), MessagingError>> + Send;
-
-    /// Complete a correlation with a response payload.
-    ///
-    /// Marks the request as completed and delivers the response.
-    ///
-    /// # Arguments
-    ///
-    /// * `id` - The correlation identifier
-    /// * `response` - The response payload from the target component
-    ///
-    /// # Errors
-    ///
-    /// - [`MessagingError::InvalidMessage`] if correlation ID not found
-    /// - [`MessagingError::CorrelationTimeout`] if the request has timed out
-    fn complete(
-        &self,
-        id: &str,
-        response: MessagePayload,
-    ) -> impl std::future::Future<Output = Result<(), MessagingError>> + Send;
-
-    /// Check if a correlation is still pending.
-    ///
-    /// # Arguments
-    ///
-    /// * `id` - The correlation identifier
-    ///
-    /// # Returns
-    ///
-    /// `true` if the request is still waiting for a response,
-    /// `false` if completed, timed out, or not found.
-    fn is_pending(&self, id: &str) -> impl std::future::Future<Output = bool> + Send;
 }
 
 #[cfg(test)]

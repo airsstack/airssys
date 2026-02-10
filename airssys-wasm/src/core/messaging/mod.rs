@@ -7,7 +7,7 @@
 //!
 //! This module is part of the **core/** foundation (Layer 1). It contains:
 //!
-//! - **Traits**: `MessageRouter`, `CorrelationTracker` (abstractions)
+//! - **Traits**: `MessageRouter`, `CorrelationTracker` (sync), `MessageSender`, `CorrelationManager` (async)
 //! - **Types**: `CorrelationId` (data)
 //! - **Errors**: `MessagingError` (co-located)
 //!
@@ -32,7 +32,7 @@
 //! ```rust
 //! use airssys_wasm::core::messaging::correlation::CorrelationId;
 //! use airssys_wasm::core::messaging::errors::MessagingError;
-//! use airssys_wasm::core::messaging::traits::{MessageRouter, CorrelationTracker};
+//! use airssys_wasm::core::messaging::traits::{MessageRouter, CorrelationTracker, MessageSender, CorrelationManager};
 //!
 //! // Generate a new correlation ID
 //! let correlation_id = CorrelationId::generate();

@@ -275,6 +275,134 @@ pub trait CorrelationTracker: Send + Sync {
     fn remove(&self, correlation_id: &CorrelationId) -> Result<(), MessagingError>;
 }
 
+/// Trait for sending messages between components asynchronously.
+///
+/// Abstracts over message routing, enabling dependency injection
+/// and testing with mock implementations. Concrete implementations
+/// are provided by higher layers (e.g., `ResponseRouter` in `messaging/router.rs`).
+///
+/// # Relationship to `MessageRouter`
+///
+/// `MessageRouter` (above) provides synchronous message routing for contexts
+/// where blocking is acceptable. `MessageSender` provides async equivalents
+/// for use in the messaging layer patterns (fire-and-forget, request-response).
+///
+/// # Thread Safety
+///
+/// Implementations must be `Send + Sync` for use across async tasks.
+pub trait MessageSender: Send + Sync {
+    /// Send a message without correlation tracking.
+    ///
+    /// Used by the fire-and-forget pattern. The message is routed to the
+    /// target component without any response tracking.
+    ///
+    /// # Arguments
+    ///
+    /// * `target` - The component to send to
+    /// * `payload` - The message payload
+    ///
+    /// # Errors
+    ///
+    /// - [`MessagingError::TargetNotFound`] if target does not exist
+    /// - [`MessagingError::DeliveryFailed`] if routing fails
+    /// - [`MessagingError::QueueFull`] if queue is at capacity
+    fn send(
+        &self,
+        target: &ComponentId,
+        payload: MessagePayload,
+    ) -> impl std::future::Future<Output = Result<(), MessagingError>> + Send;
+
+    /// Send a message with a correlation ID for request-response tracking.
+    ///
+    /// Used by the request-response pattern. The correlation ID is included
+    /// in the message metadata so the runtime can match the response.
+    ///
+    /// # Arguments
+    ///
+    /// * `target` - The component to send to
+    /// * `payload` - The message payload
+    /// * `correlation_id` - The correlation identifier for tracking the response
+    ///
+    /// # Errors
+    ///
+    /// - [`MessagingError::TargetNotFound`] if target does not exist
+    /// - [`MessagingError::DeliveryFailed`] if routing fails
+    /// - [`MessagingError::QueueFull`] if queue is at capacity
+    fn send_with_correlation(
+        &self,
+        target: &ComponentId,
+        payload: MessagePayload,
+        correlation_id: &str,
+    ) -> impl std::future::Future<Output = Result<(), MessagingError>> + Send;
+}
+
+/// Trait for managing correlations in request-response patterns asynchronously.
+///
+/// Tracks pending requests and matches them with responses. Used
+/// internally by the request-response messaging pattern.
+///
+/// # Relationship to `CorrelationTracker`
+///
+/// `CorrelationTracker` (above) provides synchronous correlation management
+/// using `&CorrelationId`. `CorrelationManager` provides async equivalents
+/// using `&str` for flexibility in the messaging layer.
+///
+/// # Thread Safety
+///
+/// Implementations must be `Send + Sync` for concurrent access from
+/// multiple component executors.
+pub trait CorrelationManager: Send + Sync {
+    /// Register a new correlation for tracking.
+    ///
+    /// Starts tracking a pending request. If no response arrives within
+    /// the timeout period, the request should be considered timed out.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The correlation identifier
+    /// * `timeout_ms` - Timeout in milliseconds
+    ///
+    /// # Errors
+    ///
+    /// - [`MessagingError::DeliveryFailed`] if registration fails
+    fn register(
+        &self,
+        id: &str,
+        timeout_ms: u64,
+    ) -> impl std::future::Future<Output = Result<(), MessagingError>> + Send;
+
+    /// Complete a correlation with a response payload.
+    ///
+    /// Marks the request as completed and delivers the response.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The correlation identifier
+    /// * `response` - The response payload from the target component
+    ///
+    /// # Errors
+    ///
+    /// - [`MessagingError::InvalidMessage`] if correlation ID not found
+    /// - [`MessagingError::CorrelationTimeout`] if the request has timed out
+    fn complete(
+        &self,
+        id: &str,
+        response: MessagePayload,
+    ) -> impl std::future::Future<Output = Result<(), MessagingError>> + Send;
+
+    /// Check if a correlation is still pending.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The correlation identifier
+    ///
+    /// # Returns
+    ///
+    /// `true` if the request is still waiting for a response,
+    /// `false` if completed, timed out, or not found.
+    fn is_pending(&self, id: &str) -> impl std::future::Future<Output = bool> + Send;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -466,5 +594,74 @@ mod tests {
 
         let result = router.send(&target, payload);
         assert!(matches!(result, Err(MessagingError::TargetNotFound(_))));
+    }
+
+    // ---------------------------------------------------------------
+    // Lightweight mocks for async trait bound verification
+    // ---------------------------------------------------------------
+
+    /// Minimal mock for verifying MessageSender trait bounds.
+    struct MockAsyncSender;
+
+    impl MessageSender for MockAsyncSender {
+        async fn send(
+            &self,
+            _target: &ComponentId,
+            _payload: MessagePayload,
+        ) -> Result<(), MessagingError> {
+            Ok(())
+        }
+
+        async fn send_with_correlation(
+            &self,
+            _target: &ComponentId,
+            _payload: MessagePayload,
+            _correlation_id: &str,
+        ) -> Result<(), MessagingError> {
+            Ok(())
+        }
+    }
+
+    /// Minimal mock for verifying CorrelationManager trait bounds.
+    struct MockAsyncCorrelationMgr;
+
+    impl CorrelationManager for MockAsyncCorrelationMgr {
+        async fn register(&self, _id: &str, _timeout_ms: u64) -> Result<(), MessagingError> {
+            Ok(())
+        }
+
+        async fn complete(
+            &self,
+            _id: &str,
+            _response: MessagePayload,
+        ) -> Result<(), MessagingError> {
+            Ok(())
+        }
+
+        async fn is_pending(&self, _id: &str) -> bool {
+            false
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // Async trait tests (MessageSender, CorrelationManager)
+    // ---------------------------------------------------------------
+
+    #[test]
+    fn test_message_sender_requires_send_sync() {
+        // NOTE: Cannot use `dyn MessageSender` here because RPITIT traits
+        // (using `-> impl Future + Send`) are NOT object-safe. Instead,
+        // verify via a concrete mock type that the Send + Sync supertrait
+        // bounds are satisfied.
+        fn assert_send_sync<T: MessageSender + ?Sized>() {}
+        assert_send_sync::<MockAsyncSender>();
+    }
+
+    #[test]
+    fn test_correlation_manager_requires_send_sync() {
+        // NOTE: Cannot use `dyn CorrelationManager` here because RPITIT
+        // traits are NOT object-safe. See note above.
+        fn assert_send_sync<T: CorrelationManager + ?Sized>() {}
+        assert_send_sync::<MockAsyncCorrelationMgr>();
     }
 }
