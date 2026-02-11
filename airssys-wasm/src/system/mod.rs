@@ -1,35 +1,31 @@
 //! # System Module (Layer 4)
 //!
-//! Top-level runtime management and lifecycle coordination.
+//! Top-level system coordination and lifecycle management.
 //!
 //! ## Responsibilities
 //!
-//! - [`RuntimeManager`]: Manages runtime lifecycle and configuration
-//! - [`RuntimeBuilder`]: Constructs runtime instances with validated configuration
-//! - Component lifecycle coordination
+//! - [`SystemCoordinator`]: Composition root that wires all dependencies together
+//! - [`SystemBuilder`]: Constructs SystemCoordinator with dependency injection (Phase 7)
 //!
 //! ## Module Position
 //!
 //! This is **Layer 4** of the 6-layer architecture:
 //!
 //! ```text
-//! Layer 4: system/          ← THIS MODULE (TOP OF DEPENDENCY CHAIN)
-//!   ↓ imports
+//! Layer 4: system/          <- THIS MODULE (TOP OF DEPENDENCY CHAIN)
+//!   imports
 //! Layer 3B: messaging/
 //! Layer 3A: component/
-//! Layer 2: runtime/
-//! Layer 1: security/
+//! Layer 2B: runtime/
+//! Layer 2A: security/
 //! Layer 0: core/
 //! ```
 //!
 //! ## Architecture References
 //!
 //! - ADR-WASM-032: System Module Design
-//! - ADR-WASM-026: Implementation Roadmap
-//!
-//! ## Implementation Status
-//!
-//! This module is a placeholder. Implementation occurs in **Phase 7**.
+//! - ADR-WASM-023: Module Boundary Enforcement
+//! - KNOWLEDGE-WASM-037: Rebuild Architecture - Clean Slate Design
 
-pub mod builder;
-pub mod manager; // RuntimeManager (Phase 7) // RuntimeBuilder (Phase 7)
+pub mod builder; // SystemBuilder (WASM-TASK-049)
+pub mod coordinator; // SystemCoordinator
