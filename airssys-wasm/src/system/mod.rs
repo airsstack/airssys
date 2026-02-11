@@ -29,3 +29,4 @@
 
 pub mod builder; // SystemBuilder (WASM-TASK-049)
 pub mod coordinator; // SystemCoordinator
+pub mod lifecycle; // LifecycleManager (WASM-TASK-048)
