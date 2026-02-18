@@ -1,0 +1,37 @@
+package airssys:core@1.0.0;
+
+/// Host-implemented general services
+interface host-services {
+    use types.{component-id, log-level, timestamp};
+    use errors.{component-error};
+
+    /// Structured logging
+    log: func(
+        level: log-level,
+        message: string,
+        context: option<list<tuple<string, string>>>
+    );
+
+    /// Get current time
+    current-time: func() -> timestamp;
+
+    /// Get current time in milliseconds
+    current-time-millis: func() -> u64;
+
+    /// Sleep for specified duration
+    sleep-millis: func(duration-ms: u64);
+
+    /// List all loaded components
+    list-components: func() -> list<component-id>;
+
+    /// Get metadata of another component
+    get-component-metadata: func(id: component-id) -> result<component-info, component-error>;
+
+    /// Basic component info
+    record component-info {
+        id: component-id,
+        name: string,
+        version: string,
+        health: string,
+    }
+}
