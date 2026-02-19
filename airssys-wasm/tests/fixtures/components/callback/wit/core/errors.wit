@@ -1,0 +1,60 @@
+package airssys:core@1.0.0;
+
+/// Error types for all operations
+interface errors {
+    use types.{correlation-id, component-id};
+
+    /// WASM execution errors
+    variant wasm-error {
+        component-not-found(string),
+        instantiation-failed(string),
+        export-not-found(string),
+        timeout,
+        resource-limit-exceeded(string),
+        invalid-component(string),
+        runtime-error(string),
+    }
+
+    /// Component lifecycle errors
+    variant component-error {
+        initialization-failed(string),
+        already-initialized,
+        not-initialized,
+        shutdown-failed(string),
+        invalid-state(string),
+    }
+
+    /// Security-related errors
+    variant security-error {
+        capability-denied(string),
+        policy-violation(string),
+        invalid-context(string),
+        permission-denied(string),
+    }
+
+    /// Messaging errors
+    variant messaging-error {
+        delivery-failed(string),
+        correlation-timeout(correlation-id),
+        invalid-message(string),
+        queue-full,
+        target-not-found(component-id),
+    }
+
+    /// Storage errors
+    variant storage-error {
+        not-found(string),
+        already-exists(string),
+        quota-exceeded,
+        invalid-key(string),
+        io-error(string),
+    }
+
+    /// Execution errors (for RPC operations)
+    variant execution-error {
+        invalid-operation(string),
+        operation-failed(string),
+        unsupported-codec(string),
+        serialization-error(string),
+    }
+}

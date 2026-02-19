@@ -1,0 +1,83 @@
+package airssys:core@1.0.0;
+
+/// Foundation types - source of truth for all interfaces
+interface types {
+    /// Unique component identifier
+    record component-id {
+        namespace: string,
+        name: string,
+        instance: string,
+    }
+
+    /// Component handle (opaque reference for runtime)
+    type component-handle = u64;
+
+    /// Correlation ID for request-response patterns
+    type correlation-id = string;
+
+    /// Request ID (alias for consistency)
+    type request-id = string;
+
+    /// Message payload (raw bytes, typically multicodec-encoded)
+    type message-payload = list<u8>;
+
+    /// Timestamp with high precision
+    record timestamp {
+        seconds: u64,
+        nanoseconds: u32,
+    }
+
+    /// Message metadata
+    record message-metadata {
+        correlation-id: option<correlation-id>,
+        reply-to: option<component-id>,
+        timestamp: timestamp,
+        content-type: option<string>,
+    }
+
+    /// Complete message envelope
+    record component-message {
+        sender: component-id,
+        payload: message-payload,
+        metadata: message-metadata,
+    }
+
+    /// Resource limits for component execution
+    record resource-limits {
+        max-memory-bytes: u64,
+        max-execution-time-ms: u64,
+        max-fuel: option<u64>,
+    }
+
+    /// Component configuration during initialization
+    record component-config {
+        env-vars: list<tuple<string, string>>,
+        config-data: option<message-payload>,
+        resource-limits: resource-limits,
+    }
+
+    /// Log levels
+    enum log-level {
+        trace,
+        debug,
+        info,
+        warn,
+        error,
+    }
+
+    /// Health status
+    enum health-status {
+        healthy,
+        degraded,
+        unhealthy,
+        unknown,
+    }
+
+    /// Execution status
+    enum execution-status {
+        success,
+        failed,
+        timeout,
+        cancelled,
+    }
+}

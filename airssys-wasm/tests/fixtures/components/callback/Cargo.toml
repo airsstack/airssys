@@ -1,0 +1,17 @@
+[package]
+name = "callback-component"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+wit-bindgen = { version = "0.47.0", default-features = false, features = ["macros"] }
+
+[lib]
+crate-type = ["cdylib"]
+
+[workspace]
+
+[profile.release]
+lto = true
+opt-level = "z"

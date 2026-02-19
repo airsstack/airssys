@@ -49,5 +49,17 @@ echo "counter.wasm: $(wc -c < "$FIXTURES_DIR/counter.wasm") bytes"
 wasm-tools validate "$FIXTURES_DIR/counter.wasm" --features component-model
 echo "counter.wasm: VALID"
 
+# --- callback component ---
+echo ""
+echo "=== Building callback component ==="
+cd "$SCRIPT_DIR/callback"
+cargo build --target wasm32-unknown-unknown --release
+wasm-tools component new \
+  target/wasm32-unknown-unknown/release/callback_component.wasm \
+  -o "$FIXTURES_DIR/callback.wasm"
+echo "callback.wasm: $(wc -c < "$FIXTURES_DIR/callback.wasm") bytes"
+wasm-tools validate "$FIXTURES_DIR/callback.wasm" --features component-model
+echo "callback.wasm: VALID"
+
 echo ""
 echo "All fixtures built successfully."
