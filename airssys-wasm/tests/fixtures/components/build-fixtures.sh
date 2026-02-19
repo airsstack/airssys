@@ -37,5 +37,17 @@ echo "echo.wasm: $(wc -c < "$FIXTURES_DIR/echo.wasm") bytes"
 wasm-tools validate "$FIXTURES_DIR/echo.wasm" --features component-model
 echo "echo.wasm: VALID"
 
+# --- counter component ---
+echo ""
+echo "=== Building counter component ==="
+cd "$SCRIPT_DIR/counter"
+cargo build --target wasm32-unknown-unknown --release
+wasm-tools component new \
+  target/wasm32-unknown-unknown/release/counter_component.wasm \
+  -o "$FIXTURES_DIR/counter.wasm"
+echo "counter.wasm: $(wc -c < "$FIXTURES_DIR/counter.wasm") bytes"
+wasm-tools validate "$FIXTURES_DIR/counter.wasm" --features component-model
+echo "counter.wasm: VALID"
+
 echo ""
 echo "All fixtures built successfully."

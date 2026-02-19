@@ -35,6 +35,22 @@ Each fixture represents a WASM component used to test specific functionality of 
 - **Source**: `tests/fixtures/components/echo/src/lib.rs`
 - **Used by**: System integration tests (WASM-TASK-053)
 
+### counter.wasm
+
+- **What**: A stateful WASM component that maintains an internal counter, increments it on each message, and returns the count
+- **Why**: Tests stateful component behavior, state persistence across multiple handle-message calls, and WASM instance memory preservation
+- **How**: Built from Rust source in `components/counter/`:
+  ```bash
+  cd tests/fixtures/components
+  ./build-fixtures.sh
+  ```
+- **WIT Interface**: Implements `airssys:core/component-lifecycle` (all 6 exports)
+- **Behavior**: `handle-message` increments internal counter and returns current count as UTF-8 string payload (e.g., "1", "2", "3")
+- **State**: `stateful: true` -- uses `thread_local!` + `Cell<u32>` for in-memory counter
+- **Size**: ~25KB (similar to echo.wasm)
+- **Source**: `tests/fixtures/components/counter/src/lib.rs`
+- **Used by**: System integration tests (WASM-TASK-053)
+
 ## Documentation
 
 For each fixture, document:
