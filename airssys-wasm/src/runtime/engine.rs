@@ -17,6 +17,8 @@ use crate::core::runtime::errors::WasmError;
 use crate::core::runtime::traits::RuntimeEngine;
 use crate::runtime::host_functions::marker_traits::register_host_functions;
 
+use super::store::StoreManager;
+
 /// Convert wasmtime errors to WasmError
 ///
 /// Follows PROJECTS_STANDARD.md Error Handling Strategy:
@@ -43,18 +45,11 @@ pub struct HostState {
     pub store_limits: StoreLimits,
 }
 
-/// Internal store wrapper (placeholder until StoreManager is implemented)
-#[allow(dead_code)]
-struct StoreEntry {
-    store: Store<HostState>,
-    component: Component,
-}
-
 /// WASM runtime engine using wasmtime Component Model
 pub struct WasmtimeEngine {
     engine: Engine,
     linker: Linker<HostState>,
-    stores: RwLock<HashMap<u64, StoreEntry>>,
+    stores: RwLock<HashMap<u64, StoreManager>>,
     next_handle_id: RwLock<u64>,
 }
 
@@ -108,30 +103,25 @@ impl WasmtimeEngine {
 
 impl RuntimeEngine for WasmtimeEngine {
     fn load_component(&self, id: &ComponentId, bytes: &[u8]) -> Result<ComponentHandle, WasmError> {
-        // Parse component from bytes
         let component = Component::from_binary(&self.engine, bytes)
             .map_err(|e| WasmError::InstantiationFailed(e.to_string()))?;
 
-        // Create store with host state
         let host_state = HostState {
             component_id: id.clone(),
             message_router: None,
-            store_limits: StoreLimitsBuilder::new().build(), // Default limits
+            store_limits: StoreLimitsBuilder::new().build(),
         };
 
         let mut store = Store::new(&self.engine, host_state);
-
-        // Configure the store's limiter callback
-        // This tells Wasmtime to use HostState.store_limits for memory/table checks
         store.limiter(|state| &mut state.store_limits);
 
         let handle_id = self.allocate_handle_id();
 
-        // Store the entry
-        let entry = StoreEntry { store, component };
+        let store_manager = StoreManager::new(store, component);
+
         {
             let mut stores = self.stores.write().unwrap();
-            stores.insert(handle_id, entry);
+            stores.insert(handle_id, store_manager);
         }
 
         Ok(ComponentHandle::new(id.clone(), handle_id))
@@ -146,33 +136,29 @@ impl RuntimeEngine for WasmtimeEngine {
     fn call_handle_message(
         &self,
         handle: &ComponentHandle,
-        _msg: &ComponentMessage,
+        msg: &ComponentMessage,
     ) -> Result<Option<MessagePayload>, WasmError> {
-        let stores = self.stores.read().unwrap();
+        let mut stores = self.stores.write().unwrap();
 
-        let _entry = stores
-            .get(&handle.handle_id())
-            .ok_or_else(|| WasmError::ComponentNotFound(handle.id().to_string()))?;
+        let store_manager = stores.get_mut(&handle.handle_id()).ok_or_else(|| {
+            WasmError::ComponentNotFound(handle.id().to_string())
+        })?;
 
-        // Placeholder - actual implementation requires wit-bindgen integration
-        // Will be implemented in WASM-TASK-033 (StoreManager)
-        Ok(None)
+        store_manager.call_handle_message(msg)
     }
 
     fn call_handle_callback(
         &self,
         handle: &ComponentHandle,
-        _msg: &ComponentMessage,
+        msg: &ComponentMessage,
     ) -> Result<(), WasmError> {
-        let stores = self.stores.read().unwrap();
+        let mut stores = self.stores.write().unwrap();
 
-        let _entry = stores
-            .get(&handle.handle_id())
-            .ok_or_else(|| WasmError::ComponentNotFound(handle.id().to_string()))?;
+        let store_manager = stores.get_mut(&handle.handle_id()).ok_or_else(|| {
+            WasmError::ComponentNotFound(handle.id().to_string())
+        })?;
 
-        // Placeholder - actual implementation requires wit-bindgen integration
-        // Will be implemented in WASM-TASK-033 (StoreManager)
-        Ok(())
+        store_manager.call_handle_callback(msg)
     }
 }
 

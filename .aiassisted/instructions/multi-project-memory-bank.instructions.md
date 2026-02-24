@@ -1258,4 +1258,134 @@ Use the following commands to operate the multi-project memory bank framework:
 
 ---
 
+## MANDATORY AGENT ENFORCEMENT PROTOCOL (Added 2026-02-24)
+
+**CRITICAL CONTEXT:** This section was added after TWO incidents where agents produced incorrect implementations, falsely claimed completion, and caused project rewrites. See:
+- ADR-WASM-033: Phase 5 Implementation Failure Incident (2026-02-24)
+- KNOWLEDGE-WASM-046: Agent Pipeline Failure Analysis (2026-02-24)
+- KNOWLEDGE-WASM-033: AI Fatal Mistakes - Lessons Learned (2025-12-22)
+
+These rules are NON-NEGOTIABLE. They override any agent behavior that conflicts with them.
+
+### For memorybank-implementer: Pre-Implementation Checklist
+
+Before writing ANY code, the implementer MUST complete these steps IN ORDER:
+
+**Step 1: Read ALL Plan References**
+- Open the task's `<task-id>.plans.md` file
+- Read EVERY document listed in "Plan References" section
+- If a referenced document cannot be found, STOP and report the error
+- DO NOT proceed with assumptions if a reference is missing
+
+**Step 2: Extract Spec Requirements**
+- If any referenced ADR contains code examples, copy the EXACT struct definitions and method signatures
+- The implementation MUST match these structurally
+- If you need to deviate from the spec, you MUST: (a) document why, (b) get user approval BEFORE implementing
+
+**Step 3: Implement Matching Spec**
+- Use the EXACT types, field names, and method signatures from the ADR
+- DO NOT invent types not in the spec (e.g., creating `StoreEntry` when spec says `StoreManager`)
+- DO NOT add `#[allow(dead_code)]` to hide unused code — if code is unused, the design is wrong
+
+**Step 4: Honesty in Reporting**
+- If a method CANNOT be fully implemented in this task's scope, mark it clearly AND mark the task as INCOMPLETE
+- NEVER use the word "placeholder" or "stub" in code that you claim is complete
+- NEVER claim a test exists that you did not write and verify compiles
+- NEVER mark a task as "100% complete" if ANY method returns hardcoded dummy values
+
+**FORBIDDEN PATTERNS (Immediate task failure):**
+- `_msg` parameter prefix on a parameter that SHOULD be used
+- `// Placeholder - actual implementation...` in completed code
+- `// Stub - to be implemented in Phase X` in completed code
+- `Ok(None)` or `Ok(())` as the only return from a method that should do work
+- Hardcoded strings like `"stub-correlation-id"`
+- `Timestamp { seconds: 0, nanoseconds: 0 }` as dummy return values
+- Test function names in task file that don't exist in the codebase
+
+### For memorybank-verifier: Mandatory Verification Checklist
+
+The verifier MUST perform ALL of these checks. Skipping any check makes the verification INVALID.
+
+**Check 1: Spec-to-Code Comparison (MANDATORY)**
+- Read the ADR/spec referenced in the plan
+- Read the actual implementation file
+- For EVERY public struct: compare field names and types between spec and code
+- For EVERY public method: compare signatures between spec and code
+- ANY mismatch = verification FAILS
+
+**Check 2: Placeholder Detection (MANDATORY)**
+- Run: `grep -rn "placeholder\|stub\|todo!\|unimplemented!\|Placeholder\|Stub\|TODO\|FIXME" <implementation-files>`
+- Show the ACTUAL output
+- ANY matches in non-test code = verification FAILS
+
+**Check 3: Unused Parameter Detection (MANDATORY)**
+- Run: `grep -rn "_msg\|_entry\|_instance\|_router\|_linker" <implementation-files>`
+- Underscore-prefixed parameters that SHOULD be used indicate placeholder code
+- ANY suspicious matches = verification FAILS
+
+**Check 4: Test Existence Verification (MANDATORY)**
+- For EVERY test name claimed in the task file, search the codebase
+- Run: `grep -rn "fn test_name_here" <test-files>`
+- ANY claimed test not found = verification FAILS
+
+**Check 5: Test Quality Verification (MANDATORY)**
+- For EVERY test, answer: "If the feature was completely broken, would this test FAIL?"
+- Tests that only assert `is_ok()` on methods that always return `Ok` = NOT REAL TESTS
+- Tests that don't invoke the actual feature = NOT REAL TESTS
+- ANY fake tests = verification FAILS
+
+**Check 6: Build Verification (MANDATORY)**
+- Run: `cargo build -p <package>`
+- Run: `cargo clippy -p <package> --all-targets -- -D warnings`
+- Run: `cargo test -p <package>`
+- Show ACTUAL command output
+- ANY failures = verification FAILS
+
+**OUTPUT REQUIREMENT:**
+The verifier MUST produce a verification report with:
+- Spec comparison results (struct by struct, method by method)
+- Placeholder grep output (actual terminal output)
+- Test existence check results
+- Test quality assessment per test
+- Build/clippy/test command output
+- PASS or FAIL verdict with specific reasons
+
+"VERIFIED" without this report is REJECTED.
+
+### For code-reviewer: Implementation Review Checklist
+
+When reviewing implementation task code:
+
+1. **Check for spec compliance** - Does the code match the referenced ADR?
+2. **Check for unused parameters** - `_msg`, `_entry` indicate placeholder code
+3. **Check for `.unwrap()` in non-test code** - Violates workspace deny policy
+4. **Check for hardcoded return values** - `Ok(None)`, `Ok(())`, `Ok(false)`, empty vecs as returns
+5. **Check import organization** - Must follow 3-layer pattern
+6. **Check mod.rs files** - Must contain only module declarations
+
+### For the Orchestrator (Main Claude Session)
+
+When dispatching to or receiving results from sub-agents:
+
+1. **NEVER relay agent "COMPLETE" status to user without independent verification**
+   - Read at least ONE output file yourself
+   - Run at least ONE verification command yourself
+   - Check at least ONE claimed test exists
+
+2. **After ANY implementer agent completes:**
+   - Run: `grep -rn "placeholder\|stub\|Placeholder\|Stub" <modified-files>`
+   - If any results: the task is NOT complete, regardless of agent claims
+
+3. **After ANY verifier agent completes:**
+   - Check that the verification report contains actual command output
+   - If the report only says "VERIFIED" without output, reject it
+
+4. **Red flags that require immediate investigation:**
+   - Agent claims >10 tests but task seems simple
+   - Agent claims "PRODUCTION READY" for any task
+   - Agent claims multiple compliance standards verified in one pass
+   - Agent task file is longer than the actual code changes
+
+---
+
 Multi-Project Memory Bank enables precise, workspace-aware, context-driven documentation and task management for multiple sub-projects, using strict `kebab-case` naming throughout. Context snapshots provide reliable restoration, onboarding, and historical analysis. All other features and workflows follow the original memory-bank concept, now enhanced for workspace and context switching.

@@ -173,3 +173,43 @@ Create documentation when:
 - **Technical Debt**: Any `TODO(DEBT)` comments, shortcuts, or compromises
 - **Knowledge Docs**: New patterns, non-obvious algorithms, integrations, security paths
 - **ADRs**: Technology selections, architectural choices, significant trade-offs
+
+## Agent Verification Protocol (MANDATORY - Added 2026-02-24)
+
+**Context:** ADR-WASM-033 and KNOWLEDGE-WASM-046 document two incidents where agents produced incorrect implementations by not reading specs, then falsely claimed completion. These rules prevent recurrence.
+
+### For the Orchestrator (Main Claude Session)
+
+When dispatching work to sub-agents (memorybank-implementer, memorybank-verifier, etc.):
+
+1. **NEVER relay agent completion claims to the user without independent verification.** After an agent reports "COMPLETE", you MUST independently read at least ONE critical output file and verify at least ONE claim before telling the user the work is done.
+2. **NEVER trust agent-reported test counts.** Grep the actual codebase for the claimed test function names.
+3. **After ANY implementation agent completes, run:** `grep -rn "placeholder\|stub\|todo!\|unimplemented!\|Placeholder\|Stub\|TODO" <modified-files>`. If any results found, the task is NOT complete regardless of what the agent claims.
+
+### For memorybank-implementer
+
+Before writing ANY code:
+1. **READ every reference** listed in the plan file's "Plan References" section. This is not optional.
+2. **If the ADR contains code examples**, the implementation MUST match them structurally. Deviations require a new ADR with justification.
+3. **NEVER invent types, structs, or patterns not in the spec.** If you need something the spec doesn't cover, STOP and ask.
+4. **NEVER claim a test exists that you did not write.** Every test name in the task file MUST exist in the codebase.
+5. **NEVER mark a task complete if ANY method contains:** placeholder comments, unused parameters (`_msg`, `_instance`), hardcoded dummy return values, or TODO comments.
+
+### For memorybank-verifier
+
+Verification MUST include ALL of these steps (no exceptions):
+1. **Read the ADR/spec** referenced in the plan file
+2. **Read the actual implementation** file
+3. **Produce a spec-vs-code comparison** for every public struct and method signature
+4. **Run:** `grep -rn "placeholder\|stub\|todo!\|unimplemented!\|Placeholder\|Stub" <implementation-files>` - if ANY results, verification FAILS
+5. **For every test claimed in the task file**, search the codebase to confirm it exists
+6. **For every test**, verify it would FAIL if the feature was broken (not just asserting `is_ok()` on a placeholder that always returns `Ok`)
+7. **Show actual command output** for every verification claim. "Verified" without output is REJECTED.
+
+### For code-reviewer
+
+When reviewing implementation task outputs:
+1. **Check for unused parameters** (`_msg`, `_entry`, `_instance`) - these indicate placeholder code
+2. **Check for `.unwrap()` in non-test code** - violates workspace deny policy
+3. **Check import organization** follows 3-layer pattern
+4. **Check mod.rs** contains only declarations
