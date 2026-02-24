@@ -1,7 +1,7 @@
 //! Integration tests for WasmtimeEngine.
 //!
 //! Tests end-to-end component lifecycle and interaction with foundation types
-//! using REAL WASM Component Model binaries (not placeholders).
+//! using REAL WASM Component Model binaries with component-lifecycle exports.
 
 // Layer 1: Standard library imports
 use std::path::Path;
@@ -17,7 +17,7 @@ use airssys_wasm::core::runtime::errors::WasmError;
 use airssys_wasm::core::runtime::traits::RuntimeEngine;
 use airssys_wasm::runtime::engine::{HostState, WasmtimeEngine};
 
-/// Load a real WASM component binary from fixtures
+/// Load a real WASM component binary from fixtures.
 fn load_fixture_wasm(name: &str) -> Vec<u8> {
     let fixture_path = Path::new("tests/fixtures")
         .join(name)
@@ -27,15 +27,22 @@ fn load_fixture_wasm(name: &str) -> Vec<u8> {
         .unwrap_or_else(|_| panic!("Failed to read fixture: {}", fixture_path.display()))
 }
 
+fn create_test_message_with_payload(data: Vec<u8>) -> ComponentMessage {
+    let sender = ComponentId::new("test", "sender", "0");
+    let payload = MessagePayload::new(data);
+    let metadata = MessageMetadata::default();
+    ComponentMessage::new(sender, payload, metadata)
+}
+
 #[test]
 fn test_load_real_wasm_component_success() {
-    // Integration test: Load a REAL, valid WASM component
+    // Integration test: Load a REAL, valid WASM component with exports
     let engine = WasmtimeEngine::new().expect("Engine creation should succeed");
 
-    let component_id = ComponentId::new("test-org", "test-comp", "0.1.0");
+    let component_id = ComponentId::new("test-org", "echo", "0.1.0");
 
-    // Load REAL WASM component from fixtures
-    let wasm_bytes = load_fixture_wasm("minimal-component");
+    // Load REAL WASM component from fixtures (echo.wasm has component-lifecycle exports)
+    let wasm_bytes = load_fixture_wasm("echo");
 
     // Load component with REAL WASM binary
     let handle = engine.load_component(&component_id, &wasm_bytes);
@@ -43,7 +50,8 @@ fn test_load_real_wasm_component_success() {
     // Should succeed with valid WASM component
     assert!(
         handle.is_ok(),
-        "Valid WASM component should load successfully"
+        "Valid WASM component should load successfully: {:?}",
+        handle.err()
     );
 
     let handle = handle.unwrap();
@@ -73,18 +81,18 @@ fn test_multiple_real_components_simultaneous() {
     // Integration test: Load multiple REAL WASM components simultaneously
     let engine = WasmtimeEngine::new().expect("Engine creation should succeed");
 
-    let component_id_1 = ComponentId::new("org1", "comp1", "1.0.0");
-    let component_id_2 = ComponentId::new("org2", "comp2", "1.0.0");
+    let component_id_1 = ComponentId::new("org1", "echo", "1.0.0");
+    let component_id_2 = ComponentId::new("org2", "echo", "1.0.0");
 
     // Load REAL WASM component twice
-    let wasm_bytes = load_fixture_wasm("minimal-component");
+    let wasm_bytes = load_fixture_wasm("echo");
 
     let handle_1 = engine.load_component(&component_id_1, &wasm_bytes);
     let handle_2 = engine.load_component(&component_id_2, &wasm_bytes);
 
     // Both should succeed with same component binary
-    assert!(handle_1.is_ok());
-    assert!(handle_2.is_ok());
+    assert!(handle_1.is_ok(), "First load failed: {:?}", handle_1.err());
+    assert!(handle_2.is_ok(), "Second load failed: {:?}", handle_2.err());
 
     let handle_1 = handle_1.unwrap();
     let handle_2 = handle_2.unwrap();
@@ -95,13 +103,13 @@ fn test_multiple_real_components_simultaneous() {
 
 #[test]
 fn test_component_lifecycle_real_wasm() {
-    // Integration test: Complete lifecycle with REAL WASM (load → verify → unload)
+    // Integration test: Complete lifecycle with REAL WASM (load -> dispatch -> unload)
     let engine = WasmtimeEngine::new().expect("Engine creation should succeed");
 
-    let component_id = ComponentId::new("test-org", "lifecycle-test", "1.0.0");
+    let component_id = ComponentId::new("test-org", "echo", "1.0.0");
 
     // Load REAL WASM component
-    let wasm_bytes = load_fixture_wasm("minimal-component");
+    let wasm_bytes = load_fixture_wasm("echo");
     let handle = engine
         .load_component(&component_id, &wasm_bytes)
         .expect("Component should load");
@@ -110,6 +118,14 @@ fn test_component_lifecycle_real_wasm() {
     assert_eq!(handle.id(), &component_id);
     assert!(handle.handle_id() > 0);
 
+    // Dispatch a message (real WASM execution)
+    let msg = create_test_message_with_payload(vec![1, 2, 3]);
+    let result = engine.call_handle_message(&handle, &msg);
+    assert!(result.is_ok(), "Message dispatch failed: {:?}", result);
+    let payload = result.unwrap();
+    assert!(payload.is_some(), "echo.wasm should return payload");
+    assert_eq!(payload.unwrap().as_bytes(), &[1, 2, 3]);
+
     // Unload component
     let unload_result = engine.unload_component(&handle);
     assert!(unload_result.is_ok());
@@ -117,7 +133,7 @@ fn test_component_lifecycle_real_wasm() {
 
 #[test]
 fn test_handle_persistence_with_real_wasm() {
-    // Integration test: ComponentHandle correctly stores IDs with REAL WASM
+    // Integration test: ComponentHandle correctly stores IDs
     let component_id = ComponentId::new("test-org", "test-comp", "1.0.0");
     let handle = ComponentHandle::new(component_id.clone(), 12345);
 
@@ -127,7 +143,7 @@ fn test_handle_persistence_with_real_wasm() {
 
 #[test]
 fn test_error_propagation_from_real_wasmtime() {
-    // Integration test: Error propagation with REAL WASM and invalid data
+    // Integration test: Error propagation with invalid WASM data
     let engine = WasmtimeEngine::new().expect("Engine creation should succeed");
 
     let component_id = ComponentId::new("test", "corrupted", "0");
@@ -179,7 +195,7 @@ fn test_engine_linker_mutability() {
     // Integration test: Linker can be mutated for host function registration
     let mut engine = WasmtimeEngine::new().expect("Engine creation should succeed");
 
-    // Test that linker_mut() works (actual host function registration is WASM-TASK-034)
+    // Test that linker_mut() works
     let _linker = engine.linker_mut();
 
     // Should not panic or return null
@@ -207,11 +223,11 @@ fn test_real_wasm_component_reusability() {
     // Integration test: Same WASM binary can be loaded multiple times
     let engine = WasmtimeEngine::new().expect("Engine creation should succeed");
 
-    let component_id_1 = ComponentId::new("org", "comp", "1.0.0");
-    let component_id_2 = ComponentId::new("org", "comp", "1.0.0");
+    let component_id_1 = ComponentId::new("org", "echo", "1.0.0");
+    let component_id_2 = ComponentId::new("org", "echo", "2.0.0");
 
-    // Load REAL WASM component twice with same ID
-    let wasm_bytes = load_fixture_wasm("minimal-component");
+    // Load REAL WASM component twice with different IDs
+    let wasm_bytes = load_fixture_wasm("echo");
 
     let handle_1 = engine
         .load_component(&component_id_1, &wasm_bytes)
@@ -224,4 +240,47 @@ fn test_real_wasm_component_reusability() {
 
     // Both should succeed with different handle IDs
     assert_ne!(handle_1.handle_id(), handle_2.handle_id());
+}
+
+#[test]
+fn test_call_message_component_not_found() {
+    // Integration test: Calling message on non-existent component returns error
+    let engine = WasmtimeEngine::new().expect("Engine creation should succeed");
+    let component_id = ComponentId::new("test", "comp", "0");
+    let handle = ComponentHandle::new(component_id.clone(), 999);
+
+    let msg = create_test_message_with_payload(vec![]);
+
+    let result = engine.call_handle_message(&handle, &msg);
+    assert!(matches!(result, Err(WasmError::ComponentNotFound(_))));
+}
+
+#[test]
+fn test_echo_dispatch_through_engine() {
+    // Integration test: Full dispatch chain through engine -> store -> WASM
+    let engine = WasmtimeEngine::new().expect("Engine creation should succeed");
+
+    let component_id = ComponentId::new("test", "echo", "0");
+    let wasm_bytes = load_fixture_wasm("echo");
+
+    let handle = engine
+        .load_component(&component_id, &wasm_bytes)
+        .expect("Echo component should load");
+
+    // Send a message with known payload
+    let msg = create_test_message_with_payload(vec![100, 200]);
+    let result = engine.call_handle_message(&handle, &msg);
+
+    assert!(
+        result.is_ok(),
+        "Echo dispatch via engine failed: {:?}",
+        result
+    );
+    let payload = result.unwrap();
+    assert!(payload.is_some(), "echo.wasm should return Some(payload)");
+    assert_eq!(
+        payload.unwrap().as_bytes(),
+        &[100, 200],
+        "echo.wasm should echo the exact payload"
+    );
 }

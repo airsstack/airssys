@@ -115,9 +115,22 @@ impl RuntimeEngine for WasmtimeEngine {
         let mut store = Store::new(&self.engine, host_state);
         store.limiter(|state| &mut state.store_limits);
 
-        let handle_id = self.allocate_handle_id();
+        // Add fuel for WASM execution (consume_fuel is enabled in engine config).
+        // Default fuel budget allows substantial execution; future phases will
+        // make this configurable via ResourceLimits.
+        store
+            .set_fuel(1_000_000)
+            .map_err(|e| WasmError::RuntimeError(e.to_string()))?;
 
-        let store_manager = StoreManager::new(store, component);
+        let mut store_manager = StoreManager::new(store, component);
+
+        // Bridge async initialize from sync context.
+        // async_support(true) requires async instantiation (KNOWLEDGE-WASM-048).
+        // Per ADR-WASM-034 Decision 2, use futures::executor::block_on() to
+        // bridge from the synchronous RuntimeEngine trait.
+        futures::executor::block_on(store_manager.initialize(&self.linker))?;
+
+        let handle_id = self.allocate_handle_id();
 
         {
             let mut stores = self.stores.write().unwrap();
@@ -140,9 +153,9 @@ impl RuntimeEngine for WasmtimeEngine {
     ) -> Result<Option<MessagePayload>, WasmError> {
         let mut stores = self.stores.write().unwrap();
 
-        let store_manager = stores.get_mut(&handle.handle_id()).ok_or_else(|| {
-            WasmError::ComponentNotFound(handle.id().to_string())
-        })?;
+        let store_manager = stores
+            .get_mut(&handle.handle_id())
+            .ok_or_else(|| WasmError::ComponentNotFound(handle.id().to_string()))?;
 
         store_manager.call_handle_message(msg)
     }
@@ -154,9 +167,9 @@ impl RuntimeEngine for WasmtimeEngine {
     ) -> Result<(), WasmError> {
         let mut stores = self.stores.write().unwrap();
 
-        let store_manager = stores.get_mut(&handle.handle_id()).ok_or_else(|| {
-            WasmError::ComponentNotFound(handle.id().to_string())
-        })?;
+        let store_manager = stores
+            .get_mut(&handle.handle_id())
+            .ok_or_else(|| WasmError::ComponentNotFound(handle.id().to_string()))?;
 
         store_manager.call_handle_callback(msg)
     }

@@ -141,6 +141,12 @@
 wasmtime::component::bindgen!({
     world: "runtime-host",
     path: "wit/core",
+    async: {
+        // Only export calls need async (imports stay sync).
+        // With async_support(true) in the engine config, wasmtime
+        // requires call_async for all function calls.
+        only_imports: [],
+    },
 });
 
 // Layer 0: Foundation types and abstractions
